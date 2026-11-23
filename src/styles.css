@@ -1688,3 +1688,7 @@ button{touch-action:manipulation}
 .position-card small{font-family:Sora,Manrope,sans-serif;font-size:11px;font-weight:600}
 .position-single{grid-column:1/-1;min-height:94px}
 @media(max-width:520px){.position-grid{gap:10px}.position-card{min-height:112px;padding:15px}.position-single{min-height:88px}.position-card .wing-title{font-size:14px}}
+
+.photo-file-input{display:none!important}
+.photo-edit-button{margin-top:8px;min-width:min(280px,100%);background:linear-gradient(120deg,#66758c,#303d51);border:1px solid rgba(220,230,245,.35);box-shadow:0 10px 25px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.22)}
+.photo-edit-button:hover{background:linear-gradient(120deg,#8292aa,#3c4d65)}
