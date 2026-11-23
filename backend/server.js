@@ -21,7 +21,6 @@ app.use(cors({origin:(process.env.APP_ORIGIN||'http://localhost:5173').split(','
 app.use(express.json({limit:'1mb'}));
 const authLimiter=rateLimit({windowMs:15*60*1000,limit:12,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Anmeldeversuche. Bitte später erneut versuchen.'}});
 app.use('/api/auth',authLimiter);
-
 async function bootstrapAdmin(){
   if(!db||!adminInitialPassword) return;
   if(adminInitialPassword.length<8){console.error('ADMIN_INITIAL_PASSWORD must contain at least 8 chars.');return;}
@@ -39,11 +38,8 @@ async function bootstrapAdmin(){
   if(profileError) throw profileError;
   console.log('Admin bootstrap verified. Change the initial password after first login.');
 }
-
-function signToken(user){return jwt.sign({sub:user.id,username:user.username,role:user.role,approved:user.approved},JWT_SECRET,{expiresIn:'8h',issuer:'myScoutingDatabase'});}
 function requireAuth(req,res,next){const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});try{req.user=jwt.verify(token,JWT_SECRET,{issuer:'myScoutingDatabase'});if(!req.user.approved)return res.status(403).json({error:'Konto noch nicht freigeschaltet.'});next();}catch{return res.status(401).json({error:'Sitzung abgelaufen. Bitte erneut anmelden.'});}}
 function requireAdmin(req,res,next){if(req.user?.role!=='admin')return res.status(403).json({error:'Admin-Rechte erforderlich.'});next();}
-
 app.get('/api/health',(_req,res)=>res.json({ok:true,service:'myScoutingDatabase',database:!!db}));
 app.post('/api/auth/login',async(req,res)=>{
   try{
@@ -52,8 +48,6 @@ app.post('/api/auth/login',async(req,res)=>{
     if(typeof username!=='string'||typeof password!=='string'||!username||!password)return res.status(400).json({error:'Benutzername und Passwort erforderlich.'});
     const {data:profile,error:pErr}=await db.from('profiles').select('*').ilike('username',username.trim()).maybeSingle();
     if(pErr||!profile)return res.status(401).json({error:'Benutzername oder Passwort ist nicht korrekt.'});
-    const {data:authUser,error:aErr}=await db.auth.admin.getUserById(profile.id);
-    if(aErr||!authUser?.user)return res.status(401).json({error:'Benutzername oder Passwort ist nicht korrekt.'});
     const signIn=await db.auth.signInWithPassword({email:profile.email,password});
     if(signIn.error)return res.status(401).json({error:'Benutzername oder Passwort ist nicht korrekt.'});
     if(!profile.approved)return res.status(403).json({error:'Dein Zugang ist noch nicht vom Administrator freigeschaltet.'});
@@ -72,9 +66,8 @@ app.post('/api/auth/register',async(req,res)=>{
     const {count,error:cErr}=await db.from('profiles').select('*',{count:'exact',head:true}).eq('role','scout');
     if(cErr)throw cErr;
     if(count>=15)return res.status(409).json({error:'Die maximale Anzahl von 15 Scout-Konten ist erreicht.'});
-    const {data,error}=await db.auth.admin.createUser({email:email.trim().toLowerCase(),password,email_confirm:true,user_metadata:{username:username.trim()}});
+    const {error}=await db.auth.admin.createUser({email:email.trim().toLowerCase(),password,email_confirm:true,user_metadata:{username:username.trim()}});
     if(error)throw error;
-    // The auth.users trigger creates the pending scout profile atomically.
     res.status(201).json({ok:true,message:'Registrierung eingegangen. Der Administrator muss dein Scout-Konto freischalten.'});
   }catch(e){const msg=String(e.message||'');res.status(msg.includes('duplicate')||msg.includes('already')?409:500).json({error:msg.includes('duplicate')||msg.includes('already')?'Benutzername oder E-Mail ist bereits vergeben.':'Registrierung konnte nicht abgeschlossen werden.'});}
 });
@@ -86,5 +79,5 @@ app.post('/api/players',requireAuth,async(req,res)=>{const body=req.body||{};con
 app.patch('/api/players/:id',requireAuth,async(req,res)=>{const payload={...req.body};delete payload.player_id;delete payload.owner_id;let q=db.from('players').update(payload).eq('player_id',Number(req.params.id)).select('*').maybeSingle();if(req.user.role!=='admin')q=q.eq('owner_id',req.user.sub);const {data,error}=await q;if(error||!data)return res.status(404).json({error:'Spieler nicht gefunden oder kein Zugriff.'});res.json(data);});
 app.delete('/api/players/:id',requireAuth,async(req,res)=>{let q=db.from('players').delete().eq('player_id',Number(req.params.id));if(req.user.role!=='admin')q=q.eq('owner_id',req.user.sub);const {data,error}=await q.select('player_id').maybeSingle();if(error||!data)return res.status(404).json({error:'Spieler nicht gefunden oder kein Zugriff.'});res.json({ok:true,player_id:data.player_id});});
 app.use(express.static('dist',{maxAge:'1h'}));
-app.get('*',(req,res,next)=>{if(req.path.startsWith('/api/'))return next();res.sendFile(process.cwd()+'/dist/index.html');});
+app.get(/^(?!\/api\/).*/,(_req,res)=>res.sendFile(process.cwd()+'/dist/index.html'));
 app.listen(PORT,async()=>{console.log(`myScoutingDatabase API listening on ${PORT}`);try{await bootstrapAdmin();}catch(e){console.error('Admin bootstrap failed:',e.message);}});
