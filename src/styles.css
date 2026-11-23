@@ -1674,3 +1674,9 @@ button{touch-action:manipulation}
 .rating-legend{color:#9eafca;font-size:11px;line-height:1.6}
 @media(max-width:700px){.detail-ratings{grid-template-columns:1fr}.player-facts-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overall-panel{padding:17px}.silver-player-card{min-height:310px}}
 @media(max-width:380px){.player-facts-grid{grid-template-columns:1fr}.overall-heading{align-items:start;flex-direction:column}.overall-scale{font-size:8px}}
+
+.player-row-clickable{cursor:pointer}
+.player-row-clickable:hover{background:rgba(76,126,205,.16)!important}
+.player-row-clickable:focus-visible{outline:2px solid #83b4ff;outline-offset:-2px}
+.player-row-clickable td{cursor:pointer}
+.player-row-clickable td:last-child button{position:relative;z-index:1}
