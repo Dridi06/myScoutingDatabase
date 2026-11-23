@@ -21,8 +21,9 @@ const db=supabaseUrl&&serviceKey?createClient(supabaseUrl,serviceKey,{auth:{auto
 async function diagnoseSupabase(){
   if(!supabaseUrl||!serviceKey)return;
   try{
-    const response=await fetch(`${supabaseUrl}/rest/v1/`,{headers:{apikey:serviceKey,'User-Agent':'myscoutingdatabase-server/1.0'}});
-    console.log(`SUPABASE CHECK: Data API returned HTTP ${response.status}.`);
+    const response=await fetch(`${supabaseUrl}/rest/v1/`,{headers:{apikey:serviceKey,Authorization:`Bearer ${serviceKey}`,'User-Agent':'myscoutingdatabase-server/1.0'}});
+    const detail=(await response.text()).slice(0,300).replace(/[\\r\\n]+/g,' ');
+    console.log(`SUPABASE CHECK: Data API returned HTTP ${response.status}; response: ${detail}`);
   }catch(e){console.error('SUPABASE CHECK: Data API request failed:',e.message);}
 }
 app.use(helmet({crossOriginResourcePolicy:{policy:'cross-origin'}}));
