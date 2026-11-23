@@ -1012,3 +1012,23 @@ td button{background:linear-gradient(110deg,#d91c36,#791326)}
  }
  .auth-minimal .nexus-brand-title:after{width:90px;margin-top:10px}
 }
+
+/* Explicitly enforce the non-script wordmark on every screen size */
+.auth-minimal .nexus-brand-modern{
+  font-family:'Sora','Manrope',Arial,sans-serif !important;
+  font-style:normal !important;
+  font-weight:700 !important;
+  letter-spacing:-.065em !important;
+  text-transform:none !important;
+  font-variant:normal !important;
+  font-feature-settings:normal !important;
+  background:linear-gradient(180deg,#ffffff 0%,#dce5f3 24%,#9eafc8 49%,#f9fbff 64%,#8da2c2 84%,#e4ebf5 100%) !important;
+  -webkit-background-clip:text !important;
+  background-clip:text !important;
+  -webkit-text-fill-color:transparent !important;
+  filter:drop-shadow(0 2px 1px rgba(255,255,255,.18)) drop-shadow(0 5px 15px rgba(84,133,222,.34)) !important;
+}
+.auth-minimal .nexus-brand-modern:after{
+  background:linear-gradient(90deg,transparent,#7898ce 20%,#fff 50%,#8ca8d4 80%,transparent) !important;
+  box-shadow:0 0 12px rgba(139,174,231,.5) !important;
+}
