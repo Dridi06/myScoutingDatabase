@@ -1762,3 +1762,15 @@ button{touch-action:manipulation}
  .overall-track{border:1px solid #888!important}
  .detail-ratings{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
+
+
+/* Clean, consistent position checkbox layout in player create/edit form */
+.position-field{display:flex;flex-direction:column;gap:10px;min-width:0;margin:4px 0 20px}
+.position-field-title{display:block;color:#dce6f5;font-size:13px;font-weight:800;line-height:1.35;letter-spacing:.02em}
+.position-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:9px;min-width:0}
+.form .position-checks label{display:flex;align-items:center;justify-content:flex-start;gap:10px;min-width:0;min-height:46px;margin:0;padding:10px 13px;white-space:normal;line-height:1.35;text-align:left;color:#e3eaf5;background:linear-gradient(120deg,rgba(35,54,84,.76),rgba(13,22,37,.88));border:1px solid rgba(141,169,215,.2);border-radius:10px}
+.form .position-checks label span{display:block;min-width:0;overflow-wrap:anywhere}
+.form .position-checks input{display:block;flex:0 0 17px;width:17px;height:17px;margin:0;accent-color:#ff263f}
+.form .position-checks label:has(input:checked){border-color:rgba(255,65,88,.55);background:linear-gradient(120deg,rgba(91,28,42,.7),rgba(35,17,25,.92));box-shadow:inset 0 0 0 1px rgba(255,65,88,.12)}
+@media(max-width:480px){.position-checks{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.form .position-checks label{min-height:44px;padding:9px 10px;font-size:12px;gap:8px}}
+@media(max-width:340px){.position-checks{grid-template-columns:minmax(0,1fr)}}
