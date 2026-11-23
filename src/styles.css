@@ -45,3 +45,117 @@
 .auth-foot{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid rgba(147,165,196,.16);color:#7f8ca2;font-size:8px;font-weight:900;letter-spacing:.1em}
 .auth-foot span+span{border-left:1px solid rgba(255,53,77,.42);padding-left:12px}
 @media(max-width:620px){.brand-lockup{gap:10px}.brand-lockup .brand-mark{width:68px;height:78px}.brand-name{font-size:26px}.brand-subtitle{font-size:7px;letter-spacing:.15em}.auth-card{padding:25px 21px}.stadium-ball{width:58px;height:58px;left:3%;bottom:8%}.pitch-goal{width:75px;height:48px;right:3%;bottom:18%}.auth-foot{gap:7px;font-size:7px}.auth-foot span+span{padding-left:7px}}
+
+
+/* PROJECT-WIDE VISUAL SYSTEM — myScoutingDatabase / RED STADIUM EDITION */
+:root{
+  color-scheme:dark;
+  --red:#ff263f;
+  --blue:#ff263f;
+  --muted:#a3aab5;
+  --line:rgba(191,198,211,.18);
+  --glass:rgba(15,17,23,.84);
+}
+body{
+  color:#f4f4f6;
+  background:
+    radial-gradient(ellipse at 50% -20%,rgba(255,35,59,.16),transparent 44%),
+    radial-gradient(ellipse at 100% 52%,rgba(255,35,59,.075),transparent 33%),
+    linear-gradient(135deg,#050609 0%,#101116 48%,#07080b 100%);
+}
+body:before{
+  opacity:.16;
+  background-image:repeating-linear-gradient(0deg,transparent 0 3px,rgba(255,255,255,.018) 4px),linear-gradient(115deg,transparent 0 48%,rgba(255,255,255,.035) 49%,transparent 50% 100%);
+}
+button{
+  background:linear-gradient(110deg,#ff263f 0%,#d30d2b 58%,#850b20 100%);
+  border-color:rgba(255,105,123,.46);
+  box-shadow:0 8px 25px rgba(255,24,55,.19),inset 0 1px 0 rgba(255,255,255,.28);
+}
+button:hover{box-shadow:0 12px 30px rgba(255,24,55,.27),inset 0 1px 0 rgba(255,255,255,.4)}
+.shell aside{
+  background:linear-gradient(180deg,rgba(15,16,21,.98),rgba(5,6,9,.99));
+  border-right-color:rgba(191,198,211,.15);
+}
+.shell aside:after{background:linear-gradient(180deg,transparent,rgba(255,38,63,.78),rgba(210,210,220,.28),transparent)}
+.shell aside>button.active,.shell aside>button:hover{
+  border-color:rgba(255,57,78,.25);
+  background:linear-gradient(100deg,rgba(255,35,60,.2),rgba(255,255,255,.035));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 8px 25px rgba(0,0,0,.2);
+}
+.shell aside>button.active:before{
+  background:linear-gradient(180deg,#ff263f,#ff9aa5);
+  box-shadow:0 0 13px rgba(255,38,63,.75);
+}
+.shell aside>button.active svg,.shell aside>button:hover svg{
+  color:#ff6577;
+  filter:drop-shadow(0 0 7px rgba(255,38,63,.55));
+}
+.shell main{background:radial-gradient(ellipse at 75% 0%,rgba(255,35,59,.055),transparent 38%)}
+header{border-bottom-color:rgba(191,198,211,.17)}
+header b{
+  color:#f5f5f7;
+  background:linear-gradient(120deg,rgba(255,255,255,.09),rgba(255,255,255,.025));
+  border-color:rgba(191,198,211,.22);
+}
+main h1,main h2,.ratings h3{color:#f5f5f7;text-shadow:0 2px 20px rgba(255,38,63,.1)}
+main h1:after,.auth h1:after,.ratings h3:after{
+  background:linear-gradient(90deg,#ff263f,#ff9ba7,#d5d7dc);
+  box-shadow:0 0 15px rgba(255,38,63,.4);
+}
+.stats article,.panel{
+  background:
+    radial-gradient(ellipse at 100% 0%,rgba(255,38,63,.075),transparent 48%),
+    linear-gradient(145deg,rgba(29,29,35,.94),rgba(10,11,15,.96));
+  border-color:rgba(188,193,205,.2);
+  box-shadow:0 15px 38px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.075);
+}
+.stats article:after{background:rgba(255,38,63,.12)}
+.stats strong{text-shadow:0 0 22px rgba(255,38,63,.16)}
+.stats article:nth-child(3n+1) strong{color:#ff6476}
+.stats article:nth-child(3n+2) strong{color:#e1e3e8}
+.stats article:nth-child(3n) strong{color:#ff9aa5}
+.auth input,.form input,.form select,.form textarea,.panel input,.search,
+.filter-row input,.filter-row select{
+  background:rgba(5,6,9,.78);
+  border-color:rgba(188,193,205,.25);
+}
+.auth input:focus,.form input:focus,.form select:focus,.form textarea:focus,.panel input:focus,.search:focus,.filter-row select:focus,.filter-row input:focus{
+  border-color:#ff5268;
+  box-shadow:0 0 0 3px rgba(255,38,63,.12),0 0 22px rgba(255,38,63,.13);
+}
+.auth-card{
+  border-color:rgba(255,57,78,.35);
+  background:linear-gradient(145deg,rgba(24,24,30,.94),rgba(7,8,12,.96));
+  box-shadow:0 35px 100px rgba(0,0,0,.68),0 0 55px rgba(255,20,48,.13),inset 0 1px 0 rgba(255,255,255,.12);
+}
+.auth-card form>button,.form>button{
+  background:linear-gradient(110deg,#ff263f,#c60827 58%,#87091f);
+  border-color:rgba(255,125,139,.5);
+  box-shadow:0 0 25px rgba(255,23,51,.22),inset 0 1px 0 rgba(255,255,255,.3);
+}
+.link{color:#ff8793}
+.auth-card .link{color:#ff8793}
+.auth-foot span+span{border-left-color:rgba(255,53,77,.48)}
+.notice{
+  background:linear-gradient(110deg,rgba(119,24,40,.34),rgba(255,255,255,.035));
+  border-color:rgba(255,83,103,.38);
+}
+.checks label,.pick{
+  background:linear-gradient(120deg,rgba(43,35,39,.86),rgba(17,17,21,.9));
+  border-color:rgba(188,193,205,.17);
+}
+.checks input{accent-color:#ff263f}
+th{color:#c0c3cb;background:rgba(255,255,255,.035)}
+th,td{border-bottom-color:rgba(188,193,205,.14)}
+tbody tr:hover{background:rgba(255,38,63,.075)}
+td button{background:linear-gradient(110deg,#d91c36,#791326)}
+.danger{background:linear-gradient(110deg,#ff263f,#8f0b22)}
+.ratings section{
+  background:linear-gradient(140deg,rgba(28,27,32,.96),rgba(9,10,14,.96));
+  border-color:rgba(188,193,205,.2);
+}
+.rating-grid select{background:#111116;color:#fff;border-color:#5c343c}
+.filter-row input,.filter-row select{color:#f5f5f7}
+.stadium-lines:before{box-shadow:0 -22px 55px rgba(255,255,255,.08),0 22px 65px rgba(255,23,51,.18)}
+@media(prefers-reduced-motion:reduce){.shell aside{transition:none}}
