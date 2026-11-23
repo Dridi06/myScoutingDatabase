@@ -59,6 +59,8 @@ function App(){
  const wingPlayers=useMemo(()=>players.filter(p=>p.foot===(wingSide==='RF'?'Rechtsfuß':'Linksfuß')).sort((a,b)=>{const dir=wingOrder==='asc'?1:-1;const av=wingSort==='year'?Number(a.year)||0:wingSort==='position'?(a.positions||[]).join(', '):(a.name||'').toLocaleLowerCase('de');const bv=wingSort==='year'?Number(b.year)||0:wingSort==='position'?(b.positions||[]).join(', '):(b.name||'').toLocaleLowerCase('de');return (av>bv?1:av<bv?-1:0)*dir}),[players,wingSide,wingSort,wingOrder]);
  const positionPlayers=useMemo(()=>players.filter(p=>(p.positions||[]).includes(selectedPosition)).sort((a,b)=>(a.name||'').localeCompare(b.name||'','de')),[players,selectedPosition]);
  const filtered=useMemo(()=>players.filter(p=>[p.name,p.club,p.year,p.foot,...(p.positions||[])].join(' ').toLowerCase().includes(search.toLowerCase())&&(!filters.year||String(p.year||'').includes(filters.year))&&(!filters.position||(p.positions||[]).includes(filters.position))&&(!filters.foot||p.foot===filters.foot)),[players,search,filters]);
+ const scoutLocked=profile?.role==='scout'&&profile?.approval_status!=='approved';
+ useEffect(()=>{if(scoutLocked){G('dashboard');DR(false)}},[scoutLocked]);
  if(!session)return <div className="auth auth-nexus auth-minimal">
   <main className="nexus-login-stage">
    <section className="nexus-login">
@@ -84,8 +86,6 @@ function App(){
    </section>
   </main>
  </div>;
- const scoutLocked=profile?.role==='scout'&&profile?.approval_status!=='approved';
- useEffect(()=>{if(scoutLocked){G('dashboard');DR(false)}},[scoutLocked]);
  const nav=scoutLocked?[]:[['dashboard','Dashboard',LayoutDashboard],['create','Spieler erstellen',UserPlus],['edit','Spieler bearbeiten',Pencil],['search','Datenbankabfrage',Search],['all','Gesamte Spielerdatenbank',Database],...(admin?[['scouts','Scout-Verwaltung',ShieldCheck],['deletion-log','Löschprotokoll',Database]]:[])];
  return <div className="shell"><aside className={drawer?'open':''}><div className="logo"><BrandMark/><div className="sidebar-brand"><span>myScouting</span><strong>Database</strong><small>PLAYER SCOUTING</small></div><button className="close" onClick={()=>DR(false)} aria-label="Menü schließen"><X/></button></div>{nav.map(([id,label,Icon])=><button className={page===id?'active':''} onClick={()=>{G(id);DR(false)}}><Icon size={18}/>{label}</button>)}<button className="logout" onClick={()=>sb.auth.signOut()}><LogOut/> Abmelden</button></aside><main><header><button className="menu" onClick={()=>DR(true)}><Menu/></button><span>WORKSPACE / {page.toUpperCase()}</span><b>{profile?.username}</b></header>{notice&&<p className="notice" onClick={()=>N('')}>{notice} ×</p>}
  {scoutLocked&&<section className="scout-lock-panel"><div className="scout-lock-icon"><ShieldCheck size={28}/></div><h1>{profile.approval_status==='blocked'?'Dein Scout-Konto ist gesperrt':'Dein Scout-Konto ist noch nicht freigeschaltet'}</h1><p>{profile.approval_status==='blocked'?'Der Administrator hat deinen Zugang gesperrt. Du kannst den Workspace erst nach erneuter Freischaltung nutzen.':'Deine Registrierung ist eingegangen. Der Administrator muss deinen Zugang erst freischalten.'}</p><small>Bis dahin ist der Workspace gesperrt. Du kannst dich jederzeit abmelden.</small></section>}
