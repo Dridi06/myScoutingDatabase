@@ -980,3 +980,35 @@ td button{background:linear-gradient(110deg,#d91c36,#791326)}
 @media(prefers-reduced-motion:reduce){
  .auth-minimal *, .auth-minimal *:before, .auth-minimal *:after{transition:none!important;animation:none!important}
 }
+
+/* Wordmark refinement: modern non-script titanium lettering */
+.auth-minimal .nexus-brand-title{
+  font-family:'Sora','Manrope',sans-serif;
+  font-size:clamp(27px,6.5vw,43px);
+  font-weight:700;
+  letter-spacing:-.075em;
+  line-height:1.12;
+  white-space:nowrap;
+  background:linear-gradient(180deg,#ffffff 0%,#e5ebf5 22%,#aab8ce 48%,#f8fbff 63%,#879bb9 82%,#dce5f3 100%);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 1px rgba(255,255,255,.13)) drop-shadow(0 5px 13px rgba(89,139,232,.3));
+  position:relative;
+  text-shadow:none;
+}
+.auth-minimal .nexus-brand-title:after{
+  width:112px;height:2px;margin:12px auto 0;
+  background:linear-gradient(90deg,transparent,#6e91cf 20%,#f7faff 50%,#8fa9d2 80%,transparent);
+  box-shadow:0 0 10px rgba(139,174,231,.45);
+}
+.auth-minimal .nexus-card h1:after{
+  background:linear-gradient(90deg,#3c70c7 0%,#8fa9d2 48%,#edf2fa 100%);
+  box-shadow:0 0 12px rgba(112,151,216,.28);
+}
+@media(max-width:480px){
+ .auth-minimal .nexus-brand-title{
+   font-size:clamp(25px,6.7vw,34px);
+   letter-spacing:-.075em;
+ }
+ .auth-minimal .nexus-brand-title:after{width:90px;margin-top:10px}
+}
