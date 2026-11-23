@@ -10,14 +10,21 @@ const app=express();
 const PORT=Number(process.env.PORT||3000);
 const JWT_SECRET=process.env.JWT_SECRET;
 const supabaseUrl=process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL;
-const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
+const serviceKey=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
 const adminUsername=process.env.ADMIN_USERNAME||'Admin';
 const adminInitialPassword=process.env.ADMIN_INITIAL_PASSWORD;
 if(!JWT_SECRET||JWT_SECRET.length<32) console.warn('WARNING: Set JWT_SECRET to a random value with at least 32 characters.');
 if(!supabaseUrl) console.error('CONFIG CHECK: SUPABASE_URL is missing or empty.');
 if(!serviceKey) console.error('CONFIG CHECK: SUPABASE_SERVICE_ROLE_KEY is missing or empty.');
-if(supabaseUrl&&serviceKey) console.log('CONFIG CHECK: Supabase server credentials are present.');
-const db=supabaseUrl&&serviceKey?createClient(supabaseUrl,serviceKey,{auth:{autoRefreshToken:false,persistSession:false}}):null;
+if(supabaseUrl&&serviceKey) console.log(`CONFIG CHECK: Supabase server credentials are present (key type: ${serviceKey.startsWith('sb_secret_')?'new secret key':serviceKey.startsWith('eyJ')?'legacy JWT key':'unknown'}).`);
+const db=supabaseUrl&&serviceKey?createClient(supabaseUrl,serviceKey,{auth:{autoRefreshToken:false,persistSession:false},global:{headers:{'X-Client-Info':'myscoutingdatabase-server'}}}):null;
+async function diagnoseSupabase(){
+  if(!supabaseUrl||!serviceKey)return;
+  try{
+    const response=await fetch(`${supabaseUrl}/rest/v1/`,{headers:{apikey:serviceKey,'User-Agent':'myscoutingdatabase-server/1.0'}});
+    console.log(`SUPABASE CHECK: Data API returned HTTP ${response.status}.`);
+  }catch(e){console.error('SUPABASE CHECK: Data API request failed:',e.message);}
+}
 app.use(helmet({crossOriginResourcePolicy:{policy:'cross-origin'}}));
 app.use(cors({origin:(process.env.APP_ORIGIN||'http://localhost:5173').split(',').map(x=>x.trim()),credentials:true}));
 app.use(express.json({limit:'1mb'}));
@@ -82,4 +89,4 @@ app.patch('/api/players/:id',requireAuth,async(req,res)=>{const payload={...req.
 app.delete('/api/players/:id',requireAuth,async(req,res)=>{let q=db.from('players').delete().eq('player_id',Number(req.params.id));if(req.user.role!=='admin')q=q.eq('owner_id',req.user.sub);const {data,error}=await q.select('player_id').maybeSingle();if(error||!data)return res.status(404).json({error:'Spieler nicht gefunden oder kein Zugriff.'});res.json({ok:true,player_id:data.player_id});});
 app.use(express.static('dist',{maxAge:'1h'}));
 app.get(/^(?!\/api\/).*/,(_req,res)=>res.sendFile(process.cwd()+'/dist/index.html'));
-app.listen(PORT,async()=>{console.log(`myScoutingDatabase API listening on ${PORT}`);try{await bootstrapAdmin();}catch(e){console.error('Admin bootstrap failed:',e.message);}});
+app.listen(PORT,async()=>{console.log(`myScoutingDatabase API listening on ${PORT}`);await diagnoseSupabase();try{await bootstrapAdmin();}catch(e){console.error('Admin bootstrap failed:',e.message);}});
