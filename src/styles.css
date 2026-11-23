@@ -1444,3 +1444,170 @@ input,select,textarea{min-height:44px}
 @media(prefers-reduced-motion:reduce){
   *,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
 }
+
+
+/* NEXUS responsive layout — fluid sizing across phone, tablet, laptop and desktop */
+:root{
+  --content-gutter:clamp(14px,3vw,42px);
+  --control-height:clamp(44px,4vw,50px);
+}
+*{min-width:0}
+html,body,#root{width:100%;min-height:100%;margin:0}
+body{overflow-x:hidden}
+img,svg,video,canvas{max-width:100%}
+button,input,select,textarea{max-width:100%}
+.shell{width:100%;min-height:100svh}
+.shell aside{width:clamp(244px,18vw,286px)}
+.shell main{
+  width:auto;
+  max-width:none;
+  min-width:0;
+  margin-left:clamp(244px,18vw,286px);
+  padding-inline:var(--content-gutter);
+}
+.shell main>*{max-width:100%}
+.shell main>h1,.shell main>h2{overflow-wrap:anywhere}
+.shell main>header{
+  position:sticky;
+  top:0;
+  z-index:4;
+  gap:12px;
+  min-width:0;
+  background:rgba(8,13,23,.88);
+  backdrop-filter:blur(16px);
+}
+.shell main>header>span{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.shell main>header>b{flex:0 0 auto;max-width:35%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stats{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));
+  align-items:stretch;
+}
+.stats article{min-width:0}
+.grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid>*{min-width:0}
+.form,.panel{min-width:0}
+.form input,.form select,.form textarea,.panel input,.filter-row input,.filter-row select{
+  min-width:0;
+  width:100%;
+  min-height:var(--control-height);
+}
+.form textarea{min-height:120px}
+.filter-row{width:100%;align-items:stretch}
+.filter-row>*{min-width:0;max-width:100%}
+.search{width:min(100%,620px);min-height:var(--control-height)}
+.checks{min-width:0}
+.checks label{max-width:100%;overflow-wrap:anywhere}
+.ratings,.ratings section,.rating-grid{min-width:0}
+.rating-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.rating-grid label{min-width:0;gap:8px}
+.rating-grid label select{flex:0 0 78px;min-width:0}
+.table{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-inline:contain;
+}
+.table table{width:100%;min-width:720px}
+.table td,.table th{white-space:normal;overflow-wrap:anywhere}
+.table td:last-child{white-space:nowrap}
+.nexus-login-stage{width:100%;min-width:0}
+.nexus-login{width:min(100%,440px);margin-inline:auto}
+.nexus-card{width:100%;min-width:0}
+.nexus-form,.nexus-form label{min-width:0}
+.nexus-form input{width:100%;min-width:0;min-height:var(--control-height)}
+.auth-nexus{min-height:100svh;min-height:100dvh;overflow-x:hidden}
+.auth-minimal .nexus-brand-title{max-width:100%;overflow-wrap:anywhere;text-align:center}
+button{touch-action:manipulation}
+@media(min-width:1500px){
+  .shell main{padding-inline:clamp(42px,4vw,76px)}
+  .stats{grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:20px}
+  .panel{padding:26px}
+  .form{gap:20px}
+}
+@media(max-width:1100px){
+  .shell aside{width:260px}
+  .shell main{margin-left:260px;padding-inline:24px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:950px){
+  .shell aside{width:min( min(86vw,320px), 320px);z-index:20}
+  .shell main{margin-left:0;width:100%;padding-inline:clamp(15px,3vw,26px)}
+  .shell main>header{top:0}
+  .menu{display:inline-flex;align-items:center;justify-content:center;flex:0 0 40px;width:40px;height:40px}
+  .shell aside.open{box-shadow:24px 0 80px rgba(0,0,0,.6)}
+}
+@media(max-width:700px){
+  :root{--content-gutter:16px}
+  .shell main{padding-inline:16px;padding-bottom:38px}
+  .shell main>header{height:64px;letter-spacing:.08em}
+  .shell main>header>span{font-size:8px}
+  .shell main>header>b{max-width:34%;padding:7px 10px;font-size:11px}
+  main h1{font-size:clamp(24px,6vw,30px);margin:25px 0 19px}
+  main h2{font-size:17px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .stats article{padding:15px}
+  .stats small{font-size:8px;letter-spacing:.07em;overflow-wrap:anywhere}
+  .stats strong{font-size:clamp(27px,7vw,34px)}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .form{padding:16px;gap:15px}
+  .filter-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .filter-row>*{width:100%;min-width:0}
+  .filter-row button{grid-column:1/-1}
+  .search{width:100%;max-width:none}
+  .panel{padding:16px}
+  .ratings section{padding:15px}
+  .rating-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .rating-grid label{font-size:11px}
+  .rating-grid label select{flex-basis:66px;max-width:72px;padding:8px}
+}
+@media(max-width:480px){
+  .shell main{padding-inline:13px}
+  .shell main>header{height:60px;gap:8px}
+  .shell main>header>span{font-size:7px;letter-spacing:.04em}
+  .shell main>header>b{font-size:10px;max-width:32%;padding:6px 8px}
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .form{padding:14px}
+  .stats{gap:8px}
+  .stats article{padding:12px}
+  .stats small{font-size:7px}
+  .stats strong{font-size:27px}
+  .rating-grid{grid-template-columns:minmax(0,1fr)}
+  .rating-grid label select{flex-basis:78px}
+  .filter-row{grid-template-columns:minmax(0,1fr)}
+  .filter-row button{grid-column:auto}
+  .checks{gap:7px}
+  .checks label{width:100%;padding:9px 10px}
+  .panel{padding:13px}
+  .table{padding:5px}
+  .auth-minimal .nexus-brand-title{font-size:clamp(24px,7.1vw,34px);letter-spacing:-.07em}
+  .auth-minimal .nexus-card{padding:25px 19px 21px}
+  .auth-minimal .nexus-card h1{font-size:24px}
+}
+@media(max-width:360px){
+  .shell main{padding-inline:10px}
+  .shell main>header>span{font-size:6px}
+  .shell main>header>b{font-size:9px;padding:5px 7px}
+  .stats{grid-template-columns:minmax(0,1fr)}
+  .stats article{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .stats strong{font-size:25px;margin:0}
+  .auth-minimal .nexus-card{padding:22px 15px}
+  .auth-minimal .nexus-brand-title{font-size:23px}
+}
+@media(orientation:landscape) and (max-height:520px) and (max-width:950px){
+  .auth-nexus{align-items:flex-start;padding-block:18px}
+  .auth-minimal .nexus-brand-title{margin-bottom:14px}
+  .auth-minimal .nexus-card{padding-block:20px}
+  .shell aside{overflow-y:auto}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
+}
