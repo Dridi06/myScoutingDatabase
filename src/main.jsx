@@ -46,7 +46,7 @@ function App(){
  if(!session)return <div className="auth auth-nexus auth-minimal">
   <main className="nexus-login-stage">
    <section className="nexus-login">
-    <div className="nexus-brand-title">MyScoutingDatabase</div>
+    <div className="nexus-brand-title nexus-brand-modern">MyScoutingDatabase</div>
     <div className="nexus-card">
      <h1>{authMode==='login'?'Anmelden':authMode==='register'?'Registrieren':authMode==='forgot'?'Passwort zurücksetzen':'Neues Passwort'}</h1>
      <p className="nexus-intro">{authMode==='login'?'Melde dich mit deinen Zugangsdaten an.':authMode==='register'?'Erstelle dein Scout-Konto. Die Freischaltung erfolgt durch den Administrator.':authMode==='forgot'?'Wir senden dir einen Link zum Zurücksetzen deines Passworts.':'Vergib ein neues Passwort für dein Konto.'}</p>
