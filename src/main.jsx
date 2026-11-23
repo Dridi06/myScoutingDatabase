@@ -13,7 +13,22 @@ const RATING_SECTIONS={
 };
 const POS=['AV re/li','IV re/li','6er','8er','10er','Flügel re/li','9er'];
 const EMPTY={name:'',club:'',year:'',foot:'Rechtsfuß',positions:[],category:'',height:'',observed_on:new Date().toISOString().slice(0,10),notes:'',ratings:{},contract:false,contract_term:'',agent:false,agent_name:'',documented_by:'',father_contact:'',father_phone:'',mother_contact:'',mother_phone:''};
-function BrandMark(){return <svg className="brand-mark" viewBox="0 0 100 112" aria-label="myScoutingDatabase"><path d="M50 4 91 20v35c0 24-16 41-41 53C25 96 9 79 9 55V20Z" fill="#090d16" stroke="#ff263f" strokeWidth="5"/><path d="M50 13 82 26v29c0 18-12 32-32 43C30 87 18 73 18 55V26Z" fill="#151c2a" stroke="#fff" strokeOpacity=".7"/><path d="M50 20 75 31v23c0 14-9 25-25 34-16-9-25-20-25-34V31Z" fill="#e91b35"/><circle cx="50" cy="49" r="20" fill="#f4f6fa" stroke="#171c25" strokeWidth="2"/><path d="m50 36 8 6-3 9h-10l-3-9Zm-8 6-8 2-4 8 7 8 8-9m18-9 8 2 4 8-7 8-8-9m-23 7 7 9-2 8m18-17-7 9 2 8m-11-7h10" fill="#111722" stroke="#111722" strokeWidth="2"/></svg>}
+function BrandMark(){return <svg className="brand-mark" viewBox="0 0 120 132" role="img" aria-label="myScoutingDatabase Logo">
+ <defs>
+  <linearGradient id="crest-red" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#ff6476"/><stop offset=".48" stopColor="#ff1838"/><stop offset="1" stopColor="#8e0922"/></linearGradient>
+  <linearGradient id="crest-steel" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#fff"/><stop offset=".45" stopColor="#aeb6c5"/><stop offset="1" stopColor="#596273"/></linearGradient>
+  <radialGradient id="ball-white" cx=".3" cy=".2" r=".85"><stop stopColor="#fff"/><stop offset=".58" stopColor="#d8dce4"/><stop offset="1" stopColor="#737d8d"/></radialGradient>
+  <filter id="crest-glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+ </defs>
+ <path d="M60 4 111 24v39c0 29-19 49-51 65C28 112 9 92 9 63V24Z" fill="#090b11" stroke="url(#crest-red)" strokeWidth="5" filter="url(#crest-glow)"/>
+ <path d="M60 13 101 29v33c0 23-15 40-41 54C34 102 19 85 19 62V29Z" fill="#151a24" stroke="url(#crest-steel)" strokeWidth="2"/>
+ <path d="M60 22 91 34v27c0 18-11 31-31 43-20-12-31-25-31-43V34Z" fill="url(#crest-red)"/>
+ <path d="M60 28 84 38v22c0 14-9 25-24 34-15-9-24-20-24-34V38Z" fill="#10151f" stroke="#ff9aa5" strokeOpacity=".55"/>
+ <circle cx="60" cy="57" r="23" fill="url(#ball-white)" stroke="#fff" strokeWidth="1.5"/>
+ <path d="m60 43 9 7-3 11H54l-3-11Zm-9 7-9 3-4 10 8 9 9-11m23-11 9 3 4 10-8 9-9-11M46 72l8 9-2 8m22-17-8 9 2 8m-14-9h12" fill="#111722" stroke="#111722" strokeWidth="2.3" strokeLinejoin="round"/>
+ <path d="M31 92 60 110 89 92" fill="none" stroke="#ff6678" strokeOpacity=".8" strokeWidth="1.3"/>
+ <path d="M14 26 60 8l46 18" fill="none" stroke="#fff" strokeOpacity=".35" strokeWidth="1"/>
+</svg>}
 function App(){
  const [session,S]=useState(null),[profile,P]=useState(null),[players,D]=useState([]),[scouts,SC]=useState([]),[page,G]=useState('dashboard'),[authMode,AM]=useState('login'),[auth,A]=useState({username:'',email:'',password:'',password2:''}),[form,F]=useState(EMPTY),[edit,E]=useState(null),[search,Q]=useState(''),[filters,FT]=useState({year:'',position:'',foot:''}),[deleteId,DI]=useState(''),[notice,N]=useState(''),[loading,L]=useState(false),[drawer,DR]=useState(false);
  const admin=profile?.role==='admin';
