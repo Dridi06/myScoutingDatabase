@@ -1680,3 +1680,11 @@ button{touch-action:manipulation}
 .player-row-clickable:focus-visible{outline:2px solid #83b4ff;outline-offset:-2px}
 .player-row-clickable td{cursor:pointer}
 .player-row-clickable td:last-child button{position:relative;z-index:1}
+
+/* Position tiles follow the same NEXUS typography and finish as RF/LF */
+.position-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0 28px}
+.position-card{min-height:118px}
+.position-card .wing-title{font-family:Sora,Manrope,sans-serif;font-size:clamp(15px,2.2vw,18px);font-weight:700;letter-spacing:-.025em}
+.position-card small{font-family:Sora,Manrope,sans-serif;font-size:11px;font-weight:600}
+.position-single{grid-column:1/-1;min-height:94px}
+@media(max-width:520px){.position-grid{gap:10px}.position-card{min-height:112px;padding:15px}.position-single{min-height:88px}.position-card .wing-title{font-size:14px}}
