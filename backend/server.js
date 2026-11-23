@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import { createClient } from '@supabase/supabase-js';
 
 const app=express();
+app.set('trust proxy',1);
 const PORT=Number(process.env.PORT||3000);
 const JWT_SECRET=process.env.JWT_SECRET;
 const supabaseUrl=process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL;
