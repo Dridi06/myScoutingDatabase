@@ -1719,3 +1719,38 @@ button{touch-action:manipulation}
 .scout-status.blocked{background:rgba(255,75,92,.12);color:#ff8290}
 .scout-status.pending{background:rgba(245,190,75,.12);color:#f2ca75}
 .scout-list-note{margin:12px 2px;color:#8998ad;font-size:12px;line-height:1.5}
+
+
+.player-action-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:28px 0 12px}
+.player-action-tile{min-height:132px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:18px 12px;border:1px solid rgba(155,180,220,.25);border-radius:16px;background:linear-gradient(145deg,#17243a,#0a1220);color:#eaf1ff;box-shadow:0 14px 32px rgba(0,0,0,.24),inset 0 1px rgba(255,255,255,.06);cursor:pointer;transition:transform .18s,border-color .18s,background .18s}
+.player-action-tile:hover{transform:translateY(-3px);border-color:rgba(190,213,248,.65)}
+.player-action-tile svg{width:25px;height:25px;color:#c8d8f1}
+.player-action-tile strong{font:700 13px Sora,Manrope,sans-serif;text-align:center}
+.player-action-tile small{font-size:10px;color:#91a5c3;text-align:center}
+.player-action-tile.delete{border-color:rgba(238,95,108,.38);background:linear-gradient(145deg,#321923,#17101a)}
+.player-action-tile.delete svg{color:#ff8b96}
+.player-action-tile.print{background:linear-gradient(145deg,#263348,#111b2b)}
+.delete-confirm-overlay{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(1,5,12,.84);backdrop-filter:blur(9px)}
+.delete-confirm-card{width:min(100%,480px);padding:28px;border:1px solid rgba(225,105,116,.38);border-radius:20px;background:linear-gradient(145deg,#202a3b,#0b111d);box-shadow:0 28px 90px rgba(0,0,0,.65);text-align:center}
+.delete-confirm-symbol{width:54px;height:54px;margin:0 auto 14px;display:grid;place-items:center;border-radius:50%;color:#ff8994;background:rgba(230,75,91,.12);border:1px solid rgba(230,75,91,.28)}
+.delete-confirm-card h2{margin:0 0 16px;color:#f3f6fc;font:750 22px Sora,Manrope,sans-serif}
+.delete-confirm-card p{color:#c5d0e0;font-size:13px;line-height:1.65}
+.delete-confirm-card p strong{color:#fff}
+.delete-confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px}
+.delete-confirm-actions button{min-height:46px}
+.deletion-log-table{overflow-x:auto}
+.deletion-log-table table{min-width:760px;white-space:nowrap}
+.deletion-log-table th{white-space:nowrap}
+@media(max-width:620px){.player-action-tiles{grid-template-columns:1fr;gap:10px}.player-action-tile{min-height:88px;display:grid;grid-template-columns:34px 1fr;justify-content:start;text-align:left;padding:14px 18px}.player-action-tile svg{grid-row:span 2}.player-action-tile strong,.player-action-tile small{text-align:left}.delete-confirm-card{padding:23px 18px}}
+@media print{
+ @page{size:auto;margin:12mm}
+ body{background:#fff!important;color:#111!important}
+ .shell>aside,.shell>main>header,.notice,.player-detail-top>.secondary,.photo-edit-button,.photo-hint,.photo-upload-overlay,.player-action-tiles,.delete-confirm-overlay{display:none!important}
+ .shell,.shell>main{display:block!important;width:100%!important;margin:0!important;padding:0!important;background:#fff!important;color:#111!important;box-shadow:none!important}
+ .shell>main{overflow:visible!important}
+ .silver-player-card,.overall-panel,.panel,.player-facts,.detail-ratings>.panel{break-inside:avoid;box-shadow:none!important}
+ .overall-panel,.panel{background:#fff!important;border:1px solid #bbb!important;color:#111!important}
+ .overall-heading strong,.overall-points,.player-facts-grid strong,.rating-result span,.rating-result strong,.player-notes,.player-facts-grid small,.overall-heading small,.overall-scale{color:#111!important}
+ .overall-track{border:1px solid #888!important}
+ .detail-ratings{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
