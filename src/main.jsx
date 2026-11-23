@@ -33,44 +33,38 @@ function App(){
  const [session,S]=useState(null),[profile,P]=useState(null),[players,D]=useState([]),[scouts,SC]=useState([]),[page,G]=useState('dashboard'),[authMode,AM]=useState('login'),[auth,A]=useState({username:'',email:'',password:'',password2:''}),[form,F]=useState(EMPTY),[edit,E]=useState(null),[search,Q]=useState(''),[filters,FT]=useState({year:'',position:'',foot:''}),[deleteId,DI]=useState(''),[notice,N]=useState(''),[loading,L]=useState(false),[drawer,DR]=useState(false);
  const admin=profile?.role==='admin';
  async function load(){if(!sb||!session)return;L(true);try{const{data:pr,error}=await sb.from('profiles').select('*').eq('id',session.user.id).single();if(error)throw error;P(pr);const{data,error:pe}=await sb.from('players').select('*').order('player_id');if(pe)throw pe;D((data||[]).map(p=>({...p,id:p.player_id,positions:p.positions||[],ratings:p.ratings||{}})));if(pr.role==='admin'){const{data:s}=await sb.from('profiles').select('*').eq('role','scout').order('created_at',{ascending:false});SC(s||[]);}}catch(e){N(e.message)}finally{L(false)}}
- useEffect(()=>{if(!sb)return;sb.auth.getSession().then(({data})=>{if(data.session)S({user:data.session.user})});const{data:{subscription}}=sb.auth.onAuthStateChange((_e,s)=>{if(s)S({user:s.user});else S(null)});return()=>subscription.unsubscribe()},[]);
+ useEffect(()=>{if(!sb)return;sb.auth.getSession().then(({data})=>{if(data.session)S({user:data.session.user})});const{data:{subscription}}=sb.auth.onAuthStateChange((event,s)=>{if(event==='PASSWORD_RECOVERY'){AM('update-password');S(null);return}if(s)S({user:s.user});else S(null)});return()=>subscription.unsubscribe()},[]);
  useEffect(()=>{load()},[session]);
  async function login(e){e.preventDefault();L(true);try{const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:auth.username,password:auth.password})});const j=await r.json();if(!r.ok)throw Error(j.error);const{error}=await sb.auth.setSession({access_token:j.access_token,refresh_token:j.refresh_token});if(error)throw error;}catch(e){N(e.message)}finally{L(false)}}
- async function register(e){e.preventDefault();L(true);try{const r=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(auth)});const j=await r.json();if(!r.ok)throw Error(j.error);N('Registrierung eingegangen. Der Admin muss deinen Zugang freischalten.');AM('login')}catch(e){N(e.message)}finally{L(false)}}
+ async function register(e){e.preventDefault();if(auth.password!==auth.password2){N('Die Passwörter stimmen nicht überein.');return}L(true);try{const r=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(auth)});const j=await r.json();if(!r.ok)throw Error(j.error);N('Registrierung eingegangen. Dein Zugang wird nach Prüfung durch den Administrator freigeschaltet.');A({username:'',email:'',password:'',password2:''});AM('login')}catch(e){N(e.message)}finally{L(false)}}
+ async function sendPasswordReset(e){e.preventDefault();if(!sb){N('Der Dienst ist momentan nicht verfügbar.');return}L(true);try{const {error}=await sb.auth.resetPasswordForEmail(auth.email.trim(),{redirectTo:window.location.origin});if(error)throw error;N('Wenn ein Konto zu dieser E-Mail-Adresse gehört, erhältst du in Kürze eine Nachricht mit dem Link zum Zurücksetzen.');}catch(e){N('Die Anfrage konnte nicht gesendet werden. Bitte prüfe die E-Mail-Adresse und versuche es erneut.')}finally{L(false)}}
+ async function updateRecoveredPassword(e){e.preventDefault();if(auth.password.length<12){N('Das neue Passwort muss mindestens 12 Zeichen lang sein.');return}if(auth.password!==auth.password2){N('Die Passwörter stimmen nicht überein.');return}L(true);try{const {error}=await sb.auth.updateUser({password:auth.password});if(error)throw error;await sb.auth.signOut();S(null);A({username:'',email:'',password:'',password2:''});AM('login');N('Passwort erfolgreich geändert. Du kannst dich jetzt anmelden.')}catch(e){N(e.message||'Passwort konnte nicht geändert werden.')}finally{L(false)}}
  async function save(e){e.preventDefault();L(true);try{const {id,player_id,owner_id,created_at,updated_at,...cleanForm}=form;const payload={...cleanForm,height:form.height?Number(form.height):null,positions:form.positions,ratings:form.ratings};let q;if(edit)q=await sb.from('players').update(payload).eq('player_id',edit);else q=await sb.rpc('create_player',{p_player:payload});if(q.error)throw q.error;N('Spielerdaten gespeichert.');F(EMPTY);E(null);G('all');await load()}catch(e){N(e.message)}finally{L(false)}}
  async function remove(){const{error}=await sb.from('players').delete().eq('player_id',Number(deleteId));if(error)N(error.message);else{N('Spieler gelöscht.');DI('');await load()}}
  async function approve(s){const{error}=await sb.rpc('admin_set_scout_approval',{p_scout_id:s.id,p_approved:!s.approved});if(error)N(error.message);else await load()}
  const filtered=useMemo(()=>players.filter(p=>[p.name,p.club,p.year,p.foot,...(p.positions||[])].join(' ').toLowerCase().includes(search.toLowerCase())&&(!filters.year||String(p.year||'').includes(filters.year))&&(!filters.position||(p.positions||[]).includes(filters.position))&&(!filters.foot||p.foot===filters.foot)),[players,search,filters]);
- if(!session)return <div className="auth auth-nexus">
-  <div className="nexus-atmosphere" aria-hidden="true">
-   <div className="nexus-glow nexus-glow-blue"/><div className="nexus-glow nexus-glow-silver"/>
-   <div className="nexus-grid"/><div className="nexus-orbit"/>
-   <span/><span/><span/><span/><span/><span/>
-  </div>
+ if(!session)return <div className="auth auth-nexus auth-minimal">
   <main className="nexus-login-stage">
    <section className="nexus-login">
     <div className="nexus-brand-title">MyScoutingDatabase</div>
-    <div className="nexus-brand-underline"/>
-    <div className="nexus-eyebrow"><i/> PROFESSIONAL FOOTBALL SCOUTING <i/></div>
     <div className="nexus-card">
-     <div className="nexus-card-head">
-      <span>{authMode==='login'?'WILLKOMMEN ZURÜCK':'NEU IM SCOUTING-NETZWERK'}</span>
-      <span className="nexus-secure"><i/> SECURE ACCESS</span>
-     </div>
-     <h1>{authMode==='login'?'Anmelden':'Konto erstellen'}</h1>
-     <p className="nexus-intro">{authMode==='login'?'Melde dich an, um auf deine Scouting-Plattform zuzugreifen.':'Erstelle deinen persönlichen Zugang zur Plattform.'}</p>
-     <form onSubmit={authMode==='login'?login:register} className="nexus-form">
-      <label><span>BENUTZERNAME</span><input autoComplete="username" placeholder="Benutzername" value={auth.username} onChange={e=>A({...auth,username:e.target.value})} required/></label>
-      {authMode==='register'&&<label><span>E-MAIL-ADRESSE</span><input type="email" autoComplete="email" placeholder="name@verein.de" value={auth.email} onChange={e=>A({...auth,email:e.target.value})} required/></label>}
-      <label><span>PASSWORT</span><input type="password" autoComplete={authMode==='login'?'current-password':'new-password'} placeholder="Passwort" value={auth.password} onChange={e=>A({...auth,password:e.target.value})} required/></label>
-      {authMode==='register'&&<label><span>PASSWORT WIEDERHOLEN</span><input type="password" autoComplete="new-password" placeholder="Passwort bestätigen" value={auth.password2} onChange={e=>A({...auth,password2:e.target.value})} required/></label>}
-      <button className="nexus-submit" disabled={loading}>{loading?'BITTE WARTEN…':authMode==='login'?'SICHER ANMELDEN':'REGISTRIERUNG ABSENDEN'}<span>↗</span></button>
+     <h1>{authMode==='login'?'Anmelden':authMode==='register'?'Registrieren':authMode==='forgot'?'Passwort zurücksetzen':'Neues Passwort'}</h1>
+     <p className="nexus-intro">{authMode==='login'?'Melde dich mit deinen Zugangsdaten an.':authMode==='register'?'Erstelle dein Scout-Konto. Die Freischaltung erfolgt durch den Administrator.':authMode==='forgot'?'Wir senden dir einen Link zum Zurücksetzen deines Passworts.':'Vergib ein neues Passwort für dein Konto.'}</p>
+     <form onSubmit={authMode==='login'?login:authMode==='register'?register:authMode==='forgot'?sendPasswordReset:updateRecoveredPassword} className="nexus-form">
+      {authMode==='login'&&<label><span>BENUTZERNAME</span><input autoComplete="username" placeholder="Benutzername" value={auth.username} onChange={e=>A({...auth,username:e.target.value})} required/></label>}
+      {(authMode==='register'||authMode==='forgot')&&<label><span>E-MAIL-ADRESSE</span><input type="email" autoComplete="email" placeholder="name@verein.de" value={auth.email} onChange={e=>A({...auth,email:e.target.value})} required/></label>}
+      {authMode==='register'&&<label><span>BENUTZERNAME</span><input autoComplete="username" placeholder="Benutzername" value={auth.username} onChange={e=>A({...auth,username:e.target.value})} required/></label>}
+      {(authMode==='login'||authMode==='register'||authMode==='update-password')&&<label><span>{authMode==='update-password'?'NEUES PASSWORT':'PASSWORT'}</span><input type="password" autoComplete={authMode==='login'?'current-password':'new-password'} placeholder="Mindestens 12 Zeichen bei Registrierung" value={auth.password} onChange={e=>A({...auth,password:e.target.value})} required minLength={authMode==='login'?1:12}/></label>}
+      {(authMode==='register'||authMode==='update-password')&&<label><span>PASSWORT WIEDERHOLEN</span><input type="password" autoComplete="new-password" placeholder="Passwort bestätigen" value={auth.password2} onChange={e=>A({...auth,password2:e.target.value})} required minLength={12}/></label>}
+      <button className="nexus-submit" disabled={loading}>{loading?'BITTE WARTEN…':authMode==='login'?'ANMELDEN':authMode==='register'?'KONTO ERSTELLEN':authMode==='forgot'?'RESET-LINK ANFORDERN':'PASSWORT SPEICHERN'}</button>
      </form>
-     <div className="nexus-switch"><span>{authMode==='login'?'Noch keinen Zugang?':'Bereits registriert?'}</span><button className="link" onClick={()=>AM(authMode==='login'?'register':'login')}>{authMode==='login'?'Scout registrieren':'Zur Anmeldung'}</button></div>
-     {notice&&<p className="notice">{notice}</p>}
-     <div className="nexus-card-footer"><span><i/> VERSCHLÜSSELTE VERBINDUNG</span><span>MSD · SCOUTING INTELLIGENCE</span></div>
+     <div className="nexus-switch">
+      {authMode==='login'&&<><button type="button" className="link" onClick={()=>{N('');AM('forgot')}}>Passwort vergessen?</button><span>·</span><button type="button" className="link" onClick={()=>{N('');AM('register')}}>Registrieren</button></>}
+      {authMode!=='login'&&authMode!=='update-password'&&<button type="button" className="link" onClick={()=>{N('');AM('login')}}>Zurück zum Login</button>}
+      {authMode==='update-password'&&<span>Bitte verwende ein sicheres Passwort.</span>}
+     </div>
+     {notice&&<p className="notice" role="status">{notice}</p>}
     </div>
-    <div className="nexus-footnote">PRECISION <b>◆</b> PERFORMANCE <b>◆</b> PERSPECTIVE</div>
    </section>
   </main>
  </div>;
