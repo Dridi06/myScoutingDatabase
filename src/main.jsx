@@ -41,40 +41,48 @@ function App(){
  async function remove(){const{error}=await sb.from('players').delete().eq('player_id',Number(deleteId));if(error)N(error.message);else{N('Spieler gelöscht.');DI('');await load()}}
  async function approve(s){const{error}=await sb.rpc('admin_set_scout_approval',{p_scout_id:s.id,p_approved:!s.approved});if(error)N(error.message);else await load()}
  const filtered=useMemo(()=>players.filter(p=>[p.name,p.club,p.year,p.foot,...(p.positions||[])].join(' ').toLowerCase().includes(search.toLowerCase())&&(!filters.year||String(p.year||'').includes(filters.year))&&(!filters.position||(p.positions||[]).includes(filters.position))&&(!filters.foot||p.foot===filters.foot)),[players,search,filters]);
- if(!session)return <div className="auth auth-redesign">
-  <div className="stadium-lines" aria-hidden="true"><div className="pitch-circle"/><div className="pitch-goal"/><div className="stadium-ball"/></div>
-  <div className="auth-topbar"><div className="auth-mini-brand"><BrandMark/><span>myScouting<strong>Database</strong></span></div><div className="auth-top-tag"><i/> SCOUTING PLATFORM</div></div>
-  <div className="auth-layout">
+ if(!session)return <div className="auth auth-redesign auth-no-logo">
+  <div className="auth-particles" aria-hidden="true">
+   <span/><span/><span/><span/><span/><span/><span/><span/>
+   <div className="auth-orbit orbit-one"/><div className="auth-orbit orbit-two"/>
+   <div className="auth-field-line field-one"/><div className="auth-field-line field-two"/>
+  </div>
+  <header className="auth-topbar">
+   <div className="auth-wordmark"><span>myScouting</span><strong>Database</strong><i>.</i></div>
+   <div className="auth-top-tag"><i/> PROFESSIONAL SCOUTING PLATFORM</div>
+  </header>
+  <main className="auth-layout">
    <section className="auth-showcase">
-    <div className="showcase-eyebrow"><span/> THE NEXT GENERATION OF FOOTBALL SCOUTING</div>
-    <h1>Talente sehen.<br/><em>Potenzial</em> erkennen.</h1>
-    <p className="showcase-copy">Die Plattform für strukturiertes Scouting, präzise Spieleranalysen und fundierte Entscheidungen.</p>
+    <div className="showcase-eyebrow"><span/> THE FUTURE OF FOOTBALL SCOUTING</div>
+    <h1>Jedes Talent hat<br/>eine <em>Geschichte.</em></h1>
+    <p className="showcase-copy">Erkenne Potenziale früher. Bewerte Leistungen präziser. Triff Entscheidungen mit Überblick – in einer zentralen Scouting-Plattform.</p>
     <div className="showcase-rule"/>
     <div className="showcase-features">
-     <div><span className="feature-symbol">01</span><section><b>LIVE SCOUTING</b><small>Talente systematisch erfassen</small></section></div>
-     <div><span className="feature-symbol">02</span><section><b>PLAYER ANALYTICS</b><small>Leistung transparent bewerten</small></section></div>
-     <div><span className="feature-symbol">03</span><section><b>TALENT DATABASE</b><small>Alle Spieler zentral verwalten</small></section></div>
+     <div><span className="feature-symbol">01</span><section><b>LIVE SCOUTING</b><small>Talente strukturiert erfassen</small></section></div>
+     <div><span className="feature-symbol">02</span><section><b>PLAYER ANALYTICS</b><small>Leistungen fundiert analysieren</small></section></div>
+     <div><span className="feature-symbol">03</span><section><b>TALENT DATABASE</b><small>Informationen zentral bündeln</small></section></div>
     </div>
-    <div className="showcase-watermark">MSD<span>.</span></div>
+    <div className="showcase-signature">SCOUT SMARTER <b>◆</b> THINK AHEAD</div>
    </section>
    <section className="auth-card auth-card-new">
-    <div className="auth-card-head"><div className="auth-card-logo"><BrandMark/></div><div><div className="brand-name">myScouting<span>Database</span></div><div className="brand-subtitle">PLAYER SCOUTING MANAGEMENT</div></div></div>
+    <div className="auth-card-topline"><span>MEMBER ACCESS</span><span className="auth-card-status"><i/> SECURE LOGIN</span></div>
+    <div className="auth-card-wordmark"><span>myScouting</span><strong>Database</strong></div>
     <div className="auth-card-line"/>
-    <div className="auth-kicker"><span/> SECURE ACCESS</div>
-    <h2>{authMode==='login'?'Willkommen zurück':'Scout-Zugang erstellen'}</h2>
-    <p className="auth-intro">{authMode==='login'?'Melde dich an und setze dein Scouting fort.':'Registriere dich für den Zugang zur Scouting-Plattform.'}</p>
+    <div className="auth-kicker"><span/> {authMode==='login'?'WELCOME BACK':'JOIN THE NETWORK'}</div>
+    <h2>{authMode==='login'?'Schön, dass du da bist.':'Dein Scout-Zugang.'}</h2>
+    <p className="auth-intro">{authMode==='login'?'Melde dich an und setze deine Arbeit mit den Talenten fort.':'Erstelle deinen Zugang zur Scouting-Plattform.'}</p>
     <form onSubmit={authMode==='login'?login:register} className="auth-form-new">
-     <label><span>BENUTZERNAME</span><input autoComplete="username" placeholder="Dein Benutzername" value={auth.username} onChange={e=>A({...auth,username:e.target.value})} required/></label>
+     <label><span>BENUTZERNAME</span><input autoComplete="username" placeholder="Benutzername eingeben" value={auth.username} onChange={e=>A({...auth,username:e.target.value})} required/></label>
      {authMode==='register'&&<label><span>E-MAIL-ADRESSE</span><input type="email" autoComplete="email" placeholder="name@verein.de" value={auth.email} onChange={e=>A({...auth,email:e.target.value})} required/></label>}
-     <label><span>PASSWORT</span><input type="password" autoComplete={authMode==='login'?'current-password':'new-password'} placeholder="Dein Passwort" value={auth.password} onChange={e=>A({...auth,password:e.target.value})} required/></label>
+     <label><span>PASSWORT</span><input type="password" autoComplete={authMode==='login'?'current-password':'new-password'} placeholder="Passwort eingeben" value={auth.password} onChange={e=>A({...auth,password:e.target.value})} required/></label>
      {authMode==='register'&&<label><span>PASSWORT WIEDERHOLEN</span><input type="password" autoComplete="new-password" placeholder="Passwort bestätigen" value={auth.password2} onChange={e=>A({...auth,password2:e.target.value})} required/></label>}
-     <button className="auth-submit" disabled={loading}>{loading?'BITTE WARTEN…':authMode==='login'?'ANMELDEN':'REGISTRIERUNG ABSENDEN'}<span>↗</span></button>
+     <button className="auth-submit" disabled={loading}>{loading?'BITTE WARTEN…':authMode==='login'?'JETZT ANMELDEN':'REGISTRIERUNG ABSENDEN'}<span>↗</span></button>
     </form>
     <div className="auth-switch"><span>{authMode==='login'?'Noch keinen Zugang?':'Bereits registriert?'}</span><button className="link" onClick={()=>AM(authMode==='login'?'register':'login')}>{authMode==='login'?'Scout registrieren':'Zur Anmeldung'}</button></div>
     {notice&&<p className="notice">{notice}</p>}
-    <div className="auth-card-foot"><span><i/> SYSTEM GESCHÜTZT</span><span>MYSCOUTINGDATABASE.COM</span></div>
+    <div className="auth-card-foot"><span><i/> CONNECTION ENCRYPTED</span><span>MYSCOUTINGDATABASE</span></div>
    </section>
-  </div>
+  </main>
   <footer className="auth-footer"><span>© 2026 MYSCOUTINGDATABASE</span><span>BUILT FOR THE GAME <b>◆</b></span><span>PRECISION. PASSION. PERFORMANCE.</span></footer>
  </div>;
  const nav=[['dashboard','Dashboard',LayoutDashboard],['create','Spieler erstellen',UserPlus],['edit','Spieler bearbeiten',Pencil],['delete','Spieler löschen',Trash2],['search','Datenbankabfrage',Search],['all','Gesamte Spielerdatenbank',Database],...(admin?[['scouts','Scout-Verwaltung',ShieldCheck]]:[])];
