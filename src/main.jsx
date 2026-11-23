@@ -41,49 +41,38 @@ function App(){
  async function remove(){const{error}=await sb.from('players').delete().eq('player_id',Number(deleteId));if(error)N(error.message);else{N('Spieler gelöscht.');DI('');await load()}}
  async function approve(s){const{error}=await sb.rpc('admin_set_scout_approval',{p_scout_id:s.id,p_approved:!s.approved});if(error)N(error.message);else await load()}
  const filtered=useMemo(()=>players.filter(p=>[p.name,p.club,p.year,p.foot,...(p.positions||[])].join(' ').toLowerCase().includes(search.toLowerCase())&&(!filters.year||String(p.year||'').includes(filters.year))&&(!filters.position||(p.positions||[]).includes(filters.position))&&(!filters.foot||p.foot===filters.foot)),[players,search,filters]);
- if(!session)return <div className="auth auth-redesign auth-no-logo">
-  <div className="auth-particles" aria-hidden="true">
-   <span/><span/><span/><span/><span/><span/><span/><span/>
-   <div className="auth-orbit orbit-one"/><div className="auth-orbit orbit-two"/>
-   <div className="auth-field-line field-one"/><div className="auth-field-line field-two"/>
+ if(!session)return <div className="auth auth-nexus">
+  <div className="nexus-atmosphere" aria-hidden="true">
+   <div className="nexus-glow nexus-glow-blue"/><div className="nexus-glow nexus-glow-silver"/>
+   <div className="nexus-grid"/><div className="nexus-orbit"/>
+   <span/><span/><span/><span/><span/><span/>
   </div>
-  <header className="auth-topbar">
-   <div className="auth-wordmark"><span>myScouting</span><strong>Database</strong><i>.</i></div>
-   <div className="auth-top-tag"><i/> PROFESSIONAL SCOUTING PLATFORM</div>
-  </header>
-  <main className="auth-layout">
-   <section className="auth-showcase">
-    <div className="showcase-eyebrow"><span/> THE FUTURE OF FOOTBALL SCOUTING</div>
-    <h1>Jedes Talent hat<br/>eine <em>Geschichte.</em></h1>
-    <p className="showcase-copy">Erkenne Potenziale früher. Bewerte Leistungen präziser. Triff Entscheidungen mit Überblick – in einer zentralen Scouting-Plattform.</p>
-    <div className="showcase-rule"/>
-    <div className="showcase-features">
-     <div><span className="feature-symbol">01</span><section><b>LIVE SCOUTING</b><small>Talente strukturiert erfassen</small></section></div>
-     <div><span className="feature-symbol">02</span><section><b>PLAYER ANALYTICS</b><small>Leistungen fundiert analysieren</small></section></div>
-     <div><span className="feature-symbol">03</span><section><b>TALENT DATABASE</b><small>Informationen zentral bündeln</small></section></div>
+  <main className="nexus-login-stage">
+   <section className="nexus-login">
+    <div className="nexus-brand-title">MyScoutingDatabase</div>
+    <div className="nexus-brand-underline"/>
+    <div className="nexus-eyebrow"><i/> PROFESSIONAL FOOTBALL SCOUTING <i/></div>
+    <div className="nexus-card">
+     <div className="nexus-card-head">
+      <span>{authMode==='login'?'WILLKOMMEN ZURÜCK':'NEU IM SCOUTING-NETZWERK'}</span>
+      <span className="nexus-secure"><i/> SECURE ACCESS</span>
+     </div>
+     <h1>{authMode==='login'?'Anmelden':'Konto erstellen'}</h1>
+     <p className="nexus-intro">{authMode==='login'?'Melde dich an, um auf deine Scouting-Plattform zuzugreifen.':'Erstelle deinen persönlichen Zugang zur Plattform.'}</p>
+     <form onSubmit={authMode==='login'?login:register} className="nexus-form">
+      <label><span>BENUTZERNAME</span><input autoComplete="username" placeholder="Benutzername" value={auth.username} onChange={e=>A({...auth,username:e.target.value})} required/></label>
+      {authMode==='register'&&<label><span>E-MAIL-ADRESSE</span><input type="email" autoComplete="email" placeholder="name@verein.de" value={auth.email} onChange={e=>A({...auth,email:e.target.value})} required/></label>}
+      <label><span>PASSWORT</span><input type="password" autoComplete={authMode==='login'?'current-password':'new-password'} placeholder="Passwort" value={auth.password} onChange={e=>A({...auth,password:e.target.value})} required/></label>
+      {authMode==='register'&&<label><span>PASSWORT WIEDERHOLEN</span><input type="password" autoComplete="new-password" placeholder="Passwort bestätigen" value={auth.password2} onChange={e=>A({...auth,password2:e.target.value})} required/></label>}
+      <button className="nexus-submit" disabled={loading}>{loading?'BITTE WARTEN…':authMode==='login'?'SICHER ANMELDEN':'REGISTRIERUNG ABSENDEN'}<span>↗</span></button>
+     </form>
+     <div className="nexus-switch"><span>{authMode==='login'?'Noch keinen Zugang?':'Bereits registriert?'}</span><button className="link" onClick={()=>AM(authMode==='login'?'register':'login')}>{authMode==='login'?'Scout registrieren':'Zur Anmeldung'}</button></div>
+     {notice&&<p className="notice">{notice}</p>}
+     <div className="nexus-card-footer"><span><i/> VERSCHLÜSSELTE VERBINDUNG</span><span>MSD · SCOUTING INTELLIGENCE</span></div>
     </div>
-    <div className="showcase-signature">SCOUT SMARTER <b>◆</b> THINK AHEAD</div>
-   </section>
-   <section className="auth-card auth-card-new">
-    <div className="auth-card-topline"><span>MEMBER ACCESS</span><span className="auth-card-status"><i/> SECURE LOGIN</span></div>
-    <div className="auth-card-wordmark"><span>myScouting</span><strong>Database</strong></div>
-    <div className="auth-card-line"/>
-    <div className="auth-kicker"><span/> {authMode==='login'?'WELCOME BACK':'JOIN THE NETWORK'}</div>
-    <h2>{authMode==='login'?'Schön, dass du da bist.':'Dein Scout-Zugang.'}</h2>
-    <p className="auth-intro">{authMode==='login'?'Melde dich an und setze deine Arbeit mit den Talenten fort.':'Erstelle deinen Zugang zur Scouting-Plattform.'}</p>
-    <form onSubmit={authMode==='login'?login:register} className="auth-form-new">
-     <label><span>BENUTZERNAME</span><input autoComplete="username" placeholder="Benutzername eingeben" value={auth.username} onChange={e=>A({...auth,username:e.target.value})} required/></label>
-     {authMode==='register'&&<label><span>E-MAIL-ADRESSE</span><input type="email" autoComplete="email" placeholder="name@verein.de" value={auth.email} onChange={e=>A({...auth,email:e.target.value})} required/></label>}
-     <label><span>PASSWORT</span><input type="password" autoComplete={authMode==='login'?'current-password':'new-password'} placeholder="Passwort eingeben" value={auth.password} onChange={e=>A({...auth,password:e.target.value})} required/></label>
-     {authMode==='register'&&<label><span>PASSWORT WIEDERHOLEN</span><input type="password" autoComplete="new-password" placeholder="Passwort bestätigen" value={auth.password2} onChange={e=>A({...auth,password2:e.target.value})} required/></label>}
-     <button className="auth-submit" disabled={loading}>{loading?'BITTE WARTEN…':authMode==='login'?'JETZT ANMELDEN':'REGISTRIERUNG ABSENDEN'}<span>↗</span></button>
-    </form>
-    <div className="auth-switch"><span>{authMode==='login'?'Noch keinen Zugang?':'Bereits registriert?'}</span><button className="link" onClick={()=>AM(authMode==='login'?'register':'login')}>{authMode==='login'?'Scout registrieren':'Zur Anmeldung'}</button></div>
-    {notice&&<p className="notice">{notice}</p>}
-    <div className="auth-card-foot"><span><i/> CONNECTION ENCRYPTED</span><span>MYSCOUTINGDATABASE</span></div>
+    <div className="nexus-footnote">PRECISION <b>◆</b> PERFORMANCE <b>◆</b> PERSPECTIVE</div>
    </section>
   </main>
-  <footer className="auth-footer"><span>© 2026 MYSCOUTINGDATABASE</span><span>BUILT FOR THE GAME <b>◆</b></span><span>PRECISION. PASSION. PERFORMANCE.</span></footer>
  </div>;
  const nav=[['dashboard','Dashboard',LayoutDashboard],['create','Spieler erstellen',UserPlus],['edit','Spieler bearbeiten',Pencil],['delete','Spieler löschen',Trash2],['search','Datenbankabfrage',Search],['all','Gesamte Spielerdatenbank',Database],...(admin?[['scouts','Scout-Verwaltung',ShieldCheck]]:[])];
  return <div className="shell"><aside className={drawer?'open':''}><div className="logo"><BrandMark/><div className="sidebar-brand"><span>myScouting</span><strong>Database</strong><small>PLAYER SCOUTING</small></div><button className="close" onClick={()=>DR(false)} aria-label="Menü schließen"><X/></button></div>{nav.map(([id,label,Icon])=><button className={page===id?'active':''} onClick={()=>{G(id);DR(false)}}><Icon size={18}/>{label}</button>)}<button className="logout" onClick={()=>sb.auth.signOut()}><LogOut/> Abmelden</button></aside><main><header><button className="menu" onClick={()=>DR(true)}><Menu/></button><span>WORKSPACE / {page.toUpperCase()}</span><b>{profile?.username}</b></header>{notice&&<p className="notice" onClick={()=>N('')}>{notice} ×</p>}
