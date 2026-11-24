@@ -18,22 +18,26 @@ const SUPPORT_TICKET_CATEGORIES=['Probleme bei Spieler erstellen','Probleme bei 
 const YEAR_OPTIONS=Array.from({length:new Date().getFullYear()-1980+1},(_,i)=>String(new Date().getFullYear()-i));
 const RATING_LABELS={1:'Sehr schwach',2:'Schwach',3:'Durchschnittlich',4:'Stark',5:'Sehr stark'};
 const EMPTY={name:'',club:'',year:'',photo_path:null,foot:'Rechtsfuß',positions:[],category:'',height:'',observed_on:new Date().toISOString().slice(0,10),notes:'',ratings:{},contract:false,contract_term:'',agent:false,agent_name:'',documented_by:'',father_contact:'',father_phone:'',mother_contact:'',mother_phone:''};
-function BrandMark(){return <svg className="brand-mark" viewBox="0 0 120 132" role="img" aria-label="myScoutingDatabase Logo">
+function BrandMark(){return <svg className="brand-mark player-celebration" viewBox="0 0 120 132" role="img" aria-label="Silberner Fußballspieler mit erhobenen Armen">
  <defs>
-  <linearGradient id="crest-red" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#ff6476"/><stop offset=".48" stopColor="#ff1838"/><stop offset="1" stopColor="#8e0922"/></linearGradient>
-  <linearGradient id="crest-steel" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#fff"/><stop offset=".45" stopColor="#aeb6c5"/><stop offset="1" stopColor="#596273"/></linearGradient>
-  <radialGradient id="ball-white" cx=".3" cy=".2" r=".85"><stop stopColor="#fff"/><stop offset=".58" stopColor="#d8dce4"/><stop offset="1" stopColor="#737d8d"/></radialGradient>
-  <filter id="crest-glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <linearGradient id="player-chrome" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#fff"/><stop offset=".28" stopColor="#9da9bb"/><stop offset=".52" stopColor="#f8fbff"/><stop offset=".76" stopColor="#65758e"/><stop offset="1" stopColor="#e8f4ff"/></linearGradient>
+  <filter id="player-blue-glow" x="-60%" y="-50%" width="220%" height="220%"><feGaussianBlur stdDeviation="3.4" result="blur"/><feFlood floodColor="#168cff" floodOpacity=".95"/><feComposite in2="blur" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
  </defs>
- <path d="M60 4 111 24v39c0 29-19 49-51 65C28 112 9 92 9 63V24Z" fill="#090b11" stroke="url(#crest-red)" strokeWidth="5" filter="url(#crest-glow)"/>
- <path d="M60 13 101 29v33c0 23-15 40-41 54C34 102 19 85 19 62V29Z" fill="#151a24" stroke="url(#crest-steel)" strokeWidth="2"/>
- <path d="M60 22 91 34v27c0 18-11 31-31 43-20-12-31-25-31-43V34Z" fill="url(#crest-red)"/>
- <path d="M60 28 84 38v22c0 14-9 25-24 34-15-9-24-20-24-34V38Z" fill="#10151f" stroke="#ff9aa5" strokeOpacity=".55"/>
- <circle cx="60" cy="57" r="23" fill="url(#ball-white)" stroke="#fff" strokeWidth="1.5"/>
- <path d="m60 43 9 7-3 11H54l-3-11Zm-9 7-9 3-4 10 8 9 9-11m23-11 9 3 4 10-8 9-9-11M46 72l8 9-2 8m22-17-8 9 2 8m-14-9h12" fill="#111722" stroke="#111722" strokeWidth="2.3" strokeLinejoin="round"/>
- <path d="M31 92 60 110 89 92" fill="none" stroke="#ff6678" strokeOpacity=".8" strokeWidth="1.3"/>
- <path d="M14 26 60 8l46 18" fill="none" stroke="#fff" strokeOpacity=".35" strokeWidth="1"/>
+ <g fill="none" stroke="url(#player-chrome)" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" filter="url(#player-blue-glow)">
+  <path d="M48 48 30 30 20 8M72 48 90 30 100 8"/>
+  <path d="M20 8 17 3M100 8 103 3" strokeWidth="5"/>
+  <path d="M47 48 39 75 27 93M73 48 81 75 93 93" strokeWidth="13"/>
+  <path d="M39 75 81 75 87 95 33 95Z" fill="#15243b" strokeWidth="5"/>
+  <path d="M38 92 25 111M82 92 95 111" strokeWidth="13"/>
+  <path d="M25 111 14 117M95 111 106 117" strokeWidth="8"/>
+  <path d="M49 39 71 39 78 65 42 65Z" fill="#263c5c" strokeWidth="5"/>
+  <path d="M60 39V64" strokeWidth="2.5"/>
+  <path d="M60 18a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z" fill="url(#player-chrome)" strokeWidth="3"/>
+ </g>
+ <path d="M51 49 60 54 69 49" fill="none" stroke="#168cff" strokeWidth="2.5" opacity=".95"/>
+ <path d="M48 57 72 57M45 63 75 63" stroke="#fff" strokeOpacity=".75" strokeWidth="1.6"/>
 </svg>}
+
 function App(){
  const [session,S]=useState(null),[profile,P]=useState(null),[players,D]=useState([]),[scouts,SC]=useState([]),[page,G]=useState(()=>{try{return sessionStorage.getItem('msd.currentPage')||'dashboard'}catch{return 'dashboard'}}),[selectedPlayer,SP]=useState(()=>{try{return JSON.parse(sessionStorage.getItem('msd.selectedPlayer')||'null')}catch{return null}}),[selectedPosition,SPos]=useState(()=>{try{return sessionStorage.getItem('msd.selectedPosition')||''}catch{return ''}}),[photoBusy,PB]=useState(false),[photoProgress,PP]=useState(0),[photoStatus,PST]=useState(''),[wingSide,WS]=useState(()=>{try{return sessionStorage.getItem('msd.wingSide')||'RF'}catch{return 'RF'}}),[wingSort,WSort]=useState(()=>{try{return sessionStorage.getItem('msd.wingSort')||'name'}catch{return 'name'}}),[wingOrder,WOrder]=useState(()=>{try{return sessionStorage.getItem('msd.wingOrder')||'asc'}catch{return 'asc'}}),[authMode,AM]=useState('login'),[auth,A]=useState({username:'',email:'',password:'',password2:''}),[form,F]=useState(EMPTY),[edit,E]=useState(null),[search,Q]=useState(''),[filters,FT]=useState({year:'',position:'',foot:''}),[deleteId,DI]=useState(''),[deleteConfirmOpen,DCO]=useState(false),[photoDeleteConfirmOpen,PDCO]=useState(false),[deletionLogs,DL]=useState([]),[selectedDeletionLogs,SDL]=useState([]),[notice,N]=useState(''),[loading,L]=useState(false),[drawer,DR]=useState(false),[passwordDialog,SPD]=useState(null),[passwordCopyStatus,SPCS]=useState(''),[adminPasswordForm,APF]=useState({password:'',password2:''}),[adminPasswordSaved,APS]=useState(null),[newScout,NS]=useState({username:'',email:'',password:'',password2:''}),[ticketAccess,setTicketAccess]=useState(null),[tickets,setTickets]=useState([]),[selectedAdminTicket,setSelectedAdminTicket]=useState(null),[selectedTicketScout,setSelectedTicketScout]=useState(null),[ticketSubmitting,setTicketSubmitting]=useState(false),[scoutTicketDraft,setScoutTicketDraft]=useState({category:'',message:''}),[myTickets,setMyTickets]=useState([]),[myTicketsLoading,setMyTicketsLoading]=useState(false),[scoutTicketSubmitting,setScoutTicketSubmitting]=useState(false),[ticketConversations,setTicketConversations]=useState({}),[ticketReplyDraft,setTicketReplyDraft]=useState({}),[ticketMessageBusy,setTicketMessageBusy]=useState(false),[selectedScoutTicketId,setSelectedScoutTicketId]=useState(null);
  const [loginIntroActive,setLoginIntroActive]=useState(false),[loginIntroUsername,setLoginIntroUsername]=useState('');
