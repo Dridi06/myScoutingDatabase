@@ -96,7 +96,7 @@ app.delete('/api/scouts/:id',async(req,res)=>{try{if(!db)return res.status(503).
 app.post('/api/scouts/:id/reset-password',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
-    const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+    const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
     if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
     const {data:authData,error:authError}=await db.auth.getUser(token);
     if(authError||!authData?.user)return res.status(401).json({error:'Sitzung ungültig oder abgelaufen.'});
@@ -109,7 +109,7 @@ app.post('/api/scouts/:id/reset-password',async(req,res)=>{
     const {error:resetError}=await db.auth.admin.updateUserById(targetId,{password:temporaryPassword});
     if(resetError){console.error('Scout password reset failed:',{targetId,message:resetError.message});return res.status(500).json({error:'Das Scout-Passwort konnte nicht zurückgesetzt werden.'});}
     console.log('Scout password reset completed:',{targetId,actorId:authData.user.id});
-    return res.json({ok:true,username:target.username,email:target.email,temporary_password:temporaryPassword,must_change_password:true});
+    return res.json({ok:true,username:target.username,email:target.email,temporary_password:temporaryPassword});
   }catch(error){console.error('Scout password reset failed:',error);return res.status(500).json({error:'Passwort konnte aufgrund eines Serverfehlers nicht zurückgesetzt werden.'});}
 });
 app.get('/api/players',requireAuth,async(req,res)=>{let q=db.from('players').select('*').order('player_id',{ascending:true});if(req.user.role!=='admin')q=q.eq('owner_id',req.user.sub);const {data,error}=await q;if(error)return res.status(500).json({error:'Spieler konnten nicht geladen werden.'});res.json(data);});
