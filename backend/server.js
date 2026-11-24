@@ -69,6 +69,11 @@ app.post('/api/auth/login',async(req,res)=>{
     if(pErr||!profile)return res.status(401).json({error:'Benutzername oder Passwort ist nicht korrekt.'});
     const signIn=await loginClient.auth.signInWithPassword({email:profile.email,password});
     if(signIn.error)return res.status(401).json({error:'Benutzername oder Passwort ist nicht korrekt.'});
+    // Record a verified login server-side so the timestamp does not depend on
+    // a browser auth-state callback or an RPC succeeding after setSession.
+    const loginAt=new Date().toISOString();
+    const {error:loginStampError}=await db.from('profiles').update({last_login_at:loginAt,last_seen_at:loginAt}).eq('id',profile.id);
+    if(loginStampError)console.error('Could not record verified login timestamp:',loginStampError.message);
     if(profile.approval_status==='blocked'){
       const ticketToken=jwt.sign({sub:profile.id,username:profile.username,scope:'ticket:create'},JWT_SECRET,{issuer:'myScoutingDatabase',expiresIn:'15m'});
       return res.json({blocked:true,ticket_token:ticketToken,user:{id:profile.id,username:profile.username}});
