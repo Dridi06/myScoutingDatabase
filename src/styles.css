@@ -2445,3 +2445,13 @@ button{touch-action:manipulation}
  .welcome-scene .welcome-scout-portrait{width:min(100vw,560px);height:57%;top:0;left:0;object-fit:cover;object-position:35% 24%;mask-image:linear-gradient(180deg,#000 0%,#000 76%,transparent 100%);-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 76%,transparent 100%)}
 }
 @media(prefers-reduced-motion:reduce){.welcome-scene .welcome-scout-portrait{animation:none;opacity:1;transform:none}}
+
+
+/* Dashboard: two aligned live overview tiles with per-user new markers */
+.dashboard-overview-two{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+.dashboard-metric-link{position:relative;width:100%;min-width:0;min-height:150px;text-align:left;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;cursor:pointer;color:inherit;font:inherit;border:1px solid rgba(188,193,205,.2);border-radius:15px;padding:24px;background:linear-gradient(145deg,rgba(29,29,35,.96),rgba(10,11,15,.98));box-shadow:0 15px 38px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.075)}
+.dashboard-metric-link:hover{transform:translateY(-2px);border-color:rgba(190,211,239,.48);box-shadow:0 18px 42px rgba(0,0,0,.34),0 0 22px rgba(117,164,220,.12)}
+.dashboard-metric-link strong{margin-top:12px}
+.dashboard-metric-link small{margin-top:8px;color:#aeb8c8;font-size:10px}
+.dashboard-new-badge{position:absolute;right:18px;top:17px;padding:5px 9px;border-radius:20px;background:linear-gradient(120deg,#f4f7fc,#a9bfdc 52%,#e8f2ff);color:#14243a;font-size:9px;font-weight:900;letter-spacing:.12em;box-shadow:0 0 16px rgba(119,174,235,.22)}
+@media(max-width:620px){.dashboard-overview-two{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.dashboard-metric-link{min-height:132px;padding:15px}.dashboard-metric-link strong{font-size:34px}.dashboard-metric-link small{font-size:9px;line-height:1.4}.dashboard-new-badge{top:10px;right:10px;font-size:8px;padding:4px 7px}}
