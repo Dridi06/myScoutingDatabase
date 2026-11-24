@@ -40,12 +40,6 @@ async function bootstrapAdmin(){
   if(error) throw error;
   if(!process.env.ADMIN_EMAIL){console.error('Set ADMIN_EMAIL to a real, controlled mailbox before creating the admin account.');return;}
   let user=data.users.find(u=>u.user_metadata?.username===adminUsername||u.email===process.env.ADMIN_EMAIL);
-  if(user&&process.env.ADMIN_RESET_PASSWORD){
-    if(process.env.ADMIN_RESET_PASSWORD.length<16) throw new Error('ADMIN_RESET_PASSWORD must contain at least 16 chars.');
-    const reset=await db.auth.admin.updateUserById(user.id,{password:process.env.ADMIN_RESET_PASSWORD});
-    if(reset.error) throw reset.error;
-    console.log('ADMIN PASSWORD RESET completed for the configured admin account. Remove ADMIN_RESET_PASSWORD from the service environment now.');
-  }
   if(!user){
     const email=process.env.ADMIN_EMAIL.trim().toLowerCase();
     const created=await db.auth.admin.createUser({email,password:adminInitialPassword,email_confirm:true,user_metadata:{username:adminUsername,role:'admin'}});
