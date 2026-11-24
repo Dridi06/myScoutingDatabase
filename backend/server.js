@@ -169,10 +169,14 @@ function requireTicketIdentity(req,res,next){
     req.ticketUser=claims;next();
   }catch{return res.status(401).json({error:'Der Ticketzugang ist abgelaufen. Bitte erneut anmelden.'});}
 }
-app.post('/api/tickets',requireTicketIdentity,async(req,res)=>{
+const ticketCreateLimiter=rateLimit({windowMs:15*60*1000,limit:5,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Ticketanfragen. Bitte später erneut versuchen.'}});
+app.post('/api/tickets',ticketCreateLimiter,requireTicketIdentity,async(req,res)=>{
   try{
     const {data:scout,error:scoutError}=await db.from('profiles').select('id,username,role,approved,approval_status').eq('id',req.ticketUser.sub).maybeSingle();
     if(scoutError||!scout||scout.role!=='scout'||scout.approved||scout.approval_status!=='blocked')return res.status(403).json({error:'Für dieses Konto kann kein Ticket erstellt werden.'});
+    const {data:existing,error:existingError}=await db.from('support_tickets').select('id').eq('scout_id',scout.id).eq('status','offen').limit(1);
+    if(existingError)throw existingError;
+    if(existing?.length)return res.status(409).json({error:'Für deinen Account liegt bereits ein offenes Support-Ticket vor.'});
     const {data:ticket,error}=await db.from('support_tickets').insert({scout_id:scout.id,scout_username:scout.username,message:'Der Account ist gesperrt. Ich benötige Ihre Hilfe.',status:'offen'}).select('id,scout_id,scout_username,message,status,created_at').single();
     if(error)throw error;
     return res.status(201).json(ticket);
