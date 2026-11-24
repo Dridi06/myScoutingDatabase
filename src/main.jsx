@@ -3,7 +3,7 @@ import{createRoot}from'react-dom/client';
 import{createClient}from'@supabase/supabase-js';
 import{Goal,LayoutDashboard,UserPlus,Pencil,Trash2,Search,Database,LogOut,ShieldCheck,Menu,X,Printer,KeyRound,LifeBuoy}from'lucide-react';
 import'./styles.css';
-import loginPlayerArtwork from './assets/login-player-number10.gif';
+import loginPlayerArtwork from './assets/login-player-original.jpeg';
 const url=import.meta.env.VITE_SUPABASE_URL,key=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const sb=url&&key?createClient(url,key):null;
 const RATING_SECTIONS={
