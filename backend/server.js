@@ -87,7 +87,7 @@ app.get('/api/me',requireAuth,async(req,res)=>res.json({id:req.user.sub,username
 app.post('/api/scouts',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
-    const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+    const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
     if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
     const {data:authData,error:authError}=await db.auth.getUser(token);
     if(authError||!authData?.user)return res.status(401).json({error:'Sitzung ungültig oder abgelaufen.'});
@@ -96,7 +96,7 @@ app.post('/api/scouts',async(req,res)=>{
     const {username,email,password,password2}=req.body||{};
     if(typeof username!=='string'||typeof email!=='string'||typeof password!=='string')return res.status(400).json({error:'Benutzername, E-Mail und Startpasswort erforderlich.'});
     if(!/^[a-zA-Z0-9._-]{3,32}$/.test(username.trim()))return res.status(400).json({error:'Benutzername: 3–32 Zeichen (Buchstaben, Zahlen, Punkt, Unterstrich, Bindestrich).'});
-    if(!/^\\S+@\\S+\\.\\S+$/.test(email.trim()))return res.status(400).json({error:'Bitte eine gültige E-Mail-Adresse eingeben.'});
+    if(!/^\S+@\S+\.\S+$/.test(email.trim()))return res.status(400).json({error:'Bitte eine gültige E-Mail-Adresse eingeben.'});
     if(password!==password2)return res.status(400).json({error:'Die Startpasswörter stimmen nicht überein.'});
     if(password.length<12)return res.status(400).json({error:'Das Startpasswort muss mindestens 12 Zeichen lang sein.'});
     const {count,error:countError}=await db.from('profiles').select('id',{count:'exact',head:true}).eq('role','scout');
