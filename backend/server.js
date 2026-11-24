@@ -190,7 +190,7 @@ app.post('/api/tickets',ticketCreateLimiter,requireTicketIdentity,async(req,res)
 // Admin ticket endpoints receive the Supabase access token from the browser.
 // Verify it with Supabase Auth (not the app's separate JWT verifier).
 async function requireSupabaseAdmin(req,res,next){
-  const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+  const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
   if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
   try{
     // Match the already-working admin API authentication path (/api/scouts).
