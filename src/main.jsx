@@ -264,28 +264,28 @@ function App(){
  <filter id="ballDepth" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur in="SourceAlpha" stdDeviation="2.5" result="blur"/><feOffset dy="4"/><feComponentTransfer><feFuncA type="linear" slope=".38"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 </defs>
 <g className="kicker-body" filter="url(#playerDepth)" strokeLinejoin="round" strokeLinecap="round">
- <!-- rear arm -->
+ {/* rear arm */}
  <path d="M130 82 Q105 94 88 117 L66 147 Q60 156 51 149 L45 143 Q40 137 47 129 L72 91 Q89 66 119 61Z" fill="url(#playerSkin)" stroke="#6f4c3a" strokeWidth="2"/>
  <path d="M48 139 L37 150 Q32 158 41 163 Q49 167 56 158 L65 148Z" fill="url(#playerSkin)" stroke="#6f4c3a" strokeWidth="1.6"/>
- <!-- planted leg -->
+ {/* planted leg */}
  <path d="M143 151 Q164 162 173 185 L184 213 Q187 222 178 228 L167 232 Q157 235 153 224 L137 199 Q122 181 111 168Z" fill="url(#playerSkin)" stroke="#704b38" strokeWidth="2"/>
  <path d="M163 218 Q181 214 192 222 L211 231 Q218 236 212 243 L177 247 Q164 247 158 239 L153 230Z" fill="url(#playerBoot)" stroke="#72501d" strokeWidth="2"/>
- <!-- torso and shirt -->
+ {/* torso and shirt */}
  <path d="M116 55 Q132 43 154 52 L178 69 Q185 75 181 88 L165 139 Q161 153 145 157 L105 151 Q92 148 94 133 L99 82 Q100 64 116 55Z" fill="url(#playerKit)" stroke="#d8e0ec" strokeWidth="2.4"/>
  <path d="M119 54 Q133 66 149 57 L159 66 Q148 82 132 82 Q116 79 108 67Z" fill="#17243a" stroke="#d8e0ec" strokeWidth="1.5"/>
  <path d="M111 84 L158 91 L151 142 L103 135Z" fill="none" stroke="#f2cf82" strokeOpacity=".85" strokeWidth="3"/>
  <path d="M130 91 L145 94 L140 112 L125 109Z" fill="#d7b56f" opacity=".9"/>
- <!-- front arm -->
+ {/* front arm */}
  <path d="M171 78 Q190 91 202 113 L216 137 Q221 146 213 152 L205 157 Q196 160 191 150 L171 127 Q155 110 151 93Z" fill="url(#playerSkin)" stroke="#704b38" strokeWidth="2"/>
  <path d="M205 148 Q214 143 222 151 L230 160 Q233 167 226 171 L213 168 Q204 164 201 157Z" fill="url(#playerSkin)" stroke="#704b38" strokeWidth="1.5"/>
- <!-- shorts -->
+ {/* shorts */}
  <path d="M103 137 Q130 145 164 139 L171 165 L148 179 L127 164 L110 178 L91 165Z" fill="url(#playerShorts)" stroke="#cbd5e4" strokeWidth="2"/>
  <path d="M129 151 L139 153 L136 166 L126 164Z" fill="#d7b56f"/>
- <!-- kicking leg -->
+ {/* kicking leg */}
  <path className="kicker-shoot-leg" d="M103 161 Q120 164 133 174 L151 188 Q160 196 154 205 L146 214 Q139 220 131 211 L104 195 Q82 185 71 172Z" fill="url(#playerSkin)" stroke="#704b38" strokeWidth="2.2"/>
  <path d="M139 205 Q151 195 164 201 L189 208 Q200 212 194 221 L166 229 Q150 231 139 222 L130 215Z" fill="url(#playerBoot)" stroke="#72501d" strokeWidth="2"/>
  <path d="M148 207 L184 216 M145 214 L179 223" fill="none" stroke="#fff0c4" strokeOpacity=".8" strokeWidth="2"/>
- <!-- head, neck, hair -->
+ {/* head, neck, hair */}
  <path d="M126 50 L128 62 L145 68 L150 53Z" fill="url(#playerSkin)"/>
  <path d="M117 22 Q121 3 143 8 Q162 12 159 34 L153 53 Q147 65 135 62 Q121 57 117 42Z" fill="url(#playerSkin)" stroke="#704b38" strokeWidth="1.8"/>
  <path d="M116 30 Q111 11 128 5 Q149 -3 162 13 L160 30 Q151 20 141 20 Q131 30 116 30Z" fill="#17202d" stroke="#090f18" strokeWidth="2"/>
