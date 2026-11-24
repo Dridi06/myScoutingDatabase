@@ -1911,3 +1911,13 @@ button{touch-action:manipulation}
 .scout-own-ticket-list article p{margin:12px 0;color:#d5ddec;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
 .scout-own-ticket-list article>small{color:#94a3bb}
 @media(max-width:700px){.scout-support-panel,.scout-own-tickets{padding:16px}.scout-support-form-footer{align-items:stretch;flex-direction:column}.scout-support-form-footer button{width:100%}.scout-own-tickets-heading{align-items:flex-start}.scout-own-ticket-top{align-items:flex-start}}
+
+
+.blocked-support-form{display:grid;gap:14px;text-align:left;margin-top:16px}
+.blocked-support-form label{display:grid;gap:8px;color:#aebbd0;font-size:11px;font-weight:800;text-align:left}
+.blocked-support-form label span{letter-spacing:.06em}
+.blocked-support-form select,.blocked-support-form textarea{width:100%;background:rgba(5,10,19,.72);border:1px solid rgba(131,157,199,.24);color:#f5f7fc;border-radius:10px;padding:13px;outline:none;font:inherit}
+.blocked-support-form select option{background:#101827;color:#f5f7fc}
+.blocked-support-form textarea{min-height:140px;resize:vertical;line-height:1.5}
+.blocked-support-counter{display:block;color:#9eacc2;text-align:right;font-size:11px}
+.blocked-support-form .nexus-submit{margin:0;width:100%}
