@@ -92,7 +92,7 @@ function App(){
    let token=await getToken();
    const request=value=>fetch('/api/scout/tickets',{cache:'no-store',headers:{Authorization:'Bearer '+value,'Cache-Control':'no-cache'}});
    let response=await request(token);
-   if(response.status===401){token=await getToken();response=await request(token)}
+   if(response.status===401){const refreshed=await sb.auth.refreshSession();if(refreshed.error||!refreshed.data?.session?.access_token)throw new Error('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');response=await request(refreshed.data.session.access_token)}
    const payload=await response.json().catch(()=>null);
    if(!response.ok)throw new Error(payload?.error||'Deine Support-Tickets konnten nicht geladen werden.');
    if(!Array.isArray(payload))throw new Error('Der Ticketdienst hat eine ungültige Antwort geliefert.');
