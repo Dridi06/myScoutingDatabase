@@ -189,6 +189,8 @@ app.post('/api/tickets',ticketCreateLimiter,requireTicketIdentity,async(req,res)
     if(existing?.length)return res.status(409).json({error:'Für deinen Account liegt bereits ein offenes Support-Ticket vor.'});
     const {data:ticket,error}=await db.from('support_tickets').insert({scout_id:scout.id,scout_username:scout.username,category,message,status:'offen'}).select('id,scout_id,scout_username,category,message,status,created_at').single();
     if(error)throw error;
+    const {error:messageError}=await db.from('support_ticket_messages').insert({ticket_id:ticket.id,sender_id:scout.id,sender_role:'scout',message});
+    if(messageError)throw messageError;
     return res.status(201).json(ticket);
   }catch(error){console.error('Support ticket creation failed:',error.message);return res.status(500).json({error:'Ticket konnte nicht erstellt werden. Bitte versuche es erneut.'});}
 });
@@ -239,6 +241,8 @@ app.post('/api/scout/tickets',requireApprovedScout,scoutTicketCreateLimiter,asyn
       status:'offen'
     }).select('id,scout_id,scout_username,category,message,status,created_at,resolved_at').single();
     if(error)throw error;
+    const {error:messageError}=await db.from('support_ticket_messages').insert({ticket_id:ticket.id,sender_id:req.scout.id,sender_role:'scout',message});
+    if(messageError)throw messageError;
     res.set('Cache-Control','no-store');
     return res.status(201).json(ticket);
   }catch(error){console.error('Scout support ticket creation failed:',error.message);return res.status(500).json({error:'Support-Ticket konnte nicht erstellt werden. Bitte versuche es erneut.'});}
