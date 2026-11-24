@@ -189,6 +189,8 @@ app.post('/api/tickets',ticketCreateLimiter,requireTicketIdentity,async(req,res)
     if(existing?.length)return res.status(409).json({error:'Für deinen Account liegt bereits ein offenes Support-Ticket vor.'});
     const {data:ticket,error}=await db.from('support_tickets').insert({scout_id:scout.id,scout_username:scout.username,category,message,status:'offen'}).select('id,scout_id,scout_username,category,message,status,created_at').single();
     if(error)throw error;
+    const {error:messageError}=await db.from('support_ticket_messages').insert({ticket_id:ticket.id,sender_id:scout.id,sender_role:'scout',message});
+    if(messageError)throw messageError;
     return res.status(201).json(ticket);
   }catch(error){console.error('Support ticket creation failed:',error.message);return res.status(500).json({error:'Ticket konnte nicht erstellt werden. Bitte versuche es erneut.'});}
 });
@@ -239,6 +241,8 @@ app.post('/api/scout/tickets',requireApprovedScout,scoutTicketCreateLimiter,asyn
       status:'offen'
     }).select('id,scout_id,scout_username,category,message,status,created_at,resolved_at').single();
     if(error)throw error;
+    const {error:messageError}=await db.from('support_ticket_messages').insert({ticket_id:ticket.id,sender_id:req.scout.id,sender_role:'scout',message});
+    if(messageError)throw messageError;
     res.set('Cache-Control','no-store');
     return res.status(201).json(ticket);
   }catch(error){console.error('Scout support ticket creation failed:',error.message);return res.status(500).json({error:'Support-Ticket konnte nicht erstellt werden. Bitte versuche es erneut.'});}
@@ -270,6 +274,43 @@ app.patch('/api/tickets/:id/resolve',requireSupabaseAdmin,async(req,res)=>{
   if(error)return res.status(500).json({error:'Ticket konnte nicht erledigt werden.'});
   if(!data)return res.status(404).json({error:'Offenes Ticket nicht gefunden.'});
   res.json(data);
+});
+
+
+async function listTicketMessages(ticketId){
+  return db.from('support_ticket_messages').select('id,ticket_id,sender_id,sender_role,message,created_at').eq('ticket_id',ticketId).order('created_at',{ascending:true});
+}
+app.get('/api/tickets/:id/messages',requireSupabaseAdmin,async(req,res)=>{
+  const {data:ticket,error:ticketError}=await db.from('support_tickets').select('id').eq('id',req.params.id).maybeSingle();
+  if(ticketError||!ticket)return res.status(404).json({error:'Ticket nicht gefunden.'});
+  const {data,error}=await listTicketMessages(req.params.id);
+  if(error)return res.status(500).json({error:'Nachrichten konnten nicht geladen werden.'});
+  res.set('Cache-Control','no-store');return res.json(data||[]);
+});
+app.post('/api/tickets/:id/messages',requireSupabaseAdmin,async(req,res)=>{
+  const message=typeof req.body?.message==='string'?req.body.message.trim():'';
+  if(!message||message.length>3000)return res.status(400).json({error:'Die Nachricht muss 1 bis 3.000 Zeichen enthalten.'});
+  const {data:ticket,error:ticketError}=await db.from('support_tickets').select('id').eq('id',req.params.id).maybeSingle();
+  if(ticketError||!ticket)return res.status(404).json({error:'Ticket nicht gefunden.'});
+  const {data,error}=await db.from('support_ticket_messages').insert({ticket_id:ticket.id,sender_id:req.user.sub,sender_role:'admin',message}).select('id,ticket_id,sender_id,sender_role,message,created_at').single();
+  if(error)return res.status(500).json({error:'Nachricht konnte nicht gespeichert werden.'});
+  res.set('Cache-Control','no-store');return res.status(201).json(data);
+});
+app.get('/api/scout/tickets/:id/messages',requireApprovedScout,async(req,res)=>{
+  const {data:ticket,error:ticketError}=await db.from('support_tickets').select('id').eq('id',req.params.id).eq('scout_id',req.scout.id).maybeSingle();
+  if(ticketError||!ticket)return res.status(404).json({error:'Ticket nicht gefunden.'});
+  const {data,error}=await listTicketMessages(ticket.id);
+  if(error)return res.status(500).json({error:'Nachrichten konnten nicht geladen werden.'});
+  res.set('Cache-Control','no-store');return res.json(data||[]);
+});
+app.post('/api/scout/tickets/:id/messages',requireApprovedScout,async(req,res)=>{
+  const message=typeof req.body?.message==='string'?req.body.message.trim():'';
+  if(!message||message.length>3000)return res.status(400).json({error:'Die Nachricht muss 1 bis 3.000 Zeichen enthalten.'});
+  const {data:ticket,error:ticketError}=await db.from('support_tickets').select('id').eq('id',req.params.id).eq('scout_id',req.scout.id).maybeSingle();
+  if(ticketError||!ticket)return res.status(404).json({error:'Ticket nicht gefunden.'});
+  const {data,error}=await db.from('support_ticket_messages').insert({ticket_id:ticket.id,sender_id:req.scout.id,sender_role:'scout',message}).select('id,ticket_id,sender_id,sender_role,message,created_at').single();
+  if(error)return res.status(500).json({error:'Nachricht konnte nicht gespeichert werden.'});
+  res.set('Cache-Control','no-store');return res.status(201).json(data);
 });
 
 app.use(express.static('dist',{maxAge:'1h',setHeaders(res,path){if(path.endsWith('/index.html'))res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');}}));
