@@ -82,6 +82,7 @@ function App(){
    }
    if(!Array.isArray(payload))throw new Error('Der Ticketdienst hat eine ungültige Antwort geliefert.');
    setTickets(payload);
+   if(/^Sitzung (abgelaufen|konnte nicht geprüft werden)/.test(notice))N('');
   }catch(error){
    console.error('Ticket list load failed:',error);
    if(!silent)N(error.message||'Tickets konnten nicht geladen werden.');
