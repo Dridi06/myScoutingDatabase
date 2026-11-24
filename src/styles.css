@@ -2022,3 +2022,15 @@ button{touch-action:manipulation}
   .kicker-body,.kicker-shoot-leg{animation:none}
   .intro-kick-ball{opacity:1;animation:none;transform:translate(58px,-5px) scale(.8)}
 }
+
+
+/* Login footballer: keep the complete kicker scene visible on every device,
+   including iOS devices configured to reduce motion. */
+.intro-kick-scene{left:50%;top:50%;width:0;height:0;z-index:8;display:block!important}
+.intro-kicker{left:-184px;top:-128px;width:174px;height:160px;max-width:none;opacity:1;animation:kicker-arrive .58s cubic-bezier(.2,.8,.25,1) both}
+.intro-kick-ball{left:-59px;top:-38px;width:42px;height:42px;opacity:0;animation:ball-to-first-letter .72s cubic-bezier(.18,.75,.2,1) .82s forwards}
+.kicker-body{transform-origin:70px 75px;animation:kicker-follow-through .72s ease-in-out .58s both}
+.kicker-shoot-leg{transform-box:fill-box;transform-origin:12% 15%;animation:kicker-leg-swing .72s cubic-bezier(.2,.7,.2,1) .58s both}
+@keyframes ball-to-first-letter{0%{opacity:0;transform:translate(0,0) scale(.82)}12%{opacity:1}72%{opacity:1;transform:translate(56px,-12px) scale(1.12)}100%{opacity:0;transform:translate(78px,-20px) scale(.18)}}
+@media(max-width:560px){.intro-kicker{left:-137px;top:-94px;width:130px;height:120px}.intro-kick-ball{left:-45px;top:-29px;width:32px;height:32px}}
+@media(prefers-reduced-motion:reduce){.intro-kick-scene{display:block!important}.intro-kicker{opacity:1!important;animation:none!important;transform:none!important}.intro-kick-ball{opacity:1!important;animation:none!important;transform:none!important}.kicker-body,.kicker-shoot-leg{animation:none!important;transform:none!important}}
