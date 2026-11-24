@@ -126,7 +126,7 @@ function App(){
 <svg className="intro-kick-ball" viewBox="0 0 40 40" role="presentation">
 <circle cx="20" cy="20" r="16" fill="#f5f8ff" stroke="#a9c7ff" strokeWidth="2"/>
 <path d="M20 10L27 15 24 23 16 23 13 15Z M20 10L20 4 M27 15L34 13 M24 23L29 31 M16 23L11 31 M13 15L6 13" fill="#17243b" stroke="#17243b" strokeWidth="2" strokeLinejoin="round"/>
-</svg>{Array.from('myScoutingDatabase').map((letter,index)=><span key={index} style={{'--letter-index':index}}>{letter}</span>)}</div><div className="intro-welcome">Willkommen</div><div className="intro-username">{profile?.username||loginIntroUsername||session?.user?.user_metadata?.username||session?.user?.email?.split('@')[0]||'Benutzer'}</div></div></div>}
+</svg></div>{Array.from('myScoutingDatabase').map((letter,index)=><span key={index} style={{'--letter-index':index}}>{letter}</span>)}</div><div className="intro-welcome">Willkommen</div><div className="intro-username">{profile?.username||loginIntroUsername||session?.user?.user_metadata?.username||session?.user?.email?.split('@')[0]||'Benutzer'}</div></div></div>}
  </main></div>;
 }
 createRoot(document.getElementById('root')).render(<App/>);
