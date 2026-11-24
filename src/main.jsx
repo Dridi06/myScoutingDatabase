@@ -55,7 +55,23 @@ function App(){
  useEffect(()=>{if(!admin)return;loadTickets({silent:true});const timer=setInterval(()=>loadTickets({silent:true}),30000);return()=>clearInterval(timer)},[admin]);
  useEffect(()=>{if(page==='deletion-log'&&admin)loadDeletionLogs();if((page==='ticket-support'||page==='scouts')&&admin)loadTickets();if(page==='scout-support'&&profile?.role==='scout')loadMyTickets()},[page,admin,profile?.id,profile?.role,profile?.approval_status]);
  async function login(e){e.preventDefault();L(true);try{const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:auth.username,password:auth.password})});const j=await r.json();if(!r.ok)throw Error(j.error);if(j.blocked){setTicketAccess({token:j.ticket_token,username:j.user?.username||auth.username});N('');return}const{error}=await sb.auth.setSession({access_token:j.access_token,refresh_token:j.refresh_token});if(error)throw error;}catch(e){N(e.message)}finally{L(false)}}
- async function createSupportTicket(){if(!ticketAccess?.token||ticketSubmitting)return;setTicketSubmitting(true);try{const r=await fetch('/api/tickets',{method:'POST',headers:{Authorization:'Bearer '+ticketAccess.token}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Ticket konnte nicht erstellt werden.');N('Dein Support-Ticket wurde erstellt. Der Administrator wurde über dein Anliegen informiert.');}catch(e){N(e.message||'Ticket konnte nicht erstellt werden.')}finally{setTicketSubmitting(false)}}
+ async function createSupportTicket(e){
+ e.preventDefault();
+ if(!ticketAccess?.token||ticketSubmitting)return;
+ const category=scoutTicketDraft.category.trim(),message=scoutTicketDraft.message.trim();
+ if(!SUPPORT_TICKET_CATEGORIES.includes(category)){N('Bitte wähle einen Grund für dein Support-Ticket aus.');return}
+ if(message.length<10){N('Bitte beschreibe dein Problem mit mindestens 10 Zeichen.');return}
+ if(message.length>3000){N('Deine Beschreibung darf höchstens 3.000 Zeichen enthalten.');return}
+ setTicketSubmitting(true);
+ try{
+  const r=await fetch('/api/tickets',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ticketAccess.token},body:JSON.stringify({category,message})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.error||'Ticket konnte nicht erstellt werden.');
+  setScoutTicketDraft({category:'',message:''});
+  N('Dein Support-Ticket wurde erstellt. Der Administrator wurde über dein Anliegen informiert.');
+ }catch(error){N(error.message||'Ticket konnte nicht erstellt werden.')}
+ finally{setTicketSubmitting(false)}
+}
  const ticketsLoadRef=useRef(false);
  const myTicketsLoadRef=useRef(false);
  async function loadMyTickets({silent=false}={}){
@@ -168,7 +184,7 @@ function App(){
  const filtered=useMemo(()=>players.filter(p=>[p.name,p.club,p.year,p.foot,...(p.positions||[])].join(' ').toLowerCase().includes(search.toLowerCase())&&(!filters.year||String(p.year||'').includes(filters.year))&&(!filters.position||(p.positions||[]).includes(filters.position))&&(!filters.foot||p.foot===filters.foot)),[players,search,filters]);
  const scoutLocked=profile?.role==='scout'&&profile?.approval_status!=='approved';
  useEffect(()=>{if(scoutLocked){G('dashboard');DR(false)}},[scoutLocked]);
- if(!session&&ticketAccess)return <div className="auth auth-nexus auth-minimal"><main className="nexus-login-stage"><section className="nexus-login"><div className="nexus-brand-title nexus-brand-modern">MyScoutingDatabase</div><div className="nexus-card blocked-ticket-card"><h1>Dein Account ist gesperrt.</h1><p className="nexus-intro">Dein Account ist gesperrt. Bitte wende dich bei Problemen an den Admin.</p><button type="button" className="nexus-submit" onClick={createSupportTicket} disabled={ticketSubmitting}>{ticketSubmitting?'TICKET WIRD ERSTELLT…':'TICKET SUPPORT'}</button>{notice&&<p className="notice" role="status">{notice}</p>}<button type="button" className="link" onClick={()=>{setTicketAccess(null);N('');A({username:'',email:'',password:'',password2:''})}}>Zurück zur Anmeldung</button></div></section></main></div>;
+ if(!session&&ticketAccess)return <div className="auth auth-nexus auth-minimal"><main className="nexus-login-stage"><section className="nexus-login"><div className="nexus-brand-title nexus-brand-modern">MyScoutingDatabase</div><div className="nexus-card blocked-ticket-card"><h1>Dein Account ist gesperrt.</h1><p className="nexus-intro">Du kannst hier direkt eine Supportanfrage an den Administrator senden.</p><form className="nexus-form blocked-support-form" onSubmit={createSupportTicket}><label><span>GRUND FÜR DEIN SUPPORT-TICKET</span><select value={scoutTicketDraft.category} onChange={e=>setScoutTicketDraft({...scoutTicketDraft,category:e.target.value})} required><option value="">Bitte Grund auswählen</option>{SUPPORT_TICKET_CATEGORIES.map(category=><option key={category} value={category}>{category}</option>)}</select></label><label><span>BESCHREIBE DEIN PROBLEM</span><textarea rows="6" minLength={10} maxLength={3000} value={scoutTicketDraft.message} onChange={e=>setScoutTicketDraft({...scoutTicketDraft,message:e.target.value})} placeholder="Beschreibe möglichst genau, wobei du Hilfe benötigst…" required/></label><small className="blocked-support-counter">{scoutTicketDraft.message.trim().length} / 3.000 Zeichen · Mindestens 10 Zeichen</small><button type="submit" className="nexus-submit" disabled={ticketSubmitting||!scoutTicketDraft.category||scoutTicketDraft.message.trim().length<10}>{ticketSubmitting?'TICKET WIRD ERSTELLT…':'SUPPORT-TICKET ABSENDEN'}</button></form>{notice&&<p className="notice" role="status">{notice}</p>}<button type="button" className="link" onClick={()=>{setTicketAccess(null);N('');A({username:'',email:'',password:'',password2:''})}}>Zurück zur Anmeldung</button></div></section></main></div>;
  if(!session)return <div className="auth auth-nexus auth-minimal">
   <main className="nexus-login-stage">
    <section className="nexus-login">
