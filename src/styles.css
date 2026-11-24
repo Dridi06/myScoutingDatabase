@@ -1817,3 +1817,23 @@ button{touch-action:manipulation}
 @media(max-width:560px){.wing-selectors{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.wing-selectors .wing-card{min-height:88px;padding:10px 8px}.wing-selectors .wing-code{font-size:24px}.wing-selectors .wing-title{font-size:11px}.wing-selectors .wing-card small{font-size:9px}}
 
 .scout-create-panel{margin:18px 0 22px}.scout-create-panel h2{margin:0 0 8px}.scout-create-panel>p{color:#aebed8;line-height:1.55;margin:0 0 16px}.scout-create-form .grid{margin-bottom:14px}.scout-create-form>button{min-height:42px}.scout-create-panel>small{display:block;margin-top:12px;color:#9eafc5;line-height:1.5}
+
+
+/* Five-second post-login cinematic welcome sequence */
+.login-intro-overlay{position:fixed;inset:0;z-index:20000;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:24px;background:#020305;color:#e9edf4;isolation:isolate}
+.login-intro-overlay:before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 48%,rgba(105,124,153,.12),transparent 58%);opacity:.9}
+.login-intro-content{position:relative;z-index:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.intro-wordmark{position:relative;display:flex;justify-content:center;align-items:center;max-width:100%;white-space:nowrap;font-family:Sora,Manrope,Arial,sans-serif;font-size:clamp(19px,5.2vw,66px);font-weight:800;letter-spacing:-.055em;line-height:1.2;color:#d9e0e9;text-shadow:0 2px 2px rgba(255,255,255,.2),0 8px 28px rgba(0,0,0,.9);filter:drop-shadow(0 0 12px rgba(195,211,234,.12))}
+.intro-wordmark span{display:inline-block;opacity:0;transform:translateY(13px) scale(.96);background:linear-gradient(180deg,#fff 0%,#aeb9c9 28%,#f5f7fa 48%,#7e8999 72%,#e9edf3 100%);background-clip:text;-webkit-background-clip:text;color:transparent;animation:intro-letter-in .18s ease-out forwards}
+.intro-wordmark .intro-first-letter{position:relative;animation:intro-letter-in .18s ease-out forwards,intro-first-glow .65s ease-out 3.7s both}
+.intro-wordmark:after{content:"";position:absolute;top:-25%;bottom:-25%;left:-35%;width:18%;opacity:0;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.05) 20%,rgba(255,255,255,.95) 48%,rgba(215,230,255,.28) 70%,transparent);filter:blur(2px);transform:skewX(-18deg);animation:intro-shine .9s ease-in-out 2.6s both}
+.intro-wordmark{animation:intro-float 1.1s ease-in-out 2s both}
+.intro-welcome{margin-top:clamp(24px,5vh,42px);font-family:Sora,Manrope,sans-serif;font-size:clamp(20px,3.5vw,30px);font-weight:600;letter-spacing:.12em;color:#e6eaf0;opacity:0;animation:intro-caption-in .55s ease-out 3.95s forwards}
+.intro-username{margin-top:10px;font-family:Sora,Manrope,sans-serif;font-size:clamp(15px,2.5vw,21px);font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:#aeb9c9;text-shadow:0 0 18px rgba(190,207,230,.22);opacity:0;overflow-wrap:anywhere;max-width:90vw;animation:intro-caption-in .55s ease-out 4.12s forwards}
+@keyframes intro-letter-in{to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes intro-float{0%{transform:translateY(0) scale(1)}45%{transform:translateY(-5px) scale(1.035)}100%{transform:translateY(-2px) scale(1.025)}}
+@keyframes intro-shine{0%{left:108%;opacity:0}15%{opacity:1}100%{left:-30%;opacity:0}}
+@keyframes intro-first-glow{0%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}45%{filter:drop-shadow(0 0 16px rgba(255,255,255,.95)) drop-shadow(0 0 34px rgba(145,180,235,.72))}100%{filter:drop-shadow(0 0 7px rgba(220,232,255,.65))}}
+@keyframes intro-caption-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:480px){.intro-wordmark{font-size:clamp(17px,5.1vw,24px);letter-spacing:-.065em}.intro-welcome{letter-spacing:.08em}}
+@media(prefers-reduced-motion:reduce){.intro-wordmark span{animation:none;opacity:1;transform:none}.intro-wordmark,.intro-wordmark .intro-first-letter,.intro-wordmark:after,.intro-welcome,.intro-username{animation:none;opacity:1;transform:none}.intro-wordmark:after{display:none}}
