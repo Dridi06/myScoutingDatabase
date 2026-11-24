@@ -2108,3 +2108,21 @@ button{touch-action:manipulation}
 @media(prefers-reduced-motion:reduce){
  .login-kick-stage .intro-kick-ball{transform:translate(0,0) scale(1)!important}
 }
+
+/* Animated silver-blue footballer replacing the former sidebar crest */
+.shell aside .logo{gap:10px}
+.shell aside .brand-mark.player-celebration{
+ width:52px;height:58px;flex:0 0 52px;overflow:visible;
+ filter:drop-shadow(0 0 5px rgba(20,132,255,.75)) drop-shadow(0 0 13px rgba(20,132,255,.38));
+ transform-origin:50% 82%;
+ animation:player-celebration-float 3.2s ease-in-out infinite,player-celebration-glow 2.6s ease-in-out infinite;
+}
+@keyframes player-celebration-float{
+ 0%,100%{transform:translateY(1px) scale(1)}
+ 50%{transform:translateY(-4px) scale(1.035)}
+}
+@keyframes player-celebration-glow{
+ 0%,100%{filter:drop-shadow(0 0 4px rgba(20,132,255,.55)) drop-shadow(0 0 10px rgba(20,132,255,.28))}
+ 50%{filter:drop-shadow(0 0 8px rgba(20,160,255,.95)) drop-shadow(0 0 18px rgba(20,132,255,.58))}
+}
+@media(prefers-reduced-motion:reduce){.shell aside .brand-mark.player-celebration{animation:none}}
