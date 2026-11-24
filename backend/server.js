@@ -223,8 +223,15 @@ app.get('/api/scout/tickets',requireApprovedScout,async(req,res)=>{
     .eq('scout_id',req.scout.id)
     .order('created_at',{ascending:false});
   if(error){console.error('Scout ticket history load failed:',error.message);return res.status(500).json({error:'Deine Support-Tickets konnten nicht geladen werden.'});}
+  const ticketIds=(data||[]).map(ticket=>ticket.id);
+  let unreadCounts={};
+  if(ticketIds.length){
+    const {data:unread,error:unreadError}=await db.from('support_ticket_messages').select('ticket_id').in('ticket_id',ticketIds).eq('sender_role','admin').is('scout_read_at',null);
+    if(unreadError)return res.status(500).json({error:'Nachrichtenstatus konnte nicht geladen werden.'});
+    for(const row of unread||[])unreadCounts[row.ticket_id]=(unreadCounts[row.ticket_id]||0)+1;
+  }
   res.set('Cache-Control','no-store');
-  res.json(data||[]);
+  res.json((data||[]).map(ticket=>({...ticket,unread_admin_count:unreadCounts[ticket.id]||0})));
 });
 app.post('/api/scout/tickets',requireApprovedScout,scoutTicketCreateLimiter,async(req,res)=>{
   try{
@@ -302,6 +309,13 @@ app.get('/api/scout/tickets/:id/messages',requireApprovedScout,async(req,res)=>{
   const {data,error}=await listTicketMessages(ticket.id);
   if(error)return res.status(500).json({error:'Nachrichten konnten nicht geladen werden.'});
   res.set('Cache-Control','no-store');return res.json(data||[]);
+});
+app.post('/api/scout/tickets/:id/messages/read',requireApprovedScout,async(req,res)=>{
+  const {data:ticket,error:ticketError}=await db.from('support_tickets').select('id').eq('id',req.params.id).eq('scout_id',req.scout.id).maybeSingle();
+  if(ticketError||!ticket)return res.status(404).json({error:'Ticket nicht gefunden.'});
+  const {error}=await db.from('support_ticket_messages').update({scout_read_at:new Date().toISOString()}).eq('ticket_id',ticket.id).eq('sender_role','admin').is('scout_read_at',null);
+  if(error)return res.status(500).json({error:'Nachrichten konnten nicht als gelesen markiert werden.'});
+  res.set('Cache-Control','no-store');return res.json({success:true});
 });
 app.post('/api/scout/tickets/:id/messages',requireApprovedScout,async(req,res)=>{
   const message=typeof req.body?.message==='string'?req.body.message.trim():'';
