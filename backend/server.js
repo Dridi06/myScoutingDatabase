@@ -161,7 +161,7 @@ app.delete('/api/players/:id',requireAuth,requireAdmin,async(req,res)=>{const id
 // Blocked scouts receive a short-lived, ticket-only token after Supabase has
 // verified their password. It cannot authenticate normal workspace endpoints.
 function requireTicketIdentity(req,res,next){
-  const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+  const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
   if(!token)return res.status(401).json({error:'Bitte melde dich erneut mit deinen Zugangsdaten an.'});
   try{
     const claims=jwt.verify(token,JWT_SECRET,{issuer:'myScoutingDatabase'});
