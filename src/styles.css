@@ -2230,3 +2230,42 @@ button{touch-action:manipulation}
 @media(hover:none){
  button:hover{transform:none;filter:none}
 }
+
+
+/* Scout management table: stable desktop columns and readable mobile cards. */
+.scout-management-table{margin-top:18px;padding:0;overflow-x:auto;border:1px solid rgba(190,157,94,.24);border-radius:14px;background:linear-gradient(145deg,rgba(18,28,44,.96),rgba(8,14,24,.98));}
+.scout-management-table table{width:100%;min-width:1120px;table-layout:fixed;border-collapse:separate;border-spacing:0;}
+.scout-management-table th{padding:15px 12px;text-align:left;color:#d9b56d;font-size:10px;line-height:1.4;letter-spacing:.07em;text-transform:uppercase;background:rgba(212,174,99,.08);border-bottom:1px solid rgba(212,174,99,.24);white-space:normal;}
+.scout-management-table td{padding:14px 12px;vertical-align:middle;border-bottom:1px solid rgba(164,183,213,.11);color:#dce5f3;font-size:12px;line-height:1.5;overflow-wrap:anywhere;}
+.scout-management-table tbody tr:not(.scout-ticket-history-row):hover{background:rgba(255,255,255,.035);}
+.scout-management-table tbody tr:last-child td{border-bottom:0;}
+.scout-management-table th:nth-child(1){width:7%}.scout-management-table th:nth-child(2){width:12%}.scout-management-table th:nth-child(3){width:18%}.scout-management-table th:nth-child(4){width:15%}.scout-management-table th:nth-child(5){width:9%}.scout-management-table th:nth-child(6){width:14%}.scout-management-table th:nth-child(7){width:17%}.scout-management-table th:nth-child(8){width:8%}
+.scout-management-table .scout-actions{display:flex;flex-wrap:wrap;gap:7px;min-width:0;}
+.scout-management-table .scout-actions button,.scout-management-table td>button{max-width:100%;white-space:normal;line-height:1.3;}
+.scout-management-table .scout-presence,.scout-management-table .scout-status{white-space:normal;}
+.scout-management-table .scout-ticket-history-row>td{padding:16px!important;}
+@media(max-width:760px){
+ .scout-management-table{overflow:visible;padding:0;border:0;background:transparent;box-shadow:none;}
+ .scout-management-table table,.scout-management-table tbody{display:block;width:100%;min-width:0;}
+ .scout-management-table thead{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+ .scout-management-table tbody{display:grid;gap:12px;}
+ .scout-management-table tbody tr:not(.scout-ticket-history-row){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px;padding:12px;border:1px solid rgba(190,157,94,.25);border-radius:13px;background:linear-gradient(145deg,rgba(20,31,49,.98),rgba(9,15,26,.98));box-shadow:0 8px 22px rgba(0,0,0,.16);}
+ .scout-management-table tbody tr:not(.scout-ticket-history-row)>td{display:flex;flex-direction:column;justify-content:center;min-width:0;padding:10px 4px;border-bottom:1px solid rgba(164,183,213,.1);font-size:12px;}
+ .scout-management-table tbody tr:not(.scout-ticket-history-row)>td:before{content:attr(data-label);margin-bottom:5px;color:#9eacc2;font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;}
+ .scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(1):before{content:"Scout ID"}
+ .scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(2):before{content:"Benutzername"}
+ .scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(3):before{content:"E-Mail"}
+ .scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(4):before{content:"Zuletzt eingeloggt"}
+ .scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(5):before{content:"Online-Status"}
+ .scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(6):before{content:"Freigabestatus"}
+ .scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(7):before{content:"Aktionen"}
+ .scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(8):before{content:"Ticket-Historie"}
+ .scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(3),.scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(4),.scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(7),.scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(8){grid-column:1/-1;}
+ .scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(7){padding-top:13px;}
+ .scout-management-table .scout-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;}
+ .scout-management-table .scout-actions button{width:100%;min-height:40px;padding:9px 8px;font-size:10px;}
+ .scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(8)>button{width:100%;}
+ .scout-management-table .scout-ticket-history-row{display:block;}
+ .scout-management-table .scout-ticket-history-row>td{display:block;width:100%;padding:14px!important;border:1px solid rgba(190,157,94,.22);border-radius:12px;background:rgba(183,137,53,.07);}
+}
+@media(max-width:390px){.scout-management-table tbody tr:not(.scout-ticket-history-row){grid-template-columns:minmax(0,1fr)}.scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(n){grid-column:1}.scout-management-table .scout-actions{grid-template-columns:minmax(0,1fr)}}
