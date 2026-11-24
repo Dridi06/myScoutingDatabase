@@ -224,7 +224,7 @@ app.get('/api/scout/tickets',requireApprovedScout,async(req,res)=>{
   res.set('Cache-Control','no-store');
   res.json(data||[]);
 });
-app.post('/api/scout/tickets',scoutTicketCreateLimiter,requireApprovedScout,async(req,res)=>{
+app.post('/api/scout/tickets',requireApprovedScout,scoutTicketCreateLimiter,async(req,res)=>{
   try{
     const category=typeof req.body?.category==='string'?req.body.category.trim():'';
     const message=typeof req.body?.message==='string'?req.body.message.trim():'';
