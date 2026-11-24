@@ -1795,3 +1795,5 @@ button{touch-action:manipulation}
 .password-copy-primary{background:linear-gradient(120deg,#5579b8,#334c78);border:1px solid rgba(200,220,255,.28);color:#fff}
 .password-copy-secondary{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.12);color:#fff}
 @media(max-width:480px){.password-copy-modal{padding:22px 18px 18px;border-radius:26px}.password-copy-modal p{font-size:14px}.password-copy-actions button{min-height:52px}}
+
+.password-save-confirmation{display:flex;flex-direction:column;gap:7px;margin-top:18px;padding:16px;border:1px solid #3b9b70;border-radius:12px;background:rgba(35,132,86,.12);color:inherit}.password-save-confirmation strong{color:#53c58c}.password-save-confirmation span{line-height:1.5}.password-save-confirmation small{opacity:.8}
