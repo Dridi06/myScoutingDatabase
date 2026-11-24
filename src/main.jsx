@@ -51,10 +51,41 @@ function App(){
  useEffect(()=>{load()},[session]);
  useEffect(()=>{if(!loginIntroActive)return;const timer=window.setTimeout(()=>{G('dashboard');setLoginIntroActive(false)},7000);return()=>window.clearTimeout(timer)},[loginIntroActive]);
  useEffect(()=>{if(page==='deletion-log'&&admin)loadDeletionLogs();if(page==='ticket-support'&&admin)loadTickets()},[page,admin]);
- useEffect(()=>{if(!admin)return;const timer=setInterval(()=>loadTickets(),30000);return()=>clearInterval(timer)},[admin]);
+ useEffect(()=>{if(!admin)return;const timer=setInterval(()=>loadTickets({silent:true}),30000);return()=>clearInterval(timer)},[admin]);
  async function login(e){e.preventDefault();L(true);try{const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:auth.username,password:auth.password})});const j=await r.json();if(!r.ok)throw Error(j.error);if(j.blocked){setTicketAccess({token:j.ticket_token,username:j.user?.username||auth.username});N('');return}const{error}=await sb.auth.setSession({access_token:j.access_token,refresh_token:j.refresh_token});if(error)throw error;}catch(e){N(e.message)}finally{L(false)}}
  async function createSupportTicket(){if(!ticketAccess?.token||ticketSubmitting)return;setTicketSubmitting(true);try{const r=await fetch('/api/tickets',{method:'POST',headers:{Authorization:'Bearer '+ticketAccess.token}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Ticket konnte nicht erstellt werden.');N('Dein Support-Ticket wurde erstellt. Der Administrator wurde über dein Anliegen informiert.');}catch(e){N(e.message||'Ticket konnte nicht erstellt werden.')}finally{setTicketSubmitting(false)}}
- async function loadTickets(){if(!admin)return;const{data:{session:authSession}}=await sb.auth.getSession();if(!authSession?.access_token)return;const r=await fetch('/api/tickets',{headers:{Authorization:'Bearer '+authSession.access_token}});const j=await r.json().catch(()=>[]);if(!r.ok){N(j.error||'Tickets konnten nicht geladen werden.');return}setTickets(Array.isArray(j)?j:[])}
+ const ticketsLoadRef=useRef(false);
+ async function loadTickets({silent=false}={}){
+  if(!admin||!sb||ticketsLoadRef.current)return;
+  ticketsLoadRef.current=true;
+  try{
+   let {data:{session:authSession},error:sessionError}=await sb.auth.getSession();
+   if(sessionError)throw sessionError;
+   if(!authSession?.access_token){if(!silent)N('Deine Admin-Sitzung ist abgelaufen. Bitte melde dich erneut an.');return;}
+   const request=token=>fetch('/api/tickets',{method:'GET',cache:'no-store',headers:{Authorization:'Bearer '+token,'Cache-Control':'no-cache'}});
+   let response=await request(authSession.access_token);
+   if(response.status===401){
+    const refreshed=await sb.auth.refreshSession();
+    if(refreshed.error||!refreshed.data?.session?.access_token){
+     if(!silent)N('Deine Admin-Sitzung ist abgelaufen. Bitte melde dich erneut an.');
+     return;
+    }
+    response=await request(refreshed.data.session.access_token);
+   }
+   const payload=await response.json().catch(()=>null);
+   if(!response.ok){
+    const message=payload?.error||'Tickets konnten nicht geladen werden (HTTP '+response.status+').';
+    console.error('Ticket list request failed:',response.status,message);
+    if(!silent)N(message);
+    return;
+   }
+   if(!Array.isArray(payload))throw new Error('Der Ticketdienst hat eine ungültige Antwort geliefert.');
+   setTickets(payload);
+  }catch(error){
+   console.error('Ticket list load failed:',error);
+   if(!silent)N(error.message||'Tickets konnten nicht geladen werden.');
+  }finally{ticketsLoadRef.current=false}
+ }
  async function resolveTicket(ticket){if(!admin||ticket?.status!=='offen')return;L(true);try{const{data:{session:authSession}}=await sb.auth.getSession();const r=await fetch('/api/tickets/'+encodeURIComponent(ticket.id)+'/resolve',{method:'PATCH',headers:{Authorization:'Bearer '+authSession.access_token}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Ticket konnte nicht erledigt werden.');setTickets(prev=>prev.map(t=>t.id===j.id?j:t));N('Ticket wurde als erledigt markiert.')}catch(e){N(e.message||'Ticket konnte nicht erledigt werden.')}finally{L(false)}}
  async function register(e){e.preventDefault();if(auth.password!==auth.password2){N('Die Passwörter stimmen nicht überein.');return}L(true);try{const r=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(auth)});const j=await r.json();if(!r.ok)throw Error(j.error);N('Registrierung eingegangen. Dein Zugang wird nach Prüfung durch den Administrator freigeschaltet.');A({username:'',email:'',password:'',password2:''});AM('login')}catch(e){N(e.message)}finally{L(false)}}
  async function sendPasswordReset(e){e.preventDefault();if(!sb){N('Der Dienst ist momentan nicht verfügbar.');return}L(true);try{const {error}=await sb.auth.resetPasswordForEmail(auth.email.trim(),{redirectTo:window.location.origin});if(error)throw error;N('Wenn ein Konto zu dieser E-Mail-Adresse gehört, erhältst du in Kürze eine Nachricht mit dem Link zum Zurücksetzen.');}catch(e){N('Die Anfrage konnte nicht gesendet werden. Bitte prüfe die E-Mail-Adresse und versuche es erneut.')}finally{L(false)}}
