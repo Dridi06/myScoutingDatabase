@@ -1815,3 +1815,5 @@ button{touch-action:manipulation}
 .wing-selectors .wing-title{font-size:13px}
 .wing-selectors .wing-card small{font-size:10px}
 @media(max-width:560px){.wing-selectors{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.wing-selectors .wing-card{min-height:88px;padding:10px 8px}.wing-selectors .wing-code{font-size:24px}.wing-selectors .wing-title{font-size:11px}.wing-selectors .wing-card small{font-size:9px}}
+
+.scout-create-panel{margin:18px 0 22px}.scout-create-panel h2{margin:0 0 8px}.scout-create-panel>p{color:#aebed8;line-height:1.55;margin:0 0 16px}.scout-create-form .grid{margin-bottom:14px}.scout-create-form>button{min-height:42px}.scout-create-panel>small{display:block;margin-top:12px;color:#9eafc5;line-height:1.5}
