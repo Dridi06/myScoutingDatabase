@@ -1777,7 +1777,7 @@ button{touch-action:manipulation}
 
 /* Scout administration actions */
 .scout-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:150px}
-.scout-actions button{min-height:36px;white-space:nowrap}
+.scout-actions button{min-height:36px;white-space:nowrap;margin-top:0}.scout-actions button.danger{margin-top:0;align-self:center}.scout-actions{align-items:center}.table td{vertical-align:middle}
 .scout-actions .scout-delete-button{background:linear-gradient(110deg,#a92b3e,#651827);border:1px solid rgba(255,125,140,.4);color:#fff}
 .scout-actions .scout-delete-button:hover{background:linear-gradient(110deg,#c83a50,#7a1c2d);border-color:rgba(255,160,170,.7)}
 .scout-actions button:disabled{opacity:.5;cursor:not-allowed}
