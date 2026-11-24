@@ -2126,3 +2126,107 @@ button{touch-action:manipulation}
  50%{filter:drop-shadow(0 0 8px rgba(20,160,255,.95)) drop-shadow(0 0 18px rgba(20,132,255,.58))}
 }
 @media(prefers-reduced-motion:reduce){.shell aside .brand-mark.player-celebration{animation:none}}
+
+/* RESPONSIVE HARDENING — desktop, tablet, mobile and iOS */
+:root{scroll-padding-top:1rem}
+html,body,#root{width:100%;min-width:320px;max-width:100%;overflow-x:clip}
+body{overscroll-behavior-x:none}
+img,svg,video,canvas{max-width:100%}
+button,input,select,textarea{max-width:100%;min-width:0}
+button{touch-action:manipulation}
+:focus-visible{outline:2px solid #78aaff;outline-offset:3px}
+.shell{width:100%;min-width:0;overflow-x:clip}
+.shell main{width:calc(100% - 276px);min-width:0;max-width:none}
+.shell main>*{min-width:0}
+.shell main>header{min-width:0;gap:12px}
+.shell main>header>span{min-width:0;overflow-wrap:anywhere}
+.workspace-user{min-width:0;max-width:42%;overflow-wrap:anywhere}
+.panel,.stats article,.ticket-detail-modal,.password-copy-modal{min-width:0}
+.panel{max-width:100%}
+.table,.panel.table{width:100%;max-width:100%;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.table table,.panel.table table{width:100%;border-collapse:collapse}
+.table th,.table td,.panel.table th,.panel.table td{overflow-wrap:anywhere}
+.form,.auth form,.scout-create-form,.scout-support-form{min-width:0}
+.form label,.panel label{min-width:0}
+.form input,.form select,.form textarea,.panel input,.panel select,.panel textarea,.auth input{min-width:0;width:100%}
+.grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ticket-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+.ticket-detail-modal{overscroll-behavior:contain}
+.ticket-detail-modal textarea,.ticket-conversation textarea{width:100%;max-width:100%;min-width:0}
+.scout-inbox-ticket,.scout-own-tickets-heading,.ticket-detail-heading,.ticket-detail-meta{min-width:0}
+.scout-inbox-ticket>*{min-width:0}
+.scout-inbox-ticket-main{overflow-wrap:anywhere}
+@media(max-width:1100px){
+ .shell main{padding-left:26px;padding-right:26px}
+ .shell aside{width:252px}
+ .shell main{margin-left:252px;width:calc(100% - 252px)}
+ .shell aside .logo{gap:8px}
+}
+@media(max-width:950px){
+ .shell main{margin-left:0;width:100%;padding-left:22px;padding-right:22px}
+ .shell aside{width:min(310px,88vw);max-width:88vw;padding-top:max(18px,env(safe-area-inset-top));padding-bottom:max(18px,env(safe-area-inset-bottom))}
+ .shell aside.open{box-shadow:22px 0 70px rgba(0,0,0,.62)}
+}
+@media(max-width:700px){
+ .shell main{padding-left:16px;padding-right:16px;padding-bottom:max(32px,env(safe-area-inset-bottom))}
+ .shell main>header{height:auto;min-height:64px;flex-wrap:wrap;padding:10px 0;letter-spacing:.06em}
+ .shell main>header>span{font-size:9px;flex:1}
+ .workspace-user{max-width:38%;font-size:11px}
+ .stats,.ticket-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .grid{grid-template-columns:minmax(0,1fr)}
+ .filter-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+ .filter-row>*{width:100%;min-width:0}
+ .filter-row button{grid-column:1/-1}
+ .scout-actions,.ticket-row-actions{flex-wrap:wrap}
+ .scout-actions button,.ticket-row-actions button{white-space:normal}
+ .ticket-detail-overlay{padding:8px}
+ .ticket-detail-modal{width:100%;max-height:calc(100dvh - 16px);padding:16px}
+ .ticket-detail-heading{gap:12px}
+ .ticket-detail-heading button{width:100%}
+ .ticket-conversation form{min-width:0}
+ .scout-inbox-ticket{gap:9px;padding:13px}
+}
+@media(max-width:480px){
+ html{font-size:15px}
+ .shell main{padding-left:12px;padding-right:12px}
+ .shell main h1{font-size:clamp(32px,10vw,40px);overflow-wrap:anywhere}
+ .shell main h2{font-size:23px}
+ header{gap:8px}
+ .stats,.ticket-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .stats article,.ticket-summary article{padding:13px}
+ .stats strong{font-size:32px}
+ .panel{padding:14px}
+ .auth{padding:12px}
+ .auth-card{padding:22px 16px}
+ .auth-card h1{font-size:34px}
+ .filter-row{grid-template-columns:minmax(0,1fr)}
+ .filter-row button{grid-column:auto}
+ .scout-support-form-footer button,.scout-support-form button,.form>button{width:100%;justify-self:stretch}
+ .scout-own-tickets-heading{align-items:stretch}
+ .scout-own-tickets-heading>button{width:100%}
+ .ticket-detail-meta{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+ .ticket-detail-actions{display:grid;grid-template-columns:minmax(0,1fr)}
+ .ticket-detail-actions button{width:100%}
+ .password-copy-modal{width:100%;max-width:100%;padding:18px}
+}
+@media(max-width:360px){
+ .shell main{padding-left:9px;padding-right:9px}
+ .shell main>header>span{font-size:8px}
+ .workspace-user{font-size:10px}
+ .stats,.ticket-summary{grid-template-columns:minmax(0,1fr)}
+ .auth-card{padding:19px 13px}
+ .scout-inbox-ticket{padding:11px}
+}
+@media(orientation:landscape) and (max-height:520px) and (max-width:950px){
+ .shell aside{overflow-y:auto}
+ .ticket-detail-modal{max-height:94dvh}
+ .auth{min-height:100svh;align-items:start;overflow-y:auto}
+ .auth-card{margin:12px auto}
+}
+@supports(padding:max(0px)){
+ .shell main{padding-bottom:max(35px,env(safe-area-inset-bottom))}
+ .auth{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+}
+@media(hover:none){
+ button:hover{transform:none;filter:none}
+}
