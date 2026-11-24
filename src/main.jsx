@@ -4,7 +4,8 @@ import{createClient}from'@supabase/supabase-js';
 import{Goal,LayoutDashboard,UserPlus,Pencil,Trash2,Search,Database,LogOut,ShieldCheck,Menu,X,Printer,KeyRound,LifeBuoy}from'lucide-react';
 import'./styles.css';
 import loginPlayerArtworkBase64 from './assets/login-player-image.webp.b64?raw';
-const loginPlayerArtwork='data:image/webp;base64,'+loginPlayerArtworkBase64.trim();
+// The supplied animation is a GIF; use the matching MIME type so Safari decodes it.
+const loginPlayerArtwork='data:image/gif;base64,'+loginPlayerArtworkBase64.trim();
 const url=import.meta.env.VITE_SUPABASE_URL,key=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const sb=url&&key?createClient(url,key):null;
 const RATING_SECTIONS={
