@@ -84,6 +84,42 @@ app.post('/api/auth/register',async(req,res)=>{
   }catch(e){const msg=String(e.message||'');res.status(msg.includes('duplicate')||msg.includes('already')?409:500).json({error:msg.includes('duplicate')||msg.includes('already')?'Benutzername oder E-Mail ist bereits vergeben.':'Registrierung konnte nicht abgeschlossen werden.'});}
 });
 app.get('/api/me',requireAuth,async(req,res)=>res.json({id:req.user.sub,username:req.user.username,role:req.user.role,approved:req.user.approved}));
+app.post('/api/scouts',async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+    if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
+    const {data:authData,error:authError}=await db.auth.getUser(token);
+    if(authError||!authData?.user)return res.status(401).json({error:'Sitzung ungültig oder abgelaufen.'});
+    const {data:actor,error:actorError}=await db.from('profiles').select('id,role').eq('id',authData.user.id).maybeSingle();
+    if(actorError||actor?.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen Scouts anlegen.'});
+    const {username,email,password,password2}=req.body||{};
+    if(typeof username!=='string'||typeof email!=='string'||typeof password!=='string')return res.status(400).json({error:'Benutzername, E-Mail und Startpasswort erforderlich.'});
+    if(!/^[a-zA-Z0-9._-]{3,32}$/.test(username.trim()))return res.status(400).json({error:'Benutzername: 3–32 Zeichen (Buchstaben, Zahlen, Punkt, Unterstrich, Bindestrich).'});
+    if(!/^\\S+@\\S+\\.\\S+$/.test(email.trim()))return res.status(400).json({error:'Bitte eine gültige E-Mail-Adresse eingeben.'});
+    if(password!==password2)return res.status(400).json({error:'Die Startpasswörter stimmen nicht überein.'});
+    if(password.length<12)return res.status(400).json({error:'Das Startpasswort muss mindestens 12 Zeichen lang sein.'});
+    const {count,error:countError}=await db.from('profiles').select('id',{count:'exact',head:true}).eq('role','scout');
+    if(countError)throw countError;
+    if((count||0)>=15)return res.status(409).json({error:'Die maximale Anzahl von 15 Scout-Konten ist erreicht.'});
+    const {data:existing,error:existingError}=await db.from('profiles').select('id').ilike('username',username.trim()).maybeSingle();
+    if(existingError)throw existingError;
+    if(existing)return res.status(409).json({error:'Dieser Benutzername ist bereits vergeben.'});
+    const {data:created,error:createError}=await db.auth.admin.createUser({email:email.trim().toLowerCase(),password,email_confirm:true,user_metadata:{username:username.trim(),role:'scout'}});
+    if(createError)throw createError;
+    const {data:profile,error:profileError}=await db.from('profiles').select('id,username,email,role,approved,approval_status,scout_number').eq('id',created.user.id).maybeSingle();
+    if(profileError||!profile||profile.role!=='scout'){
+      await db.auth.admin.deleteUser(created.user.id);
+      console.error('Scout profile creation did not complete for user:',created.user.id,profileError?.message);
+      return res.status(500).json({error:'Scout-Konto wurde nicht vollständig angelegt. Es wurde vorsorglich zurückgerollt. Bitte Datenbank-Trigger prüfen.'});
+    }
+    return res.status(201).json({ok:true,id:profile.id,username:profile.username,approved:profile.approved});
+  }catch(error){
+    const msg=String(error.message||'');
+    console.error('Admin scout creation failed:',msg);
+    return res.status(msg.includes('already')||msg.includes('duplicate')?409:500).json({error:msg.includes('already')||msg.includes('duplicate')?'Diese E-Mail-Adresse oder dieser Benutzername ist bereits vergeben.':'Scout konnte nicht angelegt werden. Bitte Eingaben und Datenbank prüfen.'});
+  }
+});
 app.get('/api/scouts',requireAuth,requireAdmin,async(_req,res)=>{const {data,error}=await db.from('profiles').select('id,username,email,role,approved,created_at').eq('role','scout').order('created_at',{ascending:false});if(error)return res.status(500).json({error:'Scouts konnten nicht geladen werden.'});res.json(data);});
 app.patch('/api/scouts/:id/approval',requireAuth,requireAdmin,async(req,res)=>{const approved=!!req.body?.approved;const {data,error}=await db.from('profiles').update({approved}).eq('id',req.params.id).eq('role','scout').select('id,username,approved').maybeSingle();if(error||!data)return res.status(400).json({error:'Freigabe konnte nicht geändert werden.'});res.json(data);});
 app.delete('/api/scouts/:id',async(req,res)=>{try{if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});const {data:authData,error:authError}=await db.auth.getUser(token);if(authError||!authData?.user)return res.status(401).json({error:'Sitzung ungültig oder abgelaufen.'});const {data:actor,error:actorError}=await db.from('profiles').select('role').eq('id',authData.user.id).maybeSingle();if(actorError||actor?.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen Scouts löschen.'});const targetId=req.params.id;const {data:target,error:targetError}=await db.from('profiles').select('id,username,email,role').eq('id',targetId).eq('role','scout').maybeSingle();if(targetError||!target)return res.status(404).json({error:'Scout nicht gefunden.'});const {count,error:countError}=await db.from('players').select('player_id',{count:'exact',head:true}).eq('owner_id',targetId);if(countError)return res.status(500).json({error:'Spielerzuordnungen konnten nicht geprüft werden.'});if((count||0)>0)return res.status(409).json({error:'Dieser Scout hat noch '+count+' zugeordnete Spieler. Bitte übertrage oder kläre diese Spieler zuerst. Es wurden keine Daten gelöscht.'});const {data:removedProfile,error:profileDeleteError}=await db.from('profiles').delete().eq('id',targetId).eq('role','scout').select('id,username,email,role').maybeSingle();if(profileDeleteError||!removedProfile)return res.status(500).json({error:'Scout-Profil konnte nicht entfernt werden.'});const {error:authDeleteError}=await db.auth.admin.deleteUser(targetId);if(authDeleteError){const {error:restoreError}=await db.from('profiles').insert(removedProfile);if(restoreError)return res.status(500).json({error:'Auth-Zugang konnte nicht gelöscht werden; zusätzlich ließ sich das Scout-Profil nicht automatisch wiederherstellen. Bitte Datenbank prüfen.'});return res.status(500).json({error:'Scout-Zugang konnte nicht gelöscht werden. Das Profil wurde wiederhergestellt.'});}return res.json({ok:true,id:targetId,username:target.username});}catch(error){console.error('Scout deletion failed:',error);return res.status(500).json({error:'Scout konnte aufgrund eines Serverfehlers nicht gelöscht werden.'});}});
