@@ -274,7 +274,14 @@ async function requireSupabaseAdmin(req,res,next){
 app.get('/api/tickets',requireSupabaseAdmin,async(_req,res)=>{
   const {data,error}=await db.from('support_tickets').select('id,scout_id,scout_username,category,message,status,created_at,resolved_at,resolved_by').order('created_at',{ascending:false});
   if(error)return res.status(500).json({error:'Tickets konnten nicht geladen werden.'});
-  res.json(data||[]);
+  const ids=(data||[]).map(ticket=>ticket.id);let unreadCounts={};
+  if(ids.length){
+    const {data:unread,error:unreadError}=await db.from('support_ticket_messages').select('ticket_id').in('ticket_id',ids).eq('sender_role','scout').is('admin_read_at',null);
+    if(unreadError)return res.status(500).json({error:'Nachrichtenstatus konnte nicht geladen werden.'});
+    for(const row of unread||[])unreadCounts[row.ticket_id]=(unreadCounts[row.ticket_id]||0)+1;
+  }
+  res.set('Cache-Control','no-store');
+  res.json((data||[]).map(ticket=>({...ticket,unread_scout_count:unreadCounts[ticket.id]||0})));
 });
 app.patch('/api/tickets/:id/resolve',requireSupabaseAdmin,async(req,res)=>{
   const {data,error}=await db.from('support_tickets').update({status:'erledigt',resolved_at:new Date().toISOString(),resolved_by:req.user.sub}).eq('id',req.params.id).eq('status','offen').select('id,scout_id,scout_username,category,message,status,created_at,resolved_at,resolved_by').maybeSingle();
@@ -287,6 +294,13 @@ app.patch('/api/tickets/:id/resolve',requireSupabaseAdmin,async(req,res)=>{
 async function listTicketMessages(ticketId){
   return db.from('support_ticket_messages').select('id,ticket_id,sender_id,sender_role,message,created_at').eq('ticket_id',ticketId).order('created_at',{ascending:true});
 }
+app.post('/api/tickets/:id/messages/read',requireSupabaseAdmin,async(req,res)=>{
+  const {data:ticket,error:ticketError}=await db.from('support_tickets').select('id').eq('id',req.params.id).maybeSingle();
+  if(ticketError||!ticket)return res.status(404).json({error:'Ticket nicht gefunden.'});
+  const {error}=await db.from('support_ticket_messages').update({admin_read_at:new Date().toISOString()}).eq('ticket_id',ticket.id).eq('sender_role','scout').is('admin_read_at',null);
+  if(error)return res.status(500).json({error:'Nachrichten konnten nicht als gelesen markiert werden.'});
+  res.set('Cache-Control','no-store');return res.json({success:true});
+});
 app.get('/api/tickets/:id/messages',requireSupabaseAdmin,async(req,res)=>{
   const {data:ticket,error:ticketError}=await db.from('support_tickets').select('id').eq('id',req.params.id).maybeSingle();
   if(ticketError||!ticket)return res.status(404).json({error:'Ticket nicht gefunden.'});
