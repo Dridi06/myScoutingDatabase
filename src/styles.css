@@ -2034,3 +2034,55 @@ button{touch-action:manipulation}
 @keyframes ball-to-first-letter{0%{opacity:0;transform:translate(0,0) scale(.82)}12%{opacity:1}72%{opacity:1;transform:translate(56px,-12px) scale(1.12)}100%{opacity:0;transform:translate(78px,-20px) scale(.18)}}
 @media(max-width:560px){.intro-kicker{left:-137px;top:-94px;width:130px;height:120px}.intro-kick-ball{left:-45px;top:-29px;width:32px;height:32px}}
 @media(prefers-reduced-motion:reduce){.intro-kick-scene{display:block!important}.intro-kicker{opacity:1!important;animation:none!important;transform:none!important}.intro-kick-ball{opacity:1!important;animation:none!important;transform:none!important}.kicker-body,.kicker-shoot-leg{animation:none!important;transform:none!important}}
+
+
+/* Definitive login footballer stage: independent of the wordmark's layout and stacking context. */
+.login-kick-stage{
+  position:relative;
+  display:block;
+  width:min(460px,92vw);
+  height:174px;
+  flex:0 0 174px;
+  margin:0 auto 8px;
+  overflow:visible;
+  isolation:isolate;
+}
+.login-kick-stage .intro-kick-scene{
+  position:absolute;left:0;top:0;width:100%;height:100%;
+  display:block!important;overflow:visible;pointer-events:none;z-index:5;
+}
+.login-kick-stage .intro-kicker{
+  position:absolute;left:24px;top:0;width:180px;height:165px;
+  max-width:none;opacity:1;
+  animation:kicker-arrive .55s cubic-bezier(.18,.78,.2,1) .08s both;
+}
+.login-kick-stage .kicker-body{transform-origin:105px 110px;animation:kicker-follow-through .72s ease-out .5s both}
+.login-kick-stage .kicker-shoot-leg{transform-box:fill-box;transform-origin:14% 12%;animation:kicker-leg-swing .72s cubic-bezier(.2,.72,.2,1) .5s both}
+.login-kick-stage .intro-kick-ball{
+  position:absolute;left:166px;top:102px;width:42px;height:42px;z-index:7;
+  opacity:0;animation:ball-to-first-letter .72s cubic-bezier(.16,.78,.2,1) .78s forwards;
+}
+.login-kick-stage .intro-kick-ball:after{content:none}
+.login-intro-content{gap:0}
+.intro-wordmark{margin-top:0}
+@keyframes ball-to-first-letter{
+  0%{opacity:0;transform:translate(0,0) scale(.9)}
+  12%{opacity:1}
+  70%{opacity:1;transform:translate(105px,-24px) scale(1.08)}
+  100%{opacity:0;transform:translate(205px,-48px) scale(.22)}
+}
+@media(max-width:560px){
+  .login-kick-stage{width:min(360px,94vw);height:142px;flex-basis:142px;margin-bottom:4px}
+  .login-kick-stage .intro-kicker{left:18px;top:0;width:148px;height:136px}
+  .login-kick-stage .intro-kick-ball{left:136px;top:82px;width:34px;height:34px}
+}
+@media(max-width:380px){
+  .login-kick-stage{height:126px;flex-basis:126px}
+  .login-kick-stage .intro-kicker{left:12px;width:132px;height:121px}
+  .login-kick-stage .intro-kick-ball{left:119px;top:74px;width:30px;height:30px}
+}
+@media(prefers-reduced-motion:reduce){
+  .login-kick-stage .intro-kicker{opacity:1!important;animation:none!important;transform:none!important}
+  .login-kick-stage .intro-kick-ball{opacity:1!important;animation:none!important;transform:translate(75px,-12px) scale(.8)!important}
+  .login-kick-stage .kicker-body,.login-kick-stage .kicker-shoot-leg{animation:none!important;transform:none!important}
+}
