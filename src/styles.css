@@ -2310,16 +2310,10 @@ button{touch-action:manipulation}
   max-width:100%;
   object-fit:contain;
   object-position:center;
-  filter:drop-shadow(0 0 9px rgba(27,119,255,.58)) drop-shadow(0 0 25px rgba(12,91,255,.32));
-  animation:login-artwork-glow 3.2s ease-in-out .9s infinite alternate;
 }
 @keyframes login-artwork-arrive{
   from{opacity:0;transform:translateY(16px) scale(.97)}
   to{opacity:1;transform:translateY(0) scale(1)}
-}
-@keyframes login-artwork-glow{
-  from{filter:drop-shadow(0 0 7px rgba(27,119,255,.48)) drop-shadow(0 0 18px rgba(12,91,255,.24))}
-  to{filter:drop-shadow(0 0 13px rgba(48,151,255,.78)) drop-shadow(0 0 30px rgba(12,91,255,.42))}
 }
 @media(max-width:560px){
   .login-player-artwork{width:min(420px,92vw);height:min(38vh,330px);min-height:150px;margin-bottom:12px}
