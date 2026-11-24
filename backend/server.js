@@ -69,7 +69,11 @@ app.post('/api/auth/login',async(req,res)=>{
     if(pErr||!profile)return res.status(401).json({error:'Benutzername oder Passwort ist nicht korrekt.'});
     const signIn=await loginClient.auth.signInWithPassword({email:profile.email,password});
     if(signIn.error)return res.status(401).json({error:'Benutzername oder Passwort ist nicht korrekt.'});
-    if(!profile.approved)return res.status(403).json({error:'Dein Zugang ist noch nicht vom Administrator freigeschaltet.'});
+    if(profile.approval_status==='blocked'){
+      const ticketToken=jwt.sign({sub:profile.id,username:profile.username,scope:'ticket:create'},JWT_SECRET,{issuer:'myScoutingDatabase',expiresIn:'15m'});
+      return res.json({blocked:true,ticket_token:ticketToken,user:{id:profile.id,username:profile.username}});
+    }
+    if(!profile.approved||profile.approval_status!=='approved')return res.status(403).json({error:'Dein Zugang ist noch nicht vom Administrator freigeschaltet.'});
     res.json({access_token:signIn.data.session.access_token,refresh_token:signIn.data.session.refresh_token,user:{id:profile.id,username:profile.username,role:profile.role,approved:profile.approved}});
   }catch(e){res.status(500).json({error:'Anmeldung aktuell nicht möglich.'});}
 });
@@ -153,6 +157,39 @@ app.get('/api/players',requireAuth,async(req,res)=>{let q=db.from('players').sel
 app.post('/api/players',requireAuth,async(req,res)=>{const body=req.body||{};const payload={...body,owner_id:req.user.sub};delete payload.player_id;const {data,error}=await db.from('players').insert(payload).select('*').single();if(error)return res.status(400).json({error:'Spieler konnte nicht erstellt werden.'});res.status(201).json(data);});
 app.patch('/api/players/:id',requireAuth,async(req,res)=>{const payload={...req.body};delete payload.player_id;delete payload.owner_id;let q=db.from('players').update(payload).eq('player_id',Number(req.params.id)).select('*').maybeSingle();if(req.user.role!=='admin')q=q.eq('owner_id',req.user.sub);const {data,error}=await q;if(error||!data)return res.status(404).json({error:'Spieler nicht gefunden oder kein Zugriff.'});res.json(data);});
 app.delete('/api/players/:id',requireAuth,requireAdmin,async(req,res)=>{const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.status(400).json({error:'Ungültige Spieler-ID.'});const {data:player,error:lookupError}=await db.from('players').select('player_id,owner_id,photo_path').eq('player_id',id).maybeSingle();if(lookupError||!player)return res.status(404).json({error:'Spieler nicht gefunden.'});const paths=new Set(player.photo_path?[player.photo_path]:[]);if(player.owner_id){const {data:files,error:fileError}=await db.storage.from('player-photos').list(player.owner_id,{limit:1000});if(fileError)return res.status(500).json({error:'Zugehörige Dateien konnten nicht ermittelt werden.'});for(const file of files||[])if(file.name.startsWith(String(id)+'-'))paths.add(player.owner_id+'/'+file.name)}const {data,error}=await db.from('players').delete().eq('player_id',id).select('player_id').maybeSingle();if(error||!data)return res.status(500).json({error:'Spieler-Datensatz konnte nicht gelöscht werden.'});if(paths.size){const {error:storageError}=await db.storage.from('player-photos').remove([...paths]);if(storageError)return res.status(500).json({error:'Spieler wurde gelöscht, aber Fotodateien konnten nicht vollständig entfernt werden.'})}res.json({ok:true,player_id:data.player_id,deleted_files:paths.size});});
+
+// Blocked scouts receive a short-lived, ticket-only token after Supabase has
+// verified their password. It cannot authenticate normal workspace endpoints.
+function requireTicketIdentity(req,res,next){
+  const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+  if(!token)return res.status(401).json({error:'Bitte melde dich erneut mit deinen Zugangsdaten an.'});
+  try{
+    const claims=jwt.verify(token,JWT_SECRET,{issuer:'myScoutingDatabase'});
+    if(claims.scope!=='ticket:create'||!claims.sub)return res.status(403).json({error:'Dieser Zugang darf ausschließlich ein Support-Ticket erstellen.'});
+    req.ticketUser=claims;next();
+  }catch{return res.status(401).json({error:'Der Ticketzugang ist abgelaufen. Bitte erneut anmelden.'});}
+}
+app.post('/api/tickets',requireTicketIdentity,async(req,res)=>{
+  try{
+    const {data:scout,error:scoutError}=await db.from('profiles').select('id,username,role,approved,approval_status').eq('id',req.ticketUser.sub).maybeSingle();
+    if(scoutError||!scout||scout.role!=='scout'||scout.approved||scout.approval_status!=='blocked')return res.status(403).json({error:'Für dieses Konto kann kein Ticket erstellt werden.'});
+    const {data:ticket,error}=await db.from('support_tickets').insert({scout_id:scout.id,scout_username:scout.username,message:'Der Account ist gesperrt. Ich benötige Ihre Hilfe.',status:'offen'}).select('id,scout_id,scout_username,message,status,created_at').single();
+    if(error)throw error;
+    return res.status(201).json(ticket);
+  }catch(error){console.error('Support ticket creation failed:',error.message);return res.status(500).json({error:'Ticket konnte nicht erstellt werden. Bitte versuche es erneut.'});}
+});
+app.get('/api/tickets',requireAuth,requireAdmin,async(_req,res)=>{
+  const {data,error}=await db.from('support_tickets').select('id,scout_id,scout_username,message,status,created_at,resolved_at,resolved_by').order('created_at',{ascending:false});
+  if(error)return res.status(500).json({error:'Tickets konnten nicht geladen werden.'});
+  res.json(data||[]);
+});
+app.patch('/api/tickets/:id/resolve',requireAuth,requireAdmin,async(req,res)=>{
+  const {data,error}=await db.from('support_tickets').update({status:'erledigt',resolved_at:new Date().toISOString(),resolved_by:req.user.sub}).eq('id',req.params.id).eq('status','offen').select('id,scout_id,scout_username,message,status,created_at,resolved_at,resolved_by').maybeSingle();
+  if(error)return res.status(500).json({error:'Ticket konnte nicht erledigt werden.'});
+  if(!data)return res.status(404).json({error:'Offenes Ticket nicht gefunden.'});
+  res.json(data);
+});
+
 app.use(express.static('dist',{maxAge:'1h'}));
 app.get(/^(?!\/api\/).*/,(_req,res)=>res.sendFile(process.cwd()+'/dist/index.html'));
 app.listen(PORT,async()=>{console.log(`myScoutingDatabase API listening on ${PORT}`);await diagnoseSupabase();try{await bootstrapAdmin();}catch(e){console.error('Admin bootstrap failed:',e.message);}});
