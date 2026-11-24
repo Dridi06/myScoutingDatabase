@@ -182,12 +182,26 @@ app.post('/api/tickets',ticketCreateLimiter,requireTicketIdentity,async(req,res)
     return res.status(201).json(ticket);
   }catch(error){console.error('Support ticket creation failed:',error.message);return res.status(500).json({error:'Ticket konnte nicht erstellt werden. Bitte versuche es erneut.'});}
 });
-app.get('/api/tickets',requireAuth,requireAdmin,async(_req,res)=>{
+// Admin ticket endpoints receive the Supabase access token from the browser.
+// Verify it with Supabase Auth (not the app's separate JWT verifier).
+async function requireSupabaseAdmin(req,res,next){
+  const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+  if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
+  try{
+    const {data:authData,error:authError}=await db.auth.getUser(token);
+    if(authError||!authData?.user)return res.status(401).json({error:'Sitzung abgelaufen. Bitte erneut anmelden.'});
+    const {data:profile,error:profileError}=await db.from('profiles').select('id,role').eq('id',authData.user.id).maybeSingle();
+    if(profileError||profile?.role!=='admin')return res.status(403).json({error:'Admin-Rechte erforderlich.'});
+    req.user={sub:authData.user.id,role:profile.role};
+    next();
+  }catch(error){console.error('Admin ticket authentication failed:',error.message);return res.status(401).json({error:'Sitzung konnte nicht geprüft werden. Bitte erneut anmelden.'});}
+}
+app.get('/api/tickets',requireSupabaseAdmin,async(_req,res)=>{
   const {data,error}=await db.from('support_tickets').select('id,scout_id,scout_username,message,status,created_at,resolved_at,resolved_by').order('created_at',{ascending:false});
   if(error)return res.status(500).json({error:'Tickets konnten nicht geladen werden.'});
   res.json(data||[]);
 });
-app.patch('/api/tickets/:id/resolve',requireAuth,requireAdmin,async(req,res)=>{
+app.patch('/api/tickets/:id/resolve',requireSupabaseAdmin,async(req,res)=>{
   const {data,error}=await db.from('support_tickets').update({status:'erledigt',resolved_at:new Date().toISOString(),resolved_by:req.user.sub}).eq('id',req.params.id).eq('status','offen').select('id,scout_id,scout_username,message,status,created_at,resolved_at,resolved_by').maybeSingle();
   if(error)return res.status(500).json({error:'Ticket konnte nicht erledigt werden.'});
   if(!data)return res.status(404).json({error:'Offenes Ticket nicht gefunden.'});
