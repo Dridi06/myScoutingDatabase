@@ -2086,3 +2086,25 @@ button{touch-action:manipulation}
   .login-kick-stage .intro-kick-ball{opacity:1!important;animation:none!important;transform:translate(75px,-12px) scale(.8)!important}
   .login-kick-stage .kicker-body,.login-kick-stage .kicker-shoot-leg{animation:none!important;transform:none!important}
 }
+
+
+/* Premium matchday intro artwork: refined proportions, tactile materials and restrained gold lighting. */
+.login-kick-stage{height:204px;flex-basis:204px;width:min(520px,94vw);margin-bottom:2px}
+.login-kick-stage .intro-kicker{left:38px;top:-4px;width:236px;height:192px;overflow:visible;filter:drop-shadow(0 15px 22px rgba(0,0,0,.48))}
+.login-kick-stage .kicker-body{transform-origin:145px 130px}
+.login-kick-stage .kicker-shoot-leg{transform-box:fill-box;transform-origin:13% 12%}
+.login-kick-stage .intro-kick-ball{left:225px;top:135px;width:58px;height:58px;filter:drop-shadow(0 8px 11px rgba(0,0,0,.45)) drop-shadow(0 0 12px rgba(211,173,99,.22))}
+.login-kick-stage .intro-kick-ball:after{content:none}
+@media(max-width:560px){
+ .login-kick-stage{height:164px;flex-basis:164px;width:min(390px,96vw)}
+ .login-kick-stage .intro-kicker{left:18px;top:0;width:188px;height:153px}
+ .login-kick-stage .intro-kick-ball{left:177px;top:108px;width:45px;height:45px}
+}
+@media(max-width:380px){
+ .login-kick-stage{height:148px;flex-basis:148px}
+ .login-kick-stage .intro-kicker{left:10px;width:170px;height:139px}
+ .login-kick-stage .intro-kick-ball{left:159px;top:98px;width:40px;height:40px}
+}
+@media(prefers-reduced-motion:reduce){
+ .login-kick-stage .intro-kick-ball{transform:translate(0,0) scale(1)!important}
+}
