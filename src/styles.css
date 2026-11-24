@@ -1844,3 +1844,23 @@ button{touch-action:manipulation}
 .auth-nexus.auth-minimal:before{display:block;content:"";position:absolute;inset:0;width:auto;height:auto;top:0;right:0;bottom:0;left:0;border:0;border-radius:0;filter:none;pointer-events:none;z-index:-1;background-image:linear-gradient(90deg,rgba(3,8,16,.38),rgba(3,8,16,.18) 50%,rgba(3,8,16,.38)),linear-gradient(0deg,rgba(2,7,13,.46),rgba(2,7,13,.14) 52%,rgba(2,7,13,.38)),url('/stadium-login-bg-2560.jpg');background-position:center;background-size:cover;background-repeat:no-repeat;opacity:.88;box-shadow:none}
 .auth-nexus.auth-minimal:after{display:none}
 @media(max-width:600px){.auth-nexus.auth-minimal:before{background-position:center;background-size:cover;opacity:.72}}
+
+
+/* Cinematic football kick: ball impact starts the existing blue letter-draw */
+.intro-wordmark{position:relative}
+.intro-kick-scene{position:absolute;left:0;top:50%;width:1px;height:1px;z-index:4;pointer-events:none}
+.intro-kicker{position:absolute;left:-157px;top:-88px;width:148px;height:140px;overflow:visible;filter:drop-shadow(0 7px 13px rgba(0,0,0,.42));animation:kicker-arrive .58s cubic-bezier(.2,.8,.25,1) both}
+.kicker-body{transform-origin:70px 75px;animation:kicker-follow-through .72s ease-in-out .58s both}
+.kicker-shoot-leg{transform-box:fill-box;transform-origin:12% 15%;animation:kicker-leg-swing .72s cubic-bezier(.2,.7,.2,1) .58s both}
+.intro-kick-ball{position:absolute;left:-38px;top:32px;width:34px;height:34px;filter:drop-shadow(0 0 8px rgba(75,133,255,.9));opacity:0;animation:ball-to-first-letter .58s cubic-bezier(.18,.75,.2,1) .82s forwards}
+.intro-kick-ball:after{content:"";position:absolute;inset:35% 65% 35% -75%;border-radius:50%;background:linear-gradient(90deg,transparent,rgba(65,125,255,.9));filter:blur(4px)}
+.intro-wordmark span{animation-delay:calc(1.45s + var(--letter-index)*.11s),3.85s,4.05s}
+.intro-wordmark:after{animation-delay:4.15s}
+.intro-welcome{animation-delay:4.85s}
+.intro-username{animation-delay:5.05s}
+@keyframes kicker-arrive{0%{opacity:0;transform:translateX(-34px) translateY(8px)}100%{opacity:1;transform:translateX(0) translateY(0)}}
+@keyframes kicker-follow-through{0%{transform:rotate(0)}65%{transform:rotate(-7deg)}100%{transform:rotate(0)}}
+@keyframes kicker-leg-swing{0%{transform:rotate(0)}35%{transform:rotate(-24deg)}58%{transform:rotate(35deg)}78%{transform:rotate(12deg)}100%{transform:rotate(0)}}
+@keyframes ball-to-first-letter{0%{opacity:0;transform:translate(0,0) scale(.82)}12%{opacity:1}78%{opacity:1;transform:translate(35px,-5px) scale(1.08)}100%{opacity:0;transform:translate(47px,-1px) scale(.2)}}
+@media(max-width:560px){.intro-kicker{left:-108px;top:-72px;width:102px;height:100px}.intro-kick-ball{left:-27px;top:25px;width:25px;height:25px}}
+@media(prefers-reduced-motion:reduce){.intro-kick-scene{display:none}.intro-wordmark span{animation:none}}
