@@ -193,12 +193,10 @@ async function requireSupabaseAdmin(req,res,next){
   const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
   if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
   try{
-    // Verify with an isolated public-key client; keep the service-role client
-    // exclusively for privileged database operations.
-    const publicKey=process.env.SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    if(!publicKey)return res.status(503).json({error:'Anmeldedienst ist nicht vollständig konfiguriert.'});
-    const verifier=createClient(supabaseUrl,publicKey,{auth:{autoRefreshToken:false,persistSession:false,detectSessionInUrl:false},global:{headers:{'X-Client-Info':'myscoutingdatabase-admin-verifier'}}});
-    const {data:authData,error:authError}=await verifier.auth.getUser(token);
+    // Match the already-working admin API authentication path (/api/scouts).
+    // getUser(token) validates the supplied Supabase access token remotely;
+    // the service-role client is used only for this verification and privileged DB access.
+    const {data:authData,error:authError}=await db.auth.getUser(token);
     if(authError||!authData?.user){console.error('Admin ticket token rejected:',authError?.message||'No user returned');return res.status(401).json({error:'Sitzung abgelaufen. Bitte erneut anmelden.'});}
     const {data:profile,error:profileError}=await db.from('profiles').select('id,role').eq('id',authData.user.id).maybeSingle();
     if(profileError||profile?.role!=='admin')return res.status(403).json({error:'Admin-Rechte erforderlich.'});
