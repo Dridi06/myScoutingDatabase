@@ -1797,3 +1797,10 @@ button{touch-action:manipulation}
 @media(max-width:480px){.password-copy-modal{padding:22px 18px 18px;border-radius:26px}.password-copy-modal p{font-size:14px}.password-copy-actions button{min-height:52px}}
 
 .password-save-confirmation{display:flex;flex-direction:column;gap:7px;margin-top:18px;padding:16px;border:1px solid #3b9b70;border-radius:12px;background:rgba(35,132,86,.12);color:inherit}.password-save-confirmation strong{color:#53c58c}.password-save-confirmation span{line-height:1.5}.password-save-confirmation small{opacity:.8}
+
+/* Workspace identity: inset from the right edge and show scout role */
+.shell main>header{padding-right:22px;box-sizing:border-box}
+.workspace-user{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:76px;max-width:36%;margin-right:18px;padding:8px 15px;border:1px solid var(--line);border-radius:18px;background:rgba(38,57,88,.5);color:#eef3fc;letter-spacing:0;line-height:1.15;text-align:center}
+.workspace-user strong{font-size:13px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.workspace-user small{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9fb0ca}
+@media(max-width:700px){.shell main>header{padding-right:8px}.workspace-user{margin-right:4px;max-width:42%;padding:7px 10px}}
