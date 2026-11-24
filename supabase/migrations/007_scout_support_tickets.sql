@@ -14,4 +14,5 @@ create index if not exists support_tickets_scout_created_idx
   on public.support_tickets(scout_id, created_at desc);
 alter table public.support_tickets enable row level security;
 revoke all on table public.support_tickets from anon, authenticated;
+grant all on table public.support_tickets to service_role;
 comment on table public.support_tickets is 'Support-Tickets gesperrter Scouts; Zugriff ausschließlich serverseitig über Service Role und geprüfte Admin-/Ticket-Tokens.';
