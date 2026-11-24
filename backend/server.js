@@ -179,10 +179,15 @@ app.post('/api/tickets',ticketCreateLimiter,requireTicketIdentity,async(req,res)
   try{
     const {data:scout,error:scoutError}=await db.from('profiles').select('id,username,role,approved,approval_status').eq('id',req.ticketUser.sub).maybeSingle();
     if(scoutError||!scout||scout.role!=='scout'||scout.approved||scout.approval_status!=='blocked')return res.status(403).json({error:'Für dieses Konto kann kein Ticket erstellt werden.'});
+    const category=typeof req.body?.category==='string'?req.body.category.trim():'';
+    const message=typeof req.body?.message==='string'?req.body.message.trim():'';
+    if(!SCOUT_TICKET_CATEGORIES.includes(category))return res.status(400).json({error:'Bitte wähle einen gültigen Grund für dein Support-Ticket aus.'});
+    if(message.length<10)return res.status(400).json({error:'Bitte beschreibe dein Problem mit mindestens 10 Zeichen.'});
+    if(message.length>3000)return res.status(400).json({error:'Deine Beschreibung darf höchstens 3.000 Zeichen enthalten.'});
     const {data:existing,error:existingError}=await db.from('support_tickets').select('id').eq('scout_id',scout.id).eq('status','offen').limit(1);
     if(existingError)throw existingError;
     if(existing?.length)return res.status(409).json({error:'Für deinen Account liegt bereits ein offenes Support-Ticket vor.'});
-    const {data:ticket,error}=await db.from('support_tickets').insert({scout_id:scout.id,scout_username:scout.username,category:'Login Probleme',message:'Der Account ist gesperrt. Ich benötige Ihre Hilfe.',status:'offen'}).select('id,scout_id,scout_username,category,message,status,created_at').single();
+    const {data:ticket,error}=await db.from('support_tickets').insert({scout_id:scout.id,scout_username:scout.username,category,message,status:'offen'}).select('id,scout_id,scout_username,category,message,status,created_at').single();
     if(error)throw error;
     return res.status(201).json(ticket);
   }catch(error){console.error('Support ticket creation failed:',error.message);return res.status(500).json({error:'Ticket konnte nicht erstellt werden. Bitte versuche es erneut.'});}
