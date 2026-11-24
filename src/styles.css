@@ -2428,3 +2428,20 @@ button{touch-action:manipulation}
  .welcome-scene img,.welcome-scene:after,.welcome-light-sweep,.welcome-scout-glint,.welcome-notes-stroke,.welcome-timeline span{animation:none!important;opacity:1!important;transform:none!important}
  .welcome-timeline span{transform:scaleX(1)!important}
 }
+
+
+/* Actual scout portrait layer: binoculars and notebook remain visible beside the live greeting */
+.welcome-scene .welcome-stadium-backdrop{z-index:0}
+.welcome-scene .welcome-scout-portrait{position:absolute;z-index:1;left:0;top:0;width:min(43vw,650px);height:100%;object-fit:cover;object-position:36% center;opacity:0;transform:translateX(-4%) scale(1.035);filter:contrast(1.08) saturate(.82) brightness(.9);animation:welcome-scout-portrait-in 1.25s cubic-bezier(.16,1,.3,1) .18s forwards;mask-image:linear-gradient(90deg,#000 0%,#000 78%,transparent 100%);-webkit-mask-image:linear-gradient(90deg,#000 0%,#000 78%,transparent 100%)}
+.welcome-scene .welcome-stadium-backdrop{width:100%;max-width:none;opacity:.48;object-fit:cover;object-position:center;filter:contrast(1.08) saturate(.88) brightness(.72)}
+.welcome-scene:before{z-index:2}
+.welcome-scene:after{z-index:3}
+.welcome-scene-shimmer,.welcome-light-sweep,.welcome-scout-glint,.welcome-notes-stroke{z-index:4}
+.welcome-content{z-index:5}
+@keyframes welcome-scout-portrait-in{0%{opacity:0;transform:translateX(-4%) scale(1.035)}100%{opacity:1;transform:translateX(0) scale(1)}}
+@media(max-width:900px) and (min-width:681px){.welcome-scene .welcome-scout-portrait{width:46vw;object-position:38% center}}
+@media(max-width:680px){
+ .welcome-scene .welcome-stadium-backdrop{width:100%;height:100%;opacity:.58;object-position:center}
+ .welcome-scene .welcome-scout-portrait{width:min(100vw,560px);height:57%;top:0;left:0;object-fit:cover;object-position:35% 24%;mask-image:linear-gradient(180deg,#000 0%,#000 76%,transparent 100%);-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 76%,transparent 100%)}
+}
+@media(prefers-reduced-motion:reduce){.welcome-scene .welcome-scout-portrait{animation:none;opacity:1;transform:none}}
