@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+<defs>
+ <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#07101f"/><stop offset=".58" stop-color="#101e34"/><stop offset="1" stop-color="#162b3b"/></linearGradient>
+ <linearGradient id="turf" x2="0" y2="1"><stop stop-color="#235b3b"/><stop offset="1" stop-color="#071b15"/></linearGradient>
+ <linearGradient id="stands" x2="0" y2="1"><stop stop-color="#26364c"/><stop offset="1" stop-color="#080f1b"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#dcecff" stop-opacity=".85"/><stop offset="1" stop-color="#6ca6ff" stop-opacity="0"/></radialGradient>
+ <linearGradient id="veil" x2="0" y2="1"><stop stop-color="#06101d" stop-opacity=".2"/><stop offset=".62" stop-color="#06101d" stop-opacity=".05"/><stop offset="1" stop-color="#020811" stop-opacity=".5"/></linearGradient>
+ <pattern id="seats" width="24" height="16" patternUnits="userSpaceOnUse"><path d="M2 4h8v3H2zM14 10h8v3h-8z" fill="#8394aa" opacity=".26"/></pattern>
+</defs>
+<rect width="1920" height="1080" fill="url(#sky)"/>
+<path d="M0 0L0 420Q240 300 500 370L760 475H0ZM1920 0V420Q1680 300 1420 370L1160 475H1920Z" fill="#0b1728"/>
+<path d="M0 180Q340 240 660 420L800 570H0Z" fill="#1a2c43" stroke="#57718f" stroke-opacity=".45" stroke-width="8"/>
+<path d="M1920 180Q1580 240 1260 420L1120 570H1920Z" fill="#1a2c43" stroke="#57718f" stroke-opacity=".45" stroke-width="8"/>
+<path d="M0 420L690 490L850 710H0Z M1920 420L1230 490L1070 710H1920Z" fill="url(#stands)"/>
+<path d="M0 420L690 490L850 710H0Z M1920 420L1230 490L1070 710H1920Z" fill="url(#seats)" opacity=".8"/>
+<path d="M0 560Q420 500 800 650L870 735H0ZM1920 560Q1500 500 1120 650L1050 735H1920Z" fill="#0b1524" stroke="#8aa1bd" stroke-opacity=".35" stroke-width="5"/>
+<path d="M0 645Q400 580 810 705L860 770H0ZM1920 645Q1520 580 1110 705L1060 770H1920Z" fill="#26374b"/>
+<path d="M0 645Q400 580 810 705L860 770H0ZM1920 645Q1520 580 1110 705L1060 770H1920Z" fill="url(#seats)"/>
+<path d="M0 725L790 710L960 760L1130 710L1920 725V1080H0Z" fill="url(#turf)"/>
+<path d="M0 860L1920 860M960 760V1080M560 760L430 1080M1360 760L1490 1080" stroke="#c5e7d1" stroke-opacity=".18" stroke-width="5" fill="none"/>
+<ellipse cx="960" cy="910" rx="310" ry="115" fill="none" stroke="#c5e7d1" stroke-opacity=".18" stroke-width="5"/>
+<path d="M810 710V620H1110V710" fill="none" stroke="#dce7ef" stroke-opacity=".9" stroke-width="8"/>
+<path d="M820 620H1100V710H820Z" fill="none" stroke="#e7eff7" stroke-opacity=".85" stroke-width="6"/>
+<path d="M820 620L1100 710M1100 620L820 710M890 620V710M960 620V710M1030 620V710M820 650H1100M820 680H1100" stroke="#dce7ef" stroke-opacity=".35" stroke-width="2"/>
+<g fill="#f2f7ff"><path d="M20 175l310 95-8 10L12 190zM1900 175l-310 95 8 10 310-90z"/></g>
+<g opacity=".95"><ellipse cx="165" cy="210" rx="260" ry="145" fill="url(#glow)"/><ellipse cx="1755" cy="210" rx="260" ry="145" fill="url(#glow)"/></g>
+<g fill="#f7fbff"><g transform="translate(55 150)"><rect width="255" height="18" rx="9"/><g opacity=".9"><circle cx="15" cy="9" r="8"/><circle cx="47" cy="9" r="8"/><circle cx="79" cy="9" r="8"/><circle cx="111" cy="9" r="8"/><circle cx="143" cy="9" r="8"/><circle cx="175" cy="9" r="8"/><circle cx="207" cy="9" r="8"/><circle cx="239" cy="9" r="8"/></g></g><g transform="translate(1610 150)"><rect width="255" height="18" rx="9"/><g opacity=".9"><circle cx="15" cy="9" r="8"/><circle cx="47" cy="9" r="8"/><circle cx="79" cy="9" r="8"/><circle cx="111" cy="9" r="8"/><circle cx="143" cy="9" r="8"/><circle cx="175" cy="9" r="8"/><circle cx="207" cy="9" r="8"/><circle cx="239" cy="9" r="8"/></g></g></g>
+<rect width="1920" height="1080" fill="url(#veil)"/>
+</svg>
