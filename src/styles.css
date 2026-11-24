@@ -1781,3 +1781,17 @@ button{touch-action:manipulation}
 .scout-actions .scout-delete-button{background:linear-gradient(110deg,#a92b3e,#651827);border:1px solid rgba(255,125,140,.4);color:#fff}
 .scout-actions .scout-delete-button:hover{background:linear-gradient(110deg,#c83a50,#7a1c2d);border-color:rgba(255,160,170,.7)}
 .scout-actions button:disabled{opacity:.5;cursor:not-allowed}
+
+/* One-time scout password dialog with explicit copy action */
+.password-copy-overlay{position:fixed;inset:0;z-index:12000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.72);backdrop-filter:blur(8px)}
+.password-copy-modal{width:min(100%,560px);max-height:min(88vh,760px);overflow:auto;padding:24px 22px 20px;border:1px solid rgba(220,228,240,.16);border-radius:30px;background:linear-gradient(155deg,rgba(43,47,57,.98),rgba(30,33,41,.99));box-shadow:0 24px 80px rgba(0,0,0,.55);color:#f4f5f7}
+.password-copy-host{margin-bottom:10px;font-size:clamp(16px,3.6vw,22px);font-weight:750;overflow-wrap:anywhere;color:#fff}
+.password-copy-modal h2{margin:0 0 18px;font-size:clamp(17px,3.4vw,21px);font-weight:500;line-height:1.35;color:#d7d9df}
+.password-copy-value{margin:0 0 18px;padding:13px 12px;border-radius:12px;background:rgba(0,0,0,.2);color:#fff;font-size:clamp(16px,3.8vw,21px);line-height:1.5;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text}
+.password-copy-modal p{margin:0 0 14px;color:#c4c7cf;font-size:15px;line-height:1.5}
+.password-copy-status{display:block;margin:0 0 12px;color:#cfe0ff;font-size:13px;line-height:1.4}
+.password-copy-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.password-copy-actions button{min-height:54px;border-radius:999px;font-size:17px;font-weight:700}
+.password-copy-primary{background:linear-gradient(120deg,#5579b8,#334c78);border:1px solid rgba(200,220,255,.28);color:#fff}
+.password-copy-secondary{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.12);color:#fff}
+@media(max-width:480px){.password-copy-modal{padding:22px 18px 18px;border-radius:26px}.password-copy-modal p{font-size:14px}.password-copy-actions button{min-height:52px}}
