@@ -179,13 +179,69 @@ app.post('/api/tickets',ticketCreateLimiter,requireTicketIdentity,async(req,res)
   try{
     const {data:scout,error:scoutError}=await db.from('profiles').select('id,username,role,approved,approval_status').eq('id',req.ticketUser.sub).maybeSingle();
     if(scoutError||!scout||scout.role!=='scout'||scout.approved||scout.approval_status!=='blocked')return res.status(403).json({error:'Für dieses Konto kann kein Ticket erstellt werden.'});
+    const category=typeof req.body?.category==='string'?req.body.category.trim():'';
+    const message=typeof req.body?.message==='string'?req.body.message.trim():'';
+    if(!SCOUT_TICKET_CATEGORIES.includes(category))return res.status(400).json({error:'Bitte wähle einen gültigen Grund für dein Support-Ticket aus.'});
+    if(message.length<10)return res.status(400).json({error:'Bitte beschreibe dein Problem mit mindestens 10 Zeichen.'});
+    if(message.length>3000)return res.status(400).json({error:'Deine Beschreibung darf höchstens 3.000 Zeichen enthalten.'});
     const {data:existing,error:existingError}=await db.from('support_tickets').select('id').eq('scout_id',scout.id).eq('status','offen').limit(1);
     if(existingError)throw existingError;
     if(existing?.length)return res.status(409).json({error:'Für deinen Account liegt bereits ein offenes Support-Ticket vor.'});
-    const {data:ticket,error}=await db.from('support_tickets').insert({scout_id:scout.id,scout_username:scout.username,message:'Der Account ist gesperrt. Ich benötige Ihre Hilfe.',status:'offen'}).select('id,scout_id,scout_username,message,status,created_at').single();
+    const {data:ticket,error}=await db.from('support_tickets').insert({scout_id:scout.id,scout_username:scout.username,category,message,status:'offen'}).select('id,scout_id,scout_username,category,message,status,created_at').single();
     if(error)throw error;
     return res.status(201).json(ticket);
   }catch(error){console.error('Support ticket creation failed:',error.message);return res.status(500).json({error:'Ticket konnte nicht erstellt werden. Bitte versuche es erneut.'});}
+});
+const SCOUT_TICKET_CATEGORIES=[
+  'Probleme bei Spieler erstellen',
+  'Probleme bei Spieler bearbeiten',
+  'Probleme bei der Datenbankabfrage',
+  'Probleme bei der gesamten Datenbank',
+  'Login Probleme',
+  'Anderes Anliegen'
+];
+const scoutTicketCreateLimiter=rateLimit({windowMs:15*60*1000,limit:10,standardHeaders:true,legacyHeaders:false,message:{error:'Du hast zu viele Support-Tickets erstellt. Bitte versuche es später erneut.'}});
+async function requireApprovedScout(req,res,next){
+  const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
+  if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
+  try{
+    const {data:authData,error:authError}=await db.auth.getUser(token);
+    if(authError||!authData?.user)return res.status(401).json({error:'Sitzung abgelaufen. Bitte erneut anmelden.'});
+    const {data:scout,error:profileError}=await db.from('profiles').select('id,username,role,approved,approval_status').eq('id',authData.user.id).maybeSingle();
+    if(profileError||!scout)return res.status(403).json({error:'Scout-Profil konnte nicht geprüft werden.'});
+    if(scout.role!=='scout')return res.status(403).json({error:'Dieser Bereich ist ausschließlich für Scouts vorgesehen.'});
+    if(!scout.approved||scout.approval_status!=='approved')return res.status(403).json({error:'Dein Scout-Konto ist nicht freigeschaltet.'});
+    req.scout=scout;
+    next();
+  }catch(error){console.error('Scout ticket authentication failed:',error.message);return res.status(401).json({error:'Sitzung konnte nicht geprüft werden. Bitte erneut anmelden.'});}
+}
+app.get('/api/scout/tickets',requireApprovedScout,async(req,res)=>{
+  const {data,error}=await db.from('support_tickets')
+    .select('id,scout_id,scout_username,category,message,status,created_at,resolved_at')
+    .eq('scout_id',req.scout.id)
+    .order('created_at',{ascending:false});
+  if(error){console.error('Scout ticket history load failed:',error.message);return res.status(500).json({error:'Deine Support-Tickets konnten nicht geladen werden.'});}
+  res.set('Cache-Control','no-store');
+  res.json(data||[]);
+});
+app.post('/api/scout/tickets',requireApprovedScout,scoutTicketCreateLimiter,async(req,res)=>{
+  try{
+    const category=typeof req.body?.category==='string'?req.body.category.trim():'';
+    const message=typeof req.body?.message==='string'?req.body.message.trim():'';
+    if(!SCOUT_TICKET_CATEGORIES.includes(category))return res.status(400).json({error:'Bitte wähle einen gültigen Grund für dein Support-Ticket aus.'});
+    if(message.length<10)return res.status(400).json({error:'Bitte beschreibe dein Problem mit mindestens 10 Zeichen.'});
+    if(message.length>3000)return res.status(400).json({error:'Deine Beschreibung darf höchstens 3.000 Zeichen enthalten.'});
+    const {data:ticket,error}=await db.from('support_tickets').insert({
+      scout_id:req.scout.id,
+      scout_username:req.scout.username,
+      category,
+      message,
+      status:'offen'
+    }).select('id,scout_id,scout_username,category,message,status,created_at,resolved_at').single();
+    if(error)throw error;
+    res.set('Cache-Control','no-store');
+    return res.status(201).json(ticket);
+  }catch(error){console.error('Scout support ticket creation failed:',error.message);return res.status(500).json({error:'Support-Ticket konnte nicht erstellt werden. Bitte versuche es erneut.'});}
 });
 // Admin ticket endpoints receive the Supabase access token from the browser.
 // Verify it with Supabase Auth (not the app's separate JWT verifier).
@@ -205,12 +261,12 @@ async function requireSupabaseAdmin(req,res,next){
   }catch(error){console.error('Admin ticket authentication failed:',error.message);return res.status(401).json({error:'Sitzung konnte nicht geprüft werden. Bitte erneut anmelden.'});}
 }
 app.get('/api/tickets',requireSupabaseAdmin,async(_req,res)=>{
-  const {data,error}=await db.from('support_tickets').select('id,scout_id,scout_username,message,status,created_at,resolved_at,resolved_by').order('created_at',{ascending:false});
+  const {data,error}=await db.from('support_tickets').select('id,scout_id,scout_username,category,message,status,created_at,resolved_at,resolved_by').order('created_at',{ascending:false});
   if(error)return res.status(500).json({error:'Tickets konnten nicht geladen werden.'});
   res.json(data||[]);
 });
 app.patch('/api/tickets/:id/resolve',requireSupabaseAdmin,async(req,res)=>{
-  const {data,error}=await db.from('support_tickets').update({status:'erledigt',resolved_at:new Date().toISOString(),resolved_by:req.user.sub}).eq('id',req.params.id).eq('status','offen').select('id,scout_id,scout_username,message,status,created_at,resolved_at,resolved_by').maybeSingle();
+  const {data,error}=await db.from('support_tickets').update({status:'erledigt',resolved_at:new Date().toISOString(),resolved_by:req.user.sub}).eq('id',req.params.id).eq('status','offen').select('id,scout_id,scout_username,category,message,status,created_at,resolved_at,resolved_by').maybeSingle();
   if(error)return res.status(500).json({error:'Ticket konnte nicht erledigt werden.'});
   if(!data)return res.status(404).json({error:'Offenes Ticket nicht gefunden.'});
   res.json(data);
