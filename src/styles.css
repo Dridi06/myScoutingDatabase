@@ -1883,3 +1883,8 @@ button{touch-action:manipulation}
 .scout-ticket-history>div{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px;border:1px solid rgba(183,137,53,.2);border-radius:9px}
 .scout-ticket-history small{width:100%;color:#aeb8c9}
 @media(max-width:700px){.ticket-summary{grid-template-columns:1fr}.ticket-table{overflow-x:auto}.scout-ticket-history>div{align-items:flex-start;flex-direction:column}}
+
+
+/* Open ticket counter in admin navigation: silver for zero, red for active tickets. */
+.ticket-nav-count.no-open{background:linear-gradient(135deg,#eef1f5 0%,#aeb7c4 55%,#dfe3e9 100%);color:#202735;border:1px solid rgba(255,255,255,.72);box-shadow:0 0 8px rgba(210,218,230,.2)}
+.ticket-nav-count.has-open{background:linear-gradient(135deg,#ff5968 0%,#d80e2d 100%);color:#fff;border:1px solid rgba(255,145,158,.8);box-shadow:0 0 10px rgba(239,35,60,.42)}
