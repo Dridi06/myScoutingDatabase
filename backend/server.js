@@ -58,9 +58,16 @@ app.post('/api/auth/login',async(req,res)=>{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist noch nicht konfiguriert.'});
     const {username,password}=req.body||{};
     if(typeof username!=='string'||typeof password!=='string'||!username||!password)return res.status(400).json({error:'Benutzername und Passwort erforderlich.'});
-    const {data:profile,error:pErr}=await db.from('profiles').select('*').ilike('username',username.trim()).maybeSingle();
+    // Never use the privileged service-role client for end-user sign-in.
+    // signInWithPassword mutates the Supabase client's in-memory auth session;
+    // sharing that client would replace the service-role request context with
+    // the last signed-in scout/admin and can break subsequent profile lookups.
+    const publicKey=process.env.SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    if(!publicKey)return res.status(503).json({error:'Anmeldedienst ist nicht vollständig konfiguriert.'});
+    const loginClient=createClient(supabaseUrl,publicKey,{auth:{autoRefreshToken:false,persistSession:false,detectSessionInUrl:false},global:{headers:{'X-Client-Info':'myscoutingdatabase-login'}}});
+    const {data:profile,error:pErr}=await db.from('profiles').select('id,username,email,role,approved,approval_status').ilike('username',username.trim()).maybeSingle();
     if(pErr||!profile)return res.status(401).json({error:'Benutzername oder Passwort ist nicht korrekt.'});
-    const signIn=await db.auth.signInWithPassword({email:profile.email,password});
+    const signIn=await loginClient.auth.signInWithPassword({email:profile.email,password});
     if(signIn.error)return res.status(401).json({error:'Benutzername oder Passwort ist nicht korrekt.'});
     if(!profile.approved)return res.status(403).json({error:'Dein Zugang ist noch nicht vom Administrator freigeschaltet.'});
     res.json({access_token:signIn.data.session.access_token,refresh_token:signIn.data.session.refresh_token,user:{id:profile.id,username:profile.username,role:profile.role,approved:profile.approved}});
