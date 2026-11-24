@@ -1949,3 +1949,76 @@ button{touch-action:manipulation}
 
 /* Admin unread Scout reply indicator */
 .ticket-new-message-badge{display:inline-flex;align-items:center;justify-content:center;margin-left:8px;padding:3px 8px;border-radius:10px;background:#f2c94c;color:#171717;font-size:10px;font-weight:900;letter-spacing:.04em;line-height:1.2;vertical-align:middle;box-shadow:0 0 0 1px rgba(242,201,76,.22)}
+
+
+/* Login intro: make the footballer and the actual kick unmistakable on every screen. */
+.login-intro-overlay{overflow:hidden}
+.intro-wordmark{position:relative;isolation:isolate}
+.intro-kick-scene{
+  position:absolute;left:0;top:50%;width:0;height:0;z-index:8;
+  display:block;pointer-events:none;overflow:visible;
+}
+.intro-kicker{
+  position:absolute;left:-208px;top:-108px;width:202px;height:186px;
+  overflow:visible;opacity:0;
+  filter:drop-shadow(0 9px 16px rgba(0,0,0,.55)) drop-shadow(0 0 13px rgba(86,145,255,.32));
+  animation:kicker-arrive .62s cubic-bezier(.18,.78,.2,1) .08s forwards;
+}
+.kicker-body{transform-origin:105px 110px;animation:kicker-follow-through .72s ease-out .55s both}
+.kicker-shoot-leg{
+  transform-box:fill-box;transform-origin:14% 12%;
+  animation:kicker-leg-swing .72s cubic-bezier(.2,.72,.2,1) .55s both;
+}
+.intro-kick-ball{
+  position:absolute;left:-49px;top:45px;width:48px;height:48px;z-index:9;
+  opacity:0;overflow:visible;
+  filter:drop-shadow(0 0 9px rgba(91,151,255,.95));
+  animation:ball-to-first-letter .62s cubic-bezier(.16,.78,.2,1) .86s forwards;
+}
+.intro-kick-ball:after{
+  content:"";position:absolute;inset:37% 62% 37% -85%;border-radius:50%;
+  background:linear-gradient(90deg,transparent,rgba(75,145,255,.98));
+  filter:blur(5px);
+}
+.intro-wordmark span{animation-delay:calc(1.5s + var(--letter-index)*.105s),3.85s,4.05s}
+.intro-wordmark:after{animation-delay:4.15s}
+.intro-welcome{animation-delay:4.85s}
+.intro-username{animation-delay:5.05s}
+@keyframes kicker-arrive{
+  0%{opacity:0;transform:translate(-32px,14px) scale(.86)}
+  72%{opacity:1;transform:translate(5px,-3px) scale(1.035)}
+  100%{opacity:1;transform:translate(0,0) scale(1)}
+}
+@keyframes kicker-follow-through{
+  0%{transform:rotate(0)}
+  48%{transform:rotate(-5deg)}
+  72%{transform:rotate(8deg)}
+  100%{transform:rotate(0)}
+}
+@keyframes kicker-leg-swing{
+  0%{transform:rotate(0)}
+  32%{transform:rotate(-24deg)}
+  58%{transform:rotate(34deg)}
+  78%{transform:rotate(12deg)}
+  100%{transform:rotate(0)}
+}
+@keyframes ball-to-first-letter{
+  0%{opacity:0;transform:translate(0,0) scale(.9)}
+  10%{opacity:1}
+  72%{opacity:1;transform:translate(57px,-8px) scale(1.12)}
+  100%{opacity:0;transform:translate(78px,-3px) scale(.24)}
+}
+@media(max-width:560px){
+  .intro-kicker{left:-145px;top:-82px;width:142px;height:131px}
+  .intro-kick-ball{left:-36px;top:35px;width:35px;height:35px}
+}
+@media(max-width:380px){
+  .intro-kicker{left:-126px;top:-72px;width:123px;height:113px}
+  .intro-kick-ball{left:-31px;top:31px;width:30px;height:30px}
+}
+@media(prefers-reduced-motion:reduce){
+  .intro-kick-scene{display:block}
+  .intro-kicker{opacity:1;animation:none}
+  .kicker-body,.kicker-shoot-leg{animation:none}
+  .intro-kick-ball{opacity:1;animation:none;transform:translate(58px,-5px) scale(.8)}
+}
