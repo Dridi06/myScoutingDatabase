@@ -2269,3 +2269,10 @@ button{touch-action:manipulation}
  .scout-management-table .scout-ticket-history-row>td{display:block;width:100%;padding:14px!important;border:1px solid rgba(190,157,94,.22);border-radius:12px;background:rgba(183,137,53,.07);}
 }
 @media(max-width:390px){.scout-management-table tbody tr:not(.scout-ticket-history-row){grid-template-columns:minmax(0,1fr)}.scout-management-table tbody tr:not(.scout-ticket-history-row)>td:nth-child(n){grid-column:1}.scout-management-table .scout-actions{grid-template-columns:minmax(0,1fr)}}
+
+
+/* Logout action: consistently red for Admin and Scout sidebars. */
+.shell aside button.logout{color:#ff5b68!important;border-color:rgba(255,82,98,.25)!important;}
+.shell aside button.logout svg{color:#ff5b68!important;stroke:currentColor!important;}
+.shell aside button.logout:hover,.shell aside button.logout:focus-visible{color:#ff8992!important;background:rgba(239,55,75,.13)!important;border-color:rgba(255,82,98,.55)!important;}
+.shell aside button.logout:hover svg,.shell aside button.logout:focus-visible svg{color:#ff8992!important;}
