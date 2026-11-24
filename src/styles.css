@@ -1864,3 +1864,22 @@ button{touch-action:manipulation}
 @keyframes ball-to-first-letter{0%{opacity:0;transform:translate(0,0) scale(.82)}12%{opacity:1}78%{opacity:1;transform:translate(35px,-5px) scale(1.08)}100%{opacity:0;transform:translate(47px,-1px) scale(.2)}}
 @media(max-width:560px){.intro-kicker{left:-108px;top:-72px;width:102px;height:100px}.intro-kick-ball{left:-27px;top:25px;width:25px;height:25px}}
 @media(prefers-reduced-motion:reduce){.intro-kick-scene{display:none}.intro-wordmark span{animation:none}}
+
+/* Scout ticket support */
+.ticket-nav-count{margin-left:auto;min-width:22px;padding:2px 7px;border-radius:999px;background:#b78935;color:#111722;font-size:12px;font-weight:800;text-align:center}
+.blocked-ticket-card{max-width:480px}
+.blocked-ticket-card .nexus-submit{width:100%;margin:18px 0}
+.blocked-ticket-card .link{display:block;margin:14px auto 0}
+.ticket-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:18px 0}
+.ticket-summary article{padding:18px;border:1px solid rgba(183,137,53,.3);border-radius:14px;background:rgba(15,23,38,.75);display:flex;flex-direction:column;gap:8px}
+.ticket-summary small{color:#aeb8c9;font-size:11px;letter-spacing:.08em}
+.ticket-summary strong{font-size:28px;color:#e4bd6b}
+.ticket-status{display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:700;text-transform:capitalize}
+.ticket-status.offen{background:rgba(214,155,58,.16);color:#e5bd70}
+.ticket-status.erledigt{background:rgba(60,160,112,.16);color:#75d3a2}
+.ticket-table td{vertical-align:middle}
+.scout-ticket-history-row>td{background:rgba(183,137,53,.06);padding:16px!important}
+.scout-ticket-history{display:grid;gap:8px;margin-top:10px}
+.scout-ticket-history>div{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px;border:1px solid rgba(183,137,53,.2);border-radius:9px}
+.scout-ticket-history small{width:100%;color:#aeb8c9}
+@media(max-width:700px){.ticket-summary{grid-template-columns:1fr}.ticket-table{overflow-x:auto}.scout-ticket-history>div{align-items:flex-start;flex-direction:column}}
