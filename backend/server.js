@@ -1013,7 +1013,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       if(error)return res.status(500).json({error:'Deine Kandidaten konnten nicht geladen werden.'});
       return res.json({reply:(data||[]).length?'Ich habe deine zuletzt recherchierten Kandidaten geladen.':'In deinem persönlichen Kandidatenbereich sind noch keine Einträge vorhanden.',intent:'candidates',items:data||[]});
     }
-    const searchMatch=message.match(/(?:suche|finde|such|zeige|zeig)\s+(?:mir\s+)?(?:den spieler|die spielerin|spieler|spielerin|kandidat|kandidaten)?\s*[:'"]?(.{2,100})$/i);
+    const searchMatch=message.match(/(?:suche|finde|such|zeige|zeig)\s+(?:mir\s+)?(?:den spieler|die spielerin|spieler|spielerin|kandidat|kandidaten)?\s*[:'"]?(.{2,100})$/i)||message.match(/(?:wer ist|infos? zu|informationen zu|profil von|analysiere)\s+(.{2,100})$/i)||message.match(/^([A-ZÄÖÜ][\p{L}'-]+(?:\s+[A-ZÄÖÜ][\p{L}'-]+){1,3})[?.!]*$/u);
     if(searchMatch){
       const term=searchMatch[1].replace(/[.!?]+$/,'').trim().slice(0,100);
       const safeTerm=term.replace(/[%,_()]/g,' ').trim();
@@ -1025,7 +1025,8 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const external=await researchMessinhoPlayerProfile(term);
       const facts=external.profile?.facts||{};
       const reply=external.profile?.summary||('Ich habe keinen internen Eintrag gefunden. Ich habe aber eine externe Recherche zu '+term+' gestartet. '+(external.sources?.length||0)+' Quellen wurden gefunden. '+(external.profile?.missing_data?.length?'Noch offen: '+external.profile.missing_data.join(', '):'Bitte prüfe die Quellen für aktuelle Details.'));
-      return res.json({reply,intent:'player_research',items:[],player:external.player,profile:external.profile,sources:external.sources||[],provider:external.provider||null,researched_at:external.researched_at||null});
+      const sourceItems=(external.sources||[]).map((source,index)=>({id:'source-'+index,name:source.title||source.publisher||source.url,kind:'Quelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
+      return res.json({reply,intent:'player_research',items:sourceItems,player:external.player,profile:external.profile,sources:external.sources||[],provider:external.provider||null,researched_at:external.researched_at||null});
     }
     const conversationalContext=history.map(item=>({role:item.role,content:item.text})).slice(-10);
     if(process.env.OPENAI_API_KEY){
