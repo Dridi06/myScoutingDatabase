@@ -89,6 +89,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  }
  async function saveObservation(e){
    e.preventDefault();if(!selected||!supabase)return;
+   if(containsPrivateContact(observation)){setError('Bitte keine E-Mail-Adressen oder Telefonnummern in Beobachtungsnotizen speichern.');return;}
    setBusy(true);setError('');
    try{
      const {error:saveError}=await supabase.from('asi_player_observations').insert({
@@ -102,6 +103,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  }
  async function sendFeedback(type){
    if(!analysis||!selected)return;
+   if(containsPrivateContact(feedbackComment)){setError('Bitte keine E-Mail-Adressen oder Telefonnummern im Feedback speichern.');return;}
    setBusy(true);setError('');
    try{
      const {error:saveError}=await supabase.from('asi_scout_feedback').insert({
