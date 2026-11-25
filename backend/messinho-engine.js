@@ -138,16 +138,16 @@ export function sanitizeMessinhoHistory(history) {
 
 export function resolveMessinhoPlayerFollowUp(message, history = []) {
   const text = String(message || '').toLocaleLowerCase('de-DE').normalize('NFKC');
-  const refersToPlayer = /\\b(ihn|ihm|er|seine|seiner|seinen|seinem|diesen spieler|dieser spieler|der spieler)\\b/.test(text);
-  const asksForDetails = /\\b(was|wer|wie|welche|welcher|mehr|sag|erzaehl|erzähl|infos|informationen|profil|karriere|leistungen|statistiken)\\b/.test(text);
-  const asksForComparison = /\\b(vergleiche|vergleich|gegenueberstellen|gegenüberstellen|unterschiede|vergleichbar)\\b/.test(text);
-  const followUp = (refersToPlayer && (asksForDetails || asksForComparison)) || (asksForComparison && /\\b(mit|gegen|vs)\\b/.test(text));
+  const refersToPlayer = /\b(ihn|ihm|er|seine|seiner|seinen|seinem|diesen spieler|dieser spieler|der spieler)\b/.test(text);
+  const asksForDetails = /\b(was|wer|wie|welche|welcher|mehr|sag|erzaehl|erzähl|infos|informationen|profil|karriere|leistungen|statistiken)\b/.test(text);
+  const asksForComparison = /\b(vergleiche|vergleich|gegenueberstellen|gegenüberstellen|unterschiede|vergleichbar)\b/.test(text);
+  const followUp = (refersToPlayer && (asksForDetails || asksForComparison)) || (asksForComparison && /\b(mit|gegen|vs)\b/.test(text));
   if (!followUp || !Array.isArray(history)) return null;
   const priorUserMessages = history.filter(item => item?.role === 'user' && typeof item.text === 'string').slice(-6).reverse();
   for (const item of priorUserMessages) {
     const candidate = item.text.trim().replace(/[?.!]+$/,'');
     const match = candidate.match(/^(?:suche|finde|such|zeige|zeig)(?:\s+mir)?(?:\s+(?:den\s+)?spieler)?\s+(.{2,100})$/i)
-      || candidate.match(/^([\p{Lu}][\p{L}'-]+(?:\s+[\p{Lu}][\p{L}'-]+){1,3})$/u);
+      || candidate.match(/^([\p{L}][\p{L}'’.-]*(?:\s+[\p{L}][\p{L}'’.-]*){1,3})$/iu);
     if (match) {
       const name = (match[1] || match[0]).trim();
       if (!/^(hilfe|messinho|hallo|guten tag)$/i.test(name)) return name.slice(0,100);
