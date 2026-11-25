@@ -175,6 +175,24 @@ function evaluationHandler(id,input){
    const spread=std(values),mean=avg(values);
    return result(id,'completed',{score:id==='consistency_score'?Math.round(clamp(100-(spread||0)*2)):Math.round(clamp(50+(values.at(-1)-values[0]))),mean:round(mean),standard_deviation:round(spread),observations:values.length});
  }
+ if(id==='potential_score'||id==='talent_score'||id==='development_projection'){
+   const rows=sortedDated(asArray(input.time_series||input.history||p.history));
+   const key=input.metric_key||'score';
+   const values=rows.map(x=>finite(x[key])).filter(v=>v!==null);
+   const current=scoreMessinhoPlayer(p).score;
+   const age=finite(p.age??input.age)??(finite(p.birth_year??p.year)?new Date().getFullYear()-finite(p.birth_year??p.year):null);
+   if(current===null)return missingResult(id,['player_metrics']);
+   const observedChange=values.length>=2?values.at(-1)-values[0]:null;
+   const ageFactor=age===null?null:age<=20?10:age<=23?6:age<=26?3:0;
+   const indicator=Math.round(clamp(current+(observedChange===null?0:Math.max(-10,Math.min(10,observedChange))*.5)+(ageFactor===null?0:ageFactor)));
+   return result(id,'completed',{current_score:current,potential_indicator:indicator,observed_change:observedChange,age,confidence:values.length>=2&&age!==null?'longitudinal':'limited',limitations:values.length<2?['Keine ausreichende Entwicklungshistorie.']:[]});
+ }
+ if(id==='competition_comparison'){
+   const peers=getPlayers(input).filter(x=>normalizedPosition(x)===normalizedPosition(p));
+   if(peers.length<2)return missingResult(id,['cohort_metrics']);
+   const ranked=rankPlayers(peers);
+   return result(id,'completed',{cohort_size:ranked.length,ranking:ranked});
+ }
  if(id==='data_quality_score'){
    const expected=['technical','tactical','athletic','mental'],present=expected.filter(k=>dims[k]!==null).length;
    return result(id,'completed',{score:Math.round(present/expected.length*100),present_dimensions:present,expected_dimensions:expected.length,metric_count:entries.length,missing_dimensions:expected.filter(k=>dims[k]===null)});
@@ -266,8 +284,8 @@ function researchHandler(id,input){
    const value=field==='name'?player.name:field==='position'?(player.positions||player.position):player.birth_year??player.year;
    if(value===null||value===undefined)return missingResult(id,[field]);
    const text=String(Array.isArray(value)?value.join(' '):value);
-   const supported=messinhoValueSupported(text,evidenceUrls(input),sources,claims);
-   return result(id,'unverified',{field,value,supported:false,source_count:sources.length,source_origin:'untrusted_request_payload',rule:'Client-supplied source text is not accepted as independent verification. Verification must use a server-retrieved ASI evidence record.'});
+   const supported=input._trusted_source_bundle===true&&messinhoValueSupported(text,evidenceUrls(input),sources,claims);
+   return result(id,supported?'verified':'unverified',{field,value,supported,source_count:sources.length,source_origin:input._trusted_source_bundle===true?'server_retrieved_ASI':'untrusted_request_payload',rule:'Verification requires a matching claim in server-retrieved HTTPS source text.'});
  }
  if(id==='source_cross_check'||id==='rumour_verification'){
    if(!sources.length)return missingResult(id,['sources']);
