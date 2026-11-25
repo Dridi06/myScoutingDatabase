@@ -52,7 +52,7 @@ async function bootstrapAdmin(){
 }
 function requireAuth(req,res,next){const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});try{req.user=jwt.verify(token,JWT_SECRET,{issuer:'myScoutingDatabase'});if(!req.user.approved)return res.status(403).json({error:'Konto noch nicht freigeschaltet.'});next();}catch{return res.status(401).json({error:'Sitzung abgelaufen. Bitte erneut anmelden.'});}}
 function requireAdmin(req,res,next){if(req.user?.role!=='admin')return res.status(403).json({error:'Admin-Rechte erforderlich.'});next();}
-app.get('/api/health',(_req,res)=>res.json({ok:true,service:'myScoutingDatabase',database:!!db}));
+app.get('/api/health',(_req,res)=>res.json({ok:true,service:'myScoutingDatabase',database:!!db,aiSearch:{ready:Boolean(process.env.TAVILY_API_KEY&&process.env.OPENAI_API_KEY),searchProvider:'Tavily',analysisProvider:'OpenAI',model:process.env.OPENAI_MODEL||'gpt-4.1-mini'}}));
 app.post('/api/auth/login',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist noch nicht konfiguriert.'});
