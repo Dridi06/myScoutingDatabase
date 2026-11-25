@@ -45,3 +45,15 @@
 .asi-quality-gates span.blocked{color:#b45309}
 .asi-quality-gates span.ready{color:#15803d}
 @media(max-width:700px){.asi-quality-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.asi-quality-gates>div{align-items:flex-start;flex-direction:column}.asi-quality-gates span{text-align:left}}
+
+/* Accessibility fix: strong contrast for Meta Intelligence on light and dark themes */
+.asi-quality-panel .asi-quality-intro{color:#475569!important}
+.asi-quality-panel .asi-quality-grid article{background:#f8fafc;border-color:#dbe2ea}
+.asi-quality-panel .asi-quality-grid article span,
+.asi-quality-panel .asi-quality-grid article small{color:#475569!important}
+.asi-quality-panel .asi-quality-grid article strong{color:#172033!important}
+.asi-quality-panel .asi-quality-gates>div{background:#ffffff;border-color:#dbe2ea}
+.asi-quality-panel .asi-quality-gates>div strong{color:#1e293b!important}
+.asi-quality-panel .asi-quality-gates span.blocked{color:#a84308!important}
+.asi-quality-panel .asi-quality-gates span.ready{color:#166534!important}
+.asi-quality-panel .asi-footnote{color:#475569!important}
