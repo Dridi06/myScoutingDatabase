@@ -41,3 +41,20 @@ test('research distinguishes source auditing from live provider discovery',()=>{
  assert.equal(out.status,'completed');
  assert.equal(out.result.eligible_sources,0);
 });
+
+test('video source research never treats HTTPS alone as a licence',()=>{
+ const out=executeMessinhoCapability('video_source_research',{sources:[{url:'https://video.example/match',title:'Match video',content:'Licensed footage for this match.'.repeat(10)}]});
+ assert.equal(out.status,'insufficient_data');
+ assert.equal(out.result.licensed_source_count,0);
+});
+test('contract date extraction produces review leads, never verified contract facts',()=>{
+ const out=executeMessinhoCapability('contract_expiry_monitor',{sources:[{url:'https://club.example/news',title:'Contract update',content:'The contract expires on 2027-06-30.'}]});
+ assert.equal(out.status,'needs_review');
+ assert.equal(out.result.contract_date_mentions[0].verified,false);
+});
+test('potential and development scores require measured player history where appropriate',()=>{
+ const potential=executeMessinhoCapability('potential_score',{player:{name:'Test',positions:['Stürmer'],ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4}},age:19});
+ assert.equal(potential.status,'completed');
+ const development=executeMessinhoCapability('development_score',{player:{name:'Test'},time_series:[{date:'2025-01-01',score:60},{date:'2026-01-01',score:72}]});
+ assert.equal(development.status,'completed');
+});
