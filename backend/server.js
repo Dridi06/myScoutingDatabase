@@ -466,7 +466,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
         const verifiedEvidence=regionEvidence.filter(e=>candidateEvidence.supporting_source_urls.includes(e.source_url));
         const candidateSources=discoverySources.filter(s=>candidateEvidence.supporting_source_urls.includes(s.url));
         const evidenceAssessment=assessMessinhoEvidence(candidateSources);
-        const supportedPositions=(Array.isArray(player.positions)?player.positions:[]).filter(value=>messinhoValueSupported(value,candidateEvidence.supporting_source_urls,discoverySources));
+        const supportedPositions=(Array.isArray(player.positions)?player.positions:[]).filter(value=>messinhoValueSupported(value,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence));
         if(position&&!matchesPosition(position,supportedPositions))return null;
         const supportedClub=messinhoValueSupported(player.current_club,candidateEvidence.supporting_source_urls,discoverySources)?player.current_club:null;
         const supportedNationality=messinhoValueSupported(player.nationality,candidateEvidence.supporting_source_urls,discoverySources)?player.nationality:null;
