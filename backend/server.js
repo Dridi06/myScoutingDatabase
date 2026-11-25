@@ -537,10 +537,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const dialog=parseMessinhoScoutingRequest(message,history);
     const ownerId=authData.user.id;
     const normalized=message.toLocaleLowerCase('de-DE').normalize('NFKC');
-    const help=/\\b(hilfe|was kannst du|befehle|funktionen)\\b/.test(normalized);
+    const help=/\b(hilfe|was kannst du|befehle|funktionen)\\b/.test(normalized);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
-    const wantsComparison=/\\b(vergleiche|vergleich|rangliste|ranking|bewerte meine kandidaten)\\b/.test(normalized);
-    const wantsSummary=/\\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\\b/.test(normalized);
+    const wantsComparison=/\b(vergleiche|vergleich|rangliste|ranking|bewerte meine kandidaten)\\b/.test(normalized);
+    const wantsSummary=/\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\\b/.test(normalized);
     if(dialog.shouldHandle){
       if(dialog.missing.length)return res.json({reply:'Damit ich die Suche sauber eingrenzen kann, brauche ich noch: '+dialog.missing.join(', ')+'.',intent:'scouting_clarification',items:[],pending:true});
       const {quantity,yearFrom,yearTo,position,region,targetLevel}=dialog.request;
