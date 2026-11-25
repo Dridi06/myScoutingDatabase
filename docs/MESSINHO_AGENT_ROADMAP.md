@@ -165,3 +165,29 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 - Vite-Build-Konfiguration teilt React, Supabase und Lucide-Icons in separate Vendor-Chunks auf; die tatsächliche Chunk-Größe wird im nächsten Staging-Build geprüft.
 - Die zusätzlichen Tests prüfen HTTPS- und Datumsstatus, Deduplizierung, Domain-Diversität, fehlende Daten, Mindestabdeckung und die bestehende 1–5- bzw. 0–100-Bewertungsskala.
 - Die neue CI-Ausführung für den letzten Zwischenstand `fc66b227` war erfolgreich (MESSINHO validation und ASI quality checks). Die nachfolgenden UI-Erweiterungen werden gerade erneut durch CI geprüft.
+
+
+## Produktionshärtung – 25.11.2026
+
+### Behobene Befunde
+- Alle MESSINHO-Spielerabfragen mit privilegiertem Service-Client laufen über `scopeMessinhoOwner`: Scouts werden serverseitig auf ihre `owner_id` begrenzt; Admins behalten die globale Sicht. Die Hilfsfunktion ist separat getestet.
+- Interne MESSINHO-Suche und Bestandsübersicht geben Scouts keine fremden Spieler oder globalen Spielerzahlen mehr zurück.
+- Vergleichs-Ranking verwendet jetzt die tatsächlich gespeicherte Modellkonfiguration unter `configuration.profiles`.
+- `/api/health` prüft die tatsächliche Datenbankverbindung statt nur, ob ein Supabase-Client erzeugt wurde. Die öffentliche Antwort verrät keine geheimen Werte oder konkrete Modellkonfiguration.
+- Taktische Bewertung interpretiert ganzzahlige Scout-Bewertungen 1–5 korrekt (1 = 20/100, 5 = 100/100); unplausible Veröffentlichungsdaten in der Zukunft gelten nicht als aktuell.
+- Trainingsversuche ohne ausreichende Daten werden als `insufficient_data` protokolliert, nicht fälschlich als erfolgreicher Trainingslauf. Unvollständige Modellkandidaten werden bei fehlgeschlagener Trainingsprotokollierung bereinigt.
+- Staging besitzt jetzt eine explizite aktive deterministische MESSINHO-Baseline Version 1.1.0. Sie ist als nicht trainiert gekennzeichnet und verwendet die dokumentierten Positionsgewichte; sie ist kein behauptetes Machine-Learning-Ergebnis.
+- Staging-Umgebungsvariablen für Supabase-Projekt-URL, Publishable Key und APP_ORIGIN wurden ergänzt; ein zufälliges JWT_SECRET wurde ausschließlich für Staging gesetzt. Keine Produktionsvariablen geändert.
+- `.env.example` wurde auf neue Supabase Secret-/Publishable-Key-Namen aktualisiert.
+
+### Noch offene Produktionsfreigaben
+- Supabase Server Secret Key (`SUPABASE_SECRET_KEY` oder `SUPABASE_SERVICE_ROLE_KEY`) muss als Geheimnis in Render Staging gesetzt werden.
+- Für externe Recherche fehlen weiterhin `TAVILY_API_KEY` und `OPENAI_API_KEY`. OpenAI bleibt nur Analyseanbieter; MESSINHOs Bewertung, Baseline und Lernlogik sind provider-unabhängig.
+- Supabase Auth: Schutz gegen kompromittierte Passwörter ist laut Advisor derzeit deaktiviert und muss in den Auth-Sicherheitseinstellungen aktiviert werden.
+- SECURITY DEFINER RPCs wurden auf ihre Funktionskörper geprüft: Identitätsänderungen verlangen Admin-Rechte; Heartbeat/Login aktualisieren nur die Zeile des angemeldeten Benutzers. Der Advisor-Hinweis ist deshalb nicht automatisch eine nachgewiesene Rechteausweitung; die Ausführungsrechte bleiben dennoch vor Release zu überprüfen.
+- `support_tickets` und `support_ticket_messages` haben RLS ohne Policies. Das blockiert direkte Client-Zugriffe; bestehende Backend-Endpunkte müssen separat gegen ihre expliziten Rollen-/Eigentümerprüfungen getestet werden. Keine pauschalen Policies ergänzt.
+- Admin-/Scout-End-to-End-Tests, reale Datenbank-Health-Prüfung, externe Recherche, Kandidatenspeicherung, Scout-Isolation und Admin-Modellfreigabe stehen nach Bereitstellung der fehlenden Geheimnisse aus.
+- Es liegen noch keine echten verifizierten 12-Monats-Ergebnisse vor. Ein echtes Training ist daher ausdrücklich nicht freigegeben.
+
+### Rollout-Grenze
+Dieser Stand bleibt Draft auf `feature/messinho-agent-workspace` und Render-Staging. Nicht mergen, nicht auf `main` deployen und keine produktive Datenbankmigration ausführen, bevor alle oben genannten Tests erfolgreich sind und eine ausdrückliche Freigabe erteilt wurde.
