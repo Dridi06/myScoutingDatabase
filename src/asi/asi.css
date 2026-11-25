@@ -224,3 +224,11 @@
 .function-guide-content .function-guide-purpose strong{color:#c9dcf5}
 .function-guide-content .function-guide-note{padding:8px 10px;border:1px solid rgba(163,185,211,.15);border-radius:8px;background:rgba(255,255,255,.035);color:#a9b8cc}
 @media(max-width:760px){.function-guide{padding:15px}.function-guide-list{grid-template-columns:1fr}.function-guide-item summary{min-height:52px}.function-guide-content{padding-left:14px}}
+
+
+.asi-diagnostic-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0 14px;padding:10px 12px;border:1px solid rgba(163,185,211,.16);border-radius:10px;background:rgba(8,17,30,.38);color:#aebdd0;font-size:11px}
+.asi-diagnostic-pagination>div{display:flex;align-items:center;gap:9px}
+.asi-diagnostic-pagination strong{color:#e5edf7;font-size:11px;white-space:nowrap}
+.asi-diagnostic-pagination button{padding:7px 11px;border:1px solid rgba(163,185,211,.24);border-radius:8px;background:rgba(157,189,255,.08);color:#dce8f6;font-size:11px;font-weight:700;cursor:pointer}
+.asi-diagnostic-pagination button:disabled{opacity:.35;cursor:not-allowed}
+@media(max-width:600px){.asi-diagnostic-pagination{align-items:flex-start;flex-direction:column}.asi-diagnostic-pagination>div{width:100%;justify-content:space-between}}
