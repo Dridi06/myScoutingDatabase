@@ -114,7 +114,25 @@ export function sanitizeMessinhoHistory(history) {
   if (!Array.isArray(history)) return [];
   return history.slice(-10).filter(item =>
     item && ['user','assistant'].includes(item.role) && typeof item.text === 'string'
-  ).map(item => ({ role: item.role, text: item.text.slice(0, 1200) }));
+  ).map(item => {
+    const safe = { role: item.role, text: item.text.slice(0, 1200) };
+    if (item.role === 'assistant' && item.researchContext && typeof item.researchContext === 'object') {
+      const ctx = item.researchContext;
+      safe.researchContext = {
+        player: ctx.player && typeof ctx.player === 'object' ? { name: String(ctx.player.name || '').slice(0,120) } : null,
+        profile: ctx.profile && typeof ctx.profile === 'object' ? JSON.parse(JSON.stringify(ctx.profile).slice(0,8000)) : null,
+        sources: Array.isArray(ctx.sources) ? ctx.sources.slice(0,10).map(source => ({
+          title: String(source.title || '').slice(0,240),
+          url: /^https:\/\//i.test(String(source.url || '')) ? String(source.url).slice(0,1000) : '',
+          publisher: String(source.publisher || '').slice(0,120),
+          published_date: String(source.published_date || '').slice(0,40),
+          snippet: String(source.snippet || '').slice(0,1400)
+        })).filter(source => source.url) : [],
+        researched_at: String(ctx.researched_at || '').slice(0,40)
+      };
+    }
+    return safe;
+  });
 }
 
 
