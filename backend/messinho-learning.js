@@ -103,7 +103,8 @@ export function buildMessinhoLearningProposal(calibrationRows,baselineProfiles,o
   const train=rows.filter(row=>!heldoutIds.has(row.player_id));
   const validation=rows.filter(row=>heldoutIds.has(row.player_id));
   if(train.length<Math.ceil(minExamples*.8)||validation.length<5){report[group]={status:'insufficient_validation_data',examples:rows.length,validation_examples:validation.length};continue;}
-  const proposed=trainWeights(train,keys,base),baseArray=keys.map(k=>base[k]),nextArray=keys.map(k=>proposed[k]);
+  const baseArray=keys.map(k=>base[k]);
+  const proposed=trainWeights(train,keys,baseArray),nextArray=keys.map(k=>proposed[k]);
   const before=mae(validation,baseArray),after=mae(validation,nextArray);
   const maxShift=Math.max(...keys.map(k=>Math.abs(proposed[k]-base[k])));
   const accepted=before!==null&&after!==null&&after<=before-1.0&&maxShift<=.20;
