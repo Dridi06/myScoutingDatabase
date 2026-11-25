@@ -1,6 +1,7 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import './asi.css';
 import {BrainCircuit,Activity,ShieldCheck,RefreshCw,Search,Save,ThumbsUp,ThumbsDown,Info,Database,TrendingUp,Clock3} from 'lucide-react';
+import { reflectOnAssessment } from './selfReflection.js';
 
 const SECTIONS={
   Technik:['Dribbling','Passspiel kurz','Passspiel lang','Beidfüssigkeit','Kopfballspiel','1:1 Offensiv','Ball An/Mitnahme','Erster Kontakt','Repertoire Finten','Variabler Torschuss'],
@@ -303,6 +304,8 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
    setBusy(true);setError('');setFeedback('');
    try{
      const snapshot=buildSnapshot(selected);
+     const reflection=reflectOnAssessment({ratings:selected.ratings||{},expectedCriteria:Object.entries(SECTIONS).filter(([name])=>name!=='Torwart'||isGoalkeeper(selected)).flatMap(([,criteria])=>criteria),roleFits:roleFit?[roleFit]:[],metadata:{ratingScale:'1-5'}});
+     snapshot.self_reflection=reflection;
      if(snapshot.coverage===0)throw new Error('Keine gültigen Bewertungen vorhanden. Bitte zuerst mindestens ein Kriterium mit einem ganzzahligen Wert von 1 bis 5 erfassen.');
      const {data,error:saveError}=await supabase.from('asi_player_analyses').insert({
        player_id:selected.player_id,owner_id:selected.owner_id,created_by:profile.id,
@@ -385,6 +388,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
          <div className="asi-section-scores">{(analysis.analysis_json?.sections||[]).map(s=><article key={s.name}><span>{s.name}</span><strong>{s.average===null?'–':s.average.toFixed(2)}</strong><small>{s.count} Kriterien</small></article>)}</div>
          <div className="asi-findings"><div><strong>Erfasste Stärken</strong>{analysis.analysis_json?.strongest?.length?analysis.analysis_json.strongest.map(x=><span key={x.label}>{x.label} · {x.value}</span>):<small>Keine belastbaren Stärken aus den vorhandenen Werten ableitbar.</small>}</div><div><strong>Entwicklungsfelder</strong>{analysis.analysis_json?.development?.length?analysis.analysis_json.development.map(x=><span key={x.label}>{x.label} · {x.value}</span>):<small>Keine niedrig bewerteten Kriterien vorhanden.</small>}</div></div>
          <ul className="asi-limitations">{(analysis.analysis_json?.limitations||[]).map(x=><li key={x}>{x}</li>)}</ul>
+         <div className="asi-self-reflection"><div className="asi-result-top"><strong>Selbstkritische Qualitätsprüfung</strong><span className={'asi-status '+(analysis.analysis_json?.self_reflection?.status||'')}>{analysis.analysis_json?.self_reflection?.status==='consistent'?'KONSISTENT':analysis.analysis_json?.self_reflection?.status==='caution'?'HINWEISE':'PRÜFUNG ERFORDERLICH'}</span></div><p>{analysis.analysis_json?.self_reflection?.validRatingCount??0} von {analysis.analysis_json?.self_reflection?.expectedRatingCount??0} erwarteten Kriterien gültig bewertet · {analysis.analysis_json?.self_reflection?.missingRatingCount??0} fehlen.</p>{analysis.analysis_json?.self_reflection?.findings?.length?<ul>{analysis.analysis_json.self_reflection.findings.map((item,index)=><li key={item.code+'-'+index}><strong>{item.severity==='blocking'?'Blockierend':item.severity==='warning'?'Hinweis':'Info'}:</strong> {item.message}{item.criteria?.length?' ('+item.criteria.join(', ')+')':''}</li>)}</ul>:<small>Keine internen Widersprüche oder formalen Datenprobleme erkannt. Dies bestätigt nicht die objektive Richtigkeit der Scoutbewertung.</small>}<small>Engine {analysis.analysis_json?.self_reflection?.engineVersion||'unbekannt'} · automatische Prüfung, keine externe KI-Begutachtung.</small></div>
          <div className="asi-feedback"><strong>War diese Auswertung hilfreich und sachlich richtig?</strong><div className="asi-feedback-actions"><button type="button" className={feedback==='correct'?'active':''} onClick={()=>sendFeedback('correct')} disabled={busy}><ThumbsUp size={15}/> Zutreffend</button><button type="button" className={feedback==='partially_correct'?'active':''} onClick={()=>sendFeedback('partially_correct')} disabled={busy}><Activity size={15}/> Teilweise</button><button type="button" className={feedback==='incorrect'?'active':''} onClick={()=>sendFeedback('incorrect')} disabled={busy}><ThumbsDown size={15}/> Nicht zutreffend</button></div><textarea value={feedbackComment} onChange={e=>setFeedbackComment(e.target.value)} maxLength={2000} placeholder="Optional: Was fehlt oder ist falsch?"/>{feedback&&<small>Feedback gespeichert: {feedback}</small>}</div>
        </div>}
      </section>
