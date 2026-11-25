@@ -6,8 +6,8 @@ export const MESSINHO_ENGINE_VERSION = '1.0.0';
 
 const POSITION_GROUPS = {
   goalkeeper: ['torwart','goalkeeper','keeper','gk','tw'],
-  centreBack: ['innenverteidiger','iv','cb','center back','centre back'],
-  fullBack: ['linksverteidiger','linker verteidiger','rechtsverteidiger','rechter verteidiger','lv','rv','lb','rb','left back','right back'],
+  centreBack: ['innenverteidiger','iv','iv links','iv rechts','cb','center back','centre back'],
+  fullBack: ['linksverteidiger','linker verteidiger','rechtsverteidiger','rechter verteidiger','av links','av rechts','av re li','lv','rv','lb','rb','left back','right back'],
   defensiveMidfield: ['6er','zdm','dm','cdm','defensives mittelfeld','defensive midfielder'],
   centralMidfield: ['8er','zm','cm','zentraler mittelfeldspieler','central midfielder'],
   attackingMidfield: ['10er','om','cam','offensives mittelfeld','attacking midfielder'],
