@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState} from 'react';
+import React,{useEffect,useMemo,useRef,useState} from 'react';
 import './asi.css';
 import {BrainCircuit,Activity,ShieldCheck,RefreshCw,Search,Save,ThumbsUp,ThumbsDown,Info,Database,TrendingUp,Clock3} from 'lucide-react';
 
@@ -57,6 +57,8 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  const [observation,setObservation]=useState('');
  const [observationDate,setObservationDate]=useState(new Date().toISOString().slice(0,10));
  const [busy,setBusy]=useState(false);
+ const [savingObservation,setSavingObservation]=useState(false);
+ const observationSaveLock=useRef(false);
  const [loading,setLoading]=useState(false);
  const [models,setModels]=useState([]);
  const [externalSources,setExternalSources]=useState([]);
@@ -130,19 +132,28 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
    finally{setBusy(false);}
  }
  async function saveObservation(e){
-   e.preventDefault();if(!selected||!supabase)return;
+   e.preventDefault();if(!selected||!supabase||observationSaveLock.current)return;
    if(containsPrivateContact(observation)){setError('Bitte keine E-Mail-Adressen oder Telefonnummern in Beobachtungsnotizen speichern.');return;}
    if(!observationDate||Number.isNaN(Date.parse(observationDate))||observationDate>new Date().toISOString().slice(0,10)){setError('Bitte ein gültiges Beobachtungsdatum bis einschließlich heute auswählen.');return;}
-   setBusy(true);setError('');
+   observationSaveLock.current=true;setSavingObservation(true);setBusy(true);setError('');
    try{
+     const ratings=normalizeRatings(selected.ratings||{});
+     if(!Object.keys(ratings).length)throw new Error('Es sind keine gültigen Bewertungen vorhanden. Bitte zuerst mindestens ein Kriterium mit einem Wert von 1 bis 5 erfassen.');
+     const {data:existing,error:lookupError}=await supabase.from('asi_player_observations').select('id,ratings').eq('player_id',Number(selected.player_id)).eq('observed_on',observationDate);
+     if(lookupError)throw lookupError;
+     const sameSnapshot=(existing||[]).some(row=>JSON.stringify(normalizeRatings(row.ratings||{}))===JSON.stringify(ratings));
+     if(sameSnapshot){
+       setError('Dieser identische Bewertungs-Snapshot ist für diesen Spieler und dieses Datum bereits gespeichert. Es wurde kein doppelter Eintrag angelegt.');
+       return;
+     }
      const {error:saveError}=await supabase.from('asi_player_observations').insert({
        player_id:selected.player_id,owner_id:selected.owner_id,created_by:profile.id,
-       observed_on:observationDate,ratings:normalizeRatings(selected.ratings||{}),observation:observation.trim()||null,source_type:'internal_scout'
+       observed_on:observationDate,ratings,observation:observation.trim()||null,source_type:'internal_scout'
      });
      if(saveError)throw saveError;
      setObservation('');await loadObservations(selectedId);onNotice('Beobachtung wurde in der ASI-Zeitleiste gespeichert.');
    }catch(e){setError(e.message||'Beobachtung konnte nicht gespeichert werden.');}
-   finally{setBusy(false);}
+   finally{observationSaveLock.current=false;setSavingObservation(false);setBusy(false);}
  }
  async function sendFeedback(type){
    if(!analysis||!selected)return;
@@ -194,7 +205,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
    </div>
    {selected&&<section className="asi-panel asi-observation-panel">
      <div className="asi-panel-heading"><div><span className="asi-eyebrow">TALENT EVOLUTION</span><h2>Neue Beobachtung dokumentieren</h2></div><Clock3 size={20}/></div>
-     <form onSubmit={saveObservation} className="asi-observation-form"><label>Beobachtungsdatum<input type="date" value={observationDate} onChange={e=>setObservationDate(e.target.value)} required/></label><label>Beobachtungsnotiz<textarea value={observation} onChange={e=>setObservation(e.target.value)} maxLength={5000} placeholder="Beobachtbare Spielsituationen, Kontext, Gegnerniveau und konkrete Beispiele – keine privaten Kontaktdaten."/></label><button type="submit" disabled={busy}><Save size={15}/> Beobachtung speichern</button></form>
+     <form onSubmit={saveObservation} className="asi-observation-form"><label>Beobachtungsdatum<input type="date" value={observationDate} onChange={e=>setObservationDate(e.target.value)} required/></label><label>Beobachtungsnotiz<textarea value={observation} onChange={e=>setObservation(e.target.value)} maxLength={5000} placeholder="Beobachtbare Spielsituationen, Kontext, Gegnerniveau und konkrete Beispiele – keine privaten Kontaktdaten."/></label><button type="submit" disabled={busy||savingObservation}>{savingObservation?<><RefreshCw size={15} className="asi-saving-icon"/> Wird gespeichert…</>:<><Save size={15}/> Beobachtung speichern</>}</button></form>
      <p className="asi-footnote">Die aktuelle Spielerbewertung wird als Snapshot mitgespeichert. Künftige Bewertungen können so zeitlich miteinander verglichen werden.</p>
    </section>}
    {selected&&<section className="asi-panel asi-history-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">TALENT EVOLUTION</span><h2>Beobachtungsverlauf</h2></div><Clock3 size={20}/></div>{observations.length===0?<p className="asi-empty">Noch keine Beobachtungen gespeichert. Neue Einträge erscheinen hier chronologisch.</p>:<div className="asi-history-list">{observations.map(o=><article className="asi-observation-entry" key={o.id}><div className="asi-result-top"><strong>{new Date(o.observed_on+'T12:00:00').toLocaleDateString('de-DE')}</strong><small>{o.source_type==='internal_scout'?'Interner Scout':'Quelle: '+o.source_type}</small></div>{o.observation&&<p>{o.observation}</p>}<small>{Object.keys(o.ratings||{}).length} Bewertungsfelder im Snapshot · erfasst {new Date(o.created_at).toLocaleString('de-DE')}</small></article>)}</div>}</section>}
