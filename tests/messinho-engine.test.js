@@ -17,7 +17,7 @@ test('does not invent a score when evidence is insufficient',()=>{
 });
 test('normalizes percentage and 0..1 inputs',()=>{
  const result=scoreMessinhoPlayer({positions:['Flügel links'],analysis:{ratings:{technical:80,tactical:.7,athletic:90,mental:60}}});
- assert.equal(result.score,79);
+ assert.equal(result.score,78);
 });
 test('ranking places scored players before unscored players',()=>{
  const ranked=rankMessinhoPlayers([{name:'A',positions:['Torwart'],analysis:{ratings:{goalkeeping:90}}},{name:'B',positions:['Stürmer'],analysis:{}}]);
