@@ -181,7 +181,8 @@ async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=n
   add('Tavily-Recherche-Key','Externe Schnittstellen',Boolean(process.env.TAVILY_API_KEY),process.env.TAVILY_API_KEY?'Tavily-Key konfiguriert (Wert verborgen).':'TAVILY_API_KEY fehlt.','warning','TAVILY_API_KEY in Render konfigurieren und Deployment abwarten.');
   add('Optionale OpenAI-Anbindung','Externe Schnittstellen',true,process.env.OPENAI_API_KEY?'OpenAI optional konfiguriert (Wert verborgen).':'Nicht konfiguriert; MESSINHO-Kern wird unabhängig getestet.','info');
   const mailProviderReady=Boolean((process.env.SMTP_HOST&&process.env.SMTP_USER&&process.env.SMTP_PASS)||process.env.RESEND_API_KEY||process.env.EMAIL_PROVIDER==='resend');
-  add('E-Mail-Provider-Konfiguration','Externe Schnittstellen',mailProviderReady,mailProviderReady?'Mindestens eine unterstützte E-Mail-Provider-Konfiguration ist vorhanden; es wurde keine Testmail versendet.':'Keine unterstützte E-Mail-Provider-Konfiguration erkannt.','warning','SMTP_HOST/SMTP_USER/SMTP_PASS oder RESEND_API_KEY beziehungsweise den konfigurierten E-Mail-Provider prüfen.');
+  // Email delivery is intentionally not integrated yet; keep this as an informational roadmap note, not a failed check.
+  add('E-Mail-Provider-Konfiguration','Externe Schnittstellen',true,mailProviderReady?'Mindestens eine unterstützte E-Mail-Provider-Konfiguration ist vorhanden; es wurde keine Testmail versendet.':'Noch nicht angebunden – E-Mail-Versand ist als späteres Modul vorgesehen und wird bis zur Integration nicht als Fehler gewertet.','info');
 
   // 10. Sicherheit und Datenschutz
   add('HTTP-Sicherheitsheader','Sicherheit und Datenschutz',typeof helmet==='function','Helmet-Sicherheitsmiddleware ist eingebunden.','critical');
