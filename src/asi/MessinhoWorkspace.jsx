@@ -32,6 +32,11 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   const [capabilityBusy,setCapabilityBusy]=useState(false);
   const [capabilityOutput,setCapabilityOutput]=useState(null);
   const [capabilityError,setCapabilityError]=useState('');
+  const [developmentData,setDevelopmentData]=useState(null);
+  const [developmentError,setDevelopmentError]=useState('');
+  const [developmentBusy,setDevelopmentBusy]=useState(false);
+  const [hypotheses,setHypotheses]=useState(null);
+  const [outcomeDrafts,setOutcomeDrafts]=useState({});
   const endRef=useRef(null);
   const recognitionRef=useRef(null);
   useEffect(()=>{
@@ -172,6 +177,47 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     }catch(e){setCapabilityError(e.message||'MESSINHO-Funktion konnte nicht ausgeführt werden.');}
     finally{setCapabilityBusy(false);}
   }
+  async function runDevelopmentCycle(){
+    if(!selectedLearningPlayer){setDevelopmentError('Bitte zuerst einen Spieler auswählen.');return;}
+    setDevelopmentBusy(true);setDevelopmentError('');
+    try{
+      const analysis=await learningRequest('/api/messinho/development/analyze','POST',{player_id:Number(selectedLearningPlayer)});
+      const prediction=await learningRequest('/api/messinho/development/predict','POST',{player_id:Number(selectedLearningPlayer)});
+      const audit=await learningRequest('/api/messinho/development/audit');
+      setDevelopmentData({analysis,prediction,audit});
+    }catch(e){setDevelopmentError(e.message||'MESSINHO-Entwicklungszyklus fehlgeschlagen.');}
+    finally{setDevelopmentBusy(false);}
+  }
+  async function refreshDevelopmentAudit(){
+    setDevelopmentBusy(true);setDevelopmentError('');
+    try{setDevelopmentData(prev=>({...prev,audit:await learningRequest('/api/messinho/development/audit')}));}
+    catch(e){setDevelopmentError(e.message||'Prognosekontrolle konnte nicht geladen werden.');}
+    finally{setDevelopmentBusy(false);}
+  }
+  function setOutcomeDraft(id,key,value){setOutcomeDrafts(prev=>({...prev,[id]:{...(prev[id]||{}),[key]:value}}));}
+  async function submitPredictionOutcome(predictionId){
+    const draft=outcomeDrafts[predictionId]||{};
+    setDevelopmentBusy(true);setDevelopmentError('');
+    try{
+      await learningRequest('/api/messinho/development/outcomes','POST',{prediction_id:predictionId,observed_value:Number(draft.value),observed_on:draft.date,source_url:draft.source,notes:draft.notes||''});
+      await refreshDevelopmentAudit();
+    }catch(e){setDevelopmentError(e.message||'Ergebnis konnte nicht gespeichert werden.');}
+    finally{setDevelopmentBusy(false);}
+  }
+  async function verifyPredictionOutcome(outcomeId){
+    setDevelopmentBusy(true);setDevelopmentError('');
+    try{
+      await learningRequest('/api/messinho/development/outcomes/'+encodeURIComponent(outcomeId)+'/verify','POST',{decision:'verify',reason:'Quelle und beobachtetes Ergebnis administrativ geprüft.'});
+      await refreshDevelopmentAudit();
+    }catch(e){setDevelopmentError(e.message||'Ergebnis konnte nicht verifiziert werden.');}
+    finally{setDevelopmentBusy(false);}
+  }
+  async function createDevelopmentHypotheses(){
+    setDevelopmentBusy(true);setDevelopmentError('');
+    try{setHypotheses(await learningRequest('/api/messinho/development/hypotheses','POST',{}));}
+    catch(e){setDevelopmentError(e.message||'Hypothesen konnten nicht erzeugt werden.');}
+    finally{setDevelopmentBusy(false);}
+  }
   useEffect(()=>{if(profile?.role==='admin'||profile?.role==='scout'){loadLearningStatus();loadCapabilities();}},[profile?.role]);
   function renderItems(items){
     if(!items?.length)return null;
@@ -217,6 +263,28 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
         </article>)}
         {learningData?.proposals?.map(model=><article key={model.id} className="messinho-calibration-review"><b>Modellkandidat {model.version}</b><small>{JSON.stringify(model.metrics?.report||model.metrics||{})}</small><button type="button" disabled={learningBusy} onClick={()=>approveLearningModel(model.id)}>Über ASI-Modellverwaltung freigeben</button></article>)}
       </div>}
+    </section>
+    <section className="messinho-development-panel">
+      <div className="messinho-learning-summary"><strong>MESSINHO · Entwicklungszyklus</strong><small>Analyse → nachvollziehbare Bewertung → Prognose → verifiziertes Ergebnis → Modellprüfung → Verbesserungshypothese</small><small>Jede Prognose wird mit Modellversion und Datensnapshot gespeichert. Ergebnisse werden erst nach Admin-Prüfung berücksichtigt.</small></div>
+      <div className="messinho-development-actions">
+        <button type="button" disabled={developmentBusy||!selectedLearningPlayer} onClick={runDevelopmentCycle}>{developmentBusy?'Analysiert …':'Spieler analysieren & Prognose speichern'}</button>
+        <button type="button" className="secondary" disabled={developmentBusy} onClick={refreshDevelopmentAudit}>Prognosekontrolle aktualisieren</button>
+        {profile?.role==='admin'&&<button type="button" className="secondary" disabled={developmentBusy} onClick={createDevelopmentHypotheses}>Verbesserungshypothesen bilden</button>}
+      </div>
+      {developmentError&&<p role="alert" className="messinho-error">{developmentError}</p>}
+      {developmentData?.analysis&&<div className="messinho-development-result"><strong>Nachvollziehbare Analyse · {developmentData.analysis.analysis?.player?.score??'–'}/100</strong><small>Abdeckung {developmentData.analysis.analysis?.player?.evidence_coverage??0}% · Konfidenz {developmentData.analysis.analysis?.player?.confidence||'–'} · Modell {developmentData.analysis.analysis?.model_version}</small><pre>{JSON.stringify(developmentData.analysis.analysis?.player?.weighted_dimensions||[],null,2)}</pre></div>}
+      {developmentData?.prediction?.prediction&&<div className="messinho-development-result"><strong>12-Monats-Prognose gespeichert</strong><small>{developmentData.prediction.prediction.predicted_value}/100 · Intervall {developmentData.prediction.prediction.prediction_interval_low}–{developmentData.prediction.prediction.prediction_interval_high} · {developmentData.prediction.prediction.model_version}</small><small>{developmentData.prediction.warning}</small></div>}
+      {developmentData?.audit&&<div className="messinho-development-result"><strong>Prognosekontrolle</strong><small>{developmentData.audit.audit?.verified_pairs||0} verifizierte Vergleiche · MAE {developmentData.audit.audit?.metrics?.mae??'–'} · Bias {developmentData.audit.audit?.metrics?.bias??'–'} · offene Ergebnisse {developmentData.audit.pending_outcomes||0}</small>
+        {developmentData.audit.predictions?.slice(0,8).map(prediction=>{
+          const outcome=developmentData.audit.outcomes?.find(item=>item.prediction_id===prediction.id);
+          const draft=outcomeDrafts[prediction.id]||{};
+          return <article key={prediction.id} className="messinho-prediction-row"><b>Prognose {prediction.predicted_value}/100 · {new Date(prediction.created_at).toLocaleDateString('de-DE')}</b><small>{prediction.model_version} · {outcome?('Ergebnis '+outcome.observed_value+'/100 · '+outcome.verification_status):'Noch kein Ergebnis hinterlegt'}</small>
+            {!outcome&&<div className="messinho-outcome-fields"><input type="number" min="0" max="100" placeholder="Ergebnis 0–100" value={draft.value||''} onChange={e=>setOutcomeDraft(prediction.id,'value',e.target.value)}/><input type="date" value={draft.date||''} onChange={e=>setOutcomeDraft(prediction.id,'date',e.target.value)}/><input type="url" placeholder="HTTPS-Quelle" value={draft.source||''} onChange={e=>setOutcomeDraft(prediction.id,'source',e.target.value)}/><button type="button" disabled={developmentBusy} onClick={()=>submitPredictionOutcome(prediction.id)}>Ergebnis melden</button></div>}
+          </article>;
+        })}
+        {profile?.role==='admin'&&developmentData.audit.outcomes?.filter(item=>item.verification_status==='pending').map(outcome=><article key={outcome.id} className="messinho-prediction-row"><b>Offene Ergebnisprüfung · {outcome.observed_value}/100</b><small>{outcome.observed_on} · <a href={outcome.verification_source_url} target="_blank" rel="noreferrer">Quelle prüfen</a></small><button type="button" disabled={developmentBusy} onClick={()=>verifyPredictionOutcome(outcome.id)}>Quelle geprüft – verifizieren</button></article>)}
+      </div>}
+      {hypotheses&&<div className="messinho-development-result"><strong>MESSINHO · Verbesserungshypothesen · {hypotheses.status}</strong><pre>{JSON.stringify(hypotheses.hypotheses||[],null,2)}</pre><small>Keine Hypothese verändert automatisch das aktive Modell.</small></div>}
     </section>
     <section className="messinho-capability-panel">
       <div className="messinho-learning-summary"><strong>MESSINHO · Funktionslabor</strong><small>{capabilityGroups.reduce((sum,group)=>sum+(group.functions?.length||0),0)||100} registrierte Funktionen · vier Kompetenzbereiche · eigene MESSINHO-Runtime</small><small>Wähle eine Funktion. Analyse und Bewertung verwenden den ausgewählten Datenbankspieler; Recherche benötigt einen konkreten Suchbegriff. Lernfunktionen sind Admins vorbehalten.</small></div>
