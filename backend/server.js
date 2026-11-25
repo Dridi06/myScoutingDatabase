@@ -575,6 +575,7 @@ app.post('/api/messinho/calibration',messinhoCalibrationLimiter,async(req,res)=>
       scout_rating:rating.score,outcome_metric:MESSINHO_CALIBRATION_METRIC,verification_status:'pending',
       messinho_position_group:rating.position_group,messinho_dimension_scores:dimensions
     }).select('id,player_id,scout_rating,outcome_metric,verification_status,messinho_position_group,created_at').single();
+    if(error?.code==='23505')return res.status(409).json({error:'Für diesen Spieler besteht bereits eine offene Kalibrierung. Bitte warte auf die administrative Prüfung.'});
     if(error){console.error('MESSINHO calibration record save failed:',error.message);return res.status(500).json({error:'Kalibrierung konnte nicht gespeichert werden. Staging-Migration prüfen.'});}
     return res.status(201).json({ok:true,record:data,player_name:player.name,message:'Kalibrierung gespeichert. Erst ein Administrator kann das spätere Ergebnis anhand einer HTTPS-Quelle verifizieren.'});
   }catch(error){console.error('MESSINHO calibration save failed:',error.message);return res.status(500).json({error:'Kalibrierung konnte nicht gespeichert werden.'});}
