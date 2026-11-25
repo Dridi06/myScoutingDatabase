@@ -11,6 +11,7 @@ const SECTIONS={
 const MODEL_VERSION='player_snapshot_baseline@0.1.0';
 const safeNumber=v=>{if(v===null||v===undefined||String(v).trim()==='')return null;const n=Number(v);return Number.isInteger(n)&&n>=1&&n<=5?n:null;};
 const containsPrivateContact=value=>/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})|(?:\+?\d[\d\s()./-]{7,}\d)/i.test(String(value||''));
+const normalizeRatings=ratings=>Object.fromEntries(Object.values(SECTIONS).flat().map(key=>[key,safeNumber(ratings?.[key])]).filter(([,value])=>value!==null));
 function buildSnapshot(player){
  const ratings=player.ratings&&typeof player.ratings==='object'?player.ratings:{};
  const sections=Object.entries(SECTIONS).map(([name,criteria])=>{
@@ -104,7 +105,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
      const {data,error:saveError}=await supabase.from('asi_player_analyses').insert({
        player_id:selected.player_id,owner_id:selected.owner_id,created_by:profile.id,
        analysis_type:'player_snapshot',model_version:MODEL_VERSION,analysis_json:snapshot,
-       input_snapshot:{ratings:selected.ratings||{},positions:selected.positions||[],foot:selected.foot||null,year:selected.year||null,observed_on:selected.observed_on||null}
+       input_snapshot:{ratings:normalizeRatings(selected.ratings||{}),rating_scale:'1-5_integer_v1',positions:selected.positions||[],foot:selected.foot||null,year:selected.year||null,observed_on:selected.observed_on||null}
      }).select('id,player_id,analysis_type,model_version,analysis_json,created_at,created_by').single();
      if(saveError)throw saveError;
      setAnalysis(saveError?null: data);
@@ -116,11 +117,12 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  async function saveObservation(e){
    e.preventDefault();if(!selected||!supabase)return;
    if(containsPrivateContact(observation)){setError('Bitte keine E-Mail-Adressen oder Telefonnummern in Beobachtungsnotizen speichern.');return;}
+   if(!observationDate||Number.isNaN(Date.parse(observationDate))||observationDate>new Date().toISOString().slice(0,10)){setError('Bitte ein gültiges Beobachtungsdatum bis einschließlich heute auswählen.');return;}
    setBusy(true);setError('');
    try{
      const {error:saveError}=await supabase.from('asi_player_observations').insert({
        player_id:selected.player_id,owner_id:selected.owner_id,created_by:profile.id,
-       observed_on:observationDate,ratings:selected.ratings||{},observation:observation.trim()||null,source_type:'internal_scout'
+       observed_on:observationDate,ratings:normalizeRatings(selected.ratings||{}),observation:observation.trim()||null,source_type:'internal_scout'
      });
      if(saveError)throw saveError;
      setObservation('');await loadObservations(selectedId);onNotice('Beobachtung wurde in der ASI-Zeitleiste gespeichert.');
