@@ -70,6 +70,33 @@ export function assessMessinhoSource(source = {}, options = {}) {
   };
 }
 
+export function validateMessinhoCandidateEvidence(candidate = {}, evidence = [], sources = []) {
+  const name = normalize(candidate.name).replace(/\s+/g, ' ').trim();
+  const birthYear = Number(candidate.birth_year);
+  if (!name || !Number.isInteger(birthYear) || birthYear < 1900 || birthYear > 2100) {
+    return { valid: false, supporting_source_urls: [], limitations: ['Spielername oder Geburtsjahr ist ungültig.'] };
+  }
+  const tokens = name.split(' ').filter(token => token.length > 1);
+  const sourceMap = new Map((Array.isArray(sources) ? sources : []).map(source => [source.url, source]));
+  const supported = [];
+  for (const item of Array.isArray(evidence) ? evidence : []) {
+    const source = sourceMap.get(item?.source_url);
+    if (!source) continue;
+    const text = normalize([source.title, source.content, item.claim].filter(Boolean).join(' ')).replace(/\s+/g, ' ').trim();
+    const nameMentioned = tokens.length > 1
+      ? tokens.every(token => text.includes(token))
+      : text.includes(name);
+    const yearMentioned = new RegExp('(?:^|\\D)' + birthYear + '(?:\\D|$)').test(text);
+    if (nameMentioned && yearMentioned && source.url?.startsWith('https://')) supported.push(source.url);
+  }
+  const unique = [...new Set(supported)];
+  return {
+    valid: unique.length > 0,
+    supporting_source_urls: unique,
+    limitations: unique.length ? [] : ['Kein einzelner HTTPS-Beleg nennt sowohl den Spieler als auch das angegebene Geburtsjahr.']
+  };
+}
+
 export function assessMessinhoEvidence(sources = [], options = {}) {
   const unique = new Map();
   for (const source of Array.isArray(sources) ? sources : []) {
