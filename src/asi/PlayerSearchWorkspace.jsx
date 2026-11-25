@@ -1,6 +1,7 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import {Search,BrainCircuit,Save,RefreshCw,ExternalLink,ShieldCheck,AlertTriangle,Star,Users,Activity,Clock3} from 'lucide-react';
 import './playerSearch.css';
+import MessinhoWorkspace from './MessinhoWorkspace.jsx';
 
 const pct=n=>n===null||n===undefined||n===''?'Nicht bewertet':Number.isFinite(Number(n))?Math.round(Number(n)*100)+'%':'Nicht bewertet';
 const list=v=>Array.isArray(v)?v:[];
@@ -136,5 +137,6 @@ export default function PlayerSearchWorkspace({supabase,profile,admin=false,onNo
   <section className="ps-candidates"><div className="ps-section-heading"><div><span>SCOUTING-PIPELINE</span><h2>Gespeicherte Kandidaten</h2></div><button onClick={loadCandidates} disabled={busy}><RefreshCw size={15}/> Aktualisieren</button></div>
    {!candidates.length?<p className="ps-empty">Noch keine Kandidaten gespeichert.</p>:<div className="ps-candidate-list">{candidates.map(c=><article key={c.id}><div><strong>{c.player_name}</strong><small>{[c.current_club,c.birth_year,c.positions?.join(', ')].filter(Boolean).join(' · ')}</small><small>{c.recommendation} · {new Date(c.researched_at).toLocaleDateString('de-DE')}</small></div><span>{c.status}</span>{c.status!=='dismissed'&&<button onClick={()=>dismissCandidate(c.id)}>Verwerfen</button>}</article>)}</div>}
   </section>
+  <MessinhoWorkspace supabase={supabase} profile={profile} onNotice={onNotice} compact />
  </div>;
 }
