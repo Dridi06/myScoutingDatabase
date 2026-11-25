@@ -144,3 +144,14 @@
 - Keine Scout-Rangliste, keine individuellen Scout-Namen oder Identitäten in der Oberfläche; Abweichungen werden nicht automatisch als Fehler bewertet. Kontext und Beobachtungsbedingungen können Unterschiede erklären.
 - Die Admin-Abfrage lädt `created_by` ausschließlich für die bestehende Admin-Qualitätsansicht; Scout-Ansichten erhalten keine globalen Vergleichsdaten. Keine Datenbankänderung, keine künstlichen Datensätze.
 - Render-Deployment und Prüfung auf Staging stehen aus. Produktion unangetastet.
+
+
+## Zentrale Spieleridentität / sichere Scout-übergreifende Zuordnung – 2026-11-25
+- Supabase-Staging-Migration `asi_canonical_player_identity_registry` erfolgreich angewendet.
+- Neue Tabellen `asi_player_identities` und `asi_player_identity_links`: zentrale UUID-Identität und Zuordnung einzelner owner-getrennter Spielerprofile.
+- RLS ist aktiviert; beide Tabellen sind ausschließlich für Admins les- und schreibbar. Scouts erhalten keine Leserechte auf Zuordnungen oder zentrale Identitäten.
+- Es gibt bewusst keine automatische Namens-/Fuzzy-Zuordnung. Nur manuelle Admin-Bestätigung kann zwei Profile verknüpfen. Pro Spielerprofil ist maximal eine zentrale Identität zulässig.
+- ASI-Scoutvergleich gruppiert nun ausschließlich über bestätigte zentrale Identitäten. Nicht zugeordnete Datensätze fließen nicht ein.
+- Admin-Oberfläche ergänzt: zwei Datensätze auswählen; bei erstmaliger Verknüpfung wird eine neue zentrale Identität erstellt, bei weiterer Verknüpfung wird eine bestehende Identität verwendet.
+- Datenbestand bei Einführung: zwei Spielerprofile, beide gehören aktuell demselben owner_id; es wurde keine automatische Identität behauptet oder vorab verknüpft.
+- Noch offen: Build/Deploy, responsive Browserprüfung, Admin-RLS-Funktionstest, Negativtest für Scoutzugriff und fachliche Verifikation des Zuordnungsablaufs. Produktion unangetastet.
