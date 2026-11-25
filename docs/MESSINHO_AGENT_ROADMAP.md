@@ -69,3 +69,23 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 - Noch nicht gesetzt: `SUPABASE_SECRET_KEY` oder `SUPABASE_SERVICE_ROLE_KEY`, `TAVILY_API_KEY`, `OPENAI_API_KEY`. Deshalb ist die Datenbankverbindung im Backend derzeit nicht initialisiert und die ASI-Recherche meldet `ready=false`.
 - Vite meldet einen Haupt-JavaScript-Chunk von ca. 640,5 kB (gzip ca. 185 kB), oberhalb des 500-kB-Warnwerts. Build ist erfolgreich; Code-Splitting bleibt eine Performance-Optimierung.
 - Es wurde weder der Render-Dienst auf `main` noch PFMS verändert. Der Staging-Dienst deployt neue Branch-Commits nicht automatisch.
+
+
+## Arbeitsstand 25.11.2026 – MESSINHO Core Engine und ASI-Integration
+- MESSINHO-Chat wurde in die bestehende KI-Spielersuche eingebettet; der separate Navigationspunkt wurde entfernt. Ein alter gespeicherter Seitenzustand `messinho` wird weiterhin auf dieselbe integrierte Such-/Chat-Oberfläche geleitet.
+- Der bisherige Chat-Handlerfehler durch die nicht deklarierte Variable `history` wurde behoben. Gesprächsverlauf wird serverseitig auf maximal zehn Nachrichten, erlaubte Rollen und 1.200 Zeichen pro Nachricht begrenzt.
+- Neue provider-unabhängige Datei `backend/messinho-engine.js`: versionierte, deterministische Bewertungslogik (Engine 1.0.0), Positionsgruppen, positionsabhängige Gewichte, Datenabdeckung und Vertrauensstufe.
+- MESSINHO vergibt nur dann einen numerischen Score, wenn mindestens 50 % der Positionsgewichtung durch vorhandene numerische Daten abgedeckt sind. Fehlende Werte werden nicht ergänzt oder geschätzt.
+- Positionsgruppen unterstützen Torwart, Innenverteidigung, Außenverteidigung, defensives/zentrales/offensives Mittelfeld, Flügel und Sturm. Plattformbezeichnungen wie AV links/rechts und IV links/rechts sind berücksichtigt.
+- Vergleichsmodus über den Chat: „Vergleiche meine Kandidaten“ lädt die eigenen Kandidaten und sortiert sie anhand der MESSINHO-Bewertung; Score, Datenabdeckung und Vertrauensstufe werden angezeigt.
+- Vollständige Scouting-Aufträge werden weiterhin an die vorhandene ASI-Quellenpipeline delegiert. MESSINHO übernimmt Dialogsteuerung, Auftragsklärung, positionsspezifische Bewertung und Ranking eigenständig.
+- Neue Engine-Tests decken Positionsgewichtung, fehlende Daten, Normalisierung, Ranking und Verlaufssanitierung ab. Zusätzlich bestehen die bisherigen Dialog-/Positions-/Quellen-Tests. Die automatisierte Ausführung von `npm test` ist noch nicht bestätigt.
+- Staging-Deploy `dep-dc3cr10u01pc73ea2q10` für Commit `037d2d90896360a900bfc0b4ccfdf81fc665fed6` wurde als `live` bestätigt; Vite-Frontend-Build war erfolgreich. Neuere nachfolgende Commits (Positionsalias-/Testanpassung) benötigen noch einen erneuten Staging-Build.
+- Die Draft-PR #35 ist ausschließlich zur Prüfung vorgesehen und nicht gemergt. Produktion und PFMS blieben unangetastet.
+
+### Unabhängigkeit und kontrollierte Weiterentwicklung
+- MESSINHOs Kernlogik (Dialogparser, Entscheidungsregeln, Positionsprofile, Bewertung, Ranking und Versionskennung) ist ein eigenes Backend-Modul und nicht an OpenAI-spezifische Bewertungsanweisungen gebunden.
+- OpenAI wird in der vorhandenen ASI-Pipeline derzeit weiterhin als austauschbarer LLM-Anbieter für Sprach-/Quellenanalyse verwendet. Die Architektur ist damit noch nicht vollständig LLM-frei; für einen späteren Wechsel muss ein eigener Provider-Adapter bzw. ein lokales Modell ergänzt und getestet werden.
+- „Selbstverbesserung“ bedeutet zunächst versionierte, anhand von Ergebnissen evaluierte Änderungen mit automatisierten Tests und menschlicher Freigabe. Kein autonomes Umschreiben oder selbstständiges Ausrollen von Code/Bewertungsregeln.
+- Externe Quellen- und Lizenzfreigabe, tägliche Hintergrundaktualisierung, historische Datenpflege und kontrollierte Modell-Evaluation bleiben gesonderte Ausbaustufen und sind nicht aktiviert.
+- Noch offen: automatisierte Unit-Test-Ausführung, erneuter Staging-Build auf aktuellem Branch-Head, Chat-End-to-End-Test mit eingerichteten Staging-Secrets und verifizierte Live-Interaktion im Browser.
