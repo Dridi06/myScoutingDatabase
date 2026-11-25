@@ -6,11 +6,12 @@ export const MESSINHO_LEARNING_VERSION = '1.1.0';
 const DIMENSIONS=['technical','tactical','athletic','mental','goalkeeping'];
 const MIN_EXAMPLES=30;
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+const finiteNumber=value=>value===null||value===undefined||(typeof value==='string'&&!value.trim())?null:(Number.isFinite(Number(value))?Number(value):null);
 const normalizedKey=value=>String(value??'').normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[ä]/g,'a').replace(/[ö]/g,'o').replace(/[ü]/g,'u').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,' ').trim();
 function scaleRating(value){
  const raw=value&&typeof value==='object'?(value.score??value.value):value;
- const n=Number(raw);
- if(!Number.isFinite(n)||n<0)return null;
+ const n=finiteNumber(raw);
+ if(n===null||n<0)return null;
  return n<=5?n*20:clamp(n,0,100);
 }
 const GROUP_PATTERNS={
@@ -37,7 +38,7 @@ export function extractMessinhoDimensionScores(ratings={},positions=[]){
  }
  return result;
 }
-function vectorFor(example,keys){return keys.map(key=>{const n=Number(example.dimension_scores?.[key]);return Number.isFinite(n)&&n>=0&&n<=100?n:null;});}
+function vectorFor(example,keys){return keys.map(key=>{const n=finiteNumber(example.dimension_scores?.[key]);return n!==null&&n>=0&&n<=100?n:null;});}
 function validWeights(weights,keys){
  if(!weights||typeof weights!=='object')return null;
  const values=keys.map(key=>Number(weights[key]));
@@ -87,10 +88,11 @@ export function buildMessinhoLearningProposal(calibrationRows,baselineProfiles,o
  const minExamples=Number.isInteger(options.minExamples)?Math.max(10,options.minExamples):MIN_EXAMPLES;
  const byGroup=new Map();
  for(const row of calibrationRows||[]){
-  if(!row||!row.player_id||!row.position_group||!Number.isFinite(Number(row.target_score)))continue;
+  const target=finiteNumber(row?.target_score);
+  if(!row||!row.player_id||!row.position_group||target===null)continue;
   const group=row.position_group;
   if(!byGroup.has(group))byGroup.set(group,[]);
-  byGroup.get(group).push({player_id:String(row.player_id),target:clamp(Number(row.target_score),0,100),dimension_scores:row.dimension_scores||{}});
+  byGroup.get(group).push({player_id:String(row.player_id),target:clamp(target,0,100),dimension_scores:row.dimension_scores||{}});
  }
  const profiles={},report={};let trainedGroups=0;
  for(const [group,examples] of byGroup){
