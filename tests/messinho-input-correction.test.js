@@ -4,7 +4,7 @@ import { correctMessinhoInput } from '../backend/messinho-input-correction.js';
 
 test('corrects common German spelling and split-word errors', () => {
   const result = correctMessinhoInput('Such mir ein sturmer der schnell ist und gut ab schlissen kann');
-  assert.equal(result.corrected, 'Such mir ein stürmer der schnell ist und gut abschließen kann');
+  assert.equal(result.corrected, 'Such mir einen Stürmer der schnell ist und gut abschließen kann');
   assert.equal(result.changed, true);
 });
 
