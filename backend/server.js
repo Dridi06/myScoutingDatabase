@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { createClient } from '@supabase/supabase-js';
 import { parseMessinhoScoutingRequest, matchesPosition, sourceSupportsRegion } from './messinho-validation.js';
-import { rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFollowUp, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
+import { rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFollowUp, extractMessinhoPlayerSearchTerm, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
@@ -1039,9 +1039,9 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       if(error)return res.status(500).json({error:'Deine Kandidaten konnten nicht geladen werden.'});
       return res.json({reply:(data||[]).length?'Ich habe deine zuletzt recherchierten Kandidaten geladen.':'In deinem persönlichen Kandidatenbereich sind noch keine Einträge vorhanden.',intent:'candidates',items:data||[]});
     }
-    const searchMatch=message.match(/(?:suche|finde|such|zeige|zeig)\s+(?:mir\s+)?(?:den spieler|die spielerin|spieler|spielerin|kandidat|kandidaten)?\s*[:'"]?(.{2,100})$/i)||message.match(/(?:wer ist|infos? zu|informationen zu|profil von|analysiere)\s+(.{2,100})$/i)||message.match(/^([A-ZÄÖÜ][\p{L}'-]+(?:\s+[A-ZÄÖÜ][\p{L}'-]+){1,3})[?.!]*$/u);
-    if(searchMatch){
-      const term=searchMatch[1].replace(/[.!?]+$/,'').trim().slice(0,100);
+    const searchTerm=extractMessinhoPlayerSearchTerm(message);
+    if(searchTerm){
+       const term=searchTerm;
       const safeTerm=term.replace(/[%,_()]/g,' ').trim();
       const playerQuery=scopeMessinhoOwner(db.from('players').select('player_id,name,club,year,positions,foot').ilike('name','%'+safeTerm+'%').order('name').limit(10),actor);
       const [players,candidates]=await Promise.all([playerQuery,db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status').eq('owner_id',ownerId).ilike('player_name','%'+safeTerm+'%').limit(10)]);

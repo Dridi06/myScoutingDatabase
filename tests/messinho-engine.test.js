@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { scoreMessinhoPlayer, rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFollowUp, MESSINHO_ENGINE_VERSION } from '../backend/messinho-engine.js';
+import { scoreMessinhoPlayer, rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFollowUp, extractMessinhoPlayerSearchTerm, MESSINHO_ENGINE_VERSION } from '../backend/messinho-engine.js';
 
 test('scores a centre-back using only supplied position-relevant dimensions',()=>{
  const result=scoreMessinhoPlayer({positions:['Innenverteidiger'],analysis:{ratings:{technical:{score:.8},tactical:{score:.9},athletic:{score:.7},mental:{score:.8}}}});
@@ -65,4 +65,15 @@ test('preserves bounded source evidence for later conversational follow-ups',()=
  assert.equal(safe[0].researchContext.player.name,'Cristiano Ronaldo');
  assert.equal(safe[0].researchContext.sources[0].snippet,'Forward');
  assert.equal(safe[0].researchContext.sources.length,1);
+});
+
+
+test('recognizes lowercase bare player names as searches',()=>{
+ assert.equal(extractMessinhoPlayerSearchTerm('cristiano ronaldo'),'cristiano ronaldo');
+});
+test('recognizes mixed-case bare player names as searches',()=>{
+ assert.equal(extractMessinhoPlayerSearchTerm('Kylian MBAPPÉ'),'Kylian MBAPPÉ');
+});
+test('does not mistake generic greetings for player searches',()=>{
+ assert.equal(extractMessinhoPlayerSearchTerm('Hallo Messinho'),null);
 });
