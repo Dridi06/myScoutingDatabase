@@ -8,7 +8,7 @@ const suggestions=[
   'Suche Spieler Müller.'
 ];
 export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{}}){
-  const [messages,setMessages]=useState([{id:'welcome',role:'assistant',text:'Assalamu alaikum! Ich bin Messinho, dein Scouting-Agent. Ich kann zunächst deinen Datenbestand auswerten, gespeicherte Kandidaten anzeigen und Spieler im vorhandenen Katalog suchen. Meine autonomen Recherche- und Lernmodule werden schrittweise integriert.'}]);
+  const [messages,setMessages]=useState([{id:'welcome',role:'assistant',text:'Hallo! Ich bin Messinho, dein Scouting-Agent. Ich kann zunächst deinen Datenbestand auswerten, gespeicherte Kandidaten anzeigen und Spieler im vorhandenen Katalog suchen. Meine autonomen Recherche- und Lernmodule werden schrittweise integriert.'}]);
   const [draft,setDraft]=useState('');
   const [busy,setBusy]=useState(false);
   const [listening,setListening]=useState(false);
@@ -65,7 +65,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{}}){
     return <div className="messinho-results">{items.map((item,index)=><article key={String(item.id||index)} className="messinho-result-row"><div className="messinho-result-icon"><Users size={16}/></div><div className="messinho-result-copy"><strong>{item.name||item.player_name||'Unbenannter Eintrag'}</strong><span>{[item.club||item.current_club,item.year||item.birth_year,item.positions?.join(', '),item.kind,item.recommendation].filter(Boolean).join(' · ')}</span></div></article>)}</div>;
   }
   return <div className="messinho-workspace">
-    <header className="messinho-hero"><div className="messinho-emblem"><BrainCircuit size={29}/></div><div className="messinho-hero-copy"><span>MYSCOUTINGDATABASE · KI-ASSISTENT</span><h1>Messinho</h1><p>Dein persönlicher Scouting-Agent</p></div><div className="messinho-status"><i/> Verbunden</div></header>
+    <header className="messinho-hero"><div className="messinho-emblem"><BrainCircuit size={29}/></div><div className="messinho-hero-copy"><span>MYSCOUTINGDATABASE · KI-ASSISTENT</span><h1>Messinho</h1><p>Dein persönlicher Scouting-Agent</p></div><div className="messinho-status"><i/> Modul geladen</div></header>
     <section className="messinho-overview">
       <div><Database size={18}/><span><strong>Datenbankzugriff</strong><small>Authentifiziert und benutzerbezogen</small></span></div>
       <div><Clock3 size={18}/><span><strong>Rechercheplan</strong><small>Täglich um 20:00 Uhr · noch nicht aktiviert</small></span></div>
