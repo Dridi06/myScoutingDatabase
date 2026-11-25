@@ -49,7 +49,7 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 - Jahrgangsbereiche, Länder-Aliase und mehrstufige Rückfragen werden deterministisch verarbeitet.
 - Positionsabgleich nutzt kontrollierte Positions-Aliase statt unpräziser Teilstring-Suche.
 - Standortfilter akzeptiert einen Kandidaten nur, wenn ein zugeordneter Quellenbeleg sowohl das angeforderte Land als auch den angegebenen aktuellen Verein enthält. Das ist bewusst konservativ und kann die Trefferzahl reduzieren.
-- Acht automatisierte Tests für Dialog, Rückfragen, Jahrgang, Standort, Position und Quellenprüfung ergänzt; die Testfälle wurden lokal mit Node.js ausgeführt (8/8 bestanden).
+- Zehn automatisierte Tests für Dialog, Rückfragen, Jahrgang, Standort, Position, Zurücksetzen abgeschlossener Dialoge und Quellenprüfung ergänzt; die Testfälle wurden lokal mit Node.js ausgeführt (10/10 bestanden).
 - Syntaxprüfung der aktualisierten `backend/server.js` erfolgreich.
 - GitHub-Actions-Workflow `.github/workflows/messinho-validation.yml` ergänzt, der auf dem Entwicklungszweig Unit-Tests und Frontend-Build ausführt. Ein CI-Lauf ist bislang nicht nachgewiesen.
 
