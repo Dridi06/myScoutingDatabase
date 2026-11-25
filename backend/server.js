@@ -973,7 +973,8 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const ownerId=authData.user.id;
     const actor={user:authData.user,profile};
     const normalized=message.toLocaleLowerCase('de-DE').normalize('NFKC');
-    const help=/\b(hilfe|was kannst du|befehle|funktionen)\b/.test(normalized);
+    const isPlayerFollowUp=Boolean(resolveMessinhoPlayerFollowUp(message,history));
+    const help=/\b(hilfe|befehle|funktionen)\b/.test(normalized)||(/\bwas kannst du\b/.test(normalized)&&!isPlayerFollowUp);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
     const wantsComparison=/\b(vergleiche|vergleich|rangliste|ranking|bewerte meine kandidaten)\b/.test(normalized);
     const wantsSummary=/\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\b/.test(normalized);
@@ -1008,7 +1009,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         performance.length?'Aktuelle Leistung: '+performance.join(' · '):null,
         Array.isArray(profile.missing_data)&&profile.missing_data.length?'Noch nicht zuverlässig belegt: '+profile.missing_data.join(', '):null].filter(Boolean);
       const sourceItems=(external.sources||[]).map((source,index)=>({id:'source-'+index,name:source.title||source.publisher||source.url,kind:'Externe Quelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
-      const reply=sections.length?sections.join('\\n\\n'):'Ich habe die vorherige Suche zu '+rememberedPlayer+' wieder aufgenommen. Die gefundenen Quellen enthalten derzeit aber noch kein ausreichend verlässliches, zusammengefasstes Spielerprofil. Du kannst die angezeigten Quellen öffnen; ich werde fehlende Angaben nicht erfinden.';
+      const reply=sections.length?sections.join('\n\n'):'Ich habe die vorherige Suche zu '+rememberedPlayer+' wieder aufgenommen. Die gefundenen Quellen enthalten derzeit aber noch kein ausreichend verlässliches, zusammengefasstes Spielerprofil. Du kannst die angezeigten Quellen öffnen; ich werde fehlende Angaben nicht erfinden.';
       return res.json({reply,intent:'player_research_followup',items:sourceItems,player:external.player,profile:external.profile,sources:external.sources||[],provider:external.provider||null,researched_at:external.researched_at||null});
     }
     if(help)return res.json({reply:'Ich bin MESSINHO, die zentrale KI von myScoutingDatabase. Ich steuere vorhandene Recherche- und Analysefunktionen und frage fehlende Suchkriterien nach. Weitere Plattformmodule werden schrittweise angebunden.',intent:'help',items:[]});
