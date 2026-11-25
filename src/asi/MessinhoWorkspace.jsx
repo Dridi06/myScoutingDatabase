@@ -190,7 +190,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   }
   async function refreshDevelopmentAudit(){
     setDevelopmentBusy(true);setDevelopmentError('');
-    try{setDevelopmentData(prev=>({...prev,audit:await learningRequest('/api/messinho/development/audit')}));}
+    try{const audit=await learningRequest('/api/messinho/development/audit');setDevelopmentData(prev=>({...prev,audit}));}
     catch(e){setDevelopmentError(e.message||'Prognosekontrolle konnte nicht geladen werden.');}
     finally{setDevelopmentBusy(false);}
   }
