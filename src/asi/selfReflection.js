@@ -27,7 +27,9 @@ export function reflectOnAssessment(assessment = {}) {
   const entries = Object.entries(ratings);
   const valid = entries.filter(([, value]) => isFiniteNumber(value) && value >= 1 && value <= 5);
   const invalid = entries.filter(([, value]) => !isFiniteNumber(value) || value < 1 || value > 5);
-  const coverage = entries.length ? valid.length / entries.length : 0;
+  const expectedCriteria = Array.isArray(assessment.expectedCriteria) ? assessment.expectedCriteria : entries.map(([key]) => key);
+  const missingCriteria = expectedCriteria.filter(key => !Object.prototype.hasOwnProperty.call(ratings, key) || ratings[key] === null || ratings[key] === undefined || ratings[key] === '');
+  const coverage = expectedCriteria.length ? valid.length / expectedCriteria.length : 0;
 
   if (!entries.length) findings.push({
     code: 'NO_RATINGS', severity: 'blocking', message: 'Keine Ratingdaten vorhanden; eine fachliche Bewertung ist nicht möglich.'
@@ -37,7 +39,12 @@ export function reflectOnAssessment(assessment = {}) {
     message: 'Mindestens ein Rating liegt außerhalb der dokumentierten Skala 1–5 oder ist nicht numerisch.',
     criteria: invalid.map(([criterion]) => criterion)
   });
-  if (entries.length && coverage < 0.6) findings.push({
+  if (missingCriteria.length) findings.push({
+    code: 'MISSING_RATING_CRITERIA', severity: coverage < 0.6 ? 'warning' : 'info',
+    message: 'Ein Teil der erwarteten Kriterien wurde nicht bewertet.',
+    criteria: missingCriteria
+  });
+  if (expectedCriteria.length && coverage < 0.6) findings.push({
     code: 'LOW_RATING_COVERAGE', severity: 'warning',
     message: 'Die Datenabdeckung ist zu gering für eine belastbare Gesamteinschätzung.',
     coverage: Number(coverage.toFixed(3))
@@ -86,6 +93,8 @@ export function reflectOnAssessment(assessment = {}) {
     confidenceCeiling: status === 'review_required' ? 0.25 : status === 'caution' ? 0.6 : clamp(coverage, 0, 1),
     coverage: Number(coverage.toFixed(3)),
     ratingCount: entries.length,
+    expectedRatingCount: expectedCriteria.length,
+    missingRatingCount: missingCriteria.length,
     validRatingCount: valid.length,
     findings
   };
