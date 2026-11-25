@@ -138,8 +138,10 @@ export function sanitizeMessinhoHistory(history) {
 
 export function resolveMessinhoPlayerFollowUp(message, history = []) {
   const text = String(message || '').toLocaleLowerCase('de-DE').normalize('NFKC');
-  const followUp = /\b(ihn|ihm|er|seine|seiner|seinen|seinem|seine karriere|diesen spieler|dieser spieler|darueber|darüber)\b/.test(text)
-    && /\b(was|wer|wie|welche|welcher|mehr|sag|erzaehl|erzähl|infos|informationen|profil|karriere|leistungen|statistiken)\b/.test(text);
+  const refersToPlayer = /\\b(ihn|ihm|er|seine|seiner|seinen|seinem|diesen spieler|dieser spieler|der spieler)\\b/.test(text);
+  const asksForDetails = /\\b(was|wer|wie|welche|welcher|mehr|sag|erzaehl|erzähl|infos|informationen|profil|karriere|leistungen|statistiken)\\b/.test(text);
+  const asksForComparison = /\\b(vergleiche|vergleich|gegenueberstellen|gegenüberstellen|unterschiede|vergleichbar)\\b/.test(text);
+  const followUp = (refersToPlayer && (asksForDetails || asksForComparison)) || (asksForComparison && /\\b(mit|gegen|vs)\\b/.test(text));
   if (!followUp || !Array.isArray(history)) return null;
   const priorUserMessages = history.filter(item => item?.role === 'user' && typeof item.text === 'string').slice(-6).reverse();
   for (const item of priorUserMessages) {
