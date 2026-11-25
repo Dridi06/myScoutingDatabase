@@ -50,7 +50,7 @@ export default function PlayerSearchWorkspace({supabase,profile,admin=false,onNo
    if(!Array.isArray(comparables))throw new Error('Vergleichsdaten müssen ein JSON-Array sein.');
    const {data:{session}}=await supabase.auth.getSession();
    if(!session?.access_token)throw new Error('Sitzung abgelaufen. Bitte neu anmelden.');
-   const response=await fetch('/api/asi/market-value/estimate',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({player:{age:Number(marketInputs.age),position:marketInputs.position,minutesLast12Months:Number(marketInputs.minutesLast12Months),performanceScore:Number(marketInputs.performanceScore),contractYears:marketInputs.contractYears===''?null:Number(marketInputs.contractYears)},comparables})});
+   const response=await fetch('/api/asi/market-value/estimate',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({player:{age:marketInputs.age===''?null:Number(marketInputs.age),position:marketInputs.position,minutesLast12Months:marketInputs.minutesLast12Months===''?null:Number(marketInputs.minutesLast12Months),performanceScore:marketInputs.performanceScore===''?null:Number(marketInputs.performanceScore),contractYears:marketInputs.contractYears===''?null:Number(marketInputs.contractYears)},comparables})});
    const payload=await response.json();
    if(!response.ok)throw new Error(payload.error||'Marktwertberechnung fehlgeschlagen.');
    setMarketValue(payload.valuation);
