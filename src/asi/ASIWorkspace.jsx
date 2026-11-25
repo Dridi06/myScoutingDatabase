@@ -9,7 +9,7 @@ const SECTIONS={
   Mentalität:['Einstellung','Führungsspieler','Kommunikation','Risikofreude','Positive Körpersprache','Teamplayer','Spieleinfluss','Disziplin/Konzentration']
 };
 const MODEL_VERSION='player_snapshot_baseline@0.1.0';
-const safeNumber=v=>v===null||v===undefined||String(v).trim()===''?null:(Number.isFinite(Number(v))?Number(v):null);
+const safeNumber=v=>{if(v===null||v===undefined||String(v).trim()==='')return null;const n=Number(v);return Number.isInteger(n)&&n>=1&&n<=5?n:null;};
 const containsPrivateContact=value=>/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})|(?:\+?\d[\d\s()./-]{7,}\d)/i.test(String(value||''));
 function buildSnapshot(player){
  const ratings=player.ratings&&typeof player.ratings==='object'?player.ratings:{};
