@@ -254,6 +254,23 @@ app.post('/api/admin/system-diagnostics/run',requireSupabaseAdmin,async(req,res)
     return res.status(201).json(run);
   }catch(error){console.error('Admin diagnostics failed:',error.message);return res.status(500).json({error:'Systemdiagnose fehlgeschlagen.',detail:error.message});}
 });
+// Read-only status endpoint for signed-in workspace users. This reads the latest
+// saved report only; it never starts a diagnostic run.
+app.get('/api/system-status',async(req,res)=>{
+  const match=(req.headers.authorization||'').match(/^Bearer\\s+(\\S+)$/i);
+  if(!match)return res.status(401).json({error:'Anmeldung erforderlich.'});
+  try{
+    const {data:authData,error:authError}=await db.auth.getUser(match[1]);
+    if(authError||!authData?.user)return res.status(401).json({error:'Sitzung ungültig oder abgelaufen.'});
+    const {data:profile,error:profileError}=await db.from('profiles').select('role,approved,approval_status').eq('id',authData.user.id).maybeSingle();
+    if(profileError||!profile)return res.status(403).json({error:'Benutzerprofil konnte nicht geprüft werden.'});
+    const {data,error}=await db.from('system_diagnostic_runs').select('status,finished_at,summary,checks').order('created_at',{ascending:false}).limit(1).maybeSingle();
+    if(error)return res.status(503).json({status:'unavailable',message:'Systemstatus derzeit nicht abrufbar.'});
+    if(!data)return res.set('Cache-Control','no-store').json({status:'unknown',finished_at:null,issue_count:0,issues:[]});
+    const issues=(Array.isArray(data.checks)?data.checks:[]).filter(check=>!check.ok&&check.severity!=='info').slice(0,8).map(check=>({name:String(check.name||'Systemprüfung'),category:String(check.category||'System'),severity:check.severity==='warning'?'warning':'critical'}));
+    return res.set('Cache-Control','no-store').json({status:data.status||'unknown',finished_at:data.finished_at||null,issue_count:Number(data.summary?.failed)||issues.length,critical_failed:Number(data.summary?.critical_failed)||0,warnings:Number(data.summary?.warnings)||0,issues});
+  }catch(error){console.error('System status read failed:',error.message);return res.status(503).json({status:'unavailable',message:'Systemstatus derzeit nicht abrufbar.'});}
+});
 
 app.get('/api/health',async(_req,res)=>{
   const tavilyReady=Boolean(process.env.TAVILY_API_KEY);
