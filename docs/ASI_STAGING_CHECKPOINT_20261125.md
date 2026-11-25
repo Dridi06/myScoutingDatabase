@@ -115,3 +115,11 @@
 - Bei Fehlern der ASI-Historisierung bleibt die bereits erfolgreiche Spielerspeicherung bestehen; die Meldung weist ausdrücklich auf die fehlende automatische Beobachtung hin.
 - Keine Migration und keine Veränderung vorhandener Datensätze. Ausschließlich Staging; Produktion unangetastet.
 - Deployment und Prüfung mit Admin-/Scout-Sitzungen stehen aus.
+
+
+## Bereinigung der Entwicklungsvergleichslogik – 2026-11-25
+- Commit `784ac17c861b2b4d1e249078dfa44fbcc8c29310`: Der Vergleich filtert identische Bewertungs-Snapshots desselben Spielers am selben Beobachtungstag vor der Ermittlung der letzten zwei Entwicklungsstände.
+- Commit `9f3c9969d3610326221f3de34eb392243591fac2`: Wenn nach Ausschluss von Duplikaten weniger als zwei unterschiedliche Stände verbleiben, zeigt ASI einen erklärenden Hinweis statt eines irreführenden Null-Vergleichs. Die Anzahl ausgeschlossener Duplikate wird angezeigt, sobald ein Vergleich möglich ist.
+- Die Originaleinträge bleiben vollständig in der Beobachtungszeitleiste und Datenbank erhalten. Es werden keine historischen Daten gelöscht oder verändert.
+- Zweck: wiederholte Klicks auf „Beobachtung speichern“ dürfen keine künstliche Entwicklung oder scheinbar unveränderte Messreihe erzeugen.
+- Render-Deployment und iPhone-Browserprüfung stehen noch aus.
