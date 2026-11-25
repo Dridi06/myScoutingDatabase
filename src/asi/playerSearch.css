@@ -102,3 +102,55 @@
 .messinho-workspace .messinho-metrics span,.messinho-workspace .messinho-fit-result{background:rgba(52,121,255,.12);color:#eaf0f8}
 .player-search-workspace a,.player-search-workspace .ps-link{color:#9dbdff}
 .player-search-workspace .ps-error,.player-search-workspace .ps-warning{background:rgba(255,255,255,.055);border-color:rgba(163,185,211,.18);color:#ffb4bb}
+
+
+/* Final dashboard alignment: remove legacy red/gold accents from player search. */
+.player-search-workspace .ps-hero{
+  background:radial-gradient(ellipse at 88% 8%,rgba(44,103,159,.2),transparent 42%),linear-gradient(125deg,#172438 0%,#101a2a 58%,#111d2d 100%)!important;
+  border:1px solid rgba(161,183,211,.15)!important;
+}
+.player-search-workspace .ps-hero span,
+.player-search-workspace .ps-result-head>div>span,
+.player-search-workspace .ps-section-heading span,
+.player-search-workspace .ps-discovery-kicker,
+.player-search-workspace .ps-discovery-facts small,
+.player-search-workspace .ps-market-result h4{
+  color:#9dbdff!important;
+}
+.player-search-workspace .ps-query button,
+.player-search-workspace .ps-actions button,
+.player-search-workspace .ps-discovery-controls button{
+  background:linear-gradient(135deg,#f2f6fb,#b9c8da 30%,#7188a7 65%,#dce8f5)!important;
+  border:1px solid rgba(224,239,255,.55)!important;
+  color:#101c2d!important;
+  box-shadow:0 7px 20px rgba(43,112,181,.16)!important;
+}
+.player-search-workspace .ps-discovery-panel,
+.player-search-workspace .ps-market-research{
+  background:radial-gradient(ellipse at 88% 8%,rgba(44,103,159,.13),transparent 45%),linear-gradient(145deg,rgba(23,36,55,.94),rgba(14,24,38,.97))!important;
+  border-color:rgba(163,185,211,.15)!important;
+}
+.player-search-workspace .ps-discovery-player-head>span,
+.player-search-workspace .ps-discovery-player-head>b{
+  color:#9dbdff!important;
+}
+.player-search-workspace .ps-discovery-player-head>b.is-saved{color:#7be0ad!important}
+.player-search-workspace .ps-discovery-player-head>b.is-duplicate{color:#a5b4c7!important}
+.player-search-workspace .ps-error,
+.player-search-workspace .ps-warning{
+  background:rgba(47,100,160,.12)!important;
+  border:1px solid rgba(100,153,214,.22)!important;
+  color:#dce8f6!important;
+}
+.player-search-workspace .ps-verdict.reject{
+  background:rgba(148,163,184,.12)!important;
+  color:#cbd5e1!important;
+}
+.player-search-workspace .ps-market-result a,
+.player-search-workspace .ps-source-list a:hover{
+  color:#9dbdff!important;
+}
+.player-search-workspace .ps-mark{
+  background:linear-gradient(145deg,#f2f6fb,#9eafc5 55%,#6e839f)!important;
+  color:#101c2d!important;
+}
