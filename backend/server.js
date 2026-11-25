@@ -257,7 +257,7 @@ app.post('/api/admin/system-diagnostics/run',requireSupabaseAdmin,async(req,res)
 // Read-only status endpoint for signed-in workspace users. This reads the latest
 // saved report only; it never starts a diagnostic run.
 app.get('/api/system-status',async(req,res)=>{
-  const match=(req.headers.authorization||'').match(/^Bearer\\s+(\\S+)$/i);
+  const match=(req.headers.authorization||'').match(/^Bearer\s+(\S+)$/i);
   if(!match)return res.status(401).json({error:'Anmeldung erforderlich.'});
   try{
     const {data:authData,error:authError}=await db.auth.getUser(match[1]);
