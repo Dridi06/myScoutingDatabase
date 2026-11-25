@@ -763,7 +763,7 @@ app.post('/api/messinho/learning/evaluate',messinhoLearningLimiter,async(req,res
       const prediction=predictionMap.get(outcome.prediction_id);
       const explanation=prediction?.explanation||{};
       const positionGroup=explanation.assessment?.position_group;
-      if(!prediction||prediction.target_metric!=='performance_score_12m'||Number(prediction.prediction_horizon_days)!==365||!positionGroup||!Object.keys(explanation.dimension_scores||{}).length)return null;
+      if(!prediction||!outcome.verified_by||prediction.target_metric!=='performance_score_12m'||Number(prediction.prediction_horizon_days)!==365||!positionGroup||!Object.keys(explanation.dimension_scores||{}).length)return null;
       return {record_id:'prediction:'+outcome.id,player_id:String(outcome.player_id),position_group:positionGroup,target_score:Number(outcome.observed_value),dimension_scores:explanation.dimension_scores,outcome_observed_on:outcome.observed_on,created_at:outcome.created_at};
     }).filter(Boolean);
     const trainingRows=[...calibrationRows,...predictionTrainingRows];
@@ -772,7 +772,7 @@ app.post('/api/messinho/learning/evaluate',messinhoLearningLimiter,async(req,res
     const fingerprint=createHash('sha256').update(JSON.stringify(fingerprintPayload)).digest('hex');
     const latestObserved=trainingRows.map(row=>row.outcome_observed_on).filter(Boolean).sort().at(-1);
     const cutoff=latestObserved?new Date(latestObserved+'T23:59:59.999Z').toISOString():startedAt;
-    const trainingConfig={learning_version:proposal.learning_version,engine_version:'1.1.0',source_table:'asi_scout_calibration_records',source_filter:'verification_status=verified AND outcome_metric=MESSINHO_CALIBRATION_METRIC',outcome_metric:MESSINHO_CALIBRATION_METRIC,minimum_examples_per_position:30,minimum_unique_players:10};
+    const trainingConfig={learning_version:proposal.learning_version,engine_version:'1.1.0',source_tables:['asi_scout_calibration_records','asi_prediction_records+asi_prediction_outcomes'],source_filter:'admin_verified_only; calibration metric=12m performance level; prediction metric=performance_score_12m; horizon=365d',outcome_metric:MESSINHO_CALIBRATION_METRIC,minimum_examples_per_position:30,minimum_unique_players:10};
     if(proposal.status!=='proposal_ready'){
       const {error:runError}=await db.from('asi_training_runs').insert({model_key:'messinho_position_weights',status:'insufficient_data',data_cutoff_at:cutoff,dataset_fingerprint:fingerprint,training_config:trainingConfig,evaluation_summary:{status:proposal.status,report:proposal.report,records:trainingRows.length,calibration_records:calibrationRows.length,prediction_outcomes:predictionTrainingRows.length,model_candidate_created:false},started_at:startedAt,finished_at:new Date().toISOString(),created_by:actor.user.id});
       if(runError)return res.status(500).json({error:'Der Lernversuch konnte nicht revisionssicher protokolliert werden.'});
@@ -782,7 +782,7 @@ app.post('/api/messinho/learning/evaluate',messinhoLearningLimiter,async(req,res
     const {data:model,error:modelError}=await db.from('asi_model_versions').insert({
       model_key:'messinho_position_weights',version,model_family:'deterministic_rules',status:'candidate',
       training_data_cutoff:cutoff,metrics:{trained:true,baseline_type:'supervised_calibration',engine_version:'1.1.0',records:trainingRows.length,calibration_records:calibrationRows.length,prediction_outcomes:predictionTrainingRows.length,trained_groups:proposal.trained_groups,report:proposal.report},
-      configuration:{profiles:proposal.profiles,learning_version:proposal.learning_version,engine_version:'1.1.0',source:'verified_asi_scout_calibration'}
+      configuration:{profiles:proposal.profiles,learning_version:proposal.learning_version,engine_version:'1.1.0',source:'verified_asi_calibrations_and_prediction_outcomes'}
     }).select('id,version,status,metrics,created_at').single();
     if(modelError)return res.status(500).json({error:'MESSINHO-Modellkandidat konnte nicht gespeichert werden.'});
     const dates=trainingRows.map(row=>row.outcome_observed_on).filter(Boolean).sort();
