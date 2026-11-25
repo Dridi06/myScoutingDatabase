@@ -94,8 +94,8 @@ export function messinhoMetricSupported(metric, value, sourceUrls = [], sources 
   const metricKey = normalize(metric);
   const aliases = METRIC_ALIASES[metric] || METRIC_ALIASES[metricKey] || [String(metric || '')];
   const metricNames = aliases.map(alias => normalize(alias)).filter(alias => alias.length >= 3);
-  const numericVariants = [String(raw).replace(',', '.')];
-  if (number > 0 && number < 1) numericVariants.push(String(Number((number * 100).toFixed(2))));
+  const numericVariants = [normalize(raw)];
+  if (number > 0 && number < 1) numericVariants.push(normalize(Number((number * 100).toFixed(2))));
   const allowed = new Set(Array.isArray(sourceUrls) ? sourceUrls : []);
   const claims = new Map();
   for (const item of Array.isArray(evidence) ? evidence : []) {
