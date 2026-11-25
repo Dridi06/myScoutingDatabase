@@ -23,3 +23,9 @@ test('feedback rejects out-of-range and nonnumeric dimensions',()=>{
  assert.ok(validateMessinhoFeedback({player_id:'p',target_score:101,dimension_scores:{technical:10,tactical:20}}).error);
  assert.ok(validateMessinhoFeedback({player_id:'p',target_score:70,dimension_scores:{technical:'bad',tactical:20}}).error);
 });
+
+test('keeps a low integer score as one point rather than interpreting it as a fraction',()=>{
+ const result=validateMessinhoFeedback({player_id:'p1',target_score:1,dimension_scores:{technical:1,tactical:2}});
+ assert.equal(result.value.target_score,1);
+ assert.equal(result.value.dimension_scores.technical,1);
+});
