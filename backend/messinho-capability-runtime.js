@@ -8,6 +8,7 @@ import { getMessinhoCapabilityCatalog } from './messinho-capabilities.js';
 import { scoreMessinhoPlayer, getMessinhoPositionGroup } from './messinho-engine.js';
 import { assessMessinhoSource, messinhoValueSupported } from './messinho-intelligence.js';
 import { buildMessinhoLearningProposal } from './messinho-learning.js';
+import { analyzeMessinhoMatch } from './messinho-development.js';
 
 export const MESSINHO_CAPABILITY_RUNTIME_VERSION = '1.0.0';
 const clamp=(n,min=0,max=100)=>Math.max(min,Math.min(max,n));
@@ -103,6 +104,12 @@ function analysisHandler(id,input){
    if(!positions.length||!entries.length)return missingResult(id,['positions','player_metrics']);
    return result(id,'completed',{positions:positions.map(position=>({position,position_group:getMessinhoPositionGroup([position]),score:scoreMessinhoPlayer({...p,positions:[position]}).score,coverage:scoreMessinhoPlayer({...p,positions:[position]}).evidence_coverage}))});
  }
+ if((id==='creativity_analysis'||id==='decision_quality_analysis')&&events.length){
+   const relevant=events.filter(event=>{const action=norm(event.action||event.type||'');return id==='creativity_analysis'?/chance|key pass|assist|dribble|creative/.test(action):/decision|choice|pass|shot|duel/.test(action);});
+   const eventAnalysis=analyzeMessinhoMatch(relevant);
+   if(eventAnalysis.status==='insufficient_data')return missingResult(id,['mindestens fünf passende strukturierte Ereignisse']);
+   return result(id,'completed',{...eventAnalysis,analysis_basis:'structured_match_events',interpretation:'Auswertung der gelieferten Ereignisse; keine Bewertung unbeobachteter Aktionen.'});
+ }
  if(id==='strength_weakness_analysis'||id==='technical_detail_analysis'||id==='play_style_detection'||id==='game_intelligence_analysis'||id==='creativity_analysis'||id==='decision_quality_analysis'){
    if(!entries.length)return missingResult(id,['player_metrics']);
    const ordered=entries.slice().sort((a,b)=>b.value-a.value);
@@ -134,8 +141,13 @@ function analysisHandler(id,input){
  }
  if(id==='tactical_behaviour_analysis'||id==='game_phase_analysis'||id==='duel_analysis'||id==='video_event_analysis'||id==='minutes_analysis'||id==='availability_history_analysis'||id==='running_performance_analysis'||id==='speed_analysis'||id==='anomaly_detection'){
    if(!events.length&&!history.length)return missingResult(id,[id==='video_event_analysis'?'licensed_video_events':id==='minutes_analysis'?'appearance_records':id==='availability_history_analysis'?'availability_records':'dated_metrics']);
-   const filtered=id==='video_event_analysis'?events.filter(e=>e.license_status==='licensed'||e.license_status==='owned'):events;
+   const filtered=id==='video_event_analysis'?events.filter(e=>e.license_status==='licensed'||e.license_status==='owned'):id==='duel_analysis'?events.filter(e=>/duel|zweikampf/i.test(String(e.action||e.type||''))):events;
    if(id==='video_event_analysis'&&!filtered.length)return missingResult(id,['licensed_video_events'],'Es werden ausschließlich lizenzierte oder eigene vorverarbeitete Ereignisdaten akzeptiert.');
+   if(['tactical_behaviour_analysis','game_phase_analysis','duel_analysis','video_event_analysis'].includes(id)){
+     const eventAnalysis=analyzeMessinhoMatch(filtered);
+     if(eventAnalysis.status==='insufficient_data')return missingResult(id,[id==='video_event_analysis'?'mindestens fünf lizenzierte Ereignisse':'mindestens fünf strukturierte Ereignisse']);
+     return result(id,'completed',{...eventAnalysis,analysis_basis:id==='video_event_analysis'?'licensed_video_events':'structured_match_events',interpretation:'Nur gelieferte Ereignisdaten werden ausgewertet; nicht erfasste Spielszenen bleiben unbekannt.'});
+   }
    const key=input.metric_key||'value';
    const vals=filtered.map(e=>finite(e[key])).filter(v=>v!==null);
    const groups=filtered.reduce((acc,e)=>{const k=e.phase||e.event_type||e.type||'other';acc[k]=(acc[k]||0)+1;return acc;},{});
