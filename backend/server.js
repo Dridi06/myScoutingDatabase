@@ -430,7 +430,15 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
         const sources=discoverySources.filter(s=>urls.includes(s.url)).map(({content,...s})=>s);
         const normalized=name.normalize('NFKC').toLocaleLowerCase('de');
         if(!name||!birthYear||birthYear<birthYearFrom||birthYear>birthYearTo||!evidence.length||seen.has(normalized))return null;
-        if(position){const requested=position.toLocaleLowerCase('de');const aliases=requested.includes('link')||requested.includes('left')?['linker verteidiger','linksverteidiger','left back','left-back','leftback','lb','lv']:requested.includes('recht')||requested.includes('right')?['rechter verteidiger','rechtsverteidiger','right back','right-back','rightback','rb','rv']:requested.includes('innen')||requested.includes('center')?['innenverteidiger','center back','centre back','cb']:requested.includes('torwart')||requested.includes('keeper')?['torwart','goalkeeper','keeper','gk']: [requested];const playerPositions=JSON.stringify(player.positions||[]).toLocaleLowerCase('de');if(!aliases.some(alias=>new RegExp('(^|[^a-z])'+alias.replace(/[.*+?^${}()|[\]\\]/g,'\\if(position&&!JSON.stringify(player.positions||[]).toLocaleLowerCase('de').includes(position.toLocaleLowerCase('de')))return null;')+'([^a-z]|$)','i').test(playerPositions)))return null;}
+        if(position){
+          const requested=position.toLocaleLowerCase('de');
+          const aliases=requested.includes('link')||requested.includes('left')?['linker verteidiger','linksverteidiger','left back','left-back','leftback','lb','lv']:
+            requested.includes('recht')||requested.includes('right')?['rechter verteidiger','rechtsverteidiger','right back','right-back','rightback','rb','rv']:
+            requested.includes('innen')||requested.includes('center')?['innenverteidiger','center back','centre back','cb']:
+            requested.includes('torwart')||requested.includes('keeper')?['torwart','goalkeeper','keeper','gk']:[requested];
+          const playerPositions=JSON.stringify(player.positions||[]).toLocaleLowerCase('de');
+          if(!aliases.some(alias=>playerPositions.includes(alias)))return null;
+        }
         seen.add(normalized);
         const level=['priority','watchlist','review','reject'].includes(player.recommendation?.level)?player.recommendation.level:'review';
         const identityConfidence=player.identity_confidence!==null&&player.identity_confidence!==undefined&&Number.isFinite(Number(player.identity_confidence))?Math.max(0,Math.min(1,Number(player.identity_confidence))):null;
