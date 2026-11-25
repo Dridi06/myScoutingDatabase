@@ -2,7 +2,7 @@ const MODEL_VERSION = 'asi_market_value_baseline@0.1.0';
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const roundMoney = value => Math.round(value / 100_000) * 100_000;
-const median = values => {
+const numeric = value => value === null || value === undefined || value === '' ? NaN : Number(value);\nconst weightedMedian = values => {
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
@@ -14,9 +14,9 @@ const validUrl = value => {
 export function estimateMarketValue(input = {}) {
   const player = input.player || {};
   const comparables = Array.isArray(input.comparables) ? input.comparables : [];
-  const age = Number(player.age);
-  const minutes = Number(player.minutesLast12Months);
-  const performance = Number(player.performanceScore);
+  const age = numeric(player.age);
+  const minutes = numeric(player.minutesLast12Months);
+  const performance = numeric(player.performanceScore);
   const contractYears = player.contractYears === null || player.contractYears === undefined || player.contractYears === '' ? NaN : Number(player.contractYears);
   const position = String(player.position || '').trim();
   const validComparables = comparables.filter(item =>
@@ -46,7 +46,7 @@ export function estimateMarketValue(input = {}) {
     value: Number(item.feeEur),
     weight: Number(item.similarity) * clamp(Number(item.sourceConfidence ?? 0.8), 0.4, 1)
   }));
-  const base = median(weighted.map(item => item.value));
+  const base = weightedMedian(weighted);
   const factors = [];
   const add = (name, multiplier, explanation) => factors.push({
     name, multiplier: Number(multiplier.toFixed(3)),
