@@ -585,7 +585,9 @@ app.post('/api/messinho/learning/evaluate',async(req,res)=>{
     if(actor.profile.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen Lernmodelle evaluieren.'});
     const {data:rows,error}=await db.from('messinho_scout_feedback').select('player_id,position_group,target_score,dimension_scores,created_at').order('created_at',{ascending:true}).limit(5000);
     if(error)return res.status(500).json({error:'Feedback-Daten konnten nicht geladen werden. Staging-Migration prüfen.'});
-    const proposal=buildMessinhoLearningProposal(rows||[],MESSINHO_DEFAULT_WEIGHTS);
+    const activeBaseline=await getActiveMessinhoModel();
+    const baselineProfiles={...MESSINHO_DEFAULT_WEIGHTS,...(activeBaseline?.profiles||{})};
+    const proposal=buildMessinhoLearningProposal(rows||[],baselineProfiles);
     if(proposal.status!=='proposal_ready')return res.json({proposal,stored:false,message:'Noch kein Modell erfüllt die Mindestdaten- und Qualitätskriterien.'});
     const {data:model,error:saveError}=await db.from('messinho_model_versions').insert({
       version:'messinho-learn-'+Date.now(),status:'proposed',profiles:proposal.profiles,
