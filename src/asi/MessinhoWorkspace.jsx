@@ -22,6 +22,10 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   const [learningData,setLearningData]=useState(null);
   const [learningBusy,setLearningBusy]=useState(false);
   const [learningError,setLearningError]=useState('');
+  const [fitFormation,setFitFormation]=useState('4-3-3');
+  const [fitRole,setFitRole]=useState('Flügelspieler');
+  const [fitAttributes,setFitAttributes]=useState([{name:'Antritt',target:'80'},{name:'Dribbling',target:'80'},{name:'Passspiel',target:'70'}]);
+  const [fitResult,setFitResult]=useState(null);
   const endRef=useRef(null);
   const recognitionRef=useRef(null);
   useEffect(()=>{
@@ -98,6 +102,18 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     }catch(e){setLearningError(e.message||'Kalibrierung konnte nicht gespeichert werden.');}
     finally{setLearningBusy(false);}
   }
+  function setFitAttribute(index,key,value){setFitAttributes(prev=>prev.map((item,i)=>i===index?{...item,[key]:value}:item));}
+  async function evaluateTacticalFit(){
+    if(!selectedLearningPlayer){setLearningError('Bitte zuerst einen Spieler auswählen.');return;}
+    const requirements=Object.fromEntries(fitAttributes.filter(item=>item.name.trim()&&item.target!==''&&Number.isFinite(Number(item.target))).map(item=>[item.name.trim(),Number(item.target)]));
+    if(Object.keys(requirements).length<3){setLearningError('Bitte mindestens drei Attribute mit Zielwerten eintragen.');return;}
+    setLearningBusy(true);setLearningError('');setFitResult(null);
+    try{
+      const payload=await learningRequest('/api/messinho/tactical-fit','POST',{player_id:Number(selectedLearningPlayer),team_profile:{formation:fitFormation,role:fitRole,requirements}});
+      setFitResult(payload.tactical_fit);
+    }catch(e){setLearningError(e.message||'Taktischer Abgleich fehlgeschlagen.');}
+    finally{setLearningBusy(false);}
+  }
   async function evaluateLearning(){
     setLearningBusy(true);setLearningError('');
     try{const payload=await learningRequest('/api/messinho/learning/evaluate','POST');await loadLearningStatus();setMessages(prev=>[...prev,{id:'learn-'+Date.now(),role:'assistant',text:payload.message||'Die Lern-Evaluation wurde abgeschlossen.'}]);}
@@ -150,6 +166,16 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
         <label>Spieler auswählen<select value={selectedLearningPlayer} onChange={e=>setSelectedLearningPlayer(e.target.value)}><option value="">Spieler aus deiner Datenbank wählen</option>{learningPlayers.map(player=><option key={player.player_id} value={player.player_id}>{player.name} · {player.positions.join(', ')} · MESSINHO {player.messinho_rating}/100</option>)}</select></label>
         <small className="messinho-metric-label">Einheitliche Messgröße: Leistungsniveau nach 12 Monaten (0–100)</small>
         <button type="button" disabled={learningBusy||!selectedLearningPlayer} onClick={saveCalibration}>{learningBusy?'Speichert …':'Kalibrierung erfassen'}</button>
+      </div>
+      <div className="messinho-tactical-fit">
+        <div><strong>Taktischer Vereinsabgleich</strong><small>Vergleicht echte Spielerwerte mit deinem Anforderungsprofil. Fehlende Werte werden nicht geschätzt.</small></div>
+        <div className="messinho-fit-context">
+          <label>Spielsystem<select value={fitFormation} onChange={e=>setFitFormation(e.target.value)}><option>4-3-3</option><option>4-2-3-1</option><option>3-5-2</option><option>4-4-2</option><option>3-4-3</option></select></label>
+          <label>Rolle<input value={fitRole} onChange={e=>setFitRole(e.target.value)} maxLength={60}/></label>
+        </div>
+        <div className="messinho-fit-attributes">{fitAttributes.map((item,index)=><div key={index}><label>Attribut<input value={item.name} onChange={e=>setFitAttribute(index,'name',e.target.value)} maxLength={50}/></label><label>Zielwert 0–100<input type="number" min="0" max="100" value={item.target} onChange={e=>setFitAttribute(index,'target',e.target.value)}/></label></div>)}</div>
+        <button type="button" disabled={learningBusy||!selectedLearningPlayer} onClick={evaluateTacticalFit}>{learningBusy?'Prüft …':'Taktische Passung prüfen'}</button>
+        {fitResult&&<div className="messinho-fit-result"><strong>{fitResult.score===null?'Keine belastbare Bewertung':'Taktischer Fit: '+fitResult.score+'/100'}</strong><small>{fitResult.explanation}</small><small>Datenabdeckung: {fitResult.coverage??0}% · {fitResult.matched_attributes??0}/{fitResult.required_attributes??fitAttributes.length} Attribute · {fitResult.status}</small></div>}
       </div>
       {learningError&&<p role="alert">{learningError}</p>}
       {profile?.role==='admin'&&<div className="messinho-admin-learning">
