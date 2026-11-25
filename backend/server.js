@@ -381,14 +381,23 @@ async function executeMessinhoDiagnostics(actorProfileId){
     return {ok,detail:`Verifizierte Paare: ${audit.verified_pairs}; MAE ${metrics.mae}, RMSE ${metrics.rmse}, Bias ${metrics.bias}, innerhalb ±10 Punkte: ${metrics.within_10_points} %.`};
   },'warning');
   await safe('Aktive Modellversionen und Freigaben','Modell-Governance',async()=>{
-    const {data,error}=await db.from('asi_model_versions').select('id,model_key,version,status,approved_by,approved_at').eq('status','active').limit(500);
+    // Only MESSINHO's scoring-weight model belongs to this governance check.
+    // Descriptive snapshot baselines are separate records, not learning models.
+    const {data,error}=await db.from('asi_model_versions')
+      .select('id,model_key,version,model_family,status,approved_by,approved_at,metrics,configuration')
+      .eq('model_key','messinho_position_weights')
+      .eq('status','active')
+      .limit(500);
     if(error)return {ok:false,detail:error.message};
     const active=data||[],counts=new Map();
     for(const row of active)counts.set(row.model_key,(counts.get(row.model_key)||0)+1);
     const duplicates=[...counts].filter(([,count])=>count>1).map(([key,count])=>key+': '+count);
-    const unapproved=active.filter(row=>!row.approved_by||!row.approved_at);
-    const ok=!duplicates.length&&!unapproved.length;
-    return {ok,detail:`Aktive Versionen: ${active.length}; doppelte aktive Modellschlüssel: ${duplicates.length}; aktive Versionen ohne vollständige Freigabe: ${unapproved.length}.${duplicates.length?' Doppelte Schlüssel: '+duplicates.join(', '):''}`,recommendation:'Aktive Versionen, eindeutige Modellschlüssel und dokumentierte Admin-Freigaben kontrollieren. Keine automatische Änderung an Modellstatus oder Gewichten.'};
+    const isCodeBaseline=row=>row.model_family==='deterministic_rules'&&row.metrics?.baseline_type==='code_default'&&row.metrics?.trained===false&&row.configuration?.engine_version==='1.1.0';
+    const unapproved=active.filter(row=>!isCodeBaseline(row)&&(!row.approved_by||!row.approved_at));
+    const ok=active.length===1&&!duplicates.length&&!unapproved.length;
+    const baselineCount=active.filter(isCodeBaseline).length;
+    const detail='Aktive MESSINHO-Gewichtsversionen: '+active.length+'; doppelte aktive Modellschlüssel: '+duplicates.length+'; gelernte/sonstige aktive Versionen ohne vollständige Freigabe: '+unapproved.length+'; dokumentierte deterministische Code-Baselines: '+baselineCount+'.'+(duplicates.length?' Doppelte Schlüssel: '+duplicates.join(', '):'')+(active.length!==1?' Erwartet wird genau eine aktive MESSINHO-Gewichtsversion.':'');
+    return {ok,detail,recommendation:'Nur die aktive MESSINHO-Gewichtsversion bewerten. Die dokumentierte deterministische Code-Baseline ist keine trainierte Modellversion; jede gelernte Version benötigt weiterhin eine vollständige Admin-Freigabe. Keine automatische Änderung an Modellstatus oder Gewichten.'};
   });
   await safe('Kalibrierungsdaten und Wertebereiche','Datenqualität',async()=>{
     const {data,error}=await db.from('asi_scout_calibration_records').select('verified_outcome,messinho_dimension_scores,verification_status').eq('verification_status','verified').not('verified_outcome','is',null).limit(1500);
