@@ -133,7 +133,7 @@ export function validateMessinhoCandidateEvidence(candidate = {}, evidence = [],
     const source = sourceMap.get(item?.source_url);
     if (!source) continue;
     const fragments = [source.title, source.content, item.claim].filter(Boolean)
-      .flatMap(value => String(value).split(/[\\n.!?;]+/))
+      .flatMap(value => String(value).split(/[.!?;]+/).flatMap(fragment => fragment.split(String.fromCharCode(10))))
       .map(value => normalize(value).replace(/\s+/g, ' ').trim()).filter(Boolean);
     const sameFragmentSupportsIdentity = fragments.some(text => {
       const nameMentioned = tokens.length > 1
