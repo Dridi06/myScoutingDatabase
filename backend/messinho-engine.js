@@ -120,14 +120,14 @@ export function sanitizeMessinhoHistory(history) {
 
 export function resolveMessinhoPlayerFollowUp(message, history = []) {
   const text = String(message || '').toLocaleLowerCase('de-DE').normalize('NFKC');
-  const followUp = /\\b(ihn|ihm|er|seine|seiner|seinen|seinem|seine karriere|diesen spieler|dieser spieler|darueber|darüber)\\b/.test(text)
-    && /\\b(was|wer|wie|welche|welcher|mehr|sag|erzaehl|erzähl|infos|informationen|profil|karriere|leistungen|statistiken)\\b/.test(text);
+  const followUp = /\b(ihn|ihm|er|seine|seiner|seinen|seinem|seine karriere|diesen spieler|dieser spieler|darueber|darüber)\b/.test(text)
+    && /\b(was|wer|wie|welche|welcher|mehr|sag|erzaehl|erzähl|infos|informationen|profil|karriere|leistungen|statistiken)\b/.test(text);
   if (!followUp || !Array.isArray(history)) return null;
   const priorUserMessages = history.filter(item => item?.role === 'user' && typeof item.text === 'string').slice(-6).reverse();
   for (const item of priorUserMessages) {
     const candidate = item.text.trim().replace(/[?.!]+$/,'');
-    const match = candidate.match(/^(?:suche|finde|such|zeige|zeig)(?:\\s+mir)?(?:\\s+(?:den\\s+)?spieler)?\\s+(.{2,100})$/i)
-      || candidate.match(/^([\\p{Lu}][\\p{L}'-]+(?:\\s+[\\p{Lu}][\\p{L}'-]+){1,3})$/u);
+    const match = candidate.match(/^(?:suche|finde|such|zeige|zeig)(?:\s+mir)?(?:\s+(?:den\s+)?spieler)?\s+(.{2,100})$/i)
+      || candidate.match(/^([\p{Lu}][\p{L}'-]+(?:\s+[\p{Lu}][\p{L}'-]+){1,3})$/u);
     if (match) {
       const name = (match[1] || match[0]).trim();
       if (!/^(hilfe|messinho|hallo|guten tag)$/i.test(name)) return name.slice(0,100);
