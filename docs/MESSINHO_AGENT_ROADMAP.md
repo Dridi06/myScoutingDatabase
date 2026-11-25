@@ -223,3 +223,48 @@ Dieser Stand bleibt Draft auf `feature/messinho-agent-workspace` und Render-Stag
 - MESSINHO-Scoring bleibt deterministisch und providerunabhängig; OpenAI ist kein Trainings- oder Bewertungszwang.
 - Grenzen: Die Runtime stellt 100 Handler bereit, aber Funktionen, deren externe Datengrundlage, Datenhistorie oder Lizenznachweise fehlen, liefern bewusst keinen positiven Befund. Echtes Modelltraining bleibt von ausreichenden administrativ verifizierten Outcomes abhängig.
 - Deployment: Änderungen bleiben auf `feature/messinho-agent-workspace`; Produktions-Deploy ist nicht freigegeben. Vor Staging-Deploy müssen die aktuellen CI-Läufe erfolgreich sein.
+
+
+## MESSINHO – Entwicklungszyklus 1 bis 5 (25.11.2026)
+
+### 1. Analyse
+- Neues providerunabhängiges Modul `backend/messinho-development.js`.
+- Spielerbewertungen werden als nachvollziehbarer Score-Trace mit Positionsgruppe, verwendeten Gewichten, Dimensionswerten, fehlenden Dimensionen, Datenabdeckung und Grenzen gespeichert.
+- Strukturierte Spielereignisse werden nach Spielphase und Aktion aggregiert; Erfolgsraten, xG-Summe und Zeitfenster werden nur aus übermittelten Ereignissen berechnet.
+- Der Analyse-Endpunkt speichert Snapshots in der bestehenden Tabelle `asi_player_analyses`.
+- Rohvideo wird nicht dekodiert. Videoereignisse im 100-Funktionen-Runtime benötigen serverseitig vertrauenswürdige Lizenzfreigabe; ein Client-Flag reicht nicht.
+
+### 2. Nachvollziehbare Bewertung
+- Neuer Endpunkt `POST /api/messinho/development/analyze`.
+- Die Ausgabe zeigt positionsbezogene Gewichte, Beiträge, Stärken, Entwicklungsfelder, fehlende Daten und Konfidenz auf Basis der Datenabdeckung.
+- Die Konfidenz ist ausdrücklich keine statistisch kalibrierte Erfolgswahrscheinlichkeit.
+
+### 3. Lernen aus späteren Ergebnissen
+- Neuer Prognose-Endpunkt `POST /api/messinho/development/predict`: speichert eine 12-Monats-Prognose mit Modellversion, Eingabezeitpunkt, Score und vorläufigem Abdeckungsintervall in `asi_prediction_records`.
+- Spätere Ergebnisse werden in `asi_prediction_outcomes` zunächst als `pending` erfasst und benötigen eine administrative Verifizierung mit HTTPS-Quelle.
+- `GET /api/messinho/development/audit` vergleicht ausschließlich verifizierte Ergebnisse und berechnet MAE, Bias, RMSE, Trefferbereiche und Kalibrierungsgruppen.
+
+### 4. Modelloptimierung
+- Die bestehende positionsbezogene Lern-Engine verwendet jetzt zusätzlich administrativ verifizierte 12-Monats-Prognoseergebnisse.
+- Vorhandene Schutzmechanismen bleiben bestehen: Mindestdatenmenge, mindestens zehn unterschiedliche Spieler je Positionsgruppe, Spieler-Holdout, MAE-Verbesserung und begrenzte Gewichtsänderung.
+- Kandidaten werden nur gespeichert und nach separater Admin-Prüfung aktiviert. Kein automatischer Modellwechsel.
+
+### 5. Hypothesen und überprüfbare Verbesserungsvorschläge
+- Neuer Admin-Endpunkt `POST /api/messinho/development/hypotheses`.
+- MESSINHO untersucht Zusammenhänge zwischen gespeicherten Dimensionswerten und späteren Prognosefehlern.
+- Mindestbasis: zwölf verifizierte Prognose-Ergebnis-Paare. Korrelationen werden als explorative Hypothesen mit Stichprobengröße, vorgeschlagenem Experiment und Holdout-Prüfung ausgegeben.
+- Keine Kausalitätsbehauptung, keine automatische Gewichtsanpassung und keine automatische Aktivierung.
+
+### Neue Endpunkte
+- `POST /api/messinho/development/analyze`
+- `POST /api/messinho/development/predict`
+- `POST /api/messinho/development/outcomes`
+- `POST /api/messinho/development/outcomes/:outcomeId/verify` (Admin)
+- `GET /api/messinho/development/audit`
+- `POST /api/messinho/development/hypotheses` (Admin)
+
+### Qualität und Rollout-Grenze
+- Neue Unit-Tests für Score-Trace, strukturierte Spielereignisse, verifizierte Prognosekontrolle und Hypothesengates.
+- Keine neue Datenbankmigration erforderlich: Die bereits vorhandenen ASI-Tabellen `asi_player_analyses`, `asi_prediction_records`, `asi_prediction_outcomes`, `asi_model_versions`, `asi_model_evaluations` und `asi_training_runs` werden wiederverwendet.
+- Ausschließlich Branch `feature/messinho-agent-workspace` und Supabase/Render-Staging. Produktion bleibt unverändert.
+- E2E-Tests benötigen weiterhin den Staging-Supabase-Server-Key. Ein echtes Modelltraining ist erst möglich, wenn genügend verifizierte Ergebnisse vorliegen.
