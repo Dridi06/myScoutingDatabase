@@ -956,7 +956,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved'))return res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});
     const message=typeof req.body?.message==='string'?req.body.message.trim().slice(0,1200):'';
     if(!message)return res.status(400).json({error:'Bitte gib eine Nachricht ein.'});
-    const history=sanitizeMessinhoHistory(req.body?.history);
+    const history=sanitizeMessinhoHistory(req.body?.history).map(item=>item.role==='user'?{...item,text:correctMessinhoInput(item.text).corrected}:item);
     const correction=correctMessinhoInput(message);
     const interpretedMessage=correction.corrected;
     const dialog=parseMessinhoScoutingRequest(interpretedMessage,history);
