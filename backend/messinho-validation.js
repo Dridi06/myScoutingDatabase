@@ -74,11 +74,11 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
   const safeHistory = Array.isArray(history) ? history.slice(-10) : [];
   const userContext = safeHistory.filter(item => item?.role === 'user')
     .map(item => typeof item.text === 'string' ? item.text : '').join(' ');
-  const assistantContext = safeHistory.filter(item => item?.role === 'assistant')
-    .map(item => typeof item.text === 'string' ? item.text : '').join(' ');
-  const context = (userContext + ' ' + String(message || '')).slice(-5000);
-  const normalized = normalize(context);
+  const lastAssistant = [...safeHistory].reverse().find(item => item?.role === 'assistant');
   const latest = normalize(message);
+  const startsNewRequest = /\\b(benötige|brauche|suche|finde|scoute|recherchiere)\\b/i.test(latest);
+  const pending = !startsNewRequest && /(?:welches spielerlevel|welche spielklasse|leistungsniveau|welches land|welcher standort|welche position|welcher jahrgang|geburtsjahrgang)/i.test(String(lastAssistant?.text || ''));
+  const context = (pending ? userContext + ' ' : '') + String(message || '');
   const yearMatches = [...context.matchAll(/\b(19\d{2}|20\d{2})\b/g)]
     .map(match => Number(match[1])).filter(year => year >= 1990 && year <= currentYear);
   const yearFrom = yearMatches.length ? Math.min(...yearMatches) : null;
