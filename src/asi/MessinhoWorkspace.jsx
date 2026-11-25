@@ -18,6 +18,9 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   const [error,setError]=useState('');
   const [feedbackDrafts,setFeedbackDrafts]=useState({});
   const [feedbackBusy,setFeedbackBusy]=useState('');
+  const [learningData,setLearningData]=useState(null);
+  const [learningBusy,setLearningBusy]=useState(false);
+  const [learningError,setLearningError]=useState('');
   const endRef=useRef(null);
   const recognitionRef=useRef(null);
   useEffect(()=>{
@@ -85,6 +88,33 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   }
   function setFeedbackValue(id,key,value){setFeedbackDrafts(prev=>({...prev,[id]:{...(prev[id]||{}),[key]:value}}));}
 
+
+  async function learningRequest(path,method='GET'){
+    const {data:{session}}=await supabase.auth.getSession();
+    if(!session?.access_token)throw new Error('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
+    const response=await fetch(path,{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token}});
+    const payload=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(payload.error||'Lernfunktion konnte nicht ausgeführt werden.');
+    return payload;
+  }
+  async function loadLearningStatus(){
+    try{const payload=await learningRequest('/api/messinho/learning/status');setLearningData(payload);setLearningError('');}
+    catch(e){setLearningError(e.message||'Lernstatus nicht verfügbar.');}
+  }
+  async function evaluateLearning(){
+    setLearningBusy(true);setLearningError('');
+    try{const payload=await learningRequest('/api/messinho/learning/evaluate','POST');await loadLearningStatus();setMessages(prev=>[...prev,{id:'learn-'+Date.now(),role:'assistant',text:payload.message||'Die Lern-Evaluation wurde abgeschlossen.'}]);}
+    catch(e){setLearningError(e.message||'Evaluation fehlgeschlagen.');}
+    finally{setLearningBusy(false);}
+  }
+  async function approveLearningModel(id){
+    setLearningBusy(true);setLearningError('');
+    try{const payload=await learningRequest('/api/messinho/learning/'+encodeURIComponent(id)+'/approve','POST');await loadLearningStatus();setMessages(prev=>[...prev,{id:'approve-'+Date.now(),role:'assistant',text:payload.message||'Modell wurde aktiviert.'}]);}
+    catch(e){setLearningError(e.message||'Modellfreigabe fehlgeschlagen.');}
+    finally{setLearningBusy(false);}
+  }
+
+  useEffect(()=>{if(profile?.role==='admin'||profile?.role==='scout')loadLearningStatus();},[profile?.role]);
   function renderItems(items){
     if(!items?.length)return null;
     return <div className="messinho-results">{items.map((item,index)=><article key={String(item.id||item.name||index)} className="messinho-result-row"><div className="messinho-result-icon"><Users size={16}/></div><div className="messinho-result-copy"><strong>{index+1}. {item.name||item.player_name||'Unbenannter Eintrag'}</strong><span>{[item.club||item.current_club||item.currentClub,item.year||item.birth_year||item.birthYear,item.positions?.join(', '),item.analysis?.fit_score!==null&&item.analysis?.fit_score!==undefined?'Fit '+item.analysis.fit_score+'/100':null,item.kind,item.analysis?.recommendation?.label||item.recommendation?.label||item.recommendation].filter(Boolean).join(' · ')}</span>{item.messinho_rating&&<small>{item.messinho_rating.score===null?'MESSINHO-Score: nicht ausreichend belegt':'MESSINHO-Score: '+item.messinho_rating.score+'/100'} · Datenabdeckung {item.messinho_rating.evidence_coverage}% · {item.messinho_rating.confidence}</small>}{item.analysis?.analysis&&<small>{item.analysis.analysis}</small>}{item.sources?.map(source=><a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.publisher||source.title||'Quelle öffnen'}</a>)}{item.id&&<details className="messinho-feedback"><summary>Scout-Bewertung abgeben</summary><div className="messinho-feedback-grid"><label>Gesamtbewertung (0–100)<input type="number" min="0" max="100" value={feedbackDrafts[String(item.id)]?.target_score??''} onChange={e=>setFeedbackValue(String(item.id),'target_score',e.target.value)}/></label>{[['technical','Technik'],['tactical','Taktik'],['athletic','Athletik'],['mental','Mental'],['goalkeeping','Torwart']].map(([key,label])=><label key={key}>{label}<input type="number" min="0" max="100" value={feedbackDrafts[String(item.id)]?.[key]??''} onChange={e=>setFeedbackValue(String(item.id),key,e.target.value)}/></label>)}</div><button type="button" disabled={feedbackBusy===String(item.id)} onClick={()=>submitFeedback(item)}>{feedbackBusy===String(item.id)?'Speichert …':'Bewertung speichern'}</button></details>}</div></article>)}</div>;
@@ -96,6 +126,13 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       <div><Clock3 size={18}/><span><strong>Rechercheplan</strong><small>Täglich um 20:00 Uhr · noch nicht aktiviert</small></span></div>
       <div><ShieldCheck size={18}/><span><strong>Arbeitsmodus</strong><small>Nur lesende Datenbankabfragen</small></span></div>
     </section>}
+
+    <section className="messinho-learning-panel">
+      <div><strong>Kontrolliertes Lernen</strong><small>{learningData?.feedback_count??'–'} gespeicherte Scout-Bewertungen · {learningData?.active_model?.version?'Aktives Modell '+learningData.active_model.version:'Basisprofil aktiv'}</small></div>
+      {profile?.role==='admin'&&<button type="button" disabled={learningBusy} onClick={evaluateLearning}>{learningBusy?'Prüft …':'Lernmodell evaluieren'}</button>}
+      {learningError&&<p role="alert">{learningError}</p>}
+      {profile?.role==='admin'&&learningData?.proposals?.map(model=><article key={model.id}><span><b>{model.version}</b><small>{Object.entries(model.evaluation||{}).map(([group,report])=>group+': '+(report.status||'')).join(' · ')}</small></span><button type="button" disabled={learningBusy} onClick={()=>approveLearningModel(model.id)}>Freigeben</button></article>)}
+    </section>
     <section className="messinho-chat-card">
       <div className="messinho-chat-heading"><div><span>SCOUTING CONVERSATION</span><h2>Sprich mit Messinho</h2></div><button type="button" className="messinho-voice-toggle" onClick={()=>{setVoiceOutput(v=>!v);if(voiceOutput&&'speechSynthesis'in window)window.speechSynthesis.cancel();}} title={voiceOutput?'Sprachausgabe ausschalten':'Sprachausgabe einschalten'}>{voiceOutput?<Volume2 size={17}/>:<VolumeX size={17}/>}<span>{voiceOutput?'Sprache an':'Sprache aus'}</span></button></div>
       <div className="messinho-messages" aria-live="polite">
@@ -112,6 +149,6 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       </form>
       <p className="messinho-footnote">Sprachfunktionen hängen vom Browser ab. Mikrofonzugriff wird nur nach deiner Aktivierung angefragt.</p>
     </section>
-    {!compact&&<aside className="messinho-roadmap"><strong>Ausbaustufen</strong><span><b>Jetzt:</b> Datenbankabfragen und Chatoberfläche</span><span><b>Als Nächstes:</b> eigene Rechercheplanung und rechtlich freigegebene Quellen</span><span><b>Danach:</b> tägliche Hintergrundaktualisierung und kontrollierte Modellverbesserung</span></aside>}
+    {!compact&&<aside className="messinho-roadmap"><strong>Ausbaustufen</strong><span><b>Jetzt:</b> Datenbankabfragen und Chatoberfläche</span><span><b>Als Nächstes:</b> eigene Rechercheplanung und rechtlich freigegebene Quellen</span><span><b>Aktiv:</b> Scout-Feedback, Modell-Evaluation und Admin-Freigabe vor Aktivierung</span></aside>}
   </div>;
 }
