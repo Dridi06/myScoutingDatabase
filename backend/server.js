@@ -13,6 +13,7 @@ import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalF
 import { scopeMessinhoOwner } from './messinho-access.js';
 import { getMessinhoCapabilityCatalog, getMessinhoCapabilitySummary } from './messinho-capabilities.js';
 import { executeMessinhoCapability, listExecutableMessinhoCapabilities, getMessinhoRuntimeSummary } from './messinho-capability-runtime.js';
+import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainableAssessment, generateMessinhoHypotheses } from './messinho-development.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -793,6 +794,139 @@ app.post('/api/messinho/learning/evaluate',messinhoLearningLimiter,async(req,res
     return res.status(201).json({proposal:{status:proposal.status,report:proposal.report,trained_groups:proposal.trained_groups},model,message:'Modellkandidat wurde in der bestehenden ASI-Modellverwaltung gespeichert. Eine Freigabe ist noch erforderlich.'});
   }catch(error){console.error('MESSINHO learning evaluation failed:',error.message);return res.status(500).json({error:'Lernmodell konnte nicht evaluiert werden.'});}
 });
+
+const messinhoDevelopmentLimiter=rateLimit({windowMs:60*60*1000,limit:30,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Entwicklungsanalysen. Bitte später erneut versuchen.'}});
+app.post('/api/messinho/development/analyze',messinhoDevelopmentLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    const playerId=Number(req.body?.player_id);
+    if(!Number.isSafeInteger(playerId)||playerId<=0)return res.status(400).json({error:'Bitte einen gültigen Spieler auswählen.'});
+    const query=scopeMessinhoOwner(db.from('players').select('player_id,owner_id,name,positions,ratings').eq('player_id',playerId),actor);
+    const {data:player,error}=await query.maybeSingle();
+    if(error||!player)return res.status(404).json({error:'Spieler nicht gefunden oder kein Zugriff.'});
+    const active=await getActiveMessinhoModel();
+    const assessment=buildMessinhoExplainableAssessment({name:player.name,positions:player.positions||[],ratings:player.ratings||{}},active?.configuration?.profiles||null);
+    const events=Array.isArray(req.body?.events)?req.body.events.slice(0,2000):[];
+    const match=events.length?analyzeMessinhoMatch(events):null;
+    const analysis={player:assessment,match,created_at:new Date().toISOString(),model_version:active?.version||'1.1.0-baseline'};
+    const {data:stored,error:storeError}=await db.from('asi_player_analyses').insert({
+      player_id:player.player_id,owner_id:player.owner_id,created_by:actor.user.id,
+      analysis_type:events.length?'match_and_player_snapshot':'player_snapshot',
+      model_version:analysis.model_version,analysis_json:analysis,
+      input_snapshot:{name:player.name,positions:player.positions||[],ratings:player.ratings||{}}
+    }).select('id,analysis_type,model_version,created_at').single();
+    if(storeError)return res.status(500).json({error:'Analyse konnte nicht revisionssicher gespeichert werden.'});
+    return res.status(201).json({ok:true,analysis_id:stored.id,analysis});
+  }catch(error){console.error('MESSINHO development analysis failed:',error.message);return res.status(500).json({error:'Spieleranalyse konnte nicht abgeschlossen werden.'});}
+});
+app.post('/api/messinho/development/predict',messinhoDevelopmentLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    const playerId=Number(req.body?.player_id);
+    if(!Number.isSafeInteger(playerId)||playerId<=0)return res.status(400).json({error:'Bitte einen gültigen Spieler auswählen.'});
+    const {data:player,error}=await scopeMessinhoOwner(db.from('players').select('player_id,owner_id,name,positions,ratings').eq('player_id',playerId),actor).maybeSingle();
+    if(error||!player)return res.status(404).json({error:'Spieler nicht gefunden oder kein Zugriff.'});
+    const active=await getActiveMessinhoModel();
+    const assessment=buildMessinhoExplainableAssessment({name:player.name,positions:player.positions||[],ratings:player.ratings||{}},active?.configuration?.profiles||null);
+    if(assessment.score===null)return res.status(422).json({error:'Für eine Prognose fehlen ausreichende Leistungsdaten.'});
+    const margin=assessment.evidence_coverage>=80?10:assessment.evidence_coverage>=60?15:25;
+    const now=new Date().toISOString();
+    const targetMetric='performance_score_12m';
+    const explanation={method:'MESSINHO deterministic positional score',dimension_scores:Object.fromEntries(assessment.weighted_dimensions.map(item=>[item.dimension,item.value]).filter(([,value])=>value!==null)),assessment,interval_method:'coverage_based_heuristic_not_statistically_calibrated'};
+    const {data:prediction,error:predictionError}=await db.from('asi_prediction_records').insert({
+      player_id:player.player_id,owner_id:player.owner_id,created_by:actor.user.id,target_metric:targetMetric,
+      prediction_horizon_days:365,predicted_value:assessment.score,
+      prediction_interval_low:Math.max(0,assessment.score-margin),prediction_interval_high:Math.min(100,assessment.score+margin),
+      probability:null,model_version:active?.version||'1.1.0-baseline',input_cutoff_at:now,status:'pending',explanation
+    }).select('id,player_id,target_metric,prediction_horizon_days,predicted_value,prediction_interval_low,prediction_interval_high,model_version,input_cutoff_at,status,created_at').single();
+    if(predictionError)return res.status(500).json({error:'Prognose konnte nicht gespeichert werden.'});
+    return res.status(201).json({ok:true,prediction,assessment,warning:'Das Prognoseintervall ist vorläufig heuristisch und noch nicht anhand historischer Outcomes kalibriert.'});
+  }catch(error){console.error('MESSINHO prediction save failed:',error.message);return res.status(500).json({error:'Spielerprognose konnte nicht gespeichert werden.'});}
+});
+app.post('/api/messinho/development/outcomes',messinhoDevelopmentLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    const predictionId=String(req.body?.prediction_id||'');
+    const observedValue=Number(req.body?.observed_value);
+    const observedOn=String(req.body?.observed_on||'');
+    const sourceUrl=String(req.body?.source_url||'');
+    if(!/^[0-9a-f-]{36}$/i.test(predictionId)||!Number.isFinite(observedValue)||observedValue<0||observedValue>100||!/^\d{4}-\d{2}-\d{2}$/.test(observedOn)||!/^https:\/\//i.test(sourceUrl))return res.status(400).json({error:'Bitte Prognose-ID, Ergebnis 0–100, Beobachtungsdatum und HTTPS-Quelle korrekt angeben.'});
+    let query=db.from('asi_prediction_records').select('id,player_id,owner_id,target_metric').eq('id',predictionId);
+    if(actor.profile.role!=='admin')query=query.eq('owner_id',actor.user.id);
+    const {data:prediction,error:predictionError}=await query.maybeSingle();
+    if(predictionError||!prediction)return res.status(404).json({error:'Prognose nicht gefunden oder kein Zugriff.'});
+    const {data:outcome,error}=await db.from('asi_prediction_outcomes').insert({
+      prediction_id:prediction.id,player_id:prediction.player_id,owner_id:prediction.owner_id,
+      observed_metric:prediction.target_metric,observed_value:observedValue,observed_on:observedOn,
+      outcome_source:'scout_submitted_pending_review',verification_source_url:sourceUrl,
+      notes:typeof req.body?.notes==='string'?req.body.notes.slice(0,1000):null,
+      recorded_by:actor.user.id,verification_status:'pending'
+    }).select('id,prediction_id,observed_metric,observed_value,observed_on,verification_status,created_at').single();
+    if(error)return res.status(500).json({error:'Ergebnis konnte nicht gespeichert werden.'});
+    return res.status(201).json({ok:true,outcome,message:'Ergebnis gespeichert. Es fließt erst nach administrativer Prüfung in die Lern-Evaluation ein.'});
+  }catch(error){console.error('MESSINHO outcome save failed:',error.message);return res.status(500).json({error:'Spielergebnis konnte nicht gespeichert werden.'});}
+});
+app.post('/api/messinho/development/outcomes/:outcomeId/verify',messinhoDevelopmentLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    if(actor.profile.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen Prognoseergebnisse verifizieren.'});
+    const outcomeId=String(req.params.outcomeId||'');
+    const decision=req.body?.decision==='verify'?'verified':req.body?.decision==='reject'?'rejected':null;
+    const reason=String(req.body?.reason||'').trim().slice(0,1000);
+    if(!/^[0-9a-f-]{36}$/i.test(outcomeId)||!decision||!reason)return res.status(400).json({error:'Bitte Ergebnis-ID, Entscheidung und Prüfgrund angeben.'});
+    const {data:existing,error:loadError}=await db.from('asi_prediction_outcomes').select('*').eq('id',outcomeId).maybeSingle();
+    if(loadError||!existing)return res.status(404).json({error:'Ergebniseintrag nicht gefunden.'});
+    if(existing.verification_status!=='pending')return res.status(409).json({error:'Dieses Ergebnis wurde bereits geprüft.'});
+    if(decision==='verified'&&(!existing.verification_source_url||!/^https:\/\//i.test(existing.verification_source_url)))return res.status(422).json({error:'Für eine Verifizierung ist eine HTTPS-Quelle erforderlich.'});
+    const {data,error}=await db.from('asi_prediction_outcomes').update({
+      verification_status:decision,verified_by:actor.user.id,verified_at:new Date().toISOString(),verification_reason:reason
+    }).eq('id',outcomeId).eq('verification_status','pending').select('id,verification_status,verified_by,verified_at').maybeSingle();
+    if(error||!data)return res.status(500).json({error:'Prüfstatus konnte nicht gespeichert werden.'});
+    return res.json({ok:true,outcome:data});
+  }catch(error){console.error('MESSINHO outcome verification failed:',error.message);return res.status(500).json({error:'Ergebnisprüfung fehlgeschlagen.'});}
+});
+app.get('/api/messinho/development/audit',async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    let predictionsQuery=db.from('asi_prediction_records').select('id,player_id,owner_id,target_metric,predicted_value,model_version,explanation,created_at').eq('target_metric','performance_score_12m').order('created_at',{ascending:false}).limit(500);
+    if(actor.profile.role!=='admin')predictionsQuery=predictionsQuery.eq('owner_id',actor.user.id);
+    const {data:predictions,error}=await predictionsQuery;
+    if(error)return res.status(500).json({error:'Prognosen konnten nicht geladen werden.'});
+    const ids=(predictions||[]).map(row=>row.id);
+    const {data:outcomes,outcomesError}=ids.length?await db.from('asi_prediction_outcomes').select('id,prediction_id,observed_value,observed_on,verification_status,verification_source_url').in('prediction_id',ids):{data:[],error:null};
+    if(outcomesError)return res.status(500).json({error:'Ergebnisse konnten nicht geladen werden.'});
+    const byPrediction=new Map((outcomes||[]).map(row=>[row.prediction_id,row]));
+    const pairs=(predictions||[]).map(row=>({prediction_id:row.id,player_id:row.player_id,predicted_value:row.predicted_value,observed_value:byPrediction.get(row.id)?.observed_value,verification_status:byPrediction.get(row.id)?.verification_status||'pending',model_version:row.model_version,created_at:row.created_at}));
+    const audit=auditMessinhoPredictions(pairs);
+    return res.json({ok:true,audit,predictions:predictions||[],pending_outcomes:(outcomes||[]).filter(row=>row.verification_status==='pending').length});
+  }catch(error){console.error('MESSINHO prediction audit failed:',error.message);return res.status(500).json({error:'Prognosekontrolle konnte nicht geladen werden.'});}
+});
+app.post('/api/messinho/development/hypotheses',messinhoDevelopmentLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    if(actor.profile.role!=='admin')return res.status(403).json({error:'Hypothesen und Modellverbesserungen dürfen nur Administratoren erzeugen.'});
+    const {data:outcomes,error:outcomeError}=await db.from('asi_prediction_outcomes').select('prediction_id,observed_value,verification_status').eq('verification_status','verified').limit(2000);
+    if(outcomeError)return res.status(500).json({error:'Verifizierte Ergebnisse konnten nicht geladen werden.'});
+    const ids=[...new Set((outcomes||[]).map(row=>row.prediction_id))];
+    const {data:predictions,error:predictionError}=ids.length?await db.from('asi_prediction_records').select('id,player_id,predicted_value,explanation,model_version').in('id',ids):{data:[],error:null};
+    if(predictionError)return res.status(500).json({error:'Zugehörige Prognosen konnten nicht geladen werden.'});
+    const predictionMap=new Map((predictions||[]).map(row=>[row.id,row]));
+    const pairs=(outcomes||[]).map(row=>{const prediction=predictionMap.get(row.prediction_id);return prediction?{
+      prediction_id:row.prediction_id,player_id:prediction.player_id,predicted_value:prediction.predicted_value,
+      observed_value:row.observed_value,verification_status:row.verification_status,
+      dimension_scores:prediction.explanation?.dimension_scores||{},model_version:prediction.model_version
+    }:null;}).filter(Boolean);
+    const result=generateMessinhoHypotheses(pairs);
+    return res.json({ok:true,...result,activation:'not_performed',message:'Hypothesen sind überprüfbare Experimente. Das aktive Modell wurde nicht verändert.'});
+  }catch(error){console.error('MESSINHO hypothesis generation failed:',error.message);return res.status(500).json({error:'Hypothesen konnten nicht erzeugt werden.'});}
+});
+
 const agentChatLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:true,legacyHeaders:false,message:{error:'Messinho wurde in kurzer Zeit zu häufig angesprochen. Bitte später erneut versuchen.'}});
 app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
   try{
