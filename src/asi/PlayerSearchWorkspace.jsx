@@ -12,7 +12,7 @@ export default function PlayerSearchWorkspace({supabase,profile,admin=false,onNo
  const [error,setError]=useState('');
  const [candidates,setCandidates]=useState([]);
  const [saving,setSaving]=useState(false);
- const [saved,setSaved]=useState(false);
+ const [saved,setSaved]=useState(false);\n const [discoveryFilters,setDiscoveryFilters]=useState({ageMin:'18',ageMax:'23'});\n const [discoveryBusy,setDiscoveryBusy]=useState(false);\n const [discoveryResult,setDiscoveryResult]=useState(null);
 
  const loadCandidates=useCallback(async()=>{
   if(!supabase||!profile?.id)return;
@@ -34,6 +34,23 @@ export default function PlayerSearchWorkspace({supabase,profile,admin=false,onNo
    setResult(payload);
   }catch(e){setError(e.message||'Recherche fehlgeschlagen.');}
   finally{setBusy(false);}
+ }
+
+ async function discoverTalents(){
+  if(discoveryBusy)return;
+  setDiscoveryBusy(true);setError('');setDiscoveryResult(null);setResult(null);
+  try{
+   const {data:{session}}=await supabase.auth.getSession();
+   if(!session?.access_token)throw new Error('Sitzung abgelaufen. Bitte neu anmelden.');
+   const ageMin=Number(discoveryFilters.ageMin),ageMax=Number(discoveryFilters.ageMax);
+   if(!Number.isInteger(ageMin)||!Number.isInteger(ageMax)||ageMin<16||ageMax>30||ageMin>ageMax)throw new Error('Bitte einen gültigen Altersbereich zwischen 16 und 30 Jahren wählen.');
+   const response=await fetch('/api/asi/player-search',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({mode:'discover',filters:{...filters,ageMin,ageMax}})});
+   const payload=await response.json();
+   if(!response.ok)throw new Error(payload.error||'Die globale KI-Suche ist fehlgeschlagen.');
+   setDiscoveryResult(payload);await loadCandidates();
+   onNotice((payload.saved_count||0)+' neue Talente als Kandidaten gespeichert · '+(payload.duplicate_count||0)+' Dubletten übersprungen.');
+  }catch(e){setError(e.message||'Globale Recherche fehlgeschlagen.');}
+  finally{setDiscoveryBusy(false);}
  }
 
  async function saveCandidate(){
@@ -72,9 +89,28 @@ export default function PlayerSearchWorkspace({supabase,profile,admin=false,onNo
     </div>
    </form>
    <p className="ps-privacy"><ShieldCheck size={14}/> Es werden nur die Suchangaben übertragen, nicht deine internen Scout-Notizen oder privaten Spielerdaten.</p>
+   <div className="ps-discovery-panel">
+    <div><span className="ps-discovery-kicker">GLOBAL TALENT DISCOVERY</span><h3>15 Nachwuchstalente weltweit finden</h3><p>Die KI durchsucht mehrere Quellen, gleicht die Belege ab und speichert neue Treffer direkt als Kandidaten – nicht in den offiziellen Spielerkatalog.</p></div>
+    <div className="ps-discovery-controls">
+     <label>Alter von<input type="number" min="16" max="30" value={discoveryFilters.ageMin} onChange={e=>setDiscoveryFilters(f=>({...f,ageMin:e.target.value}))}/></label>
+     <label>Alter bis<input type="number" min="16" max="30" value={discoveryFilters.ageMax} onChange={e=>setDiscoveryFilters(f=>({...f,ageMax:e.target.value}))}/></label>
+     <button type="button" onClick={discoverTalents} disabled={discoveryBusy||busy}>{discoveryBusy?<><RefreshCw className="ps-spin" size={16}/> 15 Talente werden gesucht…</>:<><BrainCircuit size={16}/> KI-Suche starten & Kandidaten speichern</>}</button>
+    </div>
+   </div>
   </section>
   {error&&<div className="ps-error"><AlertTriangle size={17}/>{error}</div>}
-  {busy&&<section className="ps-loading"><BrainCircuit size={28}/><strong>Die KI recherchiert und gleicht Quellen ab …</strong><span>Identität · Leistungsdaten · Transfers · Vertragsmeldungen · Verletzungsberichte</span></section>}
+  {(busy||discoveryBusy)&&<section className="ps-loading"><BrainCircuit size={28}/><strong>{discoveryBusy?'Die KI sucht weltweit nach Nachwuchstalenten …':'Die KI recherchiert und gleicht Quellen ab …'}</strong><span>Identität · Leistungsdaten · Spielstil · Quellenabgleich</span></section>}
+  {discoveryResult&&<section className="ps-result ps-discovery-result">
+   <div className="ps-result-head"><div><span>GLOBAL DISCOVERY · {discoveryResult.provider?.search||'Tavily'} + {discoveryResult.provider?.analysis||'OpenAI'}</span><h2>{discoveryResult.candidates?.length||0} Talente gefunden</h2><p>{discoveryResult.saved_count||0} neu gespeichert · {discoveryResult.duplicate_count||0} Dubletten übersprungen · {discoveryResult.source_count||0} Quellen ausgewertet</p></div><div className="ps-verdict review">{discoveryResult.underfilled?'Auswahl unvollständig':'Kandidaten gespeichert'}</div></div>
+   {discoveryResult.underfilled&&<div className="ps-warning"><AlertTriangle size={17}/> Es wurden weniger als 15 Spieler mit belastbaren Quellenbelegen gefunden. Das System ergänzt keine erfundenen Namen.</div>}
+   <div className="ps-discovery-grid">{(discoveryResult.candidates||[]).map((p,i)=><article key={p.name+'-'+i} className="ps-discovery-player">
+    <div className="ps-discovery-player-head"><span>{String(i+1).padStart(2,'0')}</span><div><strong>{p.name}</strong><small>{[p.birthYear,p.nationality,p.currentClub,(p.positions||[]).join(', ')].filter(Boolean).join(' · ')}</small></div><b className={p.saved?'is-saved':'is-duplicate'}>{p.saved?'GESPEICHERT':p.duplicate?'BEREITS VORHANDEN':'PRÜFEN'}</b></div>
+    <p>{p.analysis?.analysis||'Noch keine ausführliche textliche Bewertung aus den Quellen.'}</p>
+    <div className="ps-discovery-facts"><div><small>Stärken</small><span>{(p.analysis?.strengths||[]).join(' · ')||'Nicht ausreichend belegt'}</span></div><div><small>Entwicklungsfelder</small><span>{(p.analysis?.development_areas||[]).join(' · ')||'Weitere Sichtung erforderlich'}</span></div><div><small>Leistungsdaten</small><span>{Object.keys(p.analysis?.performance_metrics||{}).length?JSON.stringify(p.analysis.performance_metrics):'Keine belastbaren Kennzahlen übermittelt'}</span></div><div><small>Empfehlung</small><span>{p.analysis?.recommendation?.label||'Prüfung erforderlich'} · {p.analysis?.recommendation?.reason||'Quellen prüfen'}</span></div></div>
+    <div className="ps-source-list"><h3>Belege ({(p.sources||[]).length})</h3>{(p.sources||[]).map((s,j)=><a href={s.url} target="_blank" rel="noreferrer" key={s.url||j}><span><strong>{s.title||s.publisher||s.url}</strong><small>{s.publisher||'Quelle'} · {s.published_date||'Datum nicht angegeben'}</small></span><ExternalLink size={14}/></a>)}</div>
+   </article>)}</div>
+   <p className="ps-disclaimer">Alle Spieler wurden im Kandidatenbereich gespeichert. Eine Talentbewertung wird nur aus belegten Leistungsdaten abgeleitet; die KI-Recherche ersetzt keine persönliche Sichtung. Gesundheitsdaten und Verletzungsinformationen sind nicht Teil dieser Analyse.</p>
+  </section>}
   {a&&<section className="ps-result">
    <div className="ps-result-head"><div><span>RECHERCHEERGEBNIS</span><h2>{a.player?.name||query}</h2><p>{[a.player?.current_club,a.player?.nationality,a.player?.birth_year,a.player?.positions?.join(', ')].filter(Boolean).join(' · ')}</p></div><div className={'ps-verdict '+(a.recommendation?.level||'review')}>{a.recommendation?.label||'Prüfung erforderlich'}</div></div>
    {a.identity?.ambiguity&&<div className="ps-warning"><AlertTriangle size={17}/>{a.identity.ambiguity}</div>}
