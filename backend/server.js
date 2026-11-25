@@ -233,7 +233,9 @@ async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=n
   const finishedAt=new Date().toISOString();
   const record={triggered_by:triggeredBy,actor_profile_id:actorProfileId,status,started_at:startedAt,finished_at:finishedAt,duration_ms:Date.now()-started,summary:{total:checks.length,passed:checks.filter(x=>x.ok).length,failed:checks.filter(x=>!x.ok).length,critical_failed:checks.filter(x=>!x.ok&&x.severity==='critical').length,warnings:checks.filter(x=>!x.ok&&x.severity==='warning').length,categories:12},checks};
   if(db){
-    const {data,error}=await db.from('system_diagnostic_runs').insert(record).select('*').single();
+    // The database RPC inserts and prunes under one advisory transaction lock.
+    // This guarantees a global maximum of 50 reports, including concurrent runs.
+    const {data,error}=await db.rpc('save_system_diagnostic_run',{p_record:record});
     if(error){console.error('Could not persist system diagnostics:',error.message);return {...record,persistence_error:'Diagnosehistorie konnte nicht gespeichert werden: '+error.message};}
     return data;
   }
