@@ -11,6 +11,7 @@ import { rankMessinhoPlayers, sanitizeMessinhoHistory, MESSINHO_DEFAULT_WEIGHTS,
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
+import { getMessinhoCapabilityCatalog, getMessinhoCapabilitySummary } from './messinho-capabilities.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -575,6 +576,17 @@ async function messinhoAuthenticatedUser(req,res){
   if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved')){res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});return null;}
   return {user:data.user,profile,token};
 }
+app.get('/api/messinho/capabilities',async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    const summary=getMessinhoCapabilitySummary();
+    const catalog=getMessinhoCapabilityCatalog();
+    res.set('Cache-Control','no-store');
+    return res.json({ok:true,registry_version:summary.registry_version,summary,groups:catalog,role:actor.profile.role,
+      note:'Status beschreibt den nachweisbaren Implementierungsstand. Katalogisiert bedeutet nicht automatisch produktiv ausführbar; Funktionen mit fehlenden Daten oder Integrationen bleiben entsprechend markiert.'});
+  }catch(error){console.error('MESSINHO capability catalog failed:',error.message);return res.status(500).json({error:'Funktionsübersicht konnte nicht geladen werden.'});}
+});
 const messinhoTacticalFitLimiter=rateLimit({windowMs:60*60*1000,limit:30,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele taktische Abgleiche. Bitte später erneut versuchen.'}});
 app.post('/api/messinho/tactical-fit',messinhoTacticalFitLimiter,async(req,res)=>{
   try{
