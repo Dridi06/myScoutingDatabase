@@ -612,9 +612,9 @@ app.post('/api/messinho/learning/evaluate',async(req,res)=>{
     if(actor.profile.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen Lernmodelle evaluieren.'});
     const startedAt=new Date().toISOString();
     const {data:records,error}=await db.from('asi_scout_calibration_records')
-      .select('id,player_id,verified_outcome,messinho_position_group,messinho_dimension_scores,created_at')
+      .select('id,player_id,verified_outcome,outcome_observed_on,messinho_position_group,messinho_dimension_scores,created_at')
       .eq('verification_status','verified').eq('outcome_metric',MESSINHO_CALIBRATION_METRIC).not('verified_outcome','is',null)
-      .not('messinho_position_group','is',null).order('created_at',{ascending:true}).limit(5000);
+      .not('messinho_position_group','is',null).order('outcome_observed_on',{ascending:true}).limit(5000);
     if(error)return res.status(500).json({error:'Verifizierte Kalibrierungsdaten konnten nicht geladen werden. Staging-Migration prüfen.'});
     const active=await getActiveMessinhoModel();
     const baselineProfiles={...MESSINHO_DEFAULT_WEIGHTS,...(active?.configuration?.profiles||{})};
@@ -622,7 +622,8 @@ app.post('/api/messinho/learning/evaluate',async(req,res)=>{
     const proposal=buildMessinhoLearningProposal(trainingRows,baselineProfiles);
     const ids=(records||[]).map(row=>row.id).sort();
     const fingerprint=createHash('sha256').update(ids.join('|')).digest('hex');
-    const cutoff=records?.at(-1)?.created_at||startedAt;
+    const latestObserved=records?.at(-1)?.outcome_observed_on;
+    const cutoff=latestObserved?new Date(latestObserved+'T23:59:59.999Z').toISOString():startedAt;
     const trainingConfig={learning_version:proposal.learning_version,engine_version:'1.1.0',source_table:'asi_scout_calibration_records',source_filter:'verification_status=verified AND outcome_metric=MESSINHO_CALIBRATION_METRIC',outcome_metric:MESSINHO_CALIBRATION_METRIC,minimum_examples_per_position:30,minimum_unique_players:10};
     if(proposal.status!=='proposal_ready'){
       await db.from('asi_training_runs').insert({model_key:'messinho_position_weights',status:'succeeded',data_cutoff_at:cutoff,dataset_fingerprint:fingerprint,training_config:trainingConfig,evaluation_summary:{status:proposal.status,report:proposal.report,records:trainingRows.length},started_at:startedAt,finished_at:new Date().toISOString(),created_by:actor.user.id});
@@ -635,7 +636,7 @@ app.post('/api/messinho/learning/evaluate',async(req,res)=>{
       configuration:{profiles:proposal.profiles,learning_version:proposal.learning_version,engine_version:'1.1.0',source:'verified_asi_scout_calibration'}
     }).select('id,version,status,metrics,created_at').single();
     if(modelError)return res.status(500).json({error:'MESSINHO-Modellkandidat konnte nicht gespeichert werden.'});
-    const dates=(records||[]).map(row=>row.created_at).filter(Boolean).sort();
+    const dates=(records||[]).map(row=>row.outcome_observed_on).filter(Boolean).sort();
     const {error:evaluationError}=await db.from('asi_model_evaluations').insert({
       model_version_id:model.id,baseline_version_id:active?.id||null,evaluation_name:'MESSINHO verified-outcome holdout evaluation',
       dataset_start:dates[0]?.slice(0,10)||null,dataset_end:dates.at(-1)?.slice(0,10)||null,
