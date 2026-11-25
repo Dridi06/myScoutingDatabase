@@ -95,3 +95,12 @@
 - Commit `88be4aef4b7947d806c71d1285c8c3e9df2bb637`: responsive Gestaltung für den Vergleich ergänzt.
 - Keine Datenbankänderung und keine Testdatensätze. Ausschließlich Staging; Produktion unangetastet.
 - Render-Deployment und anschließender Browser-Test stehen noch aus.
+
+
+## Schutz vor doppelten ASI-Beobachtungen – 2026-11-25
+- Commit `2c06bc7f0dd990281572878d142209b351d635db`: Synchroner Klickschutz über eine Ref verhindert parallele Mehrfach-Submits, auch bevor React den deaktivierten Button neu rendert.
+- Während des Speicherns ist der Button deaktiviert und zeigt „Wird gespeichert…“ mit Ladeindikator.
+- Vor dem Insert werden vorhandene Beobachtungen desselben Spielers am selben Beobachtungsdatum geprüft. Ein identischer normalisierter Rating-Snapshot wird abgewiesen; unterschiedliche Bewertungen am selben Tag bleiben möglich.
+- Vorhandene Beobachtungen werden nicht verändert oder gelöscht. Die sechs vom Nutzer bestätigten wiederholten Einträge bleiben erhalten.
+- Keine Schemaänderung. Ausschließlich Staging; Produktion unangetastet.
+- Render-Deployment muss noch als LIVE bestätigt und anschließend im Browser getestet werden.
