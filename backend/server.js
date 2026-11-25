@@ -209,7 +209,7 @@ app.get('/api/admin/system-diagnostics',requireSupabaseAdmin,async(req,res)=>{
 });
 app.post('/api/admin/system-diagnostics/run',requireSupabaseAdmin,async(req,res)=>{
   try{
-    const run=await executeSystemDiagnostics('admin',req.adminProfile.id);
+    const run=await executeSystemDiagnostics('admin',req.user.sub);
     if(run.persistence_error)return res.status(503).json({error:run.persistence_error,run});
     return res.status(201).json(run);
   }catch(error){console.error('Admin diagnostics failed:',error.message);return res.status(500).json({error:'Systemdiagnose fehlgeschlagen.',detail:error.message});}
@@ -436,19 +436,31 @@ app.post('/api/scout/tickets',requireApprovedScout,scoutTicketCreateLimiter,asyn
 // Admin ticket endpoints receive the Supabase access token from the browser.
 // Verify it with Supabase Auth (not the app's separate JWT verifier).
 async function requireSupabaseAdmin(req,res,next){
-  const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
+  const authorization=typeof req.headers.authorization==='string'?req.headers.authorization:'';
+  const match=authorization.match(/^Bearer\\s+(\\S+)$/i);
+  const token=match?.[1]||'';
   if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
+  if(!db)return res.status(503).json({error:'Authentifizierungsdienst ist nicht verfügbar.'});
   try{
-    // Match the already-working admin API authentication path (/api/scouts).
-    // getUser(token) validates the supplied Supabase access token remotely;
-    // the service-role client is used only for this verification and privileged DB access.
+    // Only a real Supabase user access token is accepted. App-issued ticket
+    // tokens and API keys are intentionally rejected.
     const {data:authData,error:authError}=await db.auth.getUser(token);
-    if(authError||!authData?.user){console.error('Admin ticket token rejected:',authError?.message||'No user returned');return res.status(401).json({error:'Sitzung abgelaufen. Bitte erneut anmelden.'});}
+    if(authError||!authData?.user){
+      console.warn('Admin authentication rejected:',authError?.code||authError?.name||'invalid_access_token');
+      return res.status(401).json({error:'Sitzung ungültig oder abgelaufen. Bitte erneut anmelden.'});
+    }
     const {data:profile,error:profileError}=await db.from('profiles').select('id,role').eq('id',authData.user.id).maybeSingle();
-    if(profileError||profile?.role!=='admin')return res.status(403).json({error:'Admin-Rechte erforderlich.'});
+    if(profileError){
+      console.error('Admin profile lookup failed:',profileError.message);
+      return res.status(503).json({error:'Administratorprofil konnte nicht geprüft werden.'});
+    }
+    if(profile?.role!=='admin')return res.status(403).json({error:'Admin-Rechte erforderlich.'});
     req.user={sub:authData.user.id,role:profile.role};
     next();
-  }catch(error){console.error('Admin ticket authentication failed:',error.message);return res.status(401).json({error:'Sitzung konnte nicht geprüft werden. Bitte erneut anmelden.'});}
+  }catch(error){
+    console.error('Admin authentication failed:',error?.message||'unknown error');
+    return res.status(503).json({error:'Sitzung konnte momentan nicht geprüft werden. Bitte erneut versuchen.'});
+  }
 }
 app.get('/api/tickets',requireSupabaseAdmin,async(_req,res)=>{
   const {data,error}=await db.from('support_tickets').select('id,scout_id,scout_username,category,message,status,created_at,resolved_at,resolved_by').order('created_at',{ascending:false});
