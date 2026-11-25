@@ -40,6 +40,8 @@ export default function ContractIntelligencePanel({supabase,player,profile,admin
   if(start&&end&&end<start){onNotice('Das Vertragsende darf nicht vor dem Vertragsbeginn liegen.');return;}
   if(!source.trim()||!/^https?:\/\//i.test(source.trim())){onNotice('Bitte eine gültige Quellen-URL eintragen.');return;}
   setSaving(true);
+  const {error:clearError}=await supabase.from('asi_contract_snapshots').update({is_current:false}).eq('player_id',player.player_id).eq('is_current',true);
+  if(clearError){onNotice('Bisheriger Vertragsstand konnte nicht versioniert werden: '+clearError.message);setSaving(false);return;}
   const {error}=await supabase.from('asi_contract_snapshots').insert({
    player_id:player.player_id,owner_id:player.owner_id,evidence_id:null,
    contract_status:status,club_name:club.trim()||null,parent_club_name:parentClub.trim()||null,
@@ -47,7 +49,7 @@ export default function ContractIntelligencePanel({supabase,player,profile,admin
    confidence:null,verification_status:verification,is_current:true,recorded_by:profile?.id||null,
    option_details:note.trim()||null
   });
-  if(error)onNotice('Vertragsstatus konnte nicht gespeichert werden: '+error.message);
+  if(error){await supabase.from('asi_contract_snapshots').update({is_current:true}).eq('player_id',player.player_id).order('created_at',{ascending:false}).limit(1);onNotice('Vertragsstatus konnte nicht gespeichert werden: '+error.message);}
   else{onNotice('Vertragsinformation wurde gespeichert.');setShowForm(false);setSource('');setNote('');await load();}
   setSaving(false);
  }
