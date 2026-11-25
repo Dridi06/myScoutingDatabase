@@ -17,6 +17,7 @@ const guidanceFor=check=>({
 
 export default function SystemDiagnostics({session}){
  const [runs,setRuns]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[expanded,setExpanded]=useState(null),[historyPage,setHistoryPage]=useState(1);
+ const [messinhoRuns,setMessinhoRuns]=useState([]),[messinhoBusy,setMessinhoBusy]=useState(false),[messinhoError,setMessinhoError]=useState(''),[messinhoExpanded,setMessinhoExpanded]=useState(null),[messinhoHistoryPage,setMessinhoHistoryPage]=useState(1);
  async function getAccessToken(forceRefresh=false){
   if(!supabase)throw new Error('Anmeldedienst ist nicht verfügbar.');
   let {data:{session:authSession},error}=await supabase.auth.getSession();
@@ -51,6 +52,31 @@ export default function SystemDiagnostics({session}){
   }catch(e){setError(e.message||'Diagnosehistorie konnte nicht geladen werden.');}
  },[session?.user?.id]);
  useEffect(()=>{load();},[load]);
+
+ const loadMessinho=useCallback(async()=>{
+  if(!session?.user?.id)return;
+  setMessinhoError('');
+  try{
+   const r=await apiRequest('/api/admin/messinho-diagnostics?limit=50');
+   const j=await r.json().catch(()=>({}));
+   if(!r.ok)throw Error(j.error||'MESSINHO-Diagnosehistorie konnte nicht geladen werden.');
+   setMessinhoRuns(Array.isArray(j)?j:[]);setMessinhoHistoryPage(1);
+  }catch(e){setMessinhoError(e.message||'MESSINHO-Diagnosehistorie konnte nicht geladen werden.');}
+ },[session?.user?.id]);
+ useEffect(()=>{loadMessinho();},[loadMessinho]);
+ async function runMessinho(){
+  if(messinhoBusy)return;
+  setMessinhoBusy(true);setMessinhoError('');
+  try{
+   const r=await apiRequest('/api/admin/messinho-diagnostics/run',{method:'POST',headers:{'Content-Type':'application/json'}});
+   const j=await r.json().catch(()=>({}));
+   if(!r.ok)throw Error(j.error||j.detail||'MESSINHO-Diagnose konnte nicht ausgeführt werden.');
+   setMessinhoRuns(old=>[j,...old.filter(item=>item.id!==j.id)].slice(0,50));
+   setMessinhoHistoryPage(1);setMessinhoExpanded(j.id);
+  }catch(e){setMessinhoError(e.message||'MESSINHO-Diagnose konnte nicht ausgeführt werden.');}
+  finally{setMessinhoBusy(false);}
+ }
+
  async function run(){
   if(busy)return;
   setBusy(true);setError('');
@@ -83,5 +109,16 @@ export default function SystemDiagnostics({session}){
   <div className="sd-section-head"><div><span className="sd-eyebrow">AUDITIERBARE HISTORIE</span><h2>Frühere Diagnoseberichte</h2><p>Je Seite werden fünf Diagnoseberichte angezeigt. Ältere Berichte findest du über die Seitennavigation.</p></div></div>
   <div className="sd-history">{runs.length===0?<div className="sd-empty">Keine gespeicherten Testläufe.</div> :visibleRuns.map(run=><article className="sd-history-item" key={run.id}><button type="button" className="sd-history-toggle" onClick={()=>setExpanded(expanded===run.id?null:run.id)}><span className={'sd-status-dot '+statusClass(run.status)}/><span className="sd-history-copy"><strong>{labelStatus(run.status)}</strong><small>{dateTime(run.finished_at)} · {run.triggered_by==='automatic'?'Automatisch':run.triggered_by==='deployment'?'Deployment':'Admin'} · {run.summary?.passed??0}/{run.summary?.total??0} bestanden · {visibleIssues(run.checks).length} Auffälligkeiten</small></span>{expanded===run.id?<ChevronUp size={17}/>:<ChevronDown size={17}/>}</button>{expanded===run.id&&<div className="sd-history-detail"><button type="button" className="sd-quiet" onClick={()=>exportRun(run)}><Download size={14}/> Vollständigen JSON-Bericht exportieren</button>{visibleIssues(run.checks).length===0?<div className="sd-empty"><CheckCircle2 size={16}/> Keine Probleme oder Fehler in diesem Prüflauf.</div>:visibleIssues(run.checks).map((check,i)=><div className="sd-history-check" key={i}><strong>{check.name}</strong><span>{String(check.severity||'error').toUpperCase()==='WARNING'?'WARNUNG':'FEHLER'}</span><p>{check.detail}</p><div className="sd-diagnosis-grid"><div><strong>Wahrscheinliche Ursache</strong><span>{guidanceFor(check).root}</span></div><div><strong>Auswirkung</strong><span>{guidanceFor(check).impact}</span></div><div><strong>Nächster Schritt</strong><span>{guidanceFor(check).action}</span></div><div><strong>Reparaturweg</strong><span>{guidanceFor(check).repair}</span></div></div></div>)}</div>}</article>)}</div>
   {runs.length>historyPageSize&&<nav className="sd-pagination" aria-label="Diagnoseberichte-Seiten"><span>Seite {historyPage} von {historyPageCount} · {runs.length} Berichte</span><div><button type="button" className="sd-quiet" disabled={historyPage===1} onClick={()=>{setHistoryPage(p=>Math.max(1,p-1));setExpanded(null);}}>Zurück</button><button type="button" className="sd-quiet" disabled={historyPage===historyPageCount} onClick={()=>{setHistoryPage(p=>Math.min(historyPageCount,p+1));setExpanded(null);}}>Weiter</button></div></nav>}
+
+  <div className="sd-messinho-panel">
+   <div className="sd-section-head sd-messinho-head"><div><span className="sd-eyebrow">MESSINHO · UNABHÄNGIGE KI-QUALITÄTSSICHERUNG</span><h2>MESSINHO Diagnoseebene</h2><p>Eigene Prüfberichte für Runtime, Scoring, Erklärbarkeit, Lernqualität, Prognosegüte und Modellfreigaben. Die Prüfung verändert keine aktiven Modellgewichte.</p></div><button type="button" onClick={runMessinho} disabled={messinhoBusy}>{messinhoBusy?<RefreshCw className="sd-spin" size={15}/>:<ShieldCheck size={15}/>} {messinhoBusy?'MESSINHO wird geprüft…':'MESSINHO prüfen'}</button></div>
+   {messinhoError&&<div className="sd-error"><AlertTriangle size={18}/><div><strong>MESSINHO-Diagnose nicht vollständig verfügbar</strong><p>{messinhoError}</p></div></div>}
+   {messinhoRuns[0]&&<div className="sd-stats sd-messinho-stats"><article><span>Letzter MESSINHO-Status</span><strong className={statusClass(messinhoRuns[0].status)}>{labelStatus(messinhoRuns[0].status)}</strong><small>{dateTime(messinhoRuns[0].finished_at)}</small></article><article><span>Prüfungen im letzten Lauf</span><strong>{messinhoRuns[0].summary?.total??messinhoRuns[0].checks?.length??0}</strong><small>{messinhoRuns[0].summary?.passed??0} bestanden · {messinhoRuns[0].summary?.failed??0} Auffälligkeiten</small></article><article><span>Gespeicherte MESSINHO-Berichte</span><strong>{messinhoRuns.length} / 50</strong><small>Ältester Bericht wird automatisch entfernt</small></article></div>}
+   <div className="sd-section-head"><div><span className="sd-eyebrow">LETZTER MESSINHO-PRÜFLAUF</span><h2>Modell- und Lernqualität</h2></div><button type="button" className="sd-quiet" onClick={loadMessinho}><RefreshCw size={14}/> Aktualisieren</button></div>
+   {!messinhoRuns.length?<div className="sd-empty">Noch keine MESSINHO-Diagnose gespeichert. Starte eine eigene Prüfung.</div>:(()=>{const latest=messinhoRuns[0],issues=visibleIssues(latest.checks);return issues.length===0?<div className="sd-empty"><CheckCircle2 size={18}/> Keine kritischen Auffälligkeiten in {latest.summary?.total??latest.checks?.length??0} MESSINHO-Prüfungen.</div>:<div className="sd-run-card"><div className="sd-run-head"><div><strong>{issues.length} Auffälligkeit{issues.length===1?'':'en'} gefunden</strong><small>{dateTime(latest.started_at)} · Eigenständiger MESSINHO-Prüflauf</small></div><button type="button" className="sd-quiet" onClick={()=>exportRun(latest)}><Download size={14}/> Bericht</button></div>{issues.map((check,i)=><article className="sd-check" key={i}><div className="sd-check-icon fail"><AlertTriangle size={17}/></div><div className="sd-check-main"><strong>{check.name}</strong><small>{check.category} · {dateTime(check.checkedAt)}</small><p>{check.detail}</p><div className="sd-diagnosis-grid"><div><strong>Auswirkung</strong><span>{guidanceFor(check).impact}</span></div><div><strong>Nächster Schritt</strong><span>{guidanceFor(check).action}</span></div></div></div><span className="sd-check-state fail">{String(check.severity||'error').toUpperCase()==='WARNING'?'WARNUNG':'FEHLER'}</span></article>)}</div>;})()}
+   <div className="sd-section-head"><div><span className="sd-eyebrow">SEPARATE AUDIT-HISTORIE</span><h2>MESSINHO-Berichte</h2><p>Maximal 50 gespeicherte Berichte · fünf pro Seite</p></div></div>
+   <div className="sd-history">{messinhoRuns.length===0?<div className="sd-empty">Keine MESSINHO-Berichte vorhanden.</div>:messinhoRuns.slice((messinhoHistoryPage-1)*5,messinhoHistoryPage*5).map(run=><article className="sd-history-item" key={run.id}><button type="button" className="sd-history-toggle" onClick={()=>setMessinhoExpanded(messinhoExpanded===run.id?null:run.id)}><span className={'sd-status-dot '+statusClass(run.status)}/><span className="sd-history-copy"><strong>{labelStatus(run.status)} · MESSINHO</strong><small>{dateTime(run.finished_at)} · {run.summary?.passed??0}/{run.summary?.total??0} bestanden · {visibleIssues(run.checks).length} Auffälligkeiten</small></span>{messinhoExpanded===run.id?<ChevronUp size={17}/>:<ChevronDown size={17}/>}</button>{messinhoExpanded===run.id&&<div className="sd-history-detail"><button type="button" className="sd-quiet" onClick={()=>exportRun(run)}><Download size={14}/> Vollständigen JSON-Bericht exportieren</button>{(run.checks||[]).map((check,i)=><div className="sd-history-check" key={i}><strong>{check.name}</strong><span className={check.ok?'sd-ok-text':'sd-fail-text'}>{check.ok?'OK':String(check.severity||'error').toUpperCase()}</span><p>{check.detail}</p></div>)}</div>}</article>)}</div>
+   {messinhoRuns.length>5&&<nav className="sd-pagination" aria-label="MESSINHO-Berichte-Seiten"><span>Seite {messinhoHistoryPage} von {Math.ceil(messinhoRuns.length/5)} · {messinhoRuns.length} Berichte</span><div><button type="button" className="sd-quiet" disabled={messinhoHistoryPage===1} onClick={()=>{setMessinhoHistoryPage(p=>Math.max(1,p-1));setMessinhoExpanded(null);}}>Zurück</button><button type="button" className="sd-quiet" disabled={messinhoHistoryPage===Math.ceil(messinhoRuns.length/5)} onClick={()=>{setMessinhoHistoryPage(p=>Math.min(Math.ceil(messinhoRuns.length/5),p+1));setMessinhoExpanded(null);}}>Weiter</button></div></nav>}
+  </div>
  </section>;
 }
