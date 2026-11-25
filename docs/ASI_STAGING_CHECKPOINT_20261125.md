@@ -134,3 +134,13 @@
 - Commit `35a712e4621751b240ca8630d5ce29d6d5bb0a14`: Responsive Darstellung ergänzt.
 - Keine Datenbankänderung, keine künstlichen Daten und keine Änderung vorhandener Beobachtungen. Ausschließlich Staging; Produktion unangetastet.
 - Render-Build/Live-Status und fachlicher UI-Test stehen noch aus.
+
+
+## Scout-Bewertungsvergleich / Inter-Rater-Qualität – 2026-11-25
+- Commit `902c61d4a61ee757faad3d6e223f51771a62e5e2`: Admin-only-Auswertung zur Vergleichbarkeit von Scoutbewertungen ergänzt.
+- Verglichen werden nur Beobachtungen desselben Spielers von unterschiedlichen `created_by`-Konten mit höchstens 14 Tagen Abstand; nur gemeinsame gültige Ratings (Ganzzahlen 1–5) fließen ein.
+- Kennzahlen: Zahl vergleichbarer Kriterien, betroffene Spieler, unterschiedliche Scout-Paare, mittlere absolute Abweichung und Anteil der Kriterien mit höchstens einem Skalenpunkt Abweichung.
+- Interne Mindestmenge: 30 vergleichbare Kriterien. Unterhalb davon werden die Werte ausdrücklich als nicht belastbar gekennzeichnet.
+- Keine Scout-Rangliste, keine individuellen Scout-Namen oder Identitäten in der Oberfläche; Abweichungen werden nicht automatisch als Fehler bewertet. Kontext und Beobachtungsbedingungen können Unterschiede erklären.
+- Die Admin-Abfrage lädt `created_by` ausschließlich für die bestehende Admin-Qualitätsansicht; Scout-Ansichten erhalten keine globalen Vergleichsdaten. Keine Datenbankänderung, keine künstlichen Datensätze.
+- Render-Deployment und Prüfung auf Staging stehen aus. Produktion unangetastet.
