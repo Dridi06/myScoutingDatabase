@@ -35,7 +35,9 @@ function numericScore(value) {
   const number = Number(raw);
   if (!Number.isFinite(number) || number < 0) return null;
   // Match the existing scouting scale: 0..1, 1..5, or 0..100.
-  return Math.max(0, Math.min(100, number <= 1 ? number * 100 : number <= 5 ? number * 20 : number));
+  if (number === 0) return 0;
+  // Decimal fractions represent normalized 0..1 values; integers 1..5 are scout ratings.
+  return Math.max(0, Math.min(100, number < 1 ? number * 100 : number <= 5 ? number * 20 : number));
 }
 
 export function assessMessinhoSource(source = {}, options = {}) {
@@ -46,14 +48,16 @@ export function assessMessinhoSource(source = {}, options = {}) {
   const secure = url?.protocol === 'https:';
   const published = source.published_date ? Date.parse(source.published_date) : NaN;
   const hasDate = Number.isFinite(published);
-  const ageDays = hasDate ? Math.max(0, Math.floor((now - published) / 86400000)) : null;
+  const futureDate = hasDate && published > now + 86400000;
+  const ageDays = hasDate && !futureDate ? Math.max(0, Math.floor((now - published) / 86400000)) : null;
   const maxAgeDays = Number.isFinite(options.maxAgeDays) ? Math.max(1, options.maxAgeDays) : 365;
-  const freshness = !hasDate ? 'unknown' : ageDays <= maxAgeDays ? 'fresh' : 'stale';
+  const freshness = !hasDate ? 'unknown' : futureDate ? 'invalid_date' : ageDays <= maxAgeDays ? 'fresh' : 'stale';
   const limitations = [];
   if (!secure) limitations.push('Quelle besitzt keine gültige HTTPS-Adresse.');
   if (!source.title) limitations.push('Quellentitel fehlt.');
   if (!hasDate) limitations.push('Veröffentlichungsdatum ist nicht bekannt.');
   if (freshness === 'stale') limitations.push('Quelle liegt außerhalb des Aktualitätsfensters.');
+  if (freshness === 'invalid_date') limitations.push('Veröffentlichungsdatum liegt unplausibel in der Zukunft.');
   if (String(source.content || '').trim().length < 80) limitations.push('Nur begrenzter Quellenauszug verfügbar.');
   return {
     url_valid: !!url,
