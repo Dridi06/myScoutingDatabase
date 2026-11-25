@@ -38,7 +38,10 @@ function numeric(value) {
   if (value === null || value === undefined || value === '') return null;
   const n = Number(value);
   if (!Number.isFinite(n)) return null;
-  return Math.max(0, Math.min(100, n <= 1 ? n * 100 : n));
+  // Existing scout ratings use both 0..1 fractions, 1..5 stars and 0..100 scores.
+  // Keep this scale identical to MESSINHO learning and intelligence normalization.
+  const scaled = n === 0 ? 0 : n < 1 ? n * 100 : n <= 5 ? n * 20 : n;
+  return Math.max(0, Math.min(100, scaled));
 }
 function dimensionValue(analysis, dimension) {
   const ratings = analysis?.ratings || analysis?.scores || {};
