@@ -13,6 +13,11 @@ Official references:
 - https://www.dfb.de/nutzungsbedingungen
 - https://portal.dfbnet.org/de/funktionen/agb
 
+## Coverage scope: complete German football pyramid
+The target scope is the entire German football pyramid, from the lowest district classes (Kreisklasse/Kreisliga) through Landes-/Verbandsligen, Oberliga and all Regionalligen, then 3. Liga, 2. Bundesliga and Bundesliga. Include men's and women's competitions only where the DFB/SID license and official feed explicitly cover them. Competition identifiers, association, season, promotion/relegation structure, and regional coverage must be modeled explicitly; league naming and tier structure vary by association and season.
+
+Rights must be cleared separately by data class and competition: amateur DFBnet data (DFB GmbH & Co. KG), professional match/live data where SID holds exclusive rights, and any additional league/competition provider. An amateur-data agreement must not be treated as covering Bundesliga live data.
+
 ## Proposed integration shape
 1. Provider adapter: `backend/providers/fussball-de.js`
    - only use an endpoint and authentication scheme documented/provided by DFB.
