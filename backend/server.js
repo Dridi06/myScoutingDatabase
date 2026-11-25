@@ -465,7 +465,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
       }).filter(Boolean).sort((a,b)=>(b.analysis.fit_score??-1)-(a.analysis.fit_score??-1)).slice(0,Math.max(1,Math.min(15,Number(filters.limit)||15)));
       if(!candidates.length)return res.status(422).json({error:'Die KI konnte keine Spieler mit bestätigbarem Geburtsjahr, passender Position und belastbarem Quellenbeleg zum angeforderten Standort identifizieren. Es wurden keine Kandidaten gespeichert.',sourceCount:discoverySources.length});
       const [existingCandidates,existingPlayers]=await Promise.all([
-        db.from('asi_player_candidates').select('player_name').eq('owner_id',profile.id).limit(2000),
+        db.from('asi_player_candidates').select('id,player_name').eq('owner_id',profile.id).limit(2000),
         db.from('players').select('name').eq('owner_id',profile.id).limit(2000)
       ]);
       if(existingCandidates.error||existingPlayers.error)return res.status(500).json({error:'Vorhandene Spielerdaten konnten vor dem Speichern nicht auf Dubletten geprüft werden.'});
@@ -485,7 +485,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
         if(inserted.error){console.error('ASI discovery candidate persistence failed:',inserted.error.message);return res.status(500).json({error:'Die Recherche war erfolgreich, aber die Kandidaten konnten nicht in der Datenbank gespeichert werden.'});}
         savedRows=inserted.data||[];
       }
-      const savedByName=new Map(savedRows.map(x=>[String(x.player_name).normalize('NFKC').toLocaleLowerCase('de'),x]));
+      const savedByName=new Map([...(existingCandidates.data||[]),...savedRows].map(x=>[String(x.player_name).normalize('NFKC').toLocaleLowerCase('de'),x]));
       const returnedCandidates=candidates.map(c=>{const savedRow=savedByName.get(c.name.normalize('NFKC').toLocaleLowerCase('de'));return {...c,id:savedRow?.id||null,saved:!!savedRow,duplicate:existingNames.has(c.name.normalize('NFKC').toLocaleLowerCase('de'))};});
       res.set('Cache-Control','no-store');
       return res.json({mode:'discover',requested:{ageMin,ageMax,birthYearFrom,birthYearTo,position,nationality,region,targetLevel,limit:Math.max(1,Math.min(15,Number(filters.limit)||15))},candidates:returnedCandidates,
@@ -550,7 +550,7 @@ app.post('/api/messinho/feedback',async(req,res)=>{
     const {data:candidate,error:candidateError}=await query.maybeSingle();
     if(candidateError||!candidate)return res.status(404).json({error:'Kandidat nicht gefunden oder kein Zugriff.'});
     const positionRating=rankMessinhoPlayers([{positions:candidate.positions||[],analysis:candidate.analysis||{}}])[0]?.messinho_rating;
-    const {data,error}=await db.from('messinho_scout_feedback').insert({
+    const {data,error}=await db.from('messinho_scout_feedback').upsert({
       player_id:String(candidate.player_name||candidate.id),
       candidate_id:candidate.id,scout_id:actor.user.id,
       position_group:positionRating?.position_group||'default',
