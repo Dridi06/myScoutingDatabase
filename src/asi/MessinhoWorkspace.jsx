@@ -5,9 +5,10 @@ import './messinho.css';
 const suggestions=[
   'Gib mir eine Übersicht über meinen Datenbestand.',
   'Zeige meine gespeicherten Kandidaten.',
+  'Vergleiche meine Kandidaten und erstelle eine Rangliste.',
   'Suche Spieler Müller.'
 ];
-export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{}}){
+export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},compact=false}){
   const [messages,setMessages]=useState([{id:'welcome',role:'assistant',text:'Hallo! Ich bin Messinho, dein Scouting-Agent. Ich kann zunächst deinen Datenbestand auswerten, gespeicherte Kandidaten anzeigen und Spieler im vorhandenen Katalog suchen. Meine autonomen Recherche- und Lernmodule werden schrittweise integriert.'}]);
   const [draft,setDraft]=useState('');
   const [busy,setBusy]=useState(false);
@@ -62,11 +63,11 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{}}){
   }
   function renderItems(items){
     if(!items?.length)return null;
-    return <div className="messinho-results">{items.map((item,index)=><article key={String(item.id||item.name||index)} className="messinho-result-row"><div className="messinho-result-icon"><Users size={16}/></div><div className="messinho-result-copy"><strong>{index+1}. {item.name||item.player_name||'Unbenannter Eintrag'}</strong><span>{[item.club||item.current_club||item.currentClub,item.year||item.birth_year||item.birthYear,item.positions?.join(', '),item.analysis?.fit_score!==null&&item.analysis?.fit_score!==undefined?'Fit '+item.analysis.fit_score+'/100':null,item.kind,item.analysis?.recommendation?.label||item.recommendation?.label||item.recommendation].filter(Boolean).join(' · ')}</span>{item.analysis?.analysis&&<small>{item.analysis.analysis}</small>}{item.sources?.map(source=><a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.publisher||source.title||'Quelle öffnen'}</a>)}</div></article>)}</div>;
+    return <div className="messinho-results">{items.map((item,index)=><article key={String(item.id||item.name||index)} className="messinho-result-row"><div className="messinho-result-icon"><Users size={16}/></div><div className="messinho-result-copy"><strong>{index+1}. {item.name||item.player_name||'Unbenannter Eintrag'}</strong><span>{[item.club||item.current_club||item.currentClub,item.year||item.birth_year||item.birthYear,item.positions?.join(', '),item.analysis?.fit_score!==null&&item.analysis?.fit_score!==undefined?'Fit '+item.analysis.fit_score+'/100':null,item.kind,item.analysis?.recommendation?.label||item.recommendation?.label||item.recommendation].filter(Boolean).join(' · ')}</span>{item.messinho_rating&&<small>{item.messinho_rating.score===null?'MESSINHO-Score: nicht ausreichend belegt':'MESSINHO-Score: '+item.messinho_rating.score+'/100'} · Datenabdeckung {item.messinho_rating.evidence_coverage}% · {item.messinho_rating.confidence}</small>}{item.analysis?.analysis&&<small>{item.analysis.analysis}</small>}{item.sources?.map(source=><a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.publisher||source.title||'Quelle öffnen'}</a>)}</div></article>)}</div>;
   }
   return <div className="messinho-workspace">
-    <header className="messinho-hero"><div className="messinho-emblem"><BrainCircuit size={29}/></div><div className="messinho-hero-copy"><span>MYSCOUTINGDATABASE · KI-ASSISTENT</span><h1>Messinho</h1><p>Dein persönlicher Scouting-Agent</p></div><div className="messinho-status"><i/> Modul geladen</div></header>
-    <section className="messinho-overview">
+    {!compact&&<header className="messinho-hero"><div className="messinho-emblem"><BrainCircuit size={29}/></div><div className="messinho-hero-copy"><span>MYSCOUTINGDATABASE · KI-ASSISTENT</span><h1>Messinho</h1><p>Dein persönlicher Scouting-Agent</p></div><div className="messinho-status"><i/> Modul geladen</div></header>
+    {!compact&&<section className="messinho-overview">
       <div><Database size={18}/><span><strong>Datenbankzugriff</strong><small>Authentifiziert und benutzerbezogen</small></span></div>
       <div><Clock3 size={18}/><span><strong>Rechercheplan</strong><small>Täglich um 20:00 Uhr · noch nicht aktiviert</small></span></div>
       <div><ShieldCheck size={18}/><span><strong>Arbeitsmodus</strong><small>Nur lesende Datenbankabfragen</small></span></div>
@@ -87,6 +88,6 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{}}){
       </form>
       <p className="messinho-footnote">Sprachfunktionen hängen vom Browser ab. Mikrofonzugriff wird nur nach deiner Aktivierung angefragt.</p>
     </section>
-    <aside className="messinho-roadmap"><strong>Ausbaustufen</strong><span><b>Jetzt:</b> Datenbankabfragen und Chatoberfläche</span><span><b>Als Nächstes:</b> eigene Rechercheplanung und rechtlich freigegebene Quellen</span><span><b>Danach:</b> tägliche Hintergrundaktualisierung und kontrollierte Modellverbesserung</span></aside>
+    {!compact&&<aside className="messinho-roadmap"><strong>Ausbaustufen</strong><span><b>Jetzt:</b> Datenbankabfragen und Chatoberfläche</span><span><b>Als Nächstes:</b> eigene Rechercheplanung und rechtlich freigegebene Quellen</span><span><b>Danach:</b> tägliche Hintergrundaktualisierung und kontrollierte Modellverbesserung</span></aside>}
   </div>;
 }
