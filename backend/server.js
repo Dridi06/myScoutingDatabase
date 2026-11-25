@@ -299,6 +299,11 @@ app.post('/api/auth/login',async(req,res)=>{
     }
     if(!profile.approved||profile.approval_status!=='approved')return res.status(403).json({error:'Dein Zugang ist noch nicht vom Administrator freigeschaltet.'});
     res.json({access_token:signIn.data.session.access_token,refresh_token:signIn.data.session.refresh_token,user:{id:profile.id,username:profile.username,role:profile.role,approved:profile.approved}});
+    // Only a successfully authenticated administrator triggers an automatic
+    // diagnostic. Scouts and all ordinary CRUD operations never reach this path.
+    if(profile.role==='admin'){
+      setImmediate(()=>executeSystemDiagnostics('admin_login',profile.id).catch(error=>console.error('Admin-login diagnostics failed:',error.message)));
+    }
   }catch(e){res.status(500).json({error:'Anmeldung aktuell nicht möglich.'});}
 });
 app.post('/api/auth/register',async(req,res)=>{
@@ -1295,4 +1300,4 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
 
 app.use(express.static('dist',{maxAge:'1h',setHeaders(res,path){if(path.endsWith('/index.html'))res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');}}));
 app.get(/^(?!\/api\/).*/,(_req,res)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');res.sendFile(process.cwd()+'/dist/index.html');});
-app.listen(PORT,async()=>{console.log(`myScoutingDatabase API listening on ${PORT}`);console.log(`ASI SEARCH CHECK: Tavily=${Boolean(process.env.TAVILY_API_KEY)} OpenAI=${Boolean(process.env.OPENAI_API_KEY)} Model=${process.env.OPENAI_MODEL||'gpt-4.1-mini'}`);await diagnoseSupabase();try{await bootstrapAdmin();}catch(e){console.error('Admin bootstrap failed:',e.message);}try{await executeSystemDiagnostics('deployment',null);}catch(e){console.error('Deployment diagnostics failed:',e.message);}setInterval(()=>executeSystemDiagnostics('automatic',null).catch(e=>console.error('Scheduled diagnostics failed:',e.message)),15*60*1000).unref();});
+app.listen(PORT,async()=>{console.log(`myScoutingDatabase API listening on ${PORT}`);console.log(`ASI SEARCH CHECK: Tavily=${Boolean(process.env.TAVILY_API_KEY)} OpenAI=${Boolean(process.env.OPENAI_API_KEY)} Model=${process.env.OPENAI_MODEL||'gpt-4.1-mini'}`);await diagnoseSupabase();try{await bootstrapAdmin();}catch(e){console.error('Admin bootstrap failed:',e.message);}});
