@@ -178,6 +178,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  const logicChecks=useMemo(()=>{
   const checks=[];
   Object.entries(ROLE_PROFILES).forEach(([name,profile])=>{const ratings=Object.fromEntries(Object.keys(profile.criteria).map(k=>[k,3]));const result=scoreRoleFit(ratings,name);checks.push({name:'Rollenprofil: '+name,ok:!!result&&result.fit===50&&result.coverage===100&&result.available===result.total});});
+  const fieldSnapshot=buildSnapshot({player_id:1,name:'Test Feldspieler',positions:['Stürmer'],ratings:{}});const keeperSnapshot=buildSnapshot({player_id:2,name:'Test Torwart',positions:['Torwart'],ratings:{}});checks.push({name:'Positionsabhängiger Kriterienumfang: Feldspieler 34 / Torwart 46',ok:fieldSnapshot.criteria_count===34&&keeperSnapshot.criteria_count===46&&!fieldSnapshot.sections.some(s=>s.name==='Torwart')&&keeperSnapshot.sections.some(s=>s.name==='Torwart')});
   const missing=scoreRoleFit({},Object.keys(ROLE_PROFILES)[0]);checks.push({name:'Fehlende Werte werden nicht als Null gewertet',ok:missing.fit===null&&missing.coverage===0&&missing.available===0});
   const trend=analyzeLongitudinalTrend([{observed_on:'2026-10-21',ratings:{Dribbling:2}},{observed_on:'2026-11-08',ratings:{Dribbling:3}},{observed_on:'2026-11-25',ratings:{Dribbling:4}}]);checks.push({name:'Longitudinalanalyse: 3 Messpunkte / 35 Tage',ok:trend.ready&&trend.count===3&&trend.days===35&&trend.up===1});
   const short=analyzeLongitudinalTrend([{observed_on:'2026-11-01',ratings:{Dribbling:2}},{observed_on:'2026-11-10',ratings:{Dribbling:3}}]);checks.push({name:'Zu kurze Zeitreihe wird gesperrt',ok:!short.ready});
@@ -234,7 +235,12 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
      const activeIdentityIds=new Set((statusRows.error?[]:(statusRows.data||[])).filter(x=>x.identity_status==='confirmed').map(x=>String(x.id)));
      const activeLinks=(identityRows.error?[]:(identityRows.data||[])).filter(x=>activeIdentityIds.has(String(x.identity_id)));
      const scoutAgreement=analyzeScoutAgreement(observationRows,activeLinks);
-     const completeRatings=observationRows.filter(o=>Object.values(SECTIONS).flat().every(k=>safeNumber((o.ratings||{})[k])!==null)).length;
+     const completeRatings=observationRows.filter(o=>{
+       const player=players.find(p=>String(p.player_id)===String(o.player_id));
+       if(!player)return false;
+       const activeCriteria=Object.entries(SECTIONS).filter(([section])=>section!=='Torwart'||isGoalkeeper(player)).flatMap(([,criteria])=>criteria);
+       return activeCriteria.length>0&&activeCriteria.every(k=>safeNumber((o.ratings||{})[k])!==null);
+     }).length;
      setQuality({loading:false,observations:observationRows.length,playersObserved:byPlayer.size,longitudinalPlayers:longitudinal,predictions:predictionRows.length,outcomes:outcomeRows.length,matchedOutcomes:matched.length,mae,evaluations:evaluations.error?0:(evaluations.data||[]).length,passedEvaluations:evaluations.error?0:(evaluations.data||[]).filter(x=>x.passed===true).length,trainingRuns:runs.error?0:(runs.data||[]).length,completeRatings,scoutAgreement});
    }else setQuality(q=>({...q,loading:false}));
  }
@@ -408,7 +414,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
      <div className="asi-quality-grid">
        <article><span>Beobachtungen</span><strong>{quality.observations}</strong><small>{quality.playersObserved} Spieler mit mindestens einer Beobachtung</small></article>
        <article><span>Zeitlich vergleichbar</span><strong>{quality.longitudinalPlayers}</strong><small>Spieler mit mindestens 2 Beobachtungen über mindestens 30 Tage</small></article>
-       <article><span>Vollständige Ratings</span><strong>{quality.completeRatings}</strong><small>Beobachtungen mit allen {Object.values(SECTIONS).flat().length} Kriterien</small></article>
+       <article><span>Vollständige Ratings</span><strong>{quality.completeRatings}</strong><small>Beobachtungen mit allen aktiven Kriterien (34 Feldspieler / 46 Torwart)</small></article>
        <article><span>Prognose-Ergebnisse</span><strong>{quality.matchedOutcomes}</strong><small>Passende Prognose-/Ergebnispaare von {quality.outcomes} Ergebnissen</small></article>
        <article><span>Mittlerer absoluter Fehler</span><strong>{quality.mae===null?"–":quality.mae.toFixed(2)}</strong><small>{quality.mae===null?"Noch nicht berechenbar":"MAE · nur gleiche Metriken, "+quality.matchedOutcomes+" Paare"}</small></article>
        <article><span>Modell-Evaluationen</span><strong>{quality.passedEvaluations}/{quality.evaluations}</strong><small>Bestandene dokumentierte Prüfungen</small></article>
