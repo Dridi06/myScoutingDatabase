@@ -1,6 +1,7 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import {Activity,AlertTriangle,CheckCircle2,Clock3,RefreshCw,ShieldCheck,ChevronDown,ChevronUp,Download} from 'lucide-react';
 import './systemDiagnostics.css';
+import {supabase} from '../supabaseClient';
 
 const dateTime=value=>value?new Date(value).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'medium'}):'—';
 const labelStatus=status=>status==='healthy'?'Betriebsbereit':status==='warning'?'Hinweise vorhanden':'Kritischer Fehler';
@@ -8,16 +9,58 @@ const statusClass=status=>status==='healthy'?'healthy':status==='warning'?'warni
 
 export default function SystemDiagnostics({session}){
  const [runs,setRuns]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[expanded,setExpanded]=useState(null);
- const headers={Authorization:'Bearer '+(session?.access_token||'')};
- const load=useCallback(async()=>{if(!session?.access_token)return;setError('');try{const r=await fetch('/api/admin/system-diagnostics?limit=50',{headers});const j=await r.json();if(!r.ok)throw Error(j.error||'Diagnosehistorie konnte nicht geladen werden.');setRuns(j);}catch(e){setError(e.message);}},[session?.access_token]);
+ async function getAccessToken(forceRefresh=false){
+  if(!supabase)throw new Error('Anmeldedienst ist nicht verfügbar.');
+  let {data:{session:authSession},error}=await supabase.auth.getSession();
+  if(error)throw error;
+  const expiresSoon=authSession?.expires_at&&authSession.expires_at*1000<Date.now()+60000;
+  if(forceRefresh||!authSession?.access_token||expiresSoon){
+   const refreshed=await supabase.auth.refreshSession();
+   if(refreshed.error||!refreshed.data?.session?.access_token)throw new Error('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
+   authSession=refreshed.data.session;
+  }
+  if(!authSession?.access_token)throw new Error('Keine gültige Admin-Sitzung gefunden. Bitte erneut anmelden.');
+  return authSession.access_token;
+ }
+ async function apiRequest(path,options={}){
+  let token=await getAccessToken(false);
+  const send=currentToken=>fetch(path,{...options,cache:'no-store',headers:{...(options.headers||{}),Authorization:'Bearer '+currentToken}});
+  let response=await send(token);
+  if(response.status===401){
+   token=await getAccessToken(true);
+   response=await send(token);
+  }
+  return response;
+ }
+ const load=useCallback(async()=>{
+  if(!session?.user?.id)return;
+  setError('');
+  try{
+   const r=await apiRequest('/api/admin/system-diagnostics?limit=50');
+   const j=await r.json().catch(()=>({}));
+   if(!r.ok)throw Error(j.error||'Diagnosehistorie konnte nicht geladen werden.');
+   setRuns(Array.isArray(j)?j:[]);
+  }catch(e){setError(e.message||'Diagnosehistorie konnte nicht geladen werden.');}
+ },[session?.user?.id]);
  useEffect(()=>{load();},[load]);
- async function run(){if(busy)return;setBusy(true);setError('');try{const r=await fetch('/api/admin/system-diagnostics/run',{method:'POST',headers:{...headers,'Content-Type':'application/json'}});const j=await r.json();if(!r.ok)throw Error(j.error||j.detail||'Diagnose konnte nicht ausgeführt werden.');setRuns(old=>[j,...old.filter(x=>x.id!==j.id)]);setExpanded(j.id);}catch(e){setError(e.message);}finally{setBusy(false);}}
+ async function run(){
+  if(busy)return;
+  setBusy(true);setError('');
+  try{
+   const r=await apiRequest('/api/admin/system-diagnostics/run',{method:'POST',headers:{'Content-Type':'application/json'}});
+   const j=await r.json().catch(()=>({}));
+   if(!r.ok)throw Error(j.error||j.detail||'Diagnose konnte nicht ausgeführt werden.');
+   setRuns(old=>[j,...old.filter(x=>x.id!==j.id)]);
+   setExpanded(j.id);
+  }catch(e){setError(e.message||'Diagnose konnte nicht ausgeführt werden.');}
+  finally{setBusy(false);}
+ }
  function exportRun(run){const blob=new Blob([JSON.stringify(run,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='systemdiagnose-'+(run.id||'bericht')+'.json';a.click();URL.revokeObjectURL(url);}
  const latest=runs[0],latestChecks=latest?.checks||[];
  const totalChecks=latest?.summary?.total??latestChecks.length,passed=latest?.summary?.passed??latestChecks.filter(x=>x.ok).length,failed=latest?.summary?.failed??latestChecks.filter(x=>!x.ok).length;
  return <section className="system-diagnostics">
   <div className="sd-hero"><div className="sd-hero-icon"><Activity size={25}/></div><div><span className="sd-eyebrow">ADMINISTRATOR · SYSTEMÜBERWACHUNG</span><h1>Systemdiagnose-Center</h1><p>Technische Prüfungen, Fehlerberichte und dauerhaft gespeicherte Testhistorie für myScoutingDatabase.</p></div><button type="button" onClick={run} disabled={busy}>{busy?<RefreshCw className="sd-spin" size={16}/>:<ShieldCheck size={16}/>} {busy?'Diagnose läuft…':'Diagnose jetzt starten'}</button></div>
-  {error&&<div className="sd-error"><AlertTriangle size={18}/><div><strong>Diagnose nicht vollständig verfügbar</strong><p>{error}</p><small>Prüfe insbesondere, ob die Datenbankmigration 018 bereits in Supabase ausgeführt wurde.</small></div></div>}
+  {error&&<div className="sd-error"><AlertTriangle size={18}/><div><strong>Diagnose nicht vollständig verfügbar</strong><p>{error}</p><small>Bei HTTP 401 bitte erneut anmelden. Ein Hinweis auf Migration 018 erscheint nur, wenn der Server tatsächlich einen Datenbankfehler meldet.</small></div></div>}
   <div className="sd-stats">
    <article><span>Letzter Systemstatus</span><strong className={latest?statusClass(latest.status):''}>{latest?labelStatus(latest.status):'Noch nicht geprüft'}</strong><small>{latest?dateTime(latest.finished_at):'Noch kein gespeicherter Lauf'}</small></article>
    <article><span>Prüfungen im letzten Lauf</span><strong>{totalChecks}</strong><small>{passed} bestanden · {failed} Auffälligkeiten</small></article>
