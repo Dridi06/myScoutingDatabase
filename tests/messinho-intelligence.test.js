@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit } from '../backend/messinho-intelligence.js';
+import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported } from '../backend/messinho-intelligence.js';
 
 test('source assessment separates HTTPS validity and freshness from credibility', () => {
   const now = Date.parse('2026-11-25T12:00:00Z');
@@ -69,4 +69,24 @@ test('future publication dates are never marked as fresh evidence', () => {
   assert.equal(result.freshness,'invalid_date');
   assert.equal(result.age_days,null);
   assert.ok(result.limitations.some(item=>item.includes('Zukunft')));
+});
+
+test('candidate identity and birth year must be present in the cited HTTPS source',()=>{
+ const sources=[{url:'https://club.example/player',title:'Rising prospect Karim Adeyemi born 2002',content:'Karim Adeyemi is a forward born in 2002.'}];
+ const evidence=[{source_url:'https://club.example/player',claim:'Karim Adeyemi, born 2002'}];
+ assert.equal(validateMessinhoCandidateEvidence({name:'Karim Adeyemi',birth_year:2002},evidence,sources).valid,true);
+ assert.equal(validateMessinhoCandidateEvidence({name:'Karim Adeyemi',birth_year:2003},evidence,sources).valid,false);
+ assert.equal(validateMessinhoCandidateEvidence({name:'Invented Player',birth_year:2002},evidence,sources).valid,false);
+});
+
+test('candidate validation rejects evidence URLs not supplied by the research result',()=>{
+ const sources=[{url:'https://club.example/player',title:'Rising prospect Karim Adeyemi born 2002',content:'Karim Adeyemi is a forward born in 2002.'}];
+ const evidence=[{source_url:'https://other.example/player',claim:'Karim Adeyemi born 2002'}];
+ assert.equal(validateMessinhoCandidateEvidence({name:'Karim Adeyemi',birth_year:2002},evidence,sources).valid,false);
+});
+
+test('optional candidate fields are retained only when supported by cited source text',()=>{
+ const sources=[{url:'https://club.example/player',title:'Karim Adeyemi 2002 Borussia Dortmund',content:'Karim Adeyemi plays for Borussia Dortmund.'}];
+ assert.equal(messinhoValueSupported('Borussia Dortmund',['https://club.example/player'],sources),true);
+ assert.equal(messinhoValueSupported('Bayern Munich',['https://club.example/player'],sources),false);
 });
