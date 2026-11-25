@@ -33,8 +33,8 @@ function buildSnapshot(player){
    limitations:['Dies ist eine transparente, regelbasierte Bestandsanalyse – kein trainiertes Prognosemodell.','Es wird keine zukünftige Leistung oder ein Marktwert vorhergesagt.','Die Aussagekraft hängt von Vollständigkeit, Aktualität und Vergleichbarkeit der Scoutbewertungen ab.','Private Kontaktdaten werden nicht geladen oder ausgewertet.']
  };
 }
-export default function ASIWorkspace({supabase,profile,players=[],admin=false,onNotice=()=>{}}){
- const [selectedId,setSelectedId]=useState('');
+export default function ASIWorkspace({supabase,profile,players=[],admin=false,onNotice=()=>{},initialPlayerId=null}){
+ const [selectedId,setSelectedId]=useState(initialPlayerId?String(initialPlayerId):'');
  const [analysis,setAnalysis]=useState(null);
  const [history,setHistory]=useState([]);
  const [feedback,setFeedback]=useState('');
@@ -68,6 +68,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
    setLoading(false);
  }
  useEffect(()=>{loadMeta();},[supabase,admin]);
+ useEffect(()=>{if(initialPlayerId)setSelectedId(String(initialPlayerId));},[initialPlayerId]);
  useEffect(()=>{if(selectedId)loadHistory(selectedId);else{setAnalysis(null);setHistory([]);}},[selectedId]);
  async function runAnalysis(){
    if(!selected||!supabase)return;
