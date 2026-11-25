@@ -548,7 +548,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(searchMatch){
       const term=searchMatch[1].replace(/[.!?]+$/,'').trim().slice(0,100);
       if(term.length<2)return res.status(400).json({error:'Bitte nenne mindestens zwei Zeichen für die Spielersuche.'});
-      const safeTerm=term.replace(/[,%()]/g,' ').trim();
+      const safeTerm=term.replace(/[%,_()]/g,' ').trim();
       const [players,candidates]=await Promise.all([
         db.from('players').select('player_id,name,club,year,positions,foot').ilike('name','%'+safeTerm+'%').order('name').limit(10),
         db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status').eq('owner_id',ownerId).ilike('player_name','%'+safeTerm+'%').limit(10)
