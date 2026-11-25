@@ -101,7 +101,7 @@ export function buildMessinhoLearningProposal(calibrationRows,baselineProfiles,o
   if(examples.length<minExamples||uniquePlayers.size<10){report[group]={status:'insufficient_data',examples:examples.length,unique_players:uniquePlayers.size,required_examples:minExamples,required_unique_players:10};continue;}
   const base=validWeights(baselineProfiles?.[group],keys)||validWeights(Object.fromEntries(keys.map(k=>[k,1])),keys);
   const rows=examples.map(row=>({...row,vector:vectorFor(row,keys)})).filter(row=>row.vector.filter(v=>v!==null).length>=2);
-  const heldoutIds=new Set([...uniquePlayers].filter((_,i)=>i%5===0));
+  const heldoutIds=new Set([...uniquePlayers].sort().filter((_,i)=>i%5===0));
   const train=rows.filter(row=>!heldoutIds.has(row.player_id));
   const validation=rows.filter(row=>heldoutIds.has(row.player_id));
   if(train.length<Math.ceil(minExamples*.8)||validation.length<5){report[group]={status:'insufficient_validation_data',examples:rows.length,validation_examples:validation.length};continue;}
