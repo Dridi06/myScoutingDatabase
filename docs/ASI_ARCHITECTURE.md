@@ -58,3 +58,13 @@ Initiale Staging-Grundlage implementiert am 25.11.2026. Die Anwendung enthält j
 - Repository: Dridi06/myScoutingDatabase
 - Branch: main (Render staging service)
 - Production: NICHT geändert.
+
+## Selbstreflexion und kontrollierte Weiterentwicklung (Staging-Ausbaustufe)
+- Neue deterministische Komponente: `src/asi/selfReflection.js`, Version `asi_self_reflection@0.1.0`.
+- Prüft Ratingwerte gegen die aktuell implementierte Skala 1–5, erkennt fehlende/geringe Datenabdeckung, Skalenabweichungen, ungültige Rollen-Fit-Werte und Widersprüche zwischen Stärken-/Schwächenlabels.
+- Vergleicht Modellkandidaten anhand gleicher Outcome-Metriken. Eine Kandidatenversion wird nur bei ausreichender Zahl verifizierter Outcomes und definierter Mindestverbesserung als für eine menschliche Freigabe geeignet markiert.
+- Modellpromotion bleibt ausdrücklich manuell; die Engine kann keine produktiven Modelle oder Bewertungen selbstständig überschreiben.
+- Vergleicht zeitlich getrennte Beobachtungen nur auf gemeinsamen Kriterien und kennzeichnet unzureichende Vergleichsgrundlagen.
+- Tests: `tests/selfReflection.test.js`; Aufruf über `npm test`.
+- Diese Stufe ist eine deterministische Qualitäts- und Reflexionsgrundlage, noch keine autonome LLM-Forschungsinstanz, kein trainierendes ML-Modell und kein Live-Lernworker.
+- Nächste Ausbaustufen: sichere Einbindung in ASIWorkspace, persistierte Reflexionsberichte, Admin-Review-Queue, Benchmark-Datensätze, Python-Worker für zeitlich getrenntes Training/Backtesting und später kontrollierte Recherche-Adapter für externe KI-/Fachquellen.
