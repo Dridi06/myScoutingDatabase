@@ -18,7 +18,6 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   const [error,setError]=useState('');
   const [learningPlayers,setLearningPlayers]=useState([]);
   const [selectedLearningPlayer,setSelectedLearningPlayer]=useState('');
-  const [outcomeMetric,setOutcomeMetric]=useState('Leistungsniveau nach 12 Monaten');
   const [calibrationDrafts,setCalibrationDrafts]=useState({});
   const [learningData,setLearningData]=useState(null);
   const [learningBusy,setLearningBusy]=useState(false);
@@ -93,7 +92,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     if(!selectedLearningPlayer){setLearningError('Bitte zuerst einen Spieler auswählen.');return;}
     setLearningBusy(true);setLearningError('');
     try{
-      const payload=await learningRequest('/api/messinho/calibration','POST',{player_id:Number(selectedLearningPlayer),outcome_metric:outcomeMetric});
+      const payload=await learningRequest('/api/messinho/calibration','POST',{player_id:Number(selectedLearningPlayer)});
       await loadLearningStatus();
       setMessages(prev=>[...prev,{id:'calibration-'+Date.now(),role:'assistant',text:payload.message||'Kalibrierung gespeichert.'}]);
     }catch(e){setLearningError(e.message||'Kalibrierung konnte nicht gespeichert werden.');}
@@ -149,7 +148,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       <div className="messinho-learning-summary"><strong>MESSINHO · Lern- und Kalibrierungssystem</strong><small>{learningData?.calibration_count??'–'} Kalibrierungen · {learningData?.active_model?.version?'Aktives Modell '+learningData.active_model.version:'Positions-Basisprofil aktiv'}</small><small>Nur administrativ verifizierte Ergebnisse fließen in neue Modellversionen ein.</small></div>
       <div className="messinho-calibration-entry">
         <label>Spieler auswählen<select value={selectedLearningPlayer} onChange={e=>setSelectedLearningPlayer(e.target.value)}><option value="">Spieler aus deiner Datenbank wählen</option>{learningPlayers.map(player=><option key={player.player_id} value={player.player_id}>{player.name} · {player.positions.join(', ')} · MESSINHO {player.messinho_rating}/100</option>)}</select></label>
-        <label>Später überprüfbares Ergebnis<input value={outcomeMetric} onChange={e=>setOutcomeMetric(e.target.value)} maxLength={160} placeholder="z. B. Leistungsniveau nach 12 Monaten"/></label>
+        <small className="messinho-metric-label">Einheitliche Messgröße: Leistungsniveau nach 12 Monaten (0–100)</small>
         <button type="button" disabled={learningBusy||!selectedLearningPlayer} onClick={saveCalibration}>{learningBusy?'Speichert …':'Kalibrierung erfassen'}</button>
       </div>
       {learningError&&<p role="alert">{learningError}</p>}
