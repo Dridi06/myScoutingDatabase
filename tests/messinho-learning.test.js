@@ -66,3 +66,15 @@ test('ignores null and empty target outcomes instead of converting them to zero'
  assert.equal(result.status,'no_proposal');
  assert.equal(result.report.centreBack,undefined);
 });
+
+test('learning proposal is reproducible when the same verified records arrive in a different order',()=>{
+ const rows=Array.from({length:60},(_,i)=>{
+  const technical=(i*37)%101,tactical=(i*53+17)%101,athletic=(i*29+43)%101,mental=(i*71+11)%101;
+  return {player_id:'player-'+i,position_group:'centreBack',target_score:technical,dimension_scores:{technical,tactical,athletic,mental}};
+ });
+ const baseline={centreBack:{technical:.2,tactical:.35,athletic:.25,mental:.2}};
+ const first=buildMessinhoLearningProposal(rows,baseline);
+ const second=buildMessinhoLearningProposal(rows.slice().reverse(),baseline);
+ assert.deepEqual(first.profiles,second.profiles);
+ assert.deepEqual(first.report,second.report);
+});
