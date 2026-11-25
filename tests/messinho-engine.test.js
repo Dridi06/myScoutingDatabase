@@ -29,3 +29,11 @@ test('history sanitizer limits, validates roles and truncates text',()=>{
  assert.equal(safe.length,10);assert.equal(safe.at(-1).text.length,1200);assert.ok(safe.every(x=>['user','assistant'].includes(x.role)));
  assert.deepEqual(sanitizeMessinhoHistory({bad:true}),[]);
 });
+
+test('uses only an approved position profile when one is supplied',()=>{
+ const candidate={positions:['Innenverteidiger'],analysis:{ratings:{technical:100,tactical:0,athletic:0,mental:0}}};
+ const base=scoreMessinhoPlayer(candidate);
+ const learned=scoreMessinhoPlayer(candidate,{centreBack:{technical:.7,tactical:.1,athletic:.1,mental:.1}});
+ assert.equal(base.score,20);
+ assert.equal(learned.score,70);
+});
