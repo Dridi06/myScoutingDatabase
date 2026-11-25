@@ -1,0 +1,34 @@
+name: MESSINHO validation
+on:
+  push:
+    branches:
+      - feature/messinho-agent-workspace
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'src/asi/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'vite.config.*'
+      - '.github/workflows/messinho-validation.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run MESSINHO unit tests
+        run: npm test
+      - name: Build frontend
+        run: npm run build
