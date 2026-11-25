@@ -2,7 +2,7 @@ import React,{useCallback,useEffect,useState} from 'react';
 import {Search,BrainCircuit,Save,RefreshCw,ExternalLink,ShieldCheck,AlertTriangle,Star,Users,Activity,Clock3} from 'lucide-react';
 import './playerSearch.css';
 
-const pct=n=>Number.isFinite(Number(n))?Math.round(Number(n)*100)+'%':'Nicht bewertet';
+const pct=n=>n===null||n===undefined||n===''?'Nicht bewertet':Number.isFinite(Number(n))?Math.round(Number(n)*100)+'%':'Nicht bewertet';
 const list=v=>Array.isArray(v)?v:[];
 export default function PlayerSearchWorkspace({supabase,profile,admin=false,onNotice=()=>{}}){
  const [query,setQuery]=useState('');
