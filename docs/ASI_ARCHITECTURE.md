@@ -70,3 +70,9 @@ Initiale Staging-Grundlage implementiert am 25.11.2026. Die Anwendung enthält j
 - CI: `.github/workflows/asi-quality.yml` führt Tests und Frontend-Build bei Push/Pull Request auf `main` aus.
 - Diese Stufe ist eine deterministische Qualitäts- und Reflexionsgrundlage, noch keine autonome LLM-Forschungsinstanz, kein trainierendes ML-Modell und kein Live-Lernworker.
 - Noch offen: Admin-Review-Queue, Benchmark-Datensätze, Python-Worker für zeitlich getrenntes Training/Backtesting, kontrollierte Recherche-Adapter für externe KI-/Fachquellen sowie produktive Modellfreigabe-/Rollback-Automation.
+
+
+## Master Blueprint — Erweiterte Intelligence-Architektur (25.11.2026)
+Die verbindliche Ausbauarchitektur liegt in [ASI_MASTER_BLUEPRINT_2026-11-25.md](./ASI_MASTER_BLUEPRINT_2026-11-25.md). Sie erweitert ASI um Contract Intelligence, Vertrags-/Leistungs-Zeitreihenanalyse, Availability & Injury Evidence, Workload, Performance Development, Tactical Fit, Transfer Opportunity Intelligence, evidenzbasierte Disziplininformationen, Quellenprüfung, Identitätsauflösung, Admin-Review, geplante Provider-Adapter und kontrolliertes Continuous Learning.
+
+Wichtig: Dies ist zunächst eine Architektur- und Sicherheitsfestlegung, keine Behauptung, dass externe Recherche oder ML bereits live funktionieren. Externe Quellen, insbesondere Gesundheitsdaten, bleiben bis zur dokumentierten Lizenz-, Datenschutz- und Rechtsfreigabe deaktiviert. Produktionsumgebung bleibt unangetastet.
