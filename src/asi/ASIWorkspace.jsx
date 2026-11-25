@@ -37,6 +37,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  const [selectedId,setSelectedId]=useState(initialPlayerId?String(initialPlayerId):'');
  const [analysis,setAnalysis]=useState(null);
  const [history,setHistory]=useState([]);
+ const [observations,setObservations]=useState([]);
  const [feedback,setFeedback]=useState('');
  const [feedbackComment,setFeedbackComment]=useState('');
  const [observation,setObservation]=useState('');
@@ -59,6 +60,12 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
    if(!m.error)setModels(m.data||[]);
    if(!s.error)setExternalSources(s.data||[]);
  }
+ async function loadObservations(playerId){
+   if(!supabase||!playerId)return;
+   const {data,error:loadError}=await supabase.from('asi_player_observations').select('id,player_id,observed_on,ratings,observation,source_type,created_at,created_by').eq('player_id',Number(playerId)).order('observed_on',{ascending:false}).order('created_at',{ascending:false}).limit(20);
+   if(loadError){setError('ASI-Beobachtungen konnten nicht geladen werden.');setObservations([]);}
+   else setObservations(data||[]);
+ }
  async function loadHistory(playerId){
    if(!supabase||!playerId)return;
    setLoading(true);setError('');
@@ -69,7 +76,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  }
  useEffect(()=>{loadMeta();},[supabase,admin]);
  useEffect(()=>{if(initialPlayerId)setSelectedId(String(initialPlayerId));},[initialPlayerId]);
- useEffect(()=>{if(selectedId)loadHistory(selectedId);else{setAnalysis(null);setHistory([]);}},[selectedId]);
+ useEffect(()=>{if(selectedId){loadHistory(selectedId);loadObservations(selectedId);}else{setAnalysis(null);setHistory([]);setObservations([]);}},[selectedId]);
  async function runAnalysis(){
    if(!selected||!supabase)return;
    setBusy(true);setError('');setFeedback('');
@@ -97,7 +104,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
        observed_on:observationDate,ratings:selected.ratings||{},observation:observation.trim()||null,source_type:'internal_scout'
      });
      if(saveError)throw saveError;
-     setObservation('');onNotice('Beobachtung wurde in der ASI-Zeitleiste gespeichert.');
+     setObservation('');await loadObservations(selectedId);onNotice('Beobachtung wurde in der ASI-Zeitleiste gespeichert.');
    }catch(e){setError(e.message||'Beobachtung konnte nicht gespeichert werden.');}
    finally{setBusy(false);}
  }
@@ -120,7 +127,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
    <div className="asi-hero">
      <div className="asi-hero-mark"><BrainCircuit size={28}/></div>
      <div><span className="asi-eyebrow">ADAPTIVE SCOUTING INTELLIGENCE</span><h1>Scouting Intelligence</h1><p>Analysen, Beobachtungen und Modellqualität – transparent und nachvollziehbar.</p></div>
-     <button type="button" className="asi-refresh" onClick={()=>{loadMeta();if(selectedId)loadHistory(selectedId)}} title="Aktualisieren"><RefreshCw size={17}/></button>
+     <button type="button" className="asi-refresh" onClick={()=>{loadMeta();if(selectedId){loadHistory(selectedId);loadObservations(selectedId);}}} title="Aktualisieren"><RefreshCw size={17}/></button>
    </div>
    <div className="asi-stat-grid">
      <article><span>Spielerprofile</span><strong>{players.length}</strong><small>Im aktuellen Zugriff</small></article>
@@ -154,6 +161,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
      <form onSubmit={saveObservation} className="asi-observation-form"><label>Beobachtungsdatum<input type="date" value={observationDate} onChange={e=>setObservationDate(e.target.value)} required/></label><label>Beobachtungsnotiz<textarea value={observation} onChange={e=>setObservation(e.target.value)} maxLength={5000} placeholder="Beobachtbare Spielsituationen, Kontext, Gegnerniveau und konkrete Beispiele – keine privaten Kontaktdaten."/></label><button type="submit" disabled={busy}><Save size={15}/> Beobachtung speichern</button></form>
      <p className="asi-footnote">Die aktuelle Spielerbewertung wird als Snapshot mitgespeichert. Künftige Bewertungen können so zeitlich miteinander verglichen werden.</p>
    </section>}
+   {selected&&<section className="asi-panel asi-history-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">TALENT EVOLUTION</span><h2>Beobachtungsverlauf</h2></div><Clock3 size={20}/></div>{observations.length===0?<p className="asi-empty">Noch keine Beobachtungen gespeichert. Neue Einträge erscheinen hier chronologisch.</p>:<div className="asi-history-list">{observations.map(o=><article className="asi-observation-entry" key={o.id}><div className="asi-result-top"><strong>{new Date(o.observed_on+'T12:00:00').toLocaleDateString('de-DE')}</strong><small>{o.source_type==='internal_scout'?'Interner Scout':'Quelle: '+o.source_type}</small></div>{o.observation&&<p>{o.observation}</p>}<small>{Object.keys(o.ratings||{}).length} Bewertungsfelder im Snapshot · erfasst {new Date(o.created_at).toLocaleString('de-DE')}</small></article>)}</div>}</section>}
    {selected&&<section className="asi-panel asi-history-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">MODEL HISTORY</span><h2>Frühere Analysen</h2></div><TrendingUp size={20}/></div>{loading?<p className="asi-empty">Analysen werden geladen…</p>:history.length===0?<p className="asi-empty">Für diesen Spieler gibt es noch keine gespeicherten ASI-Analysen.</p>:<div className="asi-history-list">{history.map(h=><button type="button" key={h.id} className={analysis?.id===h.id?'selected':''} onClick={()=>openHistory(h)}><span><strong>{h.analysis_type}</strong><small>{new Date(h.created_at).toLocaleString('de-DE')}</small></span><span>{h.model_version}</span></button>)}</div>}</section>}
    {admin&&<section className="asi-admin-grid"><section className="asi-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">META INTELLIGENCE</span><h2>Modellregister</h2></div><ShieldCheck size={20}/></div>{models.length===0?<p className="asi-empty">Noch keine Modellversionen registriert.</p>:models.map(m=><div className="asi-model-row" key={m.id}><span><strong>{m.model_key} · {m.version}</strong><small>{m.model_family}</small></span><span className={'asi-model-status '+m.status}>{m.status}</span></div>)}</section><section className="asi-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">HYBRID DATA</span><h2>Externe Datenquellen</h2></div><Database size={20}/></div>{externalSources.length===0?<p className="asi-empty">Noch keine Datenquelle registriert. Externe Quellen werden erst nach Lizenz- und Datenschutzprüfung freigeschaltet.</p>:externalSources.map(s=><div className="asi-model-row" key={s.id}><span><strong>{s.source_name}</strong><small>{s.provider||s.source_type}</small></span><span className={'asi-model-status '+s.license_status}>{s.license_status}</span></div>)}</section></section>}
  </section>;
