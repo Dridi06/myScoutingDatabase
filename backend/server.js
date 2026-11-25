@@ -512,7 +512,7 @@ const agentChatLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:t
 app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
-    const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+    const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
     if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
     const {data:authData,error:authError}=await db.auth.getUser(token);
     if(authError||!authData?.user)return res.status(401).json({error:'Sitzung ungültig oder abgelaufen.'});
@@ -523,10 +523,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(message.length<1)return res.status(400).json({error:'Bitte gib eine Nachricht ein.'});
     const normalized=message.toLocaleLowerCase('de-DE').normalize('NFKC');
     const ownerId=authData.user.id;
-    const help=/\\b(hilfe|was kannst du|befehle|funktionen)\\b/.test(normalized);
+    const help=/\b(hilfe|was kannst du|befehle|funktionen)\b/.test(normalized);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
-    const wantsSummary=/\\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\\b/.test(normalized);
-    const searchMatch=message.match(/(?:suche|finde|such|zeige|zeig)\\s+(?:mir\\s+)?(?:den spieler|die spielerin|spieler|spielerin|kandidat|kandidaten)?\\s*[:'"]?(.{2,100})$/i);
+    const wantsSummary=/\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\b/.test(normalized);
+    const searchMatch=message.match(/(?:suche|finde|such|zeige|zeig)\s+(?:mir\s+)?(?:den spieler|die spielerin|spieler|spielerin|kandidat|kandidaten)?\s*[:'"]?(.{2,100})$/i);
     if(help){
       return res.json({reply:'Ich bin Messinho, dein Scouting-Agent in myScoutingDatabase. In dieser ersten Ausbaustufe kann ich deinen Kandidatenbestand zusammenfassen, gespeicherte Kandidaten anzeigen und Spieler in der vorhandenen Datenbank suchen. Die autonome Quellenrecherche, tägliche Datenpflege und fortlaufende Modell-Evaluation werden schrittweise ergänzt.',intent:'help',items:[]});
     }
