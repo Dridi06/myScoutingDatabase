@@ -664,10 +664,10 @@ app.post('/api/messinho/learning/evaluate',async(req,res)=>{
     if(error)return res.status(500).json({error:'Verifizierte Kalibrierungsdaten konnten nicht geladen werden. Staging-Migration prüfen.'});
     const active=await getActiveMessinhoModel();
     const baselineProfiles={...MESSINHO_DEFAULT_WEIGHTS,...(active?.configuration?.profiles||{})};
-    const trainingRows=(records||[]).map(row=>({player_id:String(row.player_id),position_group:row.messinho_position_group,target_score:Number(row.verified_outcome),dimension_scores:row.messinho_dimension_scores||{},created_at:row.created_at}));
+    const trainingRows=(records||[]).map(row=>({record_id:row.id,player_id:String(row.player_id),position_group:row.messinho_position_group,target_score:Number(row.verified_outcome),dimension_scores:row.messinho_dimension_scores||{},outcome_observed_on:row.outcome_observed_on,created_at:row.created_at}));
     const proposal=buildMessinhoLearningProposal(trainingRows,baselineProfiles);
-    const ids=(records||[]).map(row=>row.id).sort();
-    const fingerprint=createHash('sha256').update(ids.join('|')).digest('hex');
+    const fingerprintPayload=trainingRows.slice().sort((a,b)=>String(a.record_id).localeCompare(String(b.record_id)));
+    const fingerprint=createHash('sha256').update(JSON.stringify(fingerprintPayload)).digest('hex');
     const latestObserved=records?.at(-1)?.outcome_observed_on;
     const cutoff=latestObserved?new Date(latestObserved+'T23:59:59.999Z').toISOString():startedAt;
     const trainingConfig={learning_version:proposal.learning_version,engine_version:'1.1.0',source_table:'asi_scout_calibration_records',source_filter:'verification_status=verified AND outcome_metric=MESSINHO_CALIBRATION_METRIC',outcome_metric:MESSINHO_CALIBRATION_METRIC,minimum_examples_per_position:30,minimum_unique_players:10};
