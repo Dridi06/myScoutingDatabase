@@ -101,3 +101,30 @@
 @media(max-width:600px){.messinho-development-panel{padding:13px}.messinho-development-actions{display:grid}.messinho-development-actions button{width:100%}}
 
 .messinho-match-events-label{display:grid;gap:7px;font-size:12px;color:var(--messinho-muted,#aaa)}.messinho-match-events-label textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:76px;border:1px solid rgba(255,255,255,.13);border-radius:9px;background:rgba(0,0,0,.22);color:inherit;padding:10px;font:11px/1.5 ui-monospace,monospace}
+
+/* Unified myScoutingDatabase visual identity: graphite, stadium red and silver */
+.messinho-workspace{--messinho-panel:rgba(25,26,31,.96);--messinho-border:rgba(190,196,207,.19);--messinho-muted:#a5aab4;color:#f2f3f5}
+.messinho-workspace .messinho-hero{background:radial-gradient(ellipse at 90% 0%,rgba(255,38,63,.16),transparent 42%),linear-gradient(125deg,#191a20,#090a0e 78%);border:1px solid rgba(255,62,82,.3);box-shadow:0 18px 45px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.06)}
+.messinho-workspace .messinho-emblem{background:linear-gradient(145deg,#f4f5f7,#9299a5 58%,#555b66);border-color:rgba(255,255,255,.3);color:#15161b;box-shadow:0 0 22px rgba(255,255,255,.09)}
+.messinho-workspace .messinho-hero-copy>span,.messinho-workspace .messinho-chat-heading>div>span{color:#ff8793}
+.messinho-workspace .messinho-overview>div,.messinho-workspace .messinho-chat-card,.messinho-workspace .messinho-roadmap{--panel:rgba(25,26,31,.96);--border:rgba(190,196,207,.19);--text:#f2f3f5;--muted:#a5aab4;background:linear-gradient(145deg,rgba(29,29,35,.97),rgba(10,11,15,.98));border-color:var(--messinho-border);color:#f2f3f5;box-shadow:0 15px 38px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.05)}
+.messinho-workspace .messinho-overview svg,.messinho-workspace .messinho-roadmap b{color:#ff8793}.messinho-workspace .messinho-overview small,.messinho-workspace .messinho-roadmap,.messinho-workspace .messinho-footnote{color:#a5aab4}
+.messinho-workspace .messinho-learning-panel,.messinho-workspace .messinho-capability-panel,.messinho-workspace .messinho-development-panel{background:radial-gradient(ellipse at 100% 0%,rgba(255,38,63,.07),transparent 48%),linear-gradient(145deg,rgba(27,28,34,.97),rgba(10,11,15,.98));border-color:rgba(255,65,84,.24);box-shadow:0 15px 38px rgba(0,0,0,.2)}
+.messinho-workspace .messinho-learning-panel strong,.messinho-workspace .messinho-learning-summary strong,.messinho-workspace .messinho-capability-panel .messinho-learning-summary strong,.messinho-workspace .messinho-development-result strong,.messinho-workspace .messinho-calibration-review>b{color:#f0f1f3}
+.messinho-workspace .messinho-learning-panel small,.messinho-workspace .messinho-learning-summary small,.messinho-workspace .messinho-metric-label,.messinho-workspace .messinho-calibration-review>small{color:#a5aab4}
+.messinho-workspace .messinho-calibration-entry label,.messinho-workspace .messinho-review-fields label,.messinho-workspace .messinho-fit-context label,.messinho-workspace .messinho-fit-attributes label,.messinho-workspace .messinho-capability-controls label{color:#b9bdc5}
+.messinho-workspace input,.messinho-workspace select,.messinho-workspace textarea{background:rgba(5,6,9,.76)!important;border:1px solid rgba(185,192,204,.24)!important;color:#f3f4f6!important}.messinho-workspace input::placeholder,.messinho-workspace textarea::placeholder{color:#858b96}
+.messinho-workspace button{background:linear-gradient(110deg,#ff263f,#bd102b 62%,#850b20);border:1px solid rgba(255,105,123,.42);color:#fff;box-shadow:0 7px 20px rgba(255,24,55,.14)}
+.messinho-workspace button.secondary,.messinho-workspace .messinho-voice-toggle,.messinho-workspace .messinho-suggestions button{background:rgba(255,255,255,.035);border:1px solid rgba(190,196,207,.24);color:#e7e8eb;box-shadow:none}
+.messinho-workspace .messinho-suggestions button:hover,.messinho-workspace .messinho-voice-toggle:hover{border-color:rgba(255,65,84,.45);background:rgba(255,38,63,.09)}
+.messinho-workspace .messinho-messages{background:rgba(0,0,0,.28);border:1px solid rgba(190,196,207,.12)}.messinho-workspace .messinho-bubble{background:rgba(35,36,42,.96);border-color:rgba(190,196,207,.18);color:#f0f1f3}
+.messinho-workspace .messinho-message.user .messinho-bubble{background:rgba(255,38,63,.12);border-color:rgba(255,65,84,.28);color:#f4f4f5}
+.messinho-workspace .messinho-avatar,.messinho-workspace .messinho-message.user .messinho-avatar{background:linear-gradient(145deg,#d8dbe0,#777e89);color:#17181d}
+.messinho-workspace .messinho-bubble>small,.messinho-workspace .messinho-result-icon{color:#ff8793}
+.messinho-workspace .messinho-results .messinho-result-row,.messinho-workspace .messinho-calibration-review,.messinho-workspace .messinho-development-result,.messinho-workspace .messinho-capability-result{background:rgba(255,255,255,.035);border:1px solid rgba(190,196,207,.15)}
+.messinho-workspace .messinho-metrics span,.messinho-workspace .messinho-fit-result{background:rgba(255,38,63,.1);color:#f0f1f3}.messinho-workspace .messinho-fit-result strong{color:#ff9aa5}
+.messinho-workspace .messinho-fit-result small,.messinho-workspace .messinho-capability-result pre,.messinho-workspace .messinho-development-result pre{color:#c0c3ca}
+.messinho-workspace .messinho-composer{border-color:rgba(190,196,207,.24);background:rgba(0,0,0,.24)}.messinho-workspace .messinho-composer input{border:0!important;background:transparent!important}
+.messinho-workspace .messinho-mic{background:linear-gradient(145deg,#d8dbe0,#777e89);color:#17181d}.messinho-workspace .messinho-mic.active{background:#7f1d2a;color:#fff}.messinho-workspace .messinho-send{background:linear-gradient(110deg,#ff263f,#bd102b);color:#fff}
+.messinho-workspace .messinho-error{background:rgba(255,38,63,.12);color:#ff9aa5}.messinho-workspace .messinho-roadmap strong{color:#f2f3f5}
+.messinho-workspace .messinho-prediction-row{border-color:rgba(190,196,207,.16)}.messinho-workspace .messinho-source-link a{color:#ff9aa5}
