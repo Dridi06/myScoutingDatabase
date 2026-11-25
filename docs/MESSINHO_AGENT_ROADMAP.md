@@ -11,7 +11,12 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 - Erste deterministische Intent-Verarbeitung ohne OpenAI- oder Tavily-Abhängigkeit.
 - Unterstützte Leseaktionen: Datenbestandsübersicht, persönliche Kandidaten anzeigen, Spieler im zentralen Spielerkatalog und persönlichen Kandidatenbestand suchen.
 - Endpunkt prüft Supabase-Access-Token und Profilrolle, begrenzt Anfragen und führt nur lesende Abfragen aus.
-- Der Agent führt in dieser Ausbaustufe keine externe Recherche, keine Schreiboperationen und keine autonomen Modelländerungen aus.
+- MESSINHO kann strukturierte Scouting-Anfragen mit Rückfragen zu Jahrgang, Position, Standort und Zielspielklasse entgegennehmen.
+- Bei vollständigen Kriterien delegiert MESSINHO die Recherche an den bestehenden Endpunkt `/api/asi/player-search` im Modus `discover`; es wird keine zweite Recherche-Engine angelegt.
+- Die vorhandene ASI-Pipeline nutzt weiterhin Tavily für Quellensuche und OpenAI für die quellengebundene Kandidatenanalyse; neue Treffer werden über die vorhandene Kandidatenlogik gespeichert.
+- Der Dialog übergibt einen begrenzten Gesprächskontext, damit Rückfragen die ursprüngliche Suche ergänzen.
+- Die ASI-Pipeline bleibt für die Recherche und Kandidatenpersistenz verantwortlich; MESSINHO übernimmt Dialog, Orchestrierung und Ergebnisdarstellung.
+- Die erste Anbindung ist ein Entwicklungsstand und noch nicht als produktiv getestet oder live freigegeben.
 
 ## Verbindliche Zielarchitektur
 1. Quellen- und Lizenzregister: Nur Quellen mit dokumentierter Rechtsgrundlage und erlaubter Nutzungsart freischalten.
@@ -30,8 +35,9 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 - Keine stillen Überschreibungen: alte Datenstände und Bewertungen bleiben nachvollziehbar.
 
 ## Nächste Schritte
-1. Dedizierte myScoutingDatabase-Staging-Instanz bereitstellen bzw. bestätigen.
-2. Build- und Integrationstests für den neuen Agenten ausführen.
-3. Chat-Intent-Tests und Berechtigungstests ergänzen.
-4. Datenquellenregister und tägliche Scheduler-Komponente implementieren.
-5. Erst nach rechtlicher Quellenfreigabe die Hintergrundrecherche aktivieren.
+1. Dialogtests für Jahrgang, Position, Standort, Rückfragen und Zielspielklasse ergänzen.
+2. Rechercheparameter und Standort-/Positionsfilter in der bestehenden ASI-Pipeline deterministisch validieren.
+3. Ranking-Ausgabe, Fit-Score und Datenqualität mit echten Beispieldaten evaluieren; keine erfundenen Scores.
+4. Dedizierte myScoutingDatabase-Staging-Instanz bereitstellen bzw. bestätigen und Build-/Integrationstests ausführen.
+5. Berechtigungs-, Eigentümer- und Rate-Limit-Tests für die Orchestrierung ergänzen.
+6. Quellenregister und tägliche Scheduler-Komponente implementieren; Hintergrundrecherche erst nach Quellenfreigabe aktivieren.
