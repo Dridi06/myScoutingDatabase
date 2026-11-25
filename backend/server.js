@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { createClient } from '@supabase/supabase-js';
 import { parseMessinhoScoutingRequest, matchesPosition, sourceSupportsRegion } from './messinho-validation.js';
+import { correctMessinhoInput } from './messinho-input-correction.js';
 import { rankMessinhoPlayers, sanitizeMessinhoHistory, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
@@ -956,18 +957,20 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const message=typeof req.body?.message==='string'?req.body.message.trim().slice(0,1200):'';
     if(!message)return res.status(400).json({error:'Bitte gib eine Nachricht ein.'});
     const history=sanitizeMessinhoHistory(req.body?.history);
-    const dialog=parseMessinhoScoutingRequest(message,history);
+    const correction=correctMessinhoInput(message);
+    const interpretedMessage=correction.corrected;
+    const dialog=parseMessinhoScoutingRequest(interpretedMessage,history);
     const ownerId=authData.user.id;
     const actor={user:authData.user,profile};
-    const normalized=message.toLocaleLowerCase('de-DE').normalize('NFKC');
+    const normalized=interpretedMessage.toLocaleLowerCase('de-DE').normalize('NFKC');
     const help=/\b(hilfe|was kannst du|befehle|funktionen)\b/.test(normalized);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
     const wantsComparison=/\b(vergleiche|vergleich|rangliste|ranking|bewerte meine kandidaten)\b/.test(normalized);
     const wantsSummary=/\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\b/.test(normalized);
     if(dialog.shouldHandle){
-      if(dialog.missing.length)return res.json({reply:'Damit ich die Suche sauber eingrenzen kann, brauche ich noch: '+dialog.missing.join(', ')+'.',intent:'scouting_clarification',items:[],pending:true});
+      if(dialog.missing.length)return res.json({reply:'Damit ich die Suche sauber eingrenzen kann, brauche ich noch: '+dialog.missing.join(', ')+'.',intent:'scouting_clarification',items:[],pending:true,input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}: {applied:false}});
       const {quantity,yearFrom,yearTo,position,region,targetLevel}=dialog.request;
-      if(dialog.needsTargetLevel)return res.json({reply:'Verstanden. Ich suche '+quantity+' Spieler, Jahrgang '+yearFrom+(yearTo!==yearFrom?' bis '+yearTo:'')+', Position '+position+', Standort '+region+'. Welches Zielniveau soll ich berücksichtigen: Bundesliga, 2. Bundesliga, 3. Liga, Regionalliga oder Oberliga?',intent:'scouting_clarification',items:[],pending:true,request:{quantity,yearFrom,yearTo,position,region}});
+      if(dialog.needsTargetLevel)return res.json({reply:'Verstanden. Ich suche '+quantity+' Spieler, Jahrgang '+yearFrom+(yearTo!==yearFrom?' bis '+yearTo:'')+', Position '+position+', Standort '+region+'. Welches Zielniveau soll ich berücksichtigen: Bundesliga, 2. Bundesliga, 3. Liga, Regionalliga oder Oberliga?',intent:'scouting_clarification',items:[],pending:true,request:{quantity,yearFrom,yearTo,position,region},input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
       const modelYear=new Date().getFullYear();
       const ageMin=Math.max(16,Math.min(30,modelYear-yearTo));
       const ageMax=Math.max(ageMin,Math.min(30,modelYear-yearFrom));
@@ -979,28 +982,28 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const activeModel=await getActiveMessinhoModel();
       const ranked=rankMessinhoPlayers(candidates,activeModel?.configuration?.profiles||null).slice(0,quantity);
       const reply='Die Recherche wurde über die vorhandene ASI-Quellenpipeline ausgeführt und anschließend durch MESSINHOs eigene positionsgewichtete Bewertungslogik sortiert. Ich habe '+candidates.length+' belegte Kandidaten erhalten und zeige '+ranked.length+' davon. Zielniveau: '+targetLevel+'. '+(payload.underfilled?'Die gewünschte Anzahl konnte mit der verfügbaren Quellenlage nicht vollständig belegt werden.':'Nicht belegte Leistungswerte wurden nicht geschätzt.');
-      return res.json({reply,intent:'scouting_results',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null,requested:{quantity,yearFrom,yearTo,position,region,targetLevel},sources:payload.sources||[],source_count:payload.source_count||0,saved_count:payload.saved_count||0,duplicate_count:payload.duplicate_count||0,underfilled:!!payload.underfilled,provider:payload.provider||null,limitations:payload.limitations||[]});
+      return res.json({reply,intent:'scouting_results',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null,requested:{quantity,yearFrom,yearTo,position,region,targetLevel},sources:payload.sources||[],source_count:payload.source_count||0,saved_count:payload.saved_count||0,duplicate_count:payload.duplicate_count||0,underfilled:!!payload.underfilled,provider:payload.provider||null,limitations:payload.limitations||[],input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
     }
-    if(help)return res.json({reply:'Ich bin MESSINHO, die zentrale KI von myScoutingDatabase. Ich steuere vorhandene Recherche- und Analysefunktionen und frage fehlende Suchkriterien nach. Weitere Plattformmodule werden schrittweise angebunden.',intent:'help',items:[]});
+    if(help)return res.json({reply:'Ich bin MESSINHO, die zentrale KI von myScoutingDatabase. Ich steuere vorhandene Recherche- und Analysefunktionen und frage fehlende Suchkriterien nach. Weitere Plattformmodule werden schrittweise angebunden.',intent:'help',items:[],input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
     if(wantsComparison){
       const {data,error}=await db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status,analysis,sources,researched_at').eq('owner_id',ownerId).order('researched_at',{ascending:false}).limit(50);
       if(error)return res.status(500).json({error:'Deine Kandidaten konnten für den Vergleich nicht geladen werden.'});
       const activeModel=await getActiveMessinhoModel();
       const ranked=rankMessinhoPlayers(data||[],activeModel?.configuration?.profiles||null);
-      return res.json({reply:'Ich habe deine Kandidaten nach den verfügbaren positionsspezifischen Leistungsdaten sortiert. Nicht belegte Werte wurden nicht geschätzt; Kandidaten ohne ausreichende Daten erhalten keinen Score.',intent:'comparison',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null});
+      return res.json({reply:'Ich habe deine Kandidaten nach den verfügbaren positionsspezifischen Leistungsdaten sortiert. Nicht belegte Werte wurden nicht geschätzt; Kandidaten ohne ausreichende Daten erhalten keinen Score.',intent:'comparison',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null,input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
     }
     if(wantsSummary){
       const playerCountQuery=scopeMessinhoOwner(db.from('players').select('player_id',{count:'exact',head:true}),actor);
       const [playerCount,candidateCount]=await Promise.all([playerCountQuery,db.from('asi_player_candidates').select('id',{count:'exact',head:true}).eq('owner_id',ownerId)]);
       if(playerCount.error||candidateCount.error)return res.status(500).json({error:'Die Bestandsübersicht konnte nicht vollständig geladen werden.'});
-      return res.json({reply:'Aktueller Datenbestand: '+(playerCount.count||0)+' '+(profile.role==='admin'?'Spieler im Gesamtkatalog':'eigene Spieler')+' und '+(candidateCount.count||0)+' Kandidaten in deinem persönlichen Bereich.',intent:'summary',metrics:{players:playerCount.count||0,candidates:candidateCount.count||0},items:[]});
+      return res.json({reply:'Aktueller Datenbestand: '+(playerCount.count||0)+' '+(profile.role==='admin'?'Spieler im Gesamtkatalog':'eigene Spieler')+' und '+(candidateCount.count||0)+' Kandidaten in deinem persönlichen Bereich.',intent:'summary',metrics:{players:playerCount.count||0,candidates:candidateCount.count||0},items:[],input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
     }
     if(wantsCandidates){
       const {data,error}=await db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status,researched_at').eq('owner_id',ownerId).order('researched_at',{ascending:false}).limit(12);
       if(error)return res.status(500).json({error:'Deine Kandidaten konnten nicht geladen werden.'});
-      return res.json({reply:(data||[]).length?'Ich habe deine zuletzt recherchierten Kandidaten geladen.':'In deinem persönlichen Kandidatenbereich sind noch keine Einträge vorhanden.',intent:'candidates',items:data||[]});
+      return res.json({reply:(data||[]).length?'Ich habe deine zuletzt recherchierten Kandidaten geladen.':'In deinem persönlichen Kandidatenbereich sind noch keine Einträge vorhanden.',intent:'candidates',items:data||[],input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
     }
-    const searchMatch=message.match(/(?:suche|finde|such|zeige|zeig)\s+(?:mir\s+)?(?:den spieler|die spielerin|spieler|spielerin|kandidat|kandidaten)?\s*[:'"]?(.{2,100})$/i);
+    const searchMatch=interpretedMessage.match(/(?:suche|finde|such|zeige|zeig)\s+(?:mir\s+)?(?:den spieler|die spielerin|spieler|spielerin|kandidat|kandidaten)?\s*[:'"]?(.{2,100})$/i);
     if(searchMatch){
       const term=searchMatch[1].replace(/[.!?]+$/,'').trim().slice(0,100);
       const safeTerm=term.replace(/[%,_()]/g,' ').trim();
@@ -1008,9 +1011,9 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const [players,candidates]=await Promise.all([playerQuery,db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status').eq('owner_id',ownerId).ilike('player_name','%'+safeTerm+'%').limit(10)]);
       if(players.error||candidates.error)return res.status(500).json({error:'Die interne Spielersuche ist fehlgeschlagen.'});
       const items=[...(players.data||[]).map(p=>({kind:'Spielerkatalog',id:p.player_id,name:p.name,club:p.club,year:p.year,positions:p.positions||[],foot:p.foot})),...(candidates.data||[]).map(p=>({kind:'Kandidat',id:p.id,name:p.player_name,club:p.current_club,year:p.birth_year,positions:p.positions||[],recommendation:p.recommendation,status:p.status}))];
-      return res.json({reply:items.length?'Ich habe '+items.length+' gespeicherte Einträge gefunden.':'Ich habe keinen internen Treffer gefunden.',intent:'search',items});
+      return res.json({reply:items.length?'Ich habe '+items.length+' gespeicherte Einträge gefunden.':'Ich habe keinen internen Treffer gefunden.',intent:'search',items,input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
     }
-    return res.json({reply:'Ich habe deine Anfrage noch nicht eindeutig einem vorhandenen Modul zuordnen können. Beschreibe bitte Ziel, Spielerposition, Jahrgang und gewünschtes Leistungsniveau.',intent:'clarify',items:[]});
+    return res.json({reply:'Ich habe deine Anfrage noch nicht eindeutig einem vorhandenen Modul zuordnen können. Beschreibe bitte Ziel, Spielerposition, Jahrgang und gewünschtes Leistungsniveau.',intent:'clarify',items:[],input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
   }catch(error){console.error('Messinho agent chat failed:',error.message);return res.status(500).json({error:'Messinho konnte die Anfrage gerade nicht bearbeiten.'});}
 });
 
