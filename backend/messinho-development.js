@@ -21,14 +21,14 @@ export function buildMessinhoExplainableAssessment(player, modelProfiles = null)
     return {dimension,value,weight:round(weight,4),contribution:value===null?null:round(value*weight,2),status:value===null?'missing':'observed'};
   });
   const available = trace.filter(item=>item.value!==null);
-  const weightedContribution = mean(available.map(item=>item.contribution));
+  const weightedContribution = available.reduce((sum,item)=>sum+(item.contribution??0),0);
   const strengths = available.filter(item=>item.value>=75).sort((a,b)=>b.value-a.value);
   const developmentAreas = available.filter(item=>item.value<60).sort((a,b)=>a.value-b.value);
   return {
     score:scored.score,position_group:scored.position_group,evidence_coverage:scored.evidence_coverage,
     confidence:scored.confidence,engine_version:scored.engine_version,
     explanation:scored.explanation,weighted_dimensions:trace,
-    strengths,development_areas,
+    strengths,development_areas:developmentAreas,
     missing_dimensions:trace.filter(item=>item.status==='missing').map(item=>item.dimension),
     score_trace:{available_weight:round(available.reduce((sum,item)=>sum+item.weight,0),4),weighted_contribution:weightedContribution,normalization:'available weights are renormalized; missing dimensions are not imputed'},
     limitations:['Bewertung basiert ausschließlich auf gespeicherten numerischen Scout-Werten.','Keine Video- oder Spielbeobachtung wird ohne strukturierte Ereignisdaten behauptet.','Konfidenz beschreibt Datenabdeckung, nicht statistisch kalibrierte Trefferwahrscheinlichkeit.']
