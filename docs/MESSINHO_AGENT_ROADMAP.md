@@ -93,22 +93,16 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 - Nach Korrektur des History-Testfalls wurden die fünf neuen Engine-Tests in einer isolierten Node-Umgebung erneut ausgeführt: 5/5 bestanden. Der vollständige Repository-Befehl `npm test` sowie die bestehenden Dialogtests wurden in dieser Sitzung noch nicht vollständig ausgeführt; daher ist die gesamte Testsuite weiterhin nicht als bestanden markiert.
 
 
-## Arbeitsstand 25.11.2026 – Kontrollierte Lernfunktion (Entwicklung)
-- Neues Backend-Modul `backend/messinho-learning.js`: nutzt ausschließlich explizite Scout-Gesamtbewertungen und Dimensionswerte, um positionsspezifische Gewichtungen vorzuschlagen.
-- Mindestdatenbasis je Positionsgruppe: 30 Feedback-Einträge und mindestens 10 unterschiedliche Spieler. 20 % der Spieler werden für eine Holdout-Validierung zurückgehalten.
-- Ein Vorschlag wird nur erzeugt, wenn der mittlere absolute Fehler auf den zurückgehaltenen Daten mindestens 1 Punkt sinkt und keine einzelne Gewichtung um mehr als 0,20 verschoben wird.
-- Kein ausreichender Datensatz oder keine messbare Verbesserung bedeutet: kein Modellvorschlag.
-- Neue Supabase-Migration `supabase/migrations/20261125_messinho_controlled_learning.sql`: Scout-Feedback, versionierte Modellstände, RLS und atomare Admin-Aktivierung.
-- Neue API-Endpunkte: `POST /api/messinho/feedback`, `GET /api/messinho/learning/status`, `POST /api/messinho/learning/evaluate`, `POST /api/messinho/learning/:id/approve`.
-- Kandidatenkarten erhalten eine Feedback-Eingabe für Gesamturteil und Leistungsdimensionen. Feedback wird dem angemeldeten Scout und gespeicherten Kandidaten zugeordnet.
-- Aktive, ausdrücklich freigegebene Modellprofile werden bei MESSINHO-Rankings berücksichtigt; die Engine-Version wurde auf 1.1.0 angehoben.
-- Modellvorschläge werden niemals automatisch aktiviert. Freigabe ist auf Administratoren beschränkt; Aktivierung ersetzt den aktiven Stand atomar und archiviert ihn als retired.
-- Es werden keine privaten oder sensiblen Merkmale trainiert; nur sportfachliche Dimensionen (Technik, Taktik, Athletik, Mental/Goalkeeping) und explizite Scout-Gesamturteile.
-- Keine automatische Codeänderung, kein autonomes Deployment und keine selbstständige Änderung an produktiven Regeln.
-
-### Noch erforderliche Schritte vor Nutzung
-1. Migration ausschließlich im Supabase-Staging-Projekt ausführen.
-2. Vollständige Testsuite und Frontend-Build ausführen; insbesondere neue Lern- und API-Tests ergänzen.
-3. Feedback-Eingabe mit echten Staging-Scoutkonten testen.
-4. Lernvorschlag und Admin-Freigabe Ende-zu-Ende testen.
-5. Staging deploy manuell ausführen; Produktion und PFMS bleiben unberührt.
+## Arbeitsstand 25.11.2026 – Kontrollierte MESSINHO-Lernfunktion
+- MESSINHO nutzt die bereits vorhandene ASI-Infrastruktur, statt parallele Feedback- oder Modellverwaltungstabellen anzulegen.
+- Die bestehende Tabelle `asi_scout_calibration_records` wurde um zwei historische Snapshot-Felder erweitert: `messinho_position_group` und `messinho_dimension_scores`.
+- Die Migration `supabase/migrations/20261125_messinho_calibration_extension.sql` wurde erfolgreich ausschließlich im Supabase-Staging-Projekt `vxtybjaabtfhxfwctnyj` angewendet und die neuen Spalten wurden verifiziert.
+- Scouts können einen vorhandenen Spieler auswählen. MESSINHO berechnet aus den gespeicherten sportfachlichen Ratings eine positionsbezogene Prognose und legt einen Kalibrierungseintrag an.
+- Ein Administrator muss später den tatsächlichen Wert, das Beobachtungsdatum und eine HTTPS-Quelle prüfen. Abgelehnte oder noch nicht verifizierte Kalibrierungen werden nicht zum Training verwendet.
+- Die Lern-Engine trainiert positionsspezifische Gewichtungen aus verifizierten Kalibrierungsergebnissen. Mindestbasis: 30 verifizierte Einträge und 10 unterschiedliche Spieler je Positionsgruppe; 20 % Holdout; mindestens 1 Punkt MAE-Verbesserung; maximal 0,20 Gewichtsverschiebung.
+- Modellkandidaten, Evaluationen und Trainingsläufe werden in den vorhandenen Tabellen `asi_model_versions`, `asi_model_evaluations` und `asi_training_runs` protokolliert.
+- Die Freigabe erfolgt ausschließlich über die bestehende Admin-RPC `asi_review_model_candidate`; Kalibrierungen werden über `asi_review_scout_calibration` verifiziert. Damit bleiben Audit, Berechtigungen und Modellhistorie zentral in ASI.
+- Freigegebene MESSINHO-Profile werden in der eigenen positionsbezogenen Scoring-Engine genutzt. Nicht trainierte Positionen behalten die vorhandenen Basisgewichte.
+- Keine automatische Modellaktivierung, kein autonomes Umschreiben von Code und kein selbstständiges Deployment.
+- Staging-Supabase-Migration ist angewendet. Noch offen sind die vollständige Testsuite, Frontend-Build, Staging-Deploy des aktuellen Branch-Heads sowie Ende-zu-Ende-Tests mit echten Admin-/Scout-Konten und vorhandenen Kalibrierungsdaten.
+- Da derzeit noch keine verifizierten Kalibrierungsdaten vorhanden sind, kann noch kein neues Modell trainiert oder aktiviert werden. Die Lernfunktion sammelt zunächst echte Daten; sie erfindet keine Trainingswerte.
