@@ -5,7 +5,7 @@
  */
 const clean=(v,max=500)=>String(v??'').replace(/[\\u0000-\\u001f\\u007f]/g,' ').replace(/\\s+/g,' ').trim().slice(0,max);
 const safeUrl=value=>{try{const u=new URL(value);return u.protocol==='https:'?u.toString():null;}catch{return null;}};
-const num=value=>Number.isFinite(Number(value))?Number(value):null;
+const num=value=>value===null||value===undefined||value===''?null:(Number.isFinite(Number(value))?Number(value):null);
 export function validateResearchInput(input={}){
  const name=clean(input.name,120),club=clean(input.club,120),league=clean(input.league,100),position=clean(input.position,80);
  const birthYear=num(input.birthYear);
