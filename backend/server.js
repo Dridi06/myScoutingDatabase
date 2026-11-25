@@ -23,7 +23,7 @@ const adminInitialPassword=process.env.ADMIN_INITIAL_PASSWORD;
 const MESSINHO_CALIBRATION_METRIC='Leistungsniveau nach 12 Monaten (0-100)';
 if(!JWT_SECRET||JWT_SECRET.length<32) console.warn('WARNING: Set JWT_SECRET to a random value with at least 32 characters.');
 if(!supabaseUrl) console.error('CONFIG CHECK: SUPABASE_URL is missing or empty.');
-if(!serviceKey) console.error('CONFIG CHECK: SUPABASE_SERVICE_ROLE_KEY is missing or empty.');
+if(!serviceKey) console.error('CONFIG CHECK: SUPABASE_SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY is missing or empty.');
 if(supabaseUrl&&serviceKey) console.log(`CONFIG CHECK: Supabase server credentials are present (key type: ${serviceKey.startsWith('sb_secret_')?'new secret key':serviceKey.startsWith('eyJ')?'legacy JWT key':'unknown'}).`);
 const db=supabaseUrl&&serviceKey?createClient(supabaseUrl,serviceKey,{auth:{autoRefreshToken:false,persistSession:false},global:{headers:{'X-Client-Info':'myscoutingdatabase-server'}}}):null;
 async function diagnoseSupabase(){
@@ -40,35 +40,46 @@ app.use(express.json({limit:'1mb'}));
 const authLimiter=rateLimit({windowMs:15*60*1000,limit:12,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Anmeldeversuche. Bitte später erneut versuchen.'}});
 app.use('/api/auth',authLimiter);
 async function bootstrapAdmin(){
-  if(!db||!adminInitialPassword) return;
-  if(adminInitialPassword.length<8){console.error('ADMIN_INITIAL_PASSWORD must contain at least 8 chars.');return;}
+  // Explicit one-time opt-in prevents a persistent environment secret from
+  // silently re-promoting an existing account on every application restart.
+  if(!db||process.env.ADMIN_BOOTSTRAP_ENABLED!=='true') return;
+  if(!adminInitialPassword||adminInitialPassword.length<12){console.error('Admin bootstrap requires ADMIN_INITIAL_PASSWORD with at least 12 characters.');return;}
+  if(!process.env.ADMIN_EMAIL){console.error('Set ADMIN_EMAIL to a real, controlled mailbox before creating the admin account.');return;}
   const {data,error}=await db.auth.admin.listUsers({page:1,perPage:1000});
   if(error) throw error;
-  if(!process.env.ADMIN_EMAIL){console.error('Set ADMIN_EMAIL to a real, controlled mailbox before creating the admin account.');return;}
-  let user=data.users.find(u=>u.user_metadata?.username===adminUsername||u.email===process.env.ADMIN_EMAIL);
+  let user=data.users.find(u=>u.user_metadata?.username===adminUsername||u.email===process.env.ADMIN_EMAIL.trim().toLowerCase());
   if(!user){
     const email=process.env.ADMIN_EMAIL.trim().toLowerCase();
     const created=await db.auth.admin.createUser({email,password:adminInitialPassword,email_confirm:true,user_metadata:{username:adminUsername,role:'admin'}});
     if(created.error) throw created.error;
     user=created.data.user;
   }
+  const {data:existingProfile,error:lookupError}=await db.from('profiles').select('role').eq('id',user.id).maybeSingle();
+  if(lookupError)throw lookupError;
+  if(existingProfile&&existingProfile.role!=='admin'){
+    console.error('Admin bootstrap refused to promote an existing non-admin account.');
+    return;
+  }
   const {error:profileError}=await db.from('profiles').upsert({id:user.id,username:adminUsername,email:user.email,role:'admin',approved:true,approval_status:'approved'},{onConflict:'id'});
   if(profileError) throw profileError;
-  console.log('Admin bootstrap verified. Change the initial password after first login.');
+  console.log('One-time admin bootstrap completed. Disable ADMIN_BOOTSTRAP_ENABLED and remove ADMIN_INITIAL_PASSWORD now.');
 }
 function requireAuth(req,res,next){const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});try{req.user=jwt.verify(token,JWT_SECRET,{issuer:'myScoutingDatabase'});if(!req.user.approved)return res.status(403).json({error:'Konto noch nicht freigeschaltet.'});next();}catch{return res.status(401).json({error:'Sitzung abgelaufen. Bitte erneut anmelden.'});}}
 function requireAdmin(req,res,next){if(req.user?.role!=='admin')return res.status(403).json({error:'Admin-Rechte erforderlich.'});next();}
 app.get('/api/health',async(_req,res)=>{
   const aiSearchReady=Boolean(process.env.TAVILY_API_KEY&&process.env.OPENAI_API_KEY);
-  if(!db)return res.status(503).json({ok:false,service:'myScoutingDatabase',dependencies:{database:'unavailable',aiSearch:aiSearchReady?'ready':'not_configured'}});
+  const authReady=Boolean(JWT_SECRET&&JWT_SECRET.length>=32&&(process.env.SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_PUBLISHABLE_KEY));
+  const dependencies={database:'unavailable',authentication:authReady?'ready':'not_configured',externalResearch:aiSearchReady?'ready':'not_configured'};
+  if(!db)return res.status(503).json({ok:false,service:'myScoutingDatabase',dependencies});
   try{
     const {error}=await db.from('profiles').select('id',{head:true,count:'exact'}).limit(1);
     if(error)throw error;
-    const dependencies={database:'ok',aiSearch:aiSearchReady?'ready':'not_configured'};
-    return res.status(200).json({ok:true,service:'myScoutingDatabase',dependencies});
+    dependencies.database='ok';
+    const ready=authReady;
+    return res.status(ready?200:503).json({ok:ready,service:'myScoutingDatabase',dependencies});
   }catch(error){
     console.error('Health check database probe failed:',error.message);
-    return res.status(503).json({ok:false,service:'myScoutingDatabase',dependencies:{database:'unavailable',aiSearch:aiSearchReady?'ready':'not_configured'}});
+    return res.status(503).json({ok:false,service:'myScoutingDatabase',dependencies});
   }
 });
 app.post('/api/auth/login',async(req,res)=>{
