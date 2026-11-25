@@ -38,7 +38,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   const [hypotheses,setHypotheses]=useState(null);
   const [outcomeDrafts,setOutcomeDrafts]=useState({});
   const [matchEventsText,setMatchEventsText]=useState('');
-  const endRef=useRef(null);
+  const messagesRef=useRef(null);
   const recognitionRef=useRef(null);
   useEffect(()=>{
     const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -52,7 +52,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     recognitionRef.current=recognition;
     return()=>{try{recognition.stop()}catch{};recognitionRef.current=null};
   },[]);
-  useEffect(()=>{endRef.current?.scrollIntoView({behavior:'smooth',block:'end'});},[messages,busy]);
+  useEffect(()=>{const container=messagesRef.current;if(!container)return;container.scrollTop=container.scrollHeight;},[messages,busy]);
   function speak(text){
     if(!voiceOutput||!('speechSynthesis' in window))return;
     window.speechSynthesis.cancel();
@@ -302,10 +302,9 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     </section>
     <section className="messinho-chat-card">
       <div className="messinho-chat-heading"><div><span>SCOUTING CONVERSATION</span><h2>Sprich mit Messinho</h2></div><button type="button" className="messinho-voice-toggle" onClick={()=>{setVoiceOutput(v=>!v);if(voiceOutput&&'speechSynthesis'in window)window.speechSynthesis.cancel();}} title={voiceOutput?'Sprachausgabe ausschalten':'Sprachausgabe einschalten'}>{voiceOutput?<Volume2 size={17}/>:<VolumeX size={17}/>}<span>{voiceOutput?'Sprache an':'Sprache aus'}</span></button></div>
-      <div className="messinho-messages" aria-live="polite">
+      <div className="messinho-messages" ref={messagesRef} aria-live="polite">
         {messages.map(message=><article key={message.id} className={'messinho-message '+message.role}><div className="messinho-avatar">{message.role==='assistant'?<BrainCircuit size={17}/>:<MessageCircle size={16}/>}</div><div className="messinho-bubble"><small>{message.role==='assistant'?'MESSINHO':'DU'}</small><p>{message.text}</p>{message.correction?.corrected&&<small className="messinho-correction-note">Sprachlich verstanden als: „{message.correction.corrected}“</small>}{message.metrics&&<div className="messinho-metrics"><span>{message.metrics.players} Spieler im Katalog</span><span>{message.metrics.candidates} eigene Kandidaten</span></div>}{renderItems(message.items)}</div></article>)}
         {busy&&<div className="messinho-thinking"><LoaderCircle className="messinho-spin" size={17}/> Messinho verarbeitet deine Anfrage …</div>}
-        <div ref={endRef}/>
       </div>
       {error&&<p className="messinho-error" role="alert">{error}</p>}
       <div className="messinho-suggestions">{suggestions.map(s=><button type="button" key={s} disabled={busy} onClick={()=>send(s)}>{s}</button>)}</div>
