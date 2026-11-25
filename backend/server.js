@@ -74,11 +74,36 @@ function requireAdmin(req,res,next){if(req.user?.role!=='admin')return res.statu
 // Administrator system diagnostics: persistent, auditable checks.
 async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=null){
   const started=Date.now(),startedAt=new Date().toISOString(),checks=[];
-  const add=(name,category,ok,detail='',severity='critical',recommendation='')=>checks.push({
-    name,category,ok:Boolean(ok),detail:String(detail||''),severity,
-    recommendation:ok?'Keine Maßnahme erforderlich.':recommendation||'Betroffene Komponente prüfen, Ursache anhand der Details eingrenzen und Änderung erst nach Sicherung und Freigabe durchführen.',
-    checkedAt:new Date().toISOString()
-  });
+  const diagnosticGuidance=(name,category,detail,recommendation)=>{
+    const text=String(detail||'');
+    if(name.includes('MESSINHO')){
+      return {root_cause:text.includes('Nicht erreichbare Tabellen')?'Mindestens eine für MESSINHO benötigte Modell-/Lerntabelle ist nicht erreichbar.':text.includes('kein gültiges')?'Der kontrollierte Selbsttest der Lernpipeline lieferte nicht das erwartete Freigabe-Ergebnis.':'Die MESSINHO-Komponente konnte ihren Selbsttest nicht erfolgreich abschließen.',impact:'Scoring, Lernvorschläge oder Modellhistorie können eingeschränkt sein. Aktive Modellgewichte wurden durch diese Diagnose nicht verändert.',next_action:recommendation||'Tabellenzugriff und MESSINHO-Lernpipeline anhand der konkreten Fehlermeldung prüfen; keine Gewichte ohne Holdout-Evaluation und Admin-Freigabe aktivieren.',repair_class:'admin_approval'};
+    }
+    if(category==='Datenbank'||name.includes('Tabelle')||name.includes('Spielerdatenbank')){
+      return {root_cause:text||'Datenbankobjekt oder Zugriff konnte nicht bestätigt werden.',impact:'Betroffene Funktionen können Daten nicht zuverlässig lesen oder schreiben.',next_action:recommendation||'Tabellenname, Spalten, Migrationen, Supabase-Verbindung und RLS-Policies prüfen.',repair_class:'manual'};
+    }
+    if(category==='Authentifizierung'||category==='Rollen und Rechte'){
+      return {root_cause:text||'Authentifizierungs- oder Berechtigungskonfiguration ist nicht vollständig.',impact:'Anmeldung oder geschützte Administrator-/Benutzerfunktionen können ausfallen oder falsch autorisiert werden.',next_action:recommendation||'Token-Konfiguration, Rollenmatrix und serverseitige Berechtigungsprüfung kontrollieren.',repair_class:'admin_approval'};
+    }
+    if(category==='Sicherheit und Datenschutz'){
+      return {root_cause:text||'Eine Sicherheitskontrolle ist fehlgeschlagen.',impact:'Schutz von Konten, Daten oder administrativen Funktionen kann beeinträchtigt sein.',next_action:recommendation||'Sicherheitskonfiguration prüfen und Änderung vor Aktivierung fachlich freigeben.',repair_class:'manual'};
+    }
+    if(category==='Externe Schnittstellen'){
+      return {root_cause:text||'Eine externe Schnittstelle ist nicht erreichbar oder nicht konfiguriert.',impact:'Nur die von dieser Schnittstelle abhängigen Funktionen sind betroffen.',next_action:recommendation||'Provider-Konfiguration und Erreichbarkeit prüfen.',repair_class:'admin_approval'};
+    }
+    return {root_cause:text||'Die Prüfung konnte den erwarteten Zustand nicht bestätigen.',impact:'Die betroffene Teilfunktion kann eingeschränkt sein; andere Module sind dadurch nicht automatisch betroffen.',next_action:recommendation||'Die genannte Komponente anhand der Fehlermeldung untersuchen und die Korrektur anschließend erneut diagnostizieren.',repair_class:'manual'};
+  };
+  const add=(name,category,ok,detail='',severity='critical',recommendation='')=>{
+    const failed=!Boolean(ok);
+    const guidance=failed?diagnosticGuidance(name,category,detail,recommendation):null;
+    checks.push({
+      name,category,ok:Boolean(ok),detail:String(detail||''),severity,
+      severity_label:severity==='critical'?'Kritisch':severity==='warning'?'Mittel':'Niedrig',
+      recommendation:ok?'Keine Maßnahme erforderlich.':recommendation||'Betroffene Komponente prüfen, Ursache anhand der Details eingrenzen und Änderung erst nach Sicherung und Freigabe durchführen.',
+      ...(guidance||{}),
+      checkedAt:new Date().toISOString()
+    });
+  };
   const probeTable=async(table,select='id')=>{
     if(!db)return {ok:false,detail:'Supabase-Service-Client ist nicht konfiguriert.'};
     // A real, bounded SELECT is more reliable than HEAD-only count metadata
