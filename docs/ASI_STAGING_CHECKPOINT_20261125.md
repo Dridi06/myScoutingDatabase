@@ -167,3 +167,15 @@
 - Frontend nutzt jetzt atomare RPCs statt mehrerer Client-Inserts, verlangt einen Prüfvermerk und zeigt die letzten 30 Identitätsänderungen. Korrekturaktion verlangt eine Begründung.
 - Keine bestehenden Spieler- oder Beobachtungsdatensätze wurden verändert oder gelöscht. Es wurden keine Identitäten automatisch vergeben.
 - Noch offen: Build/Deploy des Frontends, Prüfung der RPC-Ausführung mit Admin-Session und Negativtest mit Scout-Session. Ausschließlich Staging.
+
+
+## Player Intelligence 2.0 – taktische Rollenpassung – 2026-11-25
+- Commit `7cae7af4b683f8132f19b16e013fa31c8beec410`: neue, transparente Rollen-Fit-Analyse in `src/asi/ASIWorkspace.jsx`.
+- Commit `21e71fd6008e66ab5c4dd0e60adc2731d0b8383c`: responsives Styling für Rollen-Fit und Methodenaufschlüsselung.
+- Commit `e68e1425e75b16b1452ee12e3814836270b3aa77`: Kriterienprofile auf tatsächlich vorhandene Scout-Ratings begrenzt.
+- Zehn taktische Rollenprofile in Abwehr, Mittelfeld und Angriff: aufbauender Innenverteidiger, Zweikampf-Innenverteidiger, klassischer/inverser Außenverteidiger, Sechser, Achter, Zehner, Eins-gegen-eins-Flügel und Tiefenläufer/Zielspieler.
+- Bewertungslogik: gewichteter Mittelwert der vorhandenen Kriterien; lineare Skalierung 1–5 auf 0–100. Fehlende Werte werden nicht als 0 gewertet. Gewichtete Datenabdeckung, Zahl vorhandener Kriterien, Stärken und Entwicklungsfelder werden separat angezeigt.
+- Aussagegrenze: Rollen-Fit ist eine regelbasierte Passung zum hinterlegten Kriterienprofil, keine trainierte KI, keine Einsatzempfehlung und keine Leistungsprognose. Profile sind fachlich an Spielmodell, Liga und Altersklasse anzupassen.
+- Keine Datenbankmigration, keine künstlichen Daten, keine Änderung an bestehenden Spieler-/Beobachtungsdaten. Keine privaten Kontaktdaten werden verwendet.
+- Ausschließlich Staging vorgesehen; Produktion unangetastet.
+- Noch offen: Render-Build/Deploy-Live-Status, Browserprüfung auf Desktop/iPhone, fachliche Validierung der Gewichte durch Trainer/Scouting-Leitung und Rollen-/RLS-Negativtest mit Scout-Konto.
