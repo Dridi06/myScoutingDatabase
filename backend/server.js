@@ -752,26 +752,40 @@ app.post('/api/messinho/learning/evaluate',messinhoLearningLimiter,async(req,res
     if(error)return res.status(500).json({error:'Verifizierte Kalibrierungsdaten konnten nicht geladen werden. Staging-Migration prüfen.'});
     const active=await getActiveMessinhoModel();
     const baselineProfiles={...MESSINHO_DEFAULT_WEIGHTS,...(active?.configuration?.profiles||{})};
-    const trainingRows=(records||[]).map(row=>({record_id:row.id,player_id:String(row.player_id),position_group:row.messinho_position_group,target_score:Number(row.verified_outcome),dimension_scores:row.messinho_dimension_scores||{},outcome_observed_on:row.outcome_observed_on,created_at:row.created_at}));
+    const calibrationRows=(records||[]).map(row=>({record_id:'calibration:'+row.id,player_id:String(row.player_id),position_group:row.messinho_position_group,target_score:Number(row.verified_outcome),dimension_scores:row.messinho_dimension_scores||{},outcome_observed_on:row.outcome_observed_on,created_at:row.created_at}));
+    const {data:verifiedOutcomes,error:outcomeError}=await db.from('asi_prediction_outcomes').select('id,prediction_id,player_id,observed_value,observed_on,verification_status,verified_by').eq('verification_status','verified').not('observed_value','is',null).limit(5000);
+    if(outcomeError)return res.status(500).json({error:'Verifizierte Prognoseergebnisse konnten nicht geladen werden.'});
+    const predictionIds=[...new Set((verifiedOutcomes||[]).map(row=>row.prediction_id))];
+    const {data:predictionRecords,error:predictionError}=predictionIds.length?await db.from('asi_prediction_records').select('id,player_id,target_metric,prediction_horizon_days,explanation,created_at').in('id',predictionIds):{data:[],error:null};
+    if(predictionError)return res.status(500).json({error:'Zugehörige MESSINHO-Prognosen konnten nicht geladen werden.'});
+    const predictionMap=new Map((predictionRecords||[]).map(row=>[row.id,row]));
+    const predictionTrainingRows=(verifiedOutcomes||[]).map(outcome=>{
+      const prediction=predictionMap.get(outcome.prediction_id);
+      const explanation=prediction?.explanation||{};
+      const positionGroup=explanation.assessment?.position_group;
+      if(!prediction||prediction.target_metric!=='performance_score_12m'||Number(prediction.prediction_horizon_days)!==365||!positionGroup||!Object.keys(explanation.dimension_scores||{}).length)return null;
+      return {record_id:'prediction:'+outcome.id,player_id:String(outcome.player_id),position_group:positionGroup,target_score:Number(outcome.observed_value),dimension_scores:explanation.dimension_scores,outcome_observed_on:outcome.observed_on,created_at:outcome.created_at};
+    }).filter(Boolean);
+    const trainingRows=[...calibrationRows,...predictionTrainingRows];
     const proposal=buildMessinhoLearningProposal(trainingRows,baselineProfiles);
     const fingerprintPayload=trainingRows.slice().sort((a,b)=>String(a.record_id).localeCompare(String(b.record_id)));
     const fingerprint=createHash('sha256').update(JSON.stringify(fingerprintPayload)).digest('hex');
-    const latestObserved=records?.at(-1)?.outcome_observed_on;
+    const latestObserved=trainingRows.map(row=>row.outcome_observed_on).filter(Boolean).sort().at(-1);
     const cutoff=latestObserved?new Date(latestObserved+'T23:59:59.999Z').toISOString():startedAt;
     const trainingConfig={learning_version:proposal.learning_version,engine_version:'1.1.0',source_table:'asi_scout_calibration_records',source_filter:'verification_status=verified AND outcome_metric=MESSINHO_CALIBRATION_METRIC',outcome_metric:MESSINHO_CALIBRATION_METRIC,minimum_examples_per_position:30,minimum_unique_players:10};
     if(proposal.status!=='proposal_ready'){
-      const {error:runError}=await db.from('asi_training_runs').insert({model_key:'messinho_position_weights',status:'insufficient_data',data_cutoff_at:cutoff,dataset_fingerprint:fingerprint,training_config:trainingConfig,evaluation_summary:{status:proposal.status,report:proposal.report,records:trainingRows.length,model_candidate_created:false},started_at:startedAt,finished_at:new Date().toISOString(),created_by:actor.user.id});
+      const {error:runError}=await db.from('asi_training_runs').insert({model_key:'messinho_position_weights',status:'insufficient_data',data_cutoff_at:cutoff,dataset_fingerprint:fingerprint,training_config:trainingConfig,evaluation_summary:{status:proposal.status,report:proposal.report,records:trainingRows.length,calibration_records:calibrationRows.length,prediction_outcomes:predictionTrainingRows.length,model_candidate_created:false},started_at:startedAt,finished_at:new Date().toISOString(),created_by:actor.user.id});
       if(runError)return res.status(500).json({error:'Der Lernversuch konnte nicht revisionssicher protokolliert werden.'});
       return res.json({proposal:{status:proposal.status,report:proposal.report,trained_groups:0},stored:false,message:'Noch nicht genügend verifizierte Ergebnisse oder keine messbare Verbesserung. Es wird kein Modellkandidat angelegt.'});
     }
     const version='1.0.'+Date.now();
     const {data:model,error:modelError}=await db.from('asi_model_versions').insert({
       model_key:'messinho_position_weights',version,model_family:'deterministic_rules',status:'candidate',
-      training_data_cutoff:cutoff,metrics:{trained:true,baseline_type:'supervised_calibration',engine_version:'1.1.0',records:trainingRows.length,trained_groups:proposal.trained_groups,report:proposal.report},
+      training_data_cutoff:cutoff,metrics:{trained:true,baseline_type:'supervised_calibration',engine_version:'1.1.0',records:trainingRows.length,calibration_records:calibrationRows.length,prediction_outcomes:predictionTrainingRows.length,trained_groups:proposal.trained_groups,report:proposal.report},
       configuration:{profiles:proposal.profiles,learning_version:proposal.learning_version,engine_version:'1.1.0',source:'verified_asi_scout_calibration'}
     }).select('id,version,status,metrics,created_at').single();
     if(modelError)return res.status(500).json({error:'MESSINHO-Modellkandidat konnte nicht gespeichert werden.'});
-    const dates=(records||[]).map(row=>row.outcome_observed_on).filter(Boolean).sort();
+    const dates=trainingRows.map(row=>row.outcome_observed_on).filter(Boolean).sort();
     const {error:evaluationError}=await db.from('asi_model_evaluations').insert({
       model_version_id:model.id,baseline_version_id:active?.id||null,evaluation_name:'MESSINHO verified-outcome holdout evaluation',
       dataset_start:dates[0]?.slice(0,10)||null,dataset_end:dates.at(-1)?.slice(0,10)||null,
@@ -782,7 +796,7 @@ app.post('/api/messinho/learning/evaluate',messinhoLearningLimiter,async(req,res
     const {error:runError}=await db.from('asi_training_runs').insert({
       model_key:'messinho_position_weights',candidate_version:version,status:'succeeded',data_cutoff_at:cutoff,
       dataset_fingerprint:fingerprint,training_config:trainingConfig,
-      evaluation_summary:{status:proposal.status,report:proposal.report,records:trainingRows.length,model_version_id:model.id},
+      evaluation_summary:{status:proposal.status,report:proposal.report,records:trainingRows.length,calibration_records:calibrationRows.length,prediction_outcomes:predictionTrainingRows.length,model_version_id:model.id},
       started_at:startedAt,finished_at:new Date().toISOString(),created_by:actor.user.id
     });
     if(runError){
