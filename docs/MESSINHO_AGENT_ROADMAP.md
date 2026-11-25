@@ -91,3 +91,24 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 - Noch offen: automatisierte Unit-Test-Ausführung, erneuter Staging-Build auf aktuellem Branch-Head, Chat-End-to-End-Test mit eingerichteten Staging-Secrets und verifizierte Live-Interaktion im Browser.
 
 - Nach Korrektur des History-Testfalls wurden die fünf neuen Engine-Tests in einer isolierten Node-Umgebung erneut ausgeführt: 5/5 bestanden. Der vollständige Repository-Befehl `npm test` sowie die bestehenden Dialogtests wurden in dieser Sitzung noch nicht vollständig ausgeführt; daher ist die gesamte Testsuite weiterhin nicht als bestanden markiert.
+
+
+## Arbeitsstand 25.11.2026 – Kontrollierte Lernfunktion (Entwicklung)
+- Neues Backend-Modul `backend/messinho-learning.js`: nutzt ausschließlich explizite Scout-Gesamtbewertungen und Dimensionswerte, um positionsspezifische Gewichtungen vorzuschlagen.
+- Mindestdatenbasis je Positionsgruppe: 30 Feedback-Einträge und mindestens 10 unterschiedliche Spieler. 20 % der Spieler werden für eine Holdout-Validierung zurückgehalten.
+- Ein Vorschlag wird nur erzeugt, wenn der mittlere absolute Fehler auf den zurückgehaltenen Daten mindestens 1 Punkt sinkt und keine einzelne Gewichtung um mehr als 0,20 verschoben wird.
+- Kein ausreichender Datensatz oder keine messbare Verbesserung bedeutet: kein Modellvorschlag.
+- Neue Supabase-Migration `supabase/migrations/20261125_messinho_controlled_learning.sql`: Scout-Feedback, versionierte Modellstände, RLS und atomare Admin-Aktivierung.
+- Neue API-Endpunkte: `POST /api/messinho/feedback`, `GET /api/messinho/learning/status`, `POST /api/messinho/learning/evaluate`, `POST /api/messinho/learning/:id/approve`.
+- Kandidatenkarten erhalten eine Feedback-Eingabe für Gesamturteil und Leistungsdimensionen. Feedback wird dem angemeldeten Scout und gespeicherten Kandidaten zugeordnet.
+- Aktive, ausdrücklich freigegebene Modellprofile werden bei MESSINHO-Rankings berücksichtigt; die Engine-Version wurde auf 1.1.0 angehoben.
+- Modellvorschläge werden niemals automatisch aktiviert. Freigabe ist auf Administratoren beschränkt; Aktivierung ersetzt den aktiven Stand atomar und archiviert ihn als retired.
+- Es werden keine privaten oder sensiblen Merkmale trainiert; nur sportfachliche Dimensionen (Technik, Taktik, Athletik, Mental/Goalkeeping) und explizite Scout-Gesamturteile.
+- Keine automatische Codeänderung, kein autonomes Deployment und keine selbstständige Änderung an produktiven Regeln.
+
+### Noch erforderliche Schritte vor Nutzung
+1. Migration ausschließlich im Supabase-Staging-Projekt ausführen.
+2. Vollständige Testsuite und Frontend-Build ausführen; insbesondere neue Lern- und API-Tests ergänzen.
+3. Feedback-Eingabe mit echten Staging-Scoutkonten testen.
+4. Lernvorschlag und Admin-Freigabe Ende-zu-Ende testen.
+5. Staging deploy manuell ausführen; Produktion und PFMS bleiben unberührt.
