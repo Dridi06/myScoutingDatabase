@@ -205,3 +205,7 @@ Für diese Tabellen wurde RLS als aktiviert festgestellt; die abgefragten Tabell
 - optional `asi_market_value_benchmarks` (nur für rechtmäßig gespeicherte externe Referenzwerte).
 
 Vor jeder Migration: vollständige Tabellendefinitionen, Foreign Keys, Constraints, Trigger, Grants und konkrete RLS-Ausdrücke prüfen. Es wurden in diesem Schritt keine Datenbankänderungen ausgeführt.
+
+
+## 14. Quelleninventar
+Das detaillierte Quellenregister einschließlich Nutzungsstatus, Lizenzhinweisen und Datenlücken liegt in [ASI_OPEN_FOOTBALL_DATA_SOURCES.md](./ASI_OPEN_FOOTBALL_DATA_SOURCES.md). Dieses Register ist vor jedem Import maßgeblich; frei zugänglich bedeutet nicht automatisch frei kommerziell nutzbar.
