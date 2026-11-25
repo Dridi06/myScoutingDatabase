@@ -14,6 +14,7 @@ import { scopeMessinhoOwner } from './messinho-access.js';
 import { getMessinhoCapabilityCatalog, getMessinhoCapabilitySummary } from './messinho-capabilities.js';
 import { executeMessinhoCapability, listExecutableMessinhoCapabilities, getMessinhoRuntimeSummary } from './messinho-capability-runtime.js';
 import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainableAssessment, generateMessinhoHypotheses } from './messinho-development.js';
+import { researchMessinhoMarketValue } from './messinho-research.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -579,6 +580,18 @@ async function messinhoAuthenticatedUser(req,res){
   if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved')){res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});return null;}
   return {user:data.user,profile,token};
 }
+const messinhoResearchLimiter=rateLimit({windowMs:60*60*1000,limit:12,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Marktwert-Recherchen. Bitte später erneut versuchen.'}});
+app.post('/api/messinho/research/market-value',messinhoResearchLimiter,async(req,res)=>{
+  try{
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    const result=await researchMessinhoMarketValue(req.body||{});
+    res.set('Cache-Control','no-store');
+    return res.json(result);
+  }catch(error){
+    console.error('MESSINHO market research failed:',error.message);
+    return res.status(502).json({error:error.message==='Bitte einen Spielernamen angeben.'||error.message==='Ungültiger Geburtsjahrgang.'?error.message:'Marktwert-Recherche konnte nicht abgeschlossen werden.'});
+  }
+});
 app.get('/api/messinho/capabilities',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
