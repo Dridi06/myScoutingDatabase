@@ -64,6 +64,8 @@ test('match analysis capabilities use structured phase events and enforce video 
  const match=executeMessinhoCapability('game_phase_analysis',{player:{name:'Test',positions:['ZM']},events});
  assert.equal(match.status,'completed');
  assert.equal(match.result.phase_breakdown.offensive.events,3);
- const video=executeMessinhoCapability('video_event_analysis',{player:{name:'Test'},events:events.map(({license_status,...event})=>event)});
+ const video=executeMessinhoCapability('video_event_analysis',{player:{name:'Test'},events});
  assert.equal(video.status,'insufficient_data');
+ const trustedVideo=executeMessinhoCapability('video_event_analysis',{player:{name:'Test'},events,_trusted_video_bundle:true});
+ assert.equal(trustedVideo.status,'completed');
 });
