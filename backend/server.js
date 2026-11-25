@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, createHash } from 'node:crypto';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -7,8 +7,8 @@ import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { createClient } from '@supabase/supabase-js';
 import { parseMessinhoScoutingRequest, matchesPosition, sourceSupportsRegion } from './messinho-validation.js';
-import { rankMessinhoPlayers, sanitizeMessinhoHistory, MESSINHO_DEFAULT_WEIGHTS } from './messinho-engine.js';
-import { buildMessinhoLearningProposal, validateMessinhoFeedback } from './messinho-learning.js';
+import { rankMessinhoPlayers, sanitizeMessinhoHistory, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
+import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -522,11 +522,17 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
 
 
 
+
 async function getActiveMessinhoModel(){
   if(!db)return null;
-  const {data,error}=await db.from('messinho_model_versions').select('id,version,profiles').eq('status','active').maybeSingle();
-  if(error){if(!String(error.message||'').includes('messinho_model_versions'))console.error('MESSINHO active model lookup failed:',error.message);return null;}
+  const {data,error}=await db.from('asi_model_versions').select('id,version,configuration,metrics').eq('model_key','messinho_position_weights').eq('status','active').maybeSingle();
+  if(error){console.error('MESSINHO active ASI model lookup failed:',error.message);return null;}
   return data||null;
+}
+function createMessinhoUserClient(token){
+  const publicKey=process.env.SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_ANON_KEY||process.env.VITE_SUPABASE_ANON_KEY;
+  if(!publicKey)return null;
+  return createClient(supabaseUrl,publicKey,{auth:{autoRefreshToken:false,persistSession:false,detectSessionInUrl:false},global:{headers:{Authorization:'Bearer '+token,'X-Client-Info':'messinho-user-review'}}});
 }
 async function messinhoAuthenticatedUser(req,res){
   const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
@@ -536,80 +542,154 @@ async function messinhoAuthenticatedUser(req,res){
   const {data:profile,error:profileError}=await db.from('profiles').select('id,role,approved,approval_status').eq('id',data.user.id).maybeSingle();
   if(profileError||!profile||!['admin','scout'].includes(profile.role)){res.status(403).json({error:'Keine Berechtigung für MESSINHO.'});return null;}
   if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved')){res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});return null;}
-  return {user:data.user,profile};
+  return {user:data.user,profile,token};
 }
-const messinhoFeedbackLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Feedback-Einträge. Bitte später erneut versuchen.'}});
-app.post('/api/messinho/feedback',messinhoFeedbackLimiter,async(req,res)=>{
+app.get('/api/messinho/learning/players',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
-    const checked=validateMessinhoFeedback(req.body);if(checked.error)return res.status(400).json({error:checked.error});
-    const candidateId=typeof req.body?.candidate_id==='string'?req.body.candidate_id.trim():'';
-    if(!candidateId)return res.status(400).json({error:'Bitte einen gespeicherten Kandidaten auswählen.'});
-    let query=db.from('asi_player_candidates').select('id,owner_id,player_name,positions,analysis').eq('id',candidateId);
+    let query=db.from('players').select('player_id,owner_id,name,positions,ratings').order('name').limit(500);
     if(actor.profile.role!=='admin')query=query.eq('owner_id',actor.user.id);
-    const {data:candidate,error:candidateError}=await query.maybeSingle();
-    if(candidateError||!candidate)return res.status(404).json({error:'Kandidat nicht gefunden oder kein Zugriff.'});
-    const positionRating=rankMessinhoPlayers([{positions:candidate.positions||[],analysis:candidate.analysis||{}}])[0]?.messinho_rating;
-    const {data,error}=await db.from('messinho_scout_feedback').upsert({
-      player_id:String(candidate.player_name||candidate.id),
-      candidate_id:candidate.id,scout_id:actor.user.id,
-      position_group:positionRating?.position_group||'default',
-      target_score:checked.value.target_score,
-      dimension_scores:checked.value.dimension_scores,comment:checked.value.comment
-    },{onConflict:'candidate_id,scout_id'}).select('id,player_id,position_group,target_score,created_at').single();
-    if(error){console.error('MESSINHO feedback save failed:',error.message);return res.status(500).json({error:'Scout-Feedback konnte nicht gespeichert werden. Wurde die Staging-Migration ausgeführt?'});}
-    return res.status(201).json({ok:true,feedback:data,message:'Feedback gespeichert. Es fließt erst nach ausreichender Datenmenge in eine Modellprüfung ein.'});
-  }catch(error){console.error('MESSINHO feedback error:',error.message);return res.status(500).json({error:'Feedback konnte nicht gespeichert werden.'});}
+    const {data,error}=await query;
+    if(error)return res.status(500).json({error:'Spieler für die Kalibrierung konnten nicht geladen werden.'});
+    const players=(data||[]).map(player=>{
+      const dimensions=extractMessinhoDimensionScores(player.ratings||{},player.positions||[]);
+      const rating=scoreMessinhoPlayer({positions:player.positions||[],analysis:{ratings:dimensions}});
+      return {player_id:player.player_id,name:player.name,positions:player.positions||[],position_group:rating.position_group,messinho_rating:rating.score,dimension_scores:dimensions};
+    }).filter(player=>player.messinho_rating!==null);
+    return res.json({players});
+  }catch(error){console.error('MESSINHO calibration player list failed:',error.message);return res.status(500).json({error:'Spielerliste für die Kalibrierung konnte nicht geladen werden.'});}
+});
+const messinhoCalibrationLimiter=rateLimit({windowMs:60*60*1000,limit:30,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Kalibrierungseinträge. Bitte später erneut versuchen.'}});
+app.post('/api/messinho/calibration',messinhoCalibrationLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    const playerId=Number(req.body?.player_id);
+    const metric=typeof req.body?.outcome_metric==='string'?req.body.outcome_metric.trim().slice(0,160):'';
+    if(!Number.isSafeInteger(playerId)||playerId<=0)return res.status(400).json({error:'Bitte einen gültigen Spieler auswählen.'});
+    if(metric.length<3)return res.status(400).json({error:'Bitte ein konkretes später überprüfbares Leistungsmerkmal angeben.'});
+    let playerQuery=db.from('players').select('player_id,owner_id,name,positions,ratings').eq('player_id',playerId);
+    if(actor.profile.role!=='admin')playerQuery=playerQuery.eq('owner_id',actor.user.id);
+    const {data:player,error:playerError}=await playerQuery.maybeSingle();
+    if(playerError||!player)return res.status(404).json({error:'Spieler nicht gefunden oder kein Zugriff.'});
+    const dimensions=extractMessinhoDimensionScores(player.ratings||{},player.positions||[]);
+    const rating=scoreMessinhoPlayer({positions:player.positions||[],analysis:{ratings:dimensions}});
+    if(rating.score===null)return res.status(422).json({error:'Für diesen Spieler liegen noch nicht genügend bewertete Leistungsdimensionen vor.'});
+    const {data,error}=await db.from('asi_scout_calibration_records').insert({
+      player_id:player.player_id,owner_id:player.owner_id,scout_id:actor.user.id,created_by:actor.user.id,
+      scout_rating:rating.score,outcome_metric:metric,verification_status:'pending',
+      messinho_position_group:rating.position_group,messinho_dimension_scores:dimensions
+    }).select('id,player_id,scout_rating,outcome_metric,verification_status,messinho_position_group,created_at').single();
+    if(error){console.error('MESSINHO calibration record save failed:',error.message);return res.status(500).json({error:'Kalibrierung konnte nicht gespeichert werden. Staging-Migration prüfen.'});}
+    return res.status(201).json({ok:true,record:data,player_name:player.name,message:'Kalibrierung gespeichert. Erst ein Administrator kann das spätere Ergebnis anhand einer HTTPS-Quelle verifizieren.'});
+  }catch(error){console.error('MESSINHO calibration save failed:',error.message);return res.status(500).json({error:'Kalibrierung konnte nicht gespeichert werden.'});}
 });
 app.get('/api/messinho/learning/status',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
-    let countQuery=db.from('messinho_scout_feedback').select('id',{count:'exact',head:true});
-    if(actor.profile.role!=='admin')countQuery=countQuery.eq('scout_id',actor.user.id);
+    let countQuery=db.from('asi_scout_calibration_records').select('id',{count:'exact',head:true});
+    if(actor.profile.role!=='admin')countQuery=countQuery.eq('owner_id',actor.user.id);
     const [{count,error},active]=await Promise.all([countQuery,getActiveMessinhoModel()]);
-    if(error)return res.status(500).json({error:'Lernstatus konnte nicht geladen werden. Staging-Migration prüfen.'});
-    let proposals=[];
+    if(error)return res.status(500).json({error:'Lernstatus konnte nicht geladen werden.'});
+    let pendingCalibrations=[],proposals=[];
     if(actor.profile.role==='admin'){
-      const {data:pending,error:pendingError}=await db.from('messinho_model_versions').select('id,version,status,evaluation,created_at').eq('status','proposed').order('created_at',{ascending:false}).limit(20);
-      if(pendingError)return res.status(500).json({error:'Modellvorschläge konnten nicht geladen werden. Staging-Migration prüfen.'});
-      proposals=pending||[];
+      const [pendingResult,proposalResult]=await Promise.all([
+        db.from('asi_scout_calibration_records').select('id,player_id,scout_rating,outcome_metric,created_at').eq('verification_status','pending').order('created_at',{ascending:false}).limit(25),
+        db.from('asi_model_versions').select('id,version,metrics,created_at').eq('model_key','messinho_position_weights').eq('status','candidate').order('created_at',{ascending:false}).limit(20)
+      ]);
+      if(pendingResult.error||proposalResult.error)return res.status(500).json({error:'Offene Kalibrierungen oder Modellkandidaten konnten nicht geladen werden.'});
+      const ids=(pendingResult.data||[]).map(row=>row.player_id);
+      const playerRows=ids.length?await db.from('players').select('player_id,name,positions').in('player_id',ids):{data:[],error:null};
+      if(playerRows.error)return res.status(500).json({error:'Spielernamen der Kalibrierungen konnten nicht geladen werden.'});
+      const playerMap=new Map((playerRows.data||[]).map(row=>[row.player_id,row]));
+      pendingCalibrations=(pendingResult.data||[]).map(row=>({...row,player_name:playerMap.get(row.player_id)?.name||'Unbekannter Spieler',positions:playerMap.get(row.player_id)?.positions||[]}));
+      proposals=proposalResult.data||[];
     }
-    return res.json({feedback_count:count||0,active_model:active?{id:active.id,version:active.version,activated:true}:null,learning_status:active?'approved_model_active':'collecting_feedback',admin:actor.profile.role==='admin',proposals});
-  }catch(error){return res.status(500).json({error:'Lernstatus konnte nicht geladen werden.'});}
+    return res.json({calibration_count:count||0,active_model:active?{id:active.id,version:active.version,metrics:active.metrics}:null,learning_status:active?'approved_model_active':'collecting_verified_outcomes',admin:actor.profile.role==='admin',pending_calibrations:pendingCalibrations,proposals});
+  }catch(error){console.error('MESSINHO learning status failed:',error.message);return res.status(500).json({error:'Lernstatus konnte nicht geladen werden.'});}
 });
 app.post('/api/messinho/learning/evaluate',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
     if(actor.profile.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen Lernmodelle evaluieren.'});
-    const {data:rows,error}=await db.from('messinho_scout_feedback').select('player_id,position_group,target_score,dimension_scores,created_at').order('created_at',{ascending:true}).limit(5000);
-    if(error)return res.status(500).json({error:'Feedback-Daten konnten nicht geladen werden. Staging-Migration prüfen.'});
-    const activeBaseline=await getActiveMessinhoModel();
-    const baselineProfiles={...MESSINHO_DEFAULT_WEIGHTS,...(activeBaseline?.profiles||{})};
-    const proposal=buildMessinhoLearningProposal(rows||[],baselineProfiles);
-    if(proposal.status!=='proposal_ready')return res.json({proposal,stored:false,message:'Noch kein Modell erfüllt die Mindestdaten- und Qualitätskriterien.'});
-    const {data:model,error:saveError}=await db.from('messinho_model_versions').insert({
-      version:'messinho-learn-'+Date.now(),status:'proposed',profiles:proposal.profiles,
-      evaluation:proposal.report,learning_version:proposal.learning_version,created_by:actor.user.id
-    }).select('id,version,status,evaluation,created_at').single();
-    if(saveError)return res.status(500).json({error:'Modellvorschlag konnte nicht gespeichert werden.'});
-    return res.status(201).json({proposal:{...proposal,profiles:undefined},model,message:'Modellvorschlag gespeichert. Er wird erst nach ausdrücklicher Admin-Freigabe aktiv.'});
+    const startedAt=new Date().toISOString();
+    const {data:records,error}=await db.from('asi_scout_calibration_records')
+      .select('id,player_id,verified_outcome,messinho_position_group,messinho_dimension_scores,created_at')
+      .eq('verification_status','verified').not('verified_outcome','is',null)
+      .not('messinho_position_group','is',null).order('created_at',{ascending:true}).limit(5000);
+    if(error)return res.status(500).json({error:'Verifizierte Kalibrierungsdaten konnten nicht geladen werden. Staging-Migration prüfen.'});
+    const active=await getActiveMessinhoModel();
+    const baselineProfiles={...MESSINHO_DEFAULT_WEIGHTS,...(active?.configuration?.profiles||{})};
+    const trainingRows=(records||[]).map(row=>({player_id:String(row.player_id),position_group:row.messinho_position_group,target_score:Number(row.verified_outcome),dimension_scores:row.messinho_dimension_scores||{},created_at:row.created_at}));
+    const proposal=buildMessinhoLearningProposal(trainingRows,baselineProfiles);
+    const ids=(records||[]).map(row=>row.id).sort();
+    const fingerprint=createHash('sha256').update(ids.join('|')).digest('hex');
+    const cutoff=records?.at(-1)?.created_at||startedAt;
+    const trainingConfig={learning_version:proposal.learning_version,engine_version:'1.1.0',source_table:'asi_scout_calibration_records',source_filter:'verification_status=verified',minimum_examples_per_position:30,minimum_unique_players:10};
+    if(proposal.status!=='proposal_ready'){
+      await db.from('asi_training_runs').insert({model_key:'messinho_position_weights',status:'succeeded',data_cutoff_at:cutoff,dataset_fingerprint:fingerprint,training_config:evaluationSummarySafe(trainingConfig),evaluation_summary:{status:proposal.status,report:proposal.report,records:trainingRows.length},started_at:startedAt,finished_at:new Date().toISOString(),created_by:actor.user.id});
+      return res.json({proposal:{status:proposal.status,report:proposal.report,trained_groups:0},stored:false,message:'Noch nicht genügend verifizierte Ergebnisse oder keine messbare Verbesserung. Es wird kein Modellkandidat angelegt.'});
+    }
+    const latest=await db.from('asi_model_versions').select('version').eq('model_key','messinho_position_weights').order('created_at',{ascending:false}).limit(1).maybeSingle();
+    const version='1.0.'+Date.now();
+    const {data:model,error:modelError}=await db.from('asi_model_versions').insert({
+      model_key:'messinho_position_weights',version,model_family:'deterministic_rules',status:'candidate',
+      training_data_cutoff:cutoff,metrics:{records:trainingRows.length,trained_groups:proposal.trained_groups,report:proposal.report},
+      configuration:{profiles:proposal.profiles,learning_version:proposal.learning_version,engine_version:'1.1.0',source:'verified_asi_scout_calibration'}
+    }).select('id,version,status,metrics,created_at').single();
+    if(modelError)return res.status(500).json({error:'MESSINHO-Modellkandidat konnte nicht gespeichert werden.'});
+    const dates=(records||[]).map(row=>row.created_at).filter(Boolean).sort();
+    const {error:evaluationError}=await db.from('asi_model_evaluations').insert({
+      model_version_id:model.id,baseline_version_id:active?.id||null,evaluation_name:'MESSINHO verified-outcome holdout evaluation',
+      dataset_start:dates[0]?.slice(0,10)||null,dataset_end:dates.at(-1)?.slice(0,10)||null,
+      metrics:proposal.report,passed:true,evaluated_by:actor.user.id,
+      notes:'Mindestens 30 verifizierte Kalibrierungen und 10 unterschiedliche Spieler pro Positionsgruppe; 20% Holdout; MAE-Verbesserung mindestens 1 Punkt; Gewichtungsänderung höchstens 0,20.'
+    });
+    if(evaluationError){await db.from('asi_model_versions').delete().eq('id',model.id);return res.status(500).json({error:'Modellbewertung konnte nicht gespeichert werden.'});}
+    const {error:runError}=await db.from('asi_training_runs').insert({
+      model_key:'messinho_position_weights',candidate_version:version,status:'succeeded',data_cutoff_at:cutoff,
+      dataset_fingerprint:fingerprint,training_config:trainingConfig,
+      evaluation_summary:{status:proposal.status,report:proposal.report,records:trainingRows.length,model_version_id:model.id},
+      started_at:startedAt,finished_at:new Date().toISOString(),created_by:actor.user.id
+    });
+    if(runError)return res.status(500).json({error:'Trainingslauf konnte nicht protokolliert werden; der Modellkandidat bleibt zur Prüfung gespeichert.'});
+    return res.status(201).json({proposal:{status:proposal.status,report:proposal.report,trained_groups:proposal.trained_groups},model,message:'Modellkandidat wurde in der bestehenden ASI-Modellverwaltung gespeichert. Eine Freigabe ist noch erforderlich.'});
   }catch(error){console.error('MESSINHO learning evaluation failed:',error.message);return res.status(500).json({error:'Lernmodell konnte nicht evaluiert werden.'});}
+});
+app.post('/api/messinho/calibration/:id/review',async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    if(actor.profile.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen Kalibrierungen verifizieren.'});
+    const decision=req.body?.decision==='reject'?'reject':'verify';
+    const reason=typeof req.body?.reason==='string'?req.body.reason.trim().slice(0,500):'';
+    const value=Number(req.body?.verified_outcome);
+    const observedOn=typeof req.body?.observed_on==='string'?req.body.observed_on:'';
+    const sourceUrl=typeof req.body?.source_url==='string'?req.body.source_url.trim():'';
+    if(reason.length<10)return res.status(400).json({error:'Bitte einen Prüfgrund mit mindestens 10 Zeichen angeben.'});
+    if(decision==='verify'&&(!Number.isFinite(value)||value<0||value>100||!/^\\d{4}-\\d{2}-\\d{2}$/.test(observedOn)||!/^https:\\/\\//i.test(sourceUrl)))return res.status(400).json({error:'Für die Verifizierung sind Ergebnis 0–100, Datum und HTTPS-Quellenlink erforderlich.'});
+    const userClient=createMessinhoUserClient(actor.token);
+    if(!userClient)return res.status(503).json({error:'Supabase Publishable Key ist nicht konfiguriert.'});
+    const {data,error}=await userClient.rpc('asi_review_scout_calibration',{p_record_id:req.params.id,p_decision:decision,p_reason:reason,p_verified_outcome:decision==='verify'?value:null,p_observed_on:decision==='verify'?observedOn:null,p_source_url:decision==='verify'?sourceUrl:null});
+    if(error)return res.status(400).json({error:'Kalibrierung konnte nicht geprüft werden: '+String(error.message||'RPC fehlgeschlagen').slice(0,220)});
+    return res.json({ok:true,result:data});
+  }catch(error){return res.status(500).json({error:'Kalibrierungsprüfung fehlgeschlagen.'});}
 });
 app.post('/api/messinho/learning/:id/approve',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
     if(actor.profile.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen Modelle freigeben.'});
-    const {data:model,error:modelError}=await db.from('messinho_model_versions').select('id,status').eq('id',req.params.id).maybeSingle();
-    if(modelError||!model)return res.status(404).json({error:'Modellvorschlag nicht gefunden.'});
-    if(model.status!=='proposed')return res.status(409).json({error:'Nur offene Modellvorschläge können freigegeben werden.'});
-    const {error}=await db.rpc('messinho_activate_model',{p_model_id:model.id,p_admin_id:actor.user.id});
-    if(error)return res.status(500).json({error:'Modell konnte nicht aktiviert werden. Staging-Migration prüfen.'});
+    const userClient=createMessinhoUserClient(actor.token);
+    if(!userClient)return res.status(503).json({error:'Supabase Publishable Key ist nicht konfiguriert.'});
+    const reason=typeof req.body?.reason==='string'&&req.body.reason.trim().length>=10?req.body.reason.trim():'MESSINHO-Modell anhand der gespeicherten Holdout-Evaluation geprüft und freigegeben.';
+    const {data,error}=await userClient.rpc('asi_review_model_candidate',{p_model_version_id:req.params.id,p_decision:'approve',p_reason:reason});
+    if(error)return res.status(400).json({error:'Modellfreigabe wurde abgelehnt: '+String(error.message||'RPC fehlgeschlagen').slice(0,220)});
     const active=await getActiveMessinhoModel();
-    return res.json({ok:true,active_model:active?{id:active.id,version:active.version}:null,message:'Das geprüfte Modell ist jetzt aktiv. Der vorherige Stand bleibt historisch erhalten.'});
+    return res.json({ok:true,active_model:active?{id:active.id,version:active.version}:null,message:'Das Modell wurde über die bestehende ASI-Modellverwaltung freigegeben und ist jetzt aktiv.'});
   }catch(error){return res.status(500).json({error:'Modell konnte nicht freigegeben werden.'});}
 });
 
