@@ -598,8 +598,8 @@ app.post('/api/messinho/capabilities/:capabilityId/execute',messinhoCapabilityLi
     const supplied=req.body?.input;
     if(!supplied||typeof supplied!=='object'||Array.isArray(supplied))return res.status(400).json({error:'Bitte ein Eingabeobjekt übermitteln.'});
     const input={...supplied};
-    // Client payloads are never accepted as verified training outcomes or source evidence.
-    for(const key of ['outcomes','predictions','sources','evidence','verified_insights','training_dataset','scout_assessments','market_comparables'])delete input[key];
+    // Client payloads are never accepted as verified training outcomes, player records or source evidence.
+    for(const key of ['outcomes','predictions','sources','evidence','verified_insights','training_dataset','scout_assessments','market_comparables','player','candidate','players'])delete input[key];
     const playerId=Number(req.body?.player_id??input.player_id);
     if(Number.isSafeInteger(playerId)&&playerId>0){
       const playerQuery=scopeMessinhoOwner(db.from('players').select('*').eq('player_id',playerId),actor);
@@ -627,6 +627,29 @@ app.post('/api/messinho/capabilities/:capabilityId/execute',messinhoCapabilityLi
       const {data:players,error}=await peerQuery;
       if(error)return res.status(500).json({error:'Vergleichsdaten konnten nicht geladen werden.'});
       input.players=players||[];
+    }
+    const researchCapabilityIds=new Set(['automated_talent_search','international_research','cross_league_research','youth_talent_discovery','underdog_detection','hidden_gem_detection','club_research','squad_research','contract_research','contract_expiry_monitor','rumour_verification','market_monitoring','source_cross_check','identity_verification','birth_year_verification','position_verification','statistics_research','video_source_research','match_report_research','competition_monitoring','club_need_research','comparable_player_research','player_data_refresh','new_talent_monitoring','research_report_generation']);
+    if(researchCapabilityIds.has(capabilityId)&&!['market_monitoring','player_data_refresh','new_talent_monitoring','competition_monitoring'].includes(capabilityId)){
+      const filters=input.filters&&typeof input.filters==='object'?input.filters:{};
+      const query=typeof input.query==='string'?input.query.trim().slice(0,400):'';
+      const discoveryIds=new Set(['automated_talent_search','youth_talent_discovery','underdog_detection','hidden_gem_detection']);
+      if(discoveryIds.has(capabilityId)&&Object.keys(filters).length){
+        const origin=req.protocol+'://'+req.get('host');
+        const research=await fetch(origin+'/api/asi/player-search',{method:'POST',signal:AbortSignal.timeout(65000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+actor.token},body:JSON.stringify({mode:'discover',filters})});
+        const payload=await research.json().catch(()=>({}));
+        if(!research.ok)return res.status(research.status).json({error:payload.error||'Die MESSINHO-Talentsuche konnte nicht ausgeführt werden.'});
+        const ranked=rankMessinhoPlayers(Array.isArray(payload.candidates)?payload.candidates:[]);
+        return res.json({ok:true,output:{capability_id:capabilityId,status:'completed',result:{candidate_count:ranked.length,candidates:ranked,sources:payload.sources||[],limitations:payload.limitations||[],provider:payload.provider||null,underfilled:!!payload.underfilled},execution:'ASI provider research + independent MESSINHO ranking'},actor_role:actor.profile.role});
+      }
+      if(!query)return res.status(400).json({error:'Für diese Recherchefunktion bitte einen konkreten Suchbegriff oder Suchfilter angeben.'});
+      const tavilyKey=process.env.TAVILY_API_KEY;
+      if(!tavilyKey)return res.status(503).json({error:'Externe Recherche ist noch nicht freigeschaltet: TAVILY_API_KEY fehlt in der Staging-Umgebung.'});
+      const searchResponse=await fetch('https://api.tavily.com/search',{method:'POST',signal:AbortSignal.timeout(30000),headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:tavilyKey,query,search_depth:'advanced',max_results:10,include_answer:false,include_raw_content:false,topic:'general'})});
+      if(!searchResponse.ok)return res.status(502).json({error:'Der externe Rechercheanbieter hat die Anfrage nicht erfolgreich beantwortet.'});
+      const searchPayload=await searchResponse.json();
+      input.sources=(Array.isArray(searchPayload.results)?searchPayload.results:[]).filter(source=>typeof source.url==='string'&&/^https:\/\//i.test(source.url)).map(source=>({title:String(source.title||'').slice(0,240),url:source.url,published_date:source.published_date||null,content:String(source.content||'').slice(0,5000)}));
+      input._trusted_source_bundle=true;
+      if(!input.sources.length)return res.status(502).json({error:'Die Recherche lieferte keine verwertbaren HTTPS-Quellen.'});
     }
     const output=executeMessinhoCapability(capabilityId,input);
     return res.json({ok:true,output,actor_role:actor.profile.role});
