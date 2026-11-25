@@ -88,3 +88,14 @@
 .messinho-capability-result strong{color:#e2c47d;font-size:12px}
 .messinho-capability-result pre{max-height:280px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;color:#d8d2c5;font-size:10px;line-height:1.45}
 @media(max-width:620px){.messinho-capability-controls{grid-template-columns:1fr}}
+
+.messinho-development-panel{display:grid;gap:14px;margin:18px 0;padding:18px;border:1px solid rgba(212,160,23,.25);border-radius:16px;background:linear-gradient(145deg,rgba(212,160,23,.055),rgba(0,0,0,.12))}
+.messinho-development-actions{display:flex;flex-wrap:wrap;gap:9px}
+.messinho-development-actions button,.messinho-prediction-row button{border:1px solid rgba(212,160,23,.38);border-radius:9px;padding:9px 13px;background:#c99a22;color:#17130a;font-weight:700;cursor:pointer}
+.messinho-development-actions button.secondary{background:transparent;color:inherit}
+.messinho-development-result{display:grid;gap:7px;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:11px;background:rgba(0,0,0,.16);min-width:0}
+.messinho-development-result pre{max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;color:var(--messinho-muted,#b7b7b7)}
+.messinho-prediction-row{display:grid;gap:7px;padding:10px 0;border-top:1px solid rgba(255,255,255,.08)}
+.messinho-outcome-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.messinho-outcome-fields input{min-width:0;width:100%;box-sizing:border-box}
+@media(max-width:600px){.messinho-development-panel{padding:13px}.messinho-development-actions{display:grid}.messinho-development-actions button{width:100%}}
