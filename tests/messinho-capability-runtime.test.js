@@ -58,3 +58,12 @@ test('potential and development scores require measured player history where app
  const development=executeMessinhoCapability('development_score',{player:{name:'Test'},time_series:[{date:'2025-01-01',score:60},{date:'2026-01-01',score:72}]});
  assert.equal(development.status,'completed');
 });
+
+test('match analysis capabilities use structured phase events and enforce video licensing',()=>{
+ const events=Array.from({length:6},(_,i)=>({minute:i*8,phase:i<3?'offensive':'defensive',action:'pass',successful:i%2===0,xg:i===0?0.1:0,license_status:'licensed'}));
+ const match=executeMessinhoCapability('game_phase_analysis',{player:{name:'Test',positions:['ZM']},events});
+ assert.equal(match.status,'completed');
+ assert.equal(match.result.phase_breakdown.offensive.events,3);
+ const video=executeMessinhoCapability('video_event_analysis',{player:{name:'Test'},events:events.map(({license_status,...event})=>event)});
+ assert.equal(video.status,'insufficient_data');
+});
