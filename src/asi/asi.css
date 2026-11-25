@@ -237,3 +237,10 @@
 .asi-diagnostic-time{display:block;margin-top:3px;color:#91a4bb;font-size:10px;font-weight:500;line-height:1.35}
 .asi-diagnostic-list>div>span{min-width:0}
 .asi-diagnostic-list>div>span small{white-space:normal}
+
+
+.asi-access-results{margin:12px 0 16px;padding:12px;border:1px solid rgba(125,166,218,.3);border-radius:12px;background:rgba(8,19,34,.48)}
+.asi-access-results-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;color:#e6eef8;font-size:12px}
+.asi-access-results-heading small{color:#91a4bb;font-size:10px}
+.asi-access-results .asi-diagnostic-list{margin:0}
+.asi-access-results .asi-diagnostic-pagination{margin-bottom:0}
