@@ -583,14 +583,14 @@ app.get('/api/messinho/learning/status',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
-    let countQuery=db.from('asi_scout_calibration_records').select('id',{count:'exact',head:true});
+    let countQuery=db.from('asi_scout_calibration_records').select('id',{count:'exact',head:true}).eq('outcome_metric',MESSINHO_CALIBRATION_METRIC);
     if(actor.profile.role!=='admin')countQuery=countQuery.eq('owner_id',actor.user.id);
     const [{count,error},active]=await Promise.all([countQuery,getActiveMessinhoModel()]);
     if(error)return res.status(500).json({error:'Lernstatus konnte nicht geladen werden.'});
     let pendingCalibrations=[],proposals=[];
     if(actor.profile.role==='admin'){
       const [pendingResult,proposalResult]=await Promise.all([
-        db.from('asi_scout_calibration_records').select('id,player_id,scout_rating,outcome_metric,created_at').eq('verification_status','pending').order('created_at',{ascending:false}).limit(25),
+        db.from('asi_scout_calibration_records').select('id,player_id,scout_rating,outcome_metric,created_at').eq('verification_status','pending').eq('outcome_metric',MESSINHO_CALIBRATION_METRIC).order('created_at',{ascending:false}).limit(25),
         db.from('asi_model_versions').select('id,version,metrics,created_at').eq('model_key','messinho_position_weights').eq('status','candidate').order('created_at',{ascending:false}).limit(20)
       ]);
       if(pendingResult.error||proposalResult.error)return res.status(500).json({error:'Offene Kalibrierungen oder Modellkandidaten konnten nicht geladen werden.'});
