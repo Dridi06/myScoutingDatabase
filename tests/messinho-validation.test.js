@@ -63,3 +63,25 @@ test('supports common European country aliases', () => {
   assert.equal(sourceSupportsRegion('spanien', 'Spain - Real Madrid', 'Real Madrid'), true);
   assert.equal(sourceSupportsRegion('frankreich', 'French league - Paris Saint-Germain', 'Paris Saint-Germain'), true);
 });
+
+test('does not repeat a completed search when the user only says thanks', () => {
+  const history = [
+    { role: 'user', text: 'Ich brauche 10 linker Verteidiger Jahrgang 2004 in Deutschland, Regionalliga' },
+    { role: 'assistant', text: 'Die vorhandene ASI-Recherche wurde mit deinen Kriterien ausgeführt.' }
+  ];
+  assert.equal(parseMessinhoScoutingRequest('Danke', history, 2026).shouldHandle, false);
+});
+
+test('a new scouting request does not inherit filters from the previous request', () => {
+  const history = [
+    { role: 'user', text: 'Ich brauche 10 linker Verteidiger Jahrgang 2004 in Deutschland, Regionalliga' },
+    { role: 'assistant', text: 'Die Recherche ist abgeschlossen.' }
+  ];
+  const result = parseMessinhoScoutingRequest('Suche 5 Innenverteidiger Jahrgang 2005 in Spanien, 3. Liga', history, 2026);
+  assert.equal(result.request.yearFrom, 2005);
+  assert.equal(result.request.yearTo, 2005);
+  assert.equal(result.request.position, 'Innenverteidiger');
+  assert.equal(result.request.region, 'spanien');
+  assert.equal(result.request.targetLevel, '3. Liga');
+  assert.equal(result.request.quantity, 5);
+});
