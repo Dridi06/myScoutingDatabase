@@ -2,8 +2,6 @@
  * MESSINHO Learning Engine – supervised, auditable model proposals.
  * It learns only from explicit scout ratings; no autonomous code or model deployment.
  */
-import { scoreMessinhoPlayer } from './messinho-engine.js';
-
 export const MESSINHO_LEARNING_VERSION = '1.0.0';
 const DIMENSIONS = ['technical','tactical','athletic','mental','goalkeeping'];
 const MIN_EXAMPLES = 30;
@@ -65,7 +63,7 @@ export function buildMessinhoLearningProposal(feedbackRows, baselineProfiles, op
   }
   const profiles={};const report={};let trainedGroups=0;
   for(const [group,examples] of byGroup){
-    const keys=DIMENSIONS.filter(key=>examples.some(row=>row.dimension_scores[key]!==null&&row.dimension_scores[key]!==undefined&&Number.isFinite(Number(row.dimension_scores[key]))));
+    const keys=Object.keys(baselineProfiles?.[group]||{technical:1,tactical:1,athletic:1,mental:1}).filter(key=>DIMENSIONS.includes(key));
     const uniquePlayers=new Set(examples.map(row=>row.player_id));
     if(examples.length<minExamples||uniquePlayers.size<10){report[group]={status:'insufficient_data',examples:examples.length,unique_players:uniquePlayers.size,required_examples:minExamples,required_unique_players:10};continue;}
     const base=validWeights(baselineProfiles?.[group],keys)||validWeights(Object.fromEntries(keys.map(k=>[k,1])),keys);
