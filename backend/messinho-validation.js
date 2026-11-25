@@ -101,7 +101,7 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
   const levelPattern = /\b(2\.?\s*bundesliga|3\.?\s*liga|bundesliga|regionalliga|oberliga|landesliga)\b/i;
   const levelMatch = context.match(levelPattern);
   const targetLevel = levelMatch ? levelMatch[0].replace(/\s+/g, ' ').trim() : '';
-  const quantityMatch = context.match(/\b(\d{1,2})\s+(?:spieler|talente|kandidaten)\b/i);
+  const quantityMatch = context.match(/\b(\d{1,2})\s+(?=(?:spieler|talente|kandidaten|linker|linksverteidiger|left|rechter|rechtsverteidiger|right|innenverteidiger|mittelstürmer|stürmer|torwart|goalkeeper|keeper|flügelspieler|winger|zentraler|defensives|offensives)\b)/i);
   const quantity = quantityMatch ? Math.max(1, Math.min(15, Number(quantityMatch[1]))) : 10;
 
   const pending = /(?:welches spielerlevel|welche spielklasse|leistungsniveau|welches land|welcher standort|welche position|welcher jahrgang|geburtsjahrgang)/i.test(assistantContext);
