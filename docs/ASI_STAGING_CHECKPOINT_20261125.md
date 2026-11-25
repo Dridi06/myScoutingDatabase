@@ -189,3 +189,11 @@
 - Commit `a516f19e91d48da25d963c53aaa4d656d3227a0e`: Diagnose-/Torwart-Panel gestaltet.
 - Keine Test- oder Echtdaten in der Datenbank geändert. Ausschließlich Staging.
 - Noch zu verifizieren: Render-Build/Live-Status, Selbsttests im Browser, Torwartprofil-Speichern und anschließendes Laden, Analyse-/Feedback-Speicherung, RLS-Negativtest mit Scout-Konto. Prognosemodell bleibt gesperrt, bis echte Ergebnisdaten und ausreichende Evaluationen vorliegen.
+
+
+## Positionsabhängige Datenqualitätsprüfung – 2026-11-25
+- Commit `05304a2bbf26d343951f88a93ba7b542b3812b64`: Die Kennzahl „Vollständige Ratings“ berücksichtigt jetzt die tatsächlich aktiven Kriterien je Spielerposition: 34 Kriterien bei Feldspielern, 46 bei Torhütern.
+- Beobachtungen ohne zuordenbares Spielerprofil werden konservativ nicht als vollständig gezählt. Dadurch werden fehlende Torwartwerte bei Feldspielern nicht fälschlich verlangt und umgekehrt.
+- Interner Selbsttest ergänzt: Feldspieler-Snapshot muss genau 34 Kriterien und keinen Torwartabschnitt enthalten; Torwart-Snapshot muss 46 Kriterien inklusive Torwartabschnitt enthalten.
+- Keine Datenbankänderung und keine Veränderung gespeicherter Spieler-/Beobachtungsdaten. Ausschließlich Staging; Produktion unangetastet.
+- Render-Build/Live-Status und Browser-Selbsttest bleiben zu prüfen.
