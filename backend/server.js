@@ -468,8 +468,8 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
         const evidenceAssessment=assessMessinhoEvidence(candidateSources);
         const supportedPositions=(Array.isArray(player.positions)?player.positions:[]).filter(value=>messinhoValueSupported(value,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence));
         if(position&&!matchesPosition(position,supportedPositions))return null;
-        const supportedClub=messinhoValueSupported(player.current_club,candidateEvidence.supporting_source_urls,discoverySources)?player.current_club:null;
-        const supportedNationality=messinhoValueSupported(player.nationality,candidateEvidence.supporting_source_urls,discoverySources)?player.nationality:null;
+        const supportedClub=messinhoValueSupported(player.current_club,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence)?player.current_club:null;
+        const supportedNationality=messinhoValueSupported(player.nationality,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence)?player.nationality:null;
         const tacticalFit=evaluateMessinhoTacticalFit({positions:supportedPositions,performance_metrics:player.performance_metrics||{}},filters.teamProfile);
         const sources=candidateSources.map(({content,...s})=>s);
         const normalized=name.normalize('NFKC').toLocaleLowerCase('de');
