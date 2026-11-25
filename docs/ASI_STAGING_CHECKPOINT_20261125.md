@@ -197,3 +197,10 @@
 - Interner Selbsttest ergänzt: Feldspieler-Snapshot muss genau 34 Kriterien und keinen Torwartabschnitt enthalten; Torwart-Snapshot muss 46 Kriterien inklusive Torwartabschnitt enthalten.
 - Keine Datenbankänderung und keine Veränderung gespeicherter Spieler-/Beobachtungsdaten. Ausschließlich Staging; Produktion unangetastet.
 - Render-Build/Live-Status und Browser-Selbsttest bleiben zu prüfen.
+
+
+## Positionsabhängige Spieler-Gesamtbewertung – 2026-11-25
+- Commit `15dfda5c16b6d1f5b13afd9cdb3d483311004960`: Gesamtpunktzahl und Prozentwert verwenden nur die für die Spielerposition aktiven Bewertungskriterien.
+- Feldspieler erhalten keine Torwartpunkte aus eventuell vorhandenen Alt-/Restwerten. Torhüter erhalten den korrekten Maximalwert auf Basis aller 46 Kriterien; Feldspieler auf Basis ihrer 34 Kriterien.
+- Die Spieler-Detailansicht blendet den Torwart-Bewertungsblock bei Nicht-Torhütern aus. Die Maximalpunktzahl wird dynamisch statt mit einem festen Wert angezeigt.
+- Keine Datenbankänderung und keine Veränderung gespeicherter Ratings. Ausschließlich Staging; Produktion unangetastet.
