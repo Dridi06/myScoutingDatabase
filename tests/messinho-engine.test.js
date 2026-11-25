@@ -57,3 +57,12 @@ test('supports a previous explicit player search phrase',()=>{
  const history=[{role:'user',text:'Suche Spieler Kylian Mbappé'},{role:'assistant',text:'Recherche abgeschlossen.'}];
  assert.equal(resolveMessinhoPlayerFollowUp('Erzähl mir mehr über ihn.',history),'Kylian Mbappé');
 });
+
+
+test('preserves bounded source evidence for later conversational follow-ups',()=>{
+ const context={player:{name:'Cristiano Ronaldo'},profile:{summary:'Belegtes Profil'},sources:[{title:'Official profile',url:'https://example.org/player',publisher:'example.org',snippet:'Forward'}]};
+ const safe=sanitizeMessinhoHistory([{role:'assistant',text:'10 Quellen gefunden.',researchContext:context}]);
+ assert.equal(safe[0].researchContext.player.name,'Cristiano Ronaldo');
+ assert.equal(safe[0].researchContext.sources[0].snippet,'Forward');
+ assert.equal(safe[0].researchContext.sources.length,1);
+});

@@ -68,10 +68,10 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     try{
       const {data:{session}}=await supabase.auth.getSession();
       if(!session?.access_token)throw new Error('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
-      const response=await fetch('/api/agent/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({message:value,history:messages.map(m=>({role:m.role,text:m.text})).slice(-10)})});
+      const response=await fetch('/api/agent/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({message:value,history:messages.map(m=>({role:m.role,text:m.text,researchContext:m.researchContext})).slice(-10)})});
       const payload=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(payload.error||'Messinho konnte nicht antworten.');
-      const next={id:'a-'+Date.now(),role:'assistant',text:payload.reply||'Ich habe die Anfrage verarbeitet.',intent:payload.intent,items:Array.isArray(payload.items)?payload.items:[],metrics:payload.metrics||null};
+      const next={id:'a-'+Date.now(),role:'assistant',text:payload.reply||'Ich habe die Anfrage verarbeitet.',intent:payload.intent,items:Array.isArray(payload.items)?payload.items:[],metrics:payload.metrics||null,researchContext:payload.researchContext||((payload.sources?.length||payload.profile)?{player:payload.player||null,profile:payload.profile||null,sources:payload.sources||[],researched_at:payload.researched_at||null}:null)};
       setMessages(prev=>[...prev,next]);speak(next.text);
     }catch(e){setError(e.message||'Verbindung zu Messinho fehlgeschlagen.');}
     finally{setBusy(false);}
