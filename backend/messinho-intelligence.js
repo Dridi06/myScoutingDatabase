@@ -34,7 +34,8 @@ function numericScore(value) {
   if (raw === null || raw === undefined || raw === '') return null;
   const number = Number(raw);
   if (!Number.isFinite(number) || number < 0) return null;
-  return Math.max(0, Math.min(100, number <= 1 ? number * 100 : number));
+  // Match the existing scouting scale: 0..1, 1..5, or 0..100.
+  return Math.max(0, Math.min(100, number <= 1 ? number * 100 : number <= 5 ? number * 20 : number));
 }
 
 export function assessMessinhoSource(source = {}, options = {}) {
