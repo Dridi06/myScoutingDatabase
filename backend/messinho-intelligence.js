@@ -70,14 +70,19 @@ export function assessMessinhoSource(source = {}, options = {}) {
   };
 }
 
-export function messinhoValueSupported(value, sourceUrls = [], sources = []) {
+export function messinhoValueSupported(value, sourceUrls = [], sources = [], evidence = []) {
   const normalized = normalize(value).replace(/\s+/g, ' ').trim();
   if (!normalized) return false;
   const tokens = normalized.split(' ').filter(token => token.length > 1);
   const allowed = new Set(Array.isArray(sourceUrls) ? sourceUrls : []);
+  const claims = new Map();
+  for (const item of Array.isArray(evidence) ? evidence : []) {
+    if (!allowed.has(item?.source_url)) continue;
+    claims.set(item.source_url, [...(claims.get(item.source_url)||[]), String(item.claim||'')]);
+  }
   return (Array.isArray(sources) ? sources : []).some(source => {
     if (!allowed.has(source.url)) return false;
-    const text = normalize([source.title, source.content].filter(Boolean).join(' ')).replace(/\s+/g, ' ').trim();
+    const text = normalize([source.title, source.content, ...(claims.get(source.url)||[])].filter(Boolean).join(' ')).replace(/\s+/g, ' ').trim();
     return tokens.length > 1 ? tokens.every(token => text.includes(token)) : text.includes(normalized);
   });
 }
