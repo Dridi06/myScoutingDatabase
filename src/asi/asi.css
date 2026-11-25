@@ -75,3 +75,5 @@
 .asi-evolution-criteria strong{font-variant-numeric:tabular-nums}
 .asi-evolution-criteria .positive{color:#15803d}.asi-evolution-criteria .negative{color:#b45309}.asi-evolution-criteria .neutral{color:var(--muted,#64748b)}
 @media(max-width:650px){.asi-evolution-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.asi-evolution-sections{grid-template-columns:1fr}}
+
+.asi-saving-icon{animation:asi-save-spin 1s linear infinite}@keyframes asi-save-spin{to{transform:rotate(360deg)}}
