@@ -103,9 +103,9 @@ async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=n
     const r=await probeTable('profiles');
     return {...r,recommendation:'Supabase-Projektstatus, SUPABASE_URL und serverseitigen Schlüssel prüfen.'};
   });
-  const requiredTables=['profiles','players','asi_player_candidates','asi_player_analyses','asi_model_versions','asi_prediction_records','asi_prediction_outcomes','asi_scout_calibration_records','asi_training_runs','asi_model_evaluations','system_diagnostic_runs'];
-  for(const table of requiredTables){
-    await safe('Tabelle '+table,'Datenbank',()=>probeTable(table),'critical');
+  const requiredTables=[['profiles','id'],['players','player_id'],['asi_player_candidates','id'],['asi_player_analyses','id'],['asi_model_versions','id'],['asi_prediction_records','id'],['asi_prediction_outcomes','id'],['asi_scout_calibration_records','id'],['asi_training_runs','id'],['asi_model_evaluations','id'],['system_diagnostic_runs','id']];
+  for(const [table,primaryKey] of requiredTables){
+    await safe('Tabelle '+table,'Datenbank',()=>probeTable(table,primaryKey),'critical');
   }
 
   // 3. Authentifizierung
@@ -139,7 +139,7 @@ async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=n
 
   // 6. Spielerdatenbank
   await safe('Spielerdatenbank lesbar','Spielerdatenbank',async()=>{
-    const result=await probeTable('players','id');
+    const result=await probeTable('players','player_id');
     if(!result.ok)return result;
     return {...result,detail:`Tabelle players erreichbar; ${result.count} Datensätze vorhanden.`};
   },'critical');
