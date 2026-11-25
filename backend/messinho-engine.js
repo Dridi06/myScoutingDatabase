@@ -120,7 +120,7 @@ export function sanitizeMessinhoHistory(history) {
       const ctx = item.researchContext;
       safe.researchContext = {
         player: ctx.player && typeof ctx.player === 'object' ? { name: String(ctx.player.name || '').slice(0,120) } : null,
-        profile: ctx.profile && typeof ctx.profile === 'object' ? JSON.parse(JSON.stringify(ctx.profile).slice(0,8000)) : null,
+        profile: ctx.profile && typeof ctx.profile === 'object' ? { summary: String(ctx.profile.summary || '').slice(0,2400), corrected_name: String(ctx.profile.corrected_name || '').slice(0,120), facts: Array.isArray(ctx.profile.facts) ? ctx.profile.facts.slice(0,8).map(f => typeof f === 'string' ? f.slice(0,300) : { label: String(f?.label || f?.name || '').slice(0,100), value: String(f?.value || '').slice(0,300) }) : [], career: Array.isArray(ctx.profile.career) ? ctx.profile.career.slice(0,6).map(x => String(typeof x === 'string' ? x : JSON.stringify(x)).slice(0,400)) : [], recent_performance: ctx.profile.recent_performance && typeof ctx.profile.recent_performance === 'object' ? Object.fromEntries(Object.entries(ctx.profile.recent_performance).slice(0,8).map(([k,v]) => [String(k).slice(0,80), String(v).slice(0,240)])) : {}, missing_data: Array.isArray(ctx.profile.missing_data) ? ctx.profile.missing_data.slice(0,8).map(x => String(x).slice(0,120)) : [] } : null,
         sources: Array.isArray(ctx.sources) ? ctx.sources.slice(0,10).map(source => ({
           title: String(source.title || '').slice(0,240),
           url: /^https:\/\//i.test(String(source.url || '')) ? String(source.url).slice(0,1000) : '',
