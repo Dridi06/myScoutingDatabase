@@ -57,7 +57,19 @@ async function bootstrapAdmin(){
 }
 function requireAuth(req,res,next){const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});try{req.user=jwt.verify(token,JWT_SECRET,{issuer:'myScoutingDatabase'});if(!req.user.approved)return res.status(403).json({error:'Konto noch nicht freigeschaltet.'});next();}catch{return res.status(401).json({error:'Sitzung abgelaufen. Bitte erneut anmelden.'});}}
 function requireAdmin(req,res,next){if(req.user?.role!=='admin')return res.status(403).json({error:'Admin-Rechte erforderlich.'});next();}
-app.get('/api/health',(_req,res)=>res.json({ok:true,service:'myScoutingDatabase',database:!!db,aiSearch:{ready:Boolean(process.env.TAVILY_API_KEY&&process.env.OPENAI_API_KEY),searchProvider:'Tavily',analysisProvider:'OpenAI',model:process.env.OPENAI_MODEL||'gpt-4.1-mini'}}));
+app.get('/api/health',async(_req,res)=>{
+  const aiSearchReady=Boolean(process.env.TAVILY_API_KEY&&process.env.OPENAI_API_KEY);
+  if(!db)return res.status(503).json({ok:false,service:'myScoutingDatabase',dependencies:{database:'unavailable',aiSearch:aiSearchReady?'ready':'not_configured'}});
+  try{
+    const {error}=await db.from('profiles').select('id',{head:true,count:'exact'}).limit(1);
+    if(error)throw error;
+    const dependencies={database:'ok',aiSearch:aiSearchReady?'ready':'not_configured'};
+    return res.status(200).json({ok:true,service:'myScoutingDatabase',dependencies});
+  }catch(error){
+    console.error('Health check database probe failed:',error.message);
+    return res.status(503).json({ok:false,service:'myScoutingDatabase',dependencies:{database:'unavailable',aiSearch:aiSearchReady?'ready':'not_configured'}});
+  }
+});
 app.post('/api/auth/login',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist noch nicht konfiguriert.'});
@@ -722,13 +734,15 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const {data,error}=await db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status,analysis,sources,researched_at').eq('owner_id',ownerId).order('researched_at',{ascending:false}).limit(50);
       if(error)return res.status(500).json({error:'Deine Kandidaten konnten für den Vergleich nicht geladen werden.'});
       const activeModel=await getActiveMessinhoModel();
-      const ranked=rankMessinhoPlayers(data||[],activeModel?.profiles||null);
+      const ranked=rankMessinhoPlayers(data||[],activeModel?.configuration?.profiles||null);
       return res.json({reply:'Ich habe deine Kandidaten nach den verfügbaren positionsspezifischen Leistungsdaten sortiert. Nicht belegte Werte wurden nicht geschätzt; Kandidaten ohne ausreichende Daten erhalten keinen Score.',intent:'comparison',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null});
     }
     if(wantsSummary){
-      const [playerCount,candidateCount]=await Promise.all([db.from('players').select('player_id',{count:'exact',head:true}),db.from('asi_player_candidates').select('id',{count:'exact',head:true}).eq('owner_id',ownerId)]);
+      let playerCountQuery=db.from('players').select('player_id',{count:'exact',head:true});
+      if(profile.role==='scout')playerCountQuery=playerCountQuery.eq('owner_id',ownerId);
+      const [playerCount,candidateCount]=await Promise.all([playerCountQuery,db.from('asi_player_candidates').select('id',{count:'exact',head:true}).eq('owner_id',ownerId)]);
       if(playerCount.error||candidateCount.error)return res.status(500).json({error:'Die Bestandsübersicht konnte nicht vollständig geladen werden.'});
-      return res.json({reply:'Aktueller Datenbestand: '+(playerCount.count||0)+' Spieler im Katalog und '+(candidateCount.count||0)+' Kandidaten in deinem persönlichen Bereich.',intent:'summary',metrics:{players:playerCount.count||0,candidates:candidateCount.count||0},items:[]});
+      return res.json({reply:'Aktueller Datenbestand: '+(playerCount.count||0)+' '+(profile.role==='admin'?'Spieler im Gesamtkatalog':'eigene Spieler')+' und '+(candidateCount.count||0)+' Kandidaten in deinem persönlichen Bereich.',intent:'summary',metrics:{players:playerCount.count||0,candidates:candidateCount.count||0},items:[]});
     }
     if(wantsCandidates){
       const {data,error}=await db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status,researched_at').eq('owner_id',ownerId).order('researched_at',{ascending:false}).limit(12);
@@ -739,7 +753,9 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(searchMatch){
       const term=searchMatch[1].replace(/[.!?]+$/,'').trim().slice(0,100);
       const safeTerm=term.replace(/[%,_()]/g,' ').trim();
-      const [players,candidates]=await Promise.all([db.from('players').select('player_id,name,club,year,positions,foot').ilike('name','%'+safeTerm+'%').order('name').limit(10),db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status').eq('owner_id',ownerId).ilike('player_name','%'+safeTerm+'%').limit(10)]);
+      let playerQuery=db.from('players').select('player_id,name,club,year,positions,foot').ilike('name','%'+safeTerm+'%').order('name').limit(10);
+      if(profile.role==='scout')playerQuery=playerQuery.eq('owner_id',ownerId);
+      const [players,candidates]=await Promise.all([playerQuery,db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status').eq('owner_id',ownerId).ilike('player_name','%'+safeTerm+'%').limit(10)]);
       if(players.error||candidates.error)return res.status(500).json({error:'Die interne Spielersuche ist fehlgeschlagen.'});
       const items=[...(players.data||[]).map(p=>({kind:'Spielerkatalog',id:p.player_id,name:p.name,club:p.club,year:p.year,positions:p.positions||[],foot:p.foot})),...(candidates.data||[]).map(p=>({kind:'Kandidat',id:p.id,name:p.player_name,club:p.current_club,year:p.birth_year,positions:p.positions||[],recommendation:p.recommendation,status:p.status}))];
       return res.json({reply:items.length?'Ich habe '+items.length+' gespeicherte Einträge gefunden.':'Ich habe keinen internen Treffer gefunden.',intent:'search',items});
