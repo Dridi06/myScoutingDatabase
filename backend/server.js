@@ -143,6 +143,78 @@ async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=n
     return {ok:!error,detail:error?.message||'Auth Admin API antwortet; Benutzerliste wurde ohne personenbezogene Daten zu speichern geprüft.'};
   });
 
+
+  // 3b. Authentifizierungs-E2E, Passwortwechsel, Session und RLS-Isolation.
+  // A disposable, confirmed .invalid account is created and deleted in finally;
+  // no real Scout/Admin account or business record is modified.
+  await safe('Login, Passwortwechsel und Session (isolierter Testaccount)','Authentifizierung',async()=>{
+    const publicKey=process.env.SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_ANON_KEY;
+    if(!db||!publicKey)return {ok:false,detail:'Service-Client oder Publishable Key fehlt; End-to-End-Test konnte nicht sicher ausgeführt werden.',recommendation:'Supabase-Server-Secret und Publishable Key in Render konfigurieren.'};
+    const suffix=randomBytes(10).toString('hex'),email='msd-diagnostic-'+suffix+'@example.invalid';
+    const initialPassword='Dg!'+randomBytes(24).toString('base64url')+'a9';
+    const nextPassword='Pw!'+randomBytes(24).toString('base64url')+'Z7';
+    let createdUser=null,cleanupOk=true;
+    const client=createClient(supabaseUrl,publicKey,{auth:{autoRefreshToken:false,persistSession:false}});
+    try{
+      const created=await db.auth.admin.createUser({email,password:initialPassword,email_confirm:true,user_metadata:{username:'diagnostic-'+suffix}});
+      if(created.error||!created.data?.user)throw created.error||new Error('Temporärer Auth-Testaccount konnte nicht erstellt werden.');
+      createdUser=created.data.user;
+      const wrong=await client.auth.signInWithPassword({email,password:initialPassword+'-wrong'});
+      if(!wrong.error)throw new Error('Falsches Passwort wurde unerwartet akzeptiert.');
+      const first=await client.auth.signInWithPassword({email,password:initialPassword});
+      if(first.error||!first.data?.session)throw first.error||new Error('Login mit gültigem Testpasswort fehlgeschlagen.');
+      const refresh=await client.auth.refreshSession();
+      if(refresh.error||!refresh.data?.session?.access_token)throw refresh.error||new Error('Session-Erneuerung fehlgeschlagen.');
+      const changed=await db.auth.admin.updateUserById(createdUser.id,{password:nextPassword});
+      if(changed.error)throw changed.error;
+      await client.auth.signOut();
+      const oldLogin=await client.auth.signInWithPassword({email,password:initialPassword});
+      if(!oldLogin.error)throw new Error('Altes Passwort blieb nach Passwortwechsel gültig.');
+      const newLogin=await client.auth.signInWithPassword({email,password:nextPassword});
+      if(newLogin.error||!newLogin.data?.session?.access_token)throw newLogin.error||new Error('Login mit neuem Passwort fehlgeschlagen.');
+      const verified=await client.auth.getUser(newLogin.data.session.access_token);
+      if(verified.error||verified.data?.user?.id!==createdUser.id)throw verified.error||new Error('Access Token konnte nicht eindeutig validiert werden.');
+      return {ok:true,detail:'Falsches Passwort abgewiesen; gültiger Login, Token-Refresh, Passwortwechsel, Ablehnung des alten Passworts und Login mit neuem Passwort erfolgreich. Testkonto wird anschließend gelöscht.'};
+    }finally{
+      try{await client.auth.signOut();}catch{}
+      if(createdUser){const removed=await db.auth.admin.deleteUser(createdUser.id);cleanupOk=!removed.error;if(!cleanupOk)console.error('Diagnostic test account cleanup failed:',removed.error.message);}
+      if(!cleanupOk)throw new Error('Der temporäre Testaccount konnte nicht vollständig entfernt werden. Bitte Auth-Benutzerliste kontrollieren.');
+    }
+  },'critical');
+
+  await safe('RLS-Isolation und Admin-Sperre (isolierter Testaccount)','Sicherheit und Datenschutz',async()=>{
+    const publicKey=process.env.SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_ANON_KEY;
+    if(!db||!publicKey)return {ok:false,detail:'Publishable Key oder Supabase-Service-Client fehlt.'};
+    const suffix=randomBytes(10).toString('hex'),email='msd-rls-'+suffix+'@example.invalid',password='Rls!'+randomBytes(24).toString('base64url')+'K4';
+    let createdUser=null;
+    const client=createClient(supabaseUrl,publicKey,{auth:{autoRefreshToken:false,persistSession:false}});
+    try{
+      const created=await db.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{username:'rls-'+suffix}});
+      if(created.error||!created.data?.user)throw created.error||new Error('RLS-Testkonto konnte nicht erstellt werden.');
+      createdUser=created.data.user;
+      const login=await client.auth.signInWithPassword({email,password});
+      if(login.error||!login.data?.session?.access_token)throw login.error||new Error('RLS-Testkonto konnte sich nicht anmelden.');
+      const own=await client.from('profiles').select('id').eq('id',createdUser.id).limit(2);
+      const others=await client.from('profiles').select('id').neq('id',createdUser.id).limit(1);
+      const players=await client.from('players').select('player_id').limit(1);
+      if(own.error||others.error||players.error)throw own.error||others.error||players.error;
+      if((own.data||[]).some(row=>row.id!==createdUser.id))throw new Error('RLS erlaubt einen fremden Profil-Datensatz.');
+      if((others.data||[]).length>0)throw new Error('RLS gibt fremde Profile an den Testbenutzer aus.');
+      if((players.data||[]).length>0)throw new Error('RLS gibt dem frischen Testkonto fremde Spielerdaten aus.');
+      let gateStatus=200;
+      await new Promise(resolve=>{
+        const req={headers:{authorization:'Bearer '+login.data.session.access_token}};
+        const res={status(code){gateStatus=code;return this;},json(){resolve();return this;}};
+        Promise.resolve(requireSupabaseAdmin(req,res,()=>{gateStatus=200;resolve();})).catch(()=>{gateStatus=500;resolve();});
+      });
+      if(gateStatus!==403)throw new Error('Admin-Endpunkt verweigerte dem Nicht-Admin-Testkonto den Zugriff nicht mit HTTP 403 (Status '+gateStatus+').');
+      return {ok:true,detail:'Fremde Profile und Spielerdatensätze sind für den isolierten Testbenutzer nicht sichtbar; Admin-Middleware verweigert Nicht-Admins mit HTTP 403.'};
+    }finally{
+      try{await client.auth.signOut();}catch{}
+      if(createdUser){const removed=await db.auth.admin.deleteUser(createdUser.id);if(removed.error)throw new Error('RLS-Testkonto konnte nicht entfernt werden: '+removed.error.message);}
+    }
+  },'critical');
+
   // 4. Rollen- und Rechteverwaltung
   await safe('Rollenmodell','Rollen und Rechte',async()=>{
     const {data,error}=await db.from('profiles').select('role').limit(500);
@@ -241,6 +313,105 @@ async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=n
   }
   return record;
 }
+
+async function executeMessinhoDiagnostics(actorProfileId){
+  const started=Date.now(),startedAt=new Date().toISOString(),checks=[];
+  const add=(name,category,ok,detail,severity='critical',recommendation='')=>checks.push({
+    name,category,ok:Boolean(ok),detail:String(detail||''),severity,
+    severity_label:severity==='critical'?'Kritisch':severity==='warning'?'Mittel':'Niedrig',
+    recommendation:ok?'Keine Maßnahme erforderlich.':recommendation||'MESSINHO-Komponente prüfen; aktive Modellgewichte bleiben unverändert.',
+    root_cause:ok?null:String(detail||'Prüfung nicht erfolgreich.'),
+    impact:ok?null:'Die betroffene MESSINHO-Teilfunktion kann eingeschränkt sein.',
+    next_action:ok?null:(recommendation||'Datenbasis und Modellversion kontrollieren; keine ungeprüfte Aktivierung.'),
+    repair_class:ok?'none':'admin_approval',checkedAt:new Date().toISOString()
+  });
+  const safe=async(name,category,fn,severity='critical')=>{
+    try{const r=await fn();add(name,category,r.ok,r.detail,severity,r.recommendation||'');}
+    catch(error){add(name,category,false,error?.message||'Unerwarteter Prüffehler.',severity);}
+  };
+  if(!db)throw new Error('Supabase-Service-Client ist nicht verfügbar.');
+  await safe('MESSINHO-Runtime und Handler','Runtime',async()=>{
+    const runtime=getMessinhoRuntimeSummary();
+    const ok=runtime.all_registered===true&&runtime.registered_handlers>0;
+    return {ok,detail:`Runtime ${runtime.version}: ${runtime.registered_handlers} Handler, ${runtime.total_catalogue_entries} Katalogeinträge; vollständig registriert: ${runtime.all_registered}.`};
+  });
+  await safe('Positions-Scoring und Wertebereich','Modellqualität',async()=>{
+    const sample={player:{positions:['Stürmer']},ratings:{technical:80,tactical:70,athletic:75,mental:65}};
+    const a=scoreMessinhoPlayer(sample),b=scoreMessinhoPlayer(sample);
+    const stable=JSON.stringify(a)===JSON.stringify(b);
+    const ok=stable&&Number.isFinite(a.score)&&a.score>=0&&a.score<=100&&a.position_group==='striker'&&a.evidence_coverage>0;
+    return {ok,detail:`Deterministischer Test: Score ${a.score}, Positionsgruppe ${a.position_group}, Datenabdeckung ${a.evidence_coverage} %, Engine ${a.engine_version}; identische Wiederholung: ${stable}.`};
+  });
+  await safe('Erklärbarkeit und fehlende Daten','Modellqualität',async()=>{
+    const a=buildMessinhoExplainableAssessment({player:{positions:['Innenverteidiger']},ratings:{technical:70,tactical:80,athletic:75,mental:85}});
+    const ok=Number.isFinite(a.score)&&Array.isArray(a.weighted_dimensions)&&a.score_trace?.normalization?.includes('missing dimensions')&&Array.isArray(a.missing_dimensions);
+    return {ok,detail:`Erklärbare Bewertung: Score ${a.score}, ${a.weighted_dimensions.length} Gewichtungsdimensionen, ${a.missing_dimensions.length} fehlende Dimensionen; keine fehlenden Werte imputiert.`};
+  });
+  await safe('Capability-Ausführung','Runtime',async()=>{
+    const result=executeMessinhoCapability('overall_score',{player:{positions:['Stürmer']},ratings:{technical:80,tactical:70,athletic:75,mental:65}});
+    const ok=!['unknown_capability','invalid_input','error'].includes(result.status);
+    return {ok,detail:`Capability-Test: Status ${result.status||'ohne Status'}.`};
+  });
+  await safe('Lernpipeline und Freigabeschutz','Lernqualität',async()=>{
+    const {data,error}=await db.from('asi_scout_calibration_records').select('player_id,verified_outcome,messinho_position_group,messinho_dimension_scores,verification_status').eq('verification_status','verified').not('verified_outcome','is',null).limit(1000);
+    if(error)return {ok:false,detail:error.message};
+    const rows=(data||[]).map(row=>({player_id:String(row.player_id),position_group:row.messinho_position_group,target_score:Number(row.verified_outcome),dimension_scores:row.messinho_dimension_scores||{}})).filter(row=>row.position_group&&Number.isFinite(row.target_score));
+    const proposal=buildMessinhoLearningProposal(rows,MESSINHO_DEFAULT_WEIGHTS);
+    const guard=proposal?.guardrails?.requires_admin_approval===true&&proposal?.guardrails?.minimum_unique_players>=10&&proposal?.guardrails?.holdout_fraction>=.2;
+    const noActivation=!Object.prototype.hasOwnProperty.call(proposal||{},'activate')&&!Object.prototype.hasOwnProperty.call(proposal||{},'active_weights');
+    const ok=guard&&noActivation&&['no_proposal','proposal_ready'].includes(proposal.status);
+    return {ok,detail:`Verifizierte Kalibrierungsdatensätze: ${rows.length}; Lernstatus: ${proposal.status}; freigabepflichtig: ${guard}; aktive Gewichte unangetastet: ${noActivation}. ${JSON.stringify(proposal.report||{}).slice(0,1200)}`,recommendation:'Lernpipeline und Holdout-Trennung prüfen. Kandidatenmodelle ausschließlich nach unabhängiger Evaluation und ausdrücklicher Admin-Freigabe aktivieren.'};
+  });
+  await safe('Prognosequalität aus verifizierten Ergebnissen','Prognosequalität',async()=>{
+    const [predictions,outcomes]=await Promise.all([
+      db.from('asi_prediction_records').select('id,player_id,target_metric,predicted_value,model_version,status').not('predicted_value','is',null).limit(1500),
+      db.from('asi_prediction_outcomes').select('prediction_id,player_id,observed_metric,observed_value,verification_status').eq('verification_status','verified').not('observed_value','is',null).limit(1500)
+    ]);
+    if(predictions.error||outcomes.error)return {ok:false,detail:predictions.error?.message||outcomes.error?.message};
+    const byId=new Map((predictions.data||[]).map(row=>[row.id,row]));
+    const pairs=(outcomes.data||[]).map(outcome=>{
+      const prediction=byId.get(outcome.prediction_id);
+      if(!prediction||String(prediction.player_id)!==String(outcome.player_id)||prediction.target_metric!==outcome.observed_metric)return null;
+      return {prediction_id:prediction.id,player_id:prediction.player_id,predicted_value:prediction.predicted_value,observed_value:outcome.observed_value,verification_status:'verified'};
+    }).filter(Boolean);
+    const audit=auditMessinhoPredictions(pairs);
+    if(audit.status!=='completed')return {ok:true,detail:`Noch keine ausreichend verknüpften, verifizierten Prognose-Ergebnis-Paare. Gefundene Paare: ${pairs.length}. Prognosegüte bleibt mangels Daten unbewertet.` ,recommendation:'Verifizierte Outcomes sammeln; bis dahin keine statistische Prognosequalität behaupten.'};
+    const metrics=audit.metrics||{};
+    const ok=Number.isFinite(metrics.mae)&&Number.isFinite(metrics.rmse)&&metrics.mae>=0&&metrics.rmse>=0;
+    return {ok,detail:`Verifizierte Paare: ${audit.verified_pairs}; MAE ${metrics.mae}, RMSE ${metrics.rmse}, Bias ${metrics.bias}, innerhalb ±10 Punkte: ${metrics.within_10_points} %.`};
+  },'warning');
+  await safe('Aktive Modellversionen und Freigaben','Modell-Governance',async()=>{
+    const {data,error}=await db.from('asi_model_versions').select('id,model_key,version,status,approved_by,approved_at').eq('status','active').limit(500);
+    if(error)return {ok:false,detail:error.message};
+    const active=data||[],counts=new Map();
+    for(const row of active)counts.set(row.model_key,(counts.get(row.model_key)||0)+1);
+    const duplicates=[...counts].filter(([,count])=>count>1).map(([key,count])=>key+': '+count);
+    const unapproved=active.filter(row=>!row.approved_by||!row.approved_at);
+    const ok=!duplicates.length&&!unapproved.length;
+    return {ok,detail:`Aktive Versionen: ${active.length}; doppelte aktive Modellschlüssel: ${duplicates.length}; aktive Versionen ohne vollständige Freigabe: ${unapproved.length}.${duplicates.length?' Doppelte Schlüssel: '+duplicates.join(', '):''}`,recommendation:'Aktive Versionen, eindeutige Modellschlüssel und dokumentierte Admin-Freigaben kontrollieren. Keine automatische Änderung an Modellstatus oder Gewichten.'};
+  });
+  await safe('Kalibrierungsdaten und Wertebereiche','Datenqualität',async()=>{
+    const {data,error}=await db.from('asi_scout_calibration_records').select('verified_outcome,messinho_dimension_scores,verification_status').eq('verification_status','verified').not('verified_outcome','is',null).limit(1500);
+    if(error)return {ok:false,detail:error.message};
+    const rows=data||[],invalid=rows.filter(row=>Number(row.verified_outcome)<0||Number(row.verified_outcome)>100||!row.messinho_dimension_scores||typeof row.messinho_dimension_scores!=='object'||Array.isArray(row.messinho_dimension_scores));
+    return {ok:invalid.length===0,detail:`Geprüfte verifizierte Kalibrierungsdatensätze: ${rows.length}; ungültige Outcome-/Dimensionswerte: ${invalid.length}.`};
+  });
+  await safe('Provider-Unabhängigkeit des MESSINHO-Kerns','Unabhängigkeit',async()=>{
+    const sample={player:{positions:['Flügel links']},ratings:{technical:78,tactical:74,athletic:82,mental:70}};
+    const result=scoreMessinhoPlayer(sample);
+    const ok=Number.isFinite(result.score)&&result.engine_version&&typeof buildMessinhoLearningProposal==='function';
+    return {ok,detail:`Lokaler deterministischer Kern arbeitet ohne externe KI-Aufrufe; Engine ${result.engine_version}; Lernmodul ${typeof buildMessinhoLearningProposal}.`};
+  });
+  const critical=checks.some(x=>!x.ok&&x.severity==='critical');
+  const warning=checks.some(x=>!x.ok&&x.severity==='warning');
+  const status=critical?'critical':warning?'warning':'healthy';
+  const finishedAt=new Date().toISOString();
+  const record={triggered_by:'admin',actor_profile_id:actorProfileId,status,started_at:startedAt,finished_at:finishedAt,duration_ms:Date.now()-started,summary:{total:checks.length,passed:checks.filter(x=>x.ok).length,failed:checks.filter(x=>!x.ok).length,critical_failed:checks.filter(x=>!x.ok&&x.severity==='critical').length,warnings:checks.filter(x=>!x.ok&&x.severity==='warning').length,categories:[...new Set(checks.map(x=>x.category))].length},checks};
+  const {data,error}=await db.rpc('save_messinho_diagnostic_run',{p_record:record});
+  if(error)throw new Error('MESSINHO-Bericht konnte nicht gespeichert werden: '+error.message);
+  return data;
+}
+
 app.get('/api/admin/system-diagnostics',requireSupabaseAdmin,async(req,res)=>{
   const limit=Math.min(100,Math.max(1,Number(req.query.limit)||30));
   const {data,error}=await db.from('system_diagnostic_runs').select('*').order('created_at',{ascending:false}).limit(limit);
@@ -256,6 +427,23 @@ app.post('/api/admin/system-diagnostics/run',requireSupabaseAdmin,async(req,res)
 });
 // Read-only status endpoint for signed-in workspace users. This reads the latest
 // saved report only; it never starts a diagnostic run.
+
+app.get('/api/admin/messinho-diagnostics',requireSupabaseAdmin,async(req,res)=>{
+  const limit=Math.min(50,Math.max(1,Number(req.query.limit)||50));
+  const {data,error}=await db.from('messinho_diagnostic_runs').select('*').order('created_at',{ascending:false}).limit(limit);
+  if(error)return res.status(500).json({error:'MESSINHO-Diagnosehistorie konnte nicht geladen werden.',detail:error.message});
+  return res.json(data||[]);
+});
+app.post('/api/admin/messinho-diagnostics/run',requireSupabaseAdmin,async(req,res)=>{
+  try{
+    const run=await executeMessinhoDiagnostics(req.user.sub);
+    return res.status(201).json(run);
+  }catch(error){
+    console.error('MESSINHO diagnostics failed:',error.message);
+    return res.status(500).json({error:'MESSINHO-Diagnose fehlgeschlagen.',detail:error.message});
+  }
+});
+
 app.get('/api/system-status',async(req,res)=>{
   const match=(req.headers.authorization||'').match(/^Bearer\s+(\S+)$/i);
   if(!match)return res.status(401).json({error:'Anmeldung erforderlich.'});
