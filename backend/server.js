@@ -71,6 +71,17 @@ async function bootstrapAdmin(){
 }
 function requireAuth(req,res,next){const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});try{req.user=jwt.verify(token,JWT_SECRET,{issuer:'myScoutingDatabase'});if(!req.user.approved)return res.status(403).json({error:'Konto noch nicht freigeschaltet.'});next();}catch{return res.status(401).json({error:'Sitzung abgelaufen. Bitte erneut anmelden.'});}}
 function requireAdmin(req,res,next){if(req.user?.role!=='admin')return res.status(403).json({error:'Admin-Rechte erforderlich.'});next();}
+async function requireSupabaseAdmin(req,res,next){
+  const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+  if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
+  try{
+    const {data,error}=await db.auth.getUser(token);
+    if(error||!data?.user)return res.status(401).json({error:'Sitzung ungültig oder abgelaufen.'});
+    const {data:profile,error:profileError}=await db.from('profiles').select('id,role,approved,approval_status').eq('id',data.user.id).maybeSingle();
+    if(profileError||!profile||profile.role!=='admin'||!profile.approved||profile.approval_status!=='approved')return res.status(403).json({error:'Admin-Rechte erforderlich.'});
+    req.adminProfile=profile;next();
+  }catch(error){return res.status(401).json({error:'Administrator-Sitzung konnte nicht bestätigt werden.'});}
+}
 
 // Administrator system diagnostics: persistent, auditable checks.
 async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=null){
@@ -104,15 +115,15 @@ async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=n
   }
   return record;
 }
-app.get('/api/admin/system-diagnostics',requireAuth,requireAdmin,async(req,res)=>{
+app.get('/api/admin/system-diagnostics',requireSupabaseAdmin,async(req,res)=>{
   const limit=Math.min(100,Math.max(1,Number(req.query.limit)||30));
   const {data,error}=await db.from('system_diagnostic_runs').select('*').order('created_at',{ascending:false}).limit(limit);
   if(error)return res.status(500).json({error:'Diagnosehistorie konnte nicht geladen werden. Wurde Migration 018 ausgeführt?',detail:error.message});
   return res.json(data||[]);
 });
-app.post('/api/admin/system-diagnostics/run',requireAuth,requireAdmin,async(req,res)=>{
+app.post('/api/admin/system-diagnostics/run',requireSupabaseAdmin,async(req,res)=>{
   try{
-    const run=await executeSystemDiagnostics('admin',req.user.id);
+    const run=await executeSystemDiagnostics('admin',req.adminProfile.id);
     if(run.persistence_error)return res.status(503).json({error:run.persistence_error,run});
     return res.status(201).json(run);
   }catch(error){console.error('Admin diagnostics failed:',error.message);return res.status(500).json({error:'Systemdiagnose fehlgeschlagen.',detail:error.message});}
