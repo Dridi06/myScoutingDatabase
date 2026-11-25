@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { createClient } from '@supabase/supabase-js';
 import { parseMessinhoScoutingRequest, matchesPosition, sourceSupportsRegion } from './messinho-validation.js';
+import { rankMessinhoPlayers, sanitizeMessinhoHistory } from './messinho-engine.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -532,11 +533,13 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved'))return res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});
     const message=typeof req.body?.message==='string'?req.body.message.trim().slice(0,1200):'';
     if(!message)return res.status(400).json({error:'Bitte gib eine Nachricht ein.'});
+    const history=sanitizeMessinhoHistory(req.body?.history);
     const dialog=parseMessinhoScoutingRequest(message,history);
     const ownerId=authData.user.id;
     const normalized=message.toLocaleLowerCase('de-DE').normalize('NFKC');
     const help=/\\b(hilfe|was kannst du|befehle|funktionen)\\b/.test(normalized);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
+    const wantsComparison=/\\b(vergleiche|vergleich|rangliste|ranking|bewerte meine kandidaten)\\b/.test(normalized);
     const wantsSummary=/\\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\\b/.test(normalized);
     if(dialog.shouldHandle){
       if(dialog.missing.length)return res.json({reply:'Damit ich die Suche sauber eingrenzen kann, brauche ich noch: '+dialog.missing.join(', ')+'.',intent:'scouting_clarification',items:[],pending:true});
@@ -550,11 +553,17 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const payload=await research.json().catch(()=>({}));
       if(!research.ok)return res.status(research.status).json({error:payload.error||'Die vorhandene ASI-Recherche konnte nicht ausgeführt werden.'});
       const candidates=Array.isArray(payload.candidates)?payload.candidates:[]; 
-      const ranked=candidates.slice(0,quantity);
-      const reply='Die vorhandene ASI-Recherche wurde mit deinen Kriterien ausgeführt. Ich habe '+candidates.length+' belegte Kandidaten erhalten und zeige '+ranked.length+' davon. Zielniveau: '+targetLevel+'. '+(payload.underfilled?'Die gewünschte Anzahl konnte mit der verfügbaren Quellenlage nicht vollständig belegt werden.':'Bitte beachte Quellen- und Datenqualität der einzelnen Profile.');
-      return res.json({reply,intent:'scouting_results',items:ranked,requested:{quantity,yearFrom,yearTo,position,region,targetLevel},sources:payload.sources||[],source_count:payload.source_count||0,saved_count:payload.saved_count||0,duplicate_count:payload.duplicate_count||0,underfilled:!!payload.underfilled,provider:payload.provider||null,limitations:payload.limitations||[]});
+      const ranked=rankMessinhoPlayers(candidates).slice(0,quantity);
+      const reply='Die Recherche wurde über die vorhandene ASI-Quellenpipeline ausgeführt und anschließend durch MESSINHOs eigene positionsgewichtete Bewertungslogik sortiert. Ich habe '+candidates.length+' belegte Kandidaten erhalten und zeige '+ranked.length+' davon. Zielniveau: '+targetLevel+'. '+(payload.underfilled?'Die gewünschte Anzahl konnte mit der verfügbaren Quellenlage nicht vollständig belegt werden.':'Nicht belegte Leistungswerte wurden nicht geschätzt.');
+      return res.json({reply,intent:'scouting_results',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.0.0',requested:{quantity,yearFrom,yearTo,position,region,targetLevel},sources:payload.sources||[],source_count:payload.source_count||0,saved_count:payload.saved_count||0,duplicate_count:payload.duplicate_count||0,underfilled:!!payload.underfilled,provider:payload.provider||null,limitations:payload.limitations||[]});
     }
     if(help)return res.json({reply:'Ich bin MESSINHO, die zentrale KI von myScoutingDatabase. Ich steuere vorhandene Recherche- und Analysefunktionen und frage fehlende Suchkriterien nach. Weitere Plattformmodule werden schrittweise angebunden.',intent:'help',items:[]});
+    if(wantsComparison){
+      const {data,error}=await db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status,analysis,sources,researched_at').eq('owner_id',ownerId).order('researched_at',{ascending:false}).limit(50);
+      if(error)return res.status(500).json({error:'Deine Kandidaten konnten für den Vergleich nicht geladen werden.'});
+      const ranked=rankMessinhoPlayers(data||[]);
+      return res.json({reply:'Ich habe deine Kandidaten nach den verfügbaren positionsspezifischen Leistungsdaten sortiert. Nicht belegte Werte wurden nicht geschätzt; Kandidaten ohne ausreichende Daten erhalten keinen Score.',intent:'comparison',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.0.0'});
+    }
     if(wantsSummary){
       const [playerCount,candidateCount]=await Promise.all([db.from('players').select('player_id',{count:'exact',head:true}),db.from('asi_player_candidates').select('id',{count:'exact',head:true}).eq('owner_id',ownerId)]);
       if(playerCount.error||candidateCount.error)return res.status(500).json({error:'Die Bestandsübersicht konnte nicht vollständig geladen werden.'});
