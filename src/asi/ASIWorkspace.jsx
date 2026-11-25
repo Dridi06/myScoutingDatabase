@@ -62,10 +62,11 @@ function analyzeLongitudinalTrend(rows){
  const all=sections.flatMap(s=>s.metrics);
  return {ready:all.length>0,count:distinct.length,days,first,last,duplicates:ordered.length-distinct.length,sections,criteriaCount:all.length,up:all.filter(x=>x.delta>0).length,down:all.filter(x=>x.delta<0).length,stable:all.filter(x=>x.delta===0).length,consistent:all.filter(x=>x.consistent).length};
 }
-function analyzeScoutAgreement(rows){
- const observations=(rows||[]).filter(o=>o.created_by&&o.observed_on&&o.ratings);
+function analyzeScoutAgreement(rows,identityLinks){
+ const identityByPlayer=new Map((identityLinks||[]).map(link=>[String(link.player_id),String(link.identity_id)]));
+ const observations=(rows||[]).filter(o=>o.created_by&&o.observed_on&&o.ratings&&identityByPlayer.has(String(o.player_id)));
  const groups=new Map();
- observations.forEach(o=>{const key=String(o.player_id);const list=groups.get(key)||[];list.push(o);groups.set(key,list);});
+ observations.forEach(o=>{const key=identityByPlayer.get(String(o.player_id));const list=groups.get(key)||[];list.push(o);groups.set(key,list);});
  const comparisons=[];const pairedPlayers=new Set();const scoutPairs=new Set();
  for(const [playerId,list] of groups){
   const sorted=[...list].sort((a,b)=>String(a.observed_on).localeCompare(String(b.observed_on))||String(a.created_at||'').localeCompare(String(b.created_at||'')));
@@ -120,6 +121,10 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  const observationSaveLock=useRef(false);
  const [loading,setLoading]=useState(false);
  const [models,setModels]=useState([]);
+ const [identityLinks,setIdentityLinks]=useState([]);
+ const [identitySource,setIdentitySource]=useState('');
+ const [identityTarget,setIdentityTarget]=useState('');
+ const [identityBusy,setIdentityBusy]=useState(false);
  const [externalSources,setExternalSources]=useState([]);
  const [quality,setQuality]=useState({loading:false,observations:0,playersObserved:0,longitudinalPlayers:0,predictions:0,outcomes:0,matchedOutcomes:0,mae:null,evaluations:0,passedEvaluations:0,trainingRuns:0,completeRatings:0,scoutAgreement:{comparisons:0,pairedPlayers:0,scoutPairs:0,meanAbsoluteDifference:null,withinOne:null}});
  const [error,setError]=useState('');
@@ -132,17 +137,19 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  async function loadMeta(){
    if(!supabase)return;
    setQuality(q=>({...q,loading:true}));
-   const [m,s,obs,preds,outcomes,evaluations,runs]=await Promise.all([
+   const [m,s,obs,preds,outcomes,evaluations,runs,identityRows]=await Promise.all([
      supabase.from('asi_model_versions').select('id,model_key,version,model_family,status,metrics,created_at').order('created_at',{ascending:false}).limit(12),
      admin?supabase.from('asi_external_sources').select('id,source_name,provider,source_type,license_status,last_synced_at').order('created_at',{ascending:false}):Promise.resolve({data:[],error:null}),
      admin?supabase.from('asi_player_observations').select('player_id,observed_on,ratings,created_by,created_at'):Promise.resolve({data:[],error:null}),
      admin?supabase.from('asi_prediction_records').select('id,target_metric,predicted_value'):Promise.resolve({data:[],error:null}),
      admin?supabase.from('asi_prediction_outcomes').select('prediction_id,observed_metric,observed_value'):Promise.resolve({data:[],error:null}),
      admin?supabase.from('asi_model_evaluations').select('id,passed'):Promise.resolve({data:[],error:null}),
-     admin?supabase.from('asi_training_runs').select('id,status'):Promise.resolve({data:[],error:null})
+     admin?supabase.from('asi_training_runs').select('id,status'):Promise.resolve({data:[],error:null}),
+     admin?supabase.from('asi_player_identity_links').select('player_id,identity_id,owner_id'):Promise.resolve({data:[],error:null})
    ]);
    if(!m.error)setModels(m.data||[]);
    if(!s.error)setExternalSources(s.data||[]);
+   if(admin&&!identityRows.error)setIdentityLinks(identityRows.data||[]);
    if(admin){
      const observationRows=obs.error?[]:(obs.data||[]);
      const predictionRows=preds.error?[]:(preds.data||[]);
@@ -152,10 +159,32 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
      const byPlayer=new Map();
      observationRows.forEach(o=>{const dates=byPlayer.get(o.player_id)||[];dates.push(new Date(o.observed_on+'T00:00:00Z').getTime());byPlayer.set(o.player_id,dates);});
      const longitudinal=[...byPlayer.values()].filter(ds=>ds.length>=2&&Math.max(...ds)-Math.min(...ds)>=30*86400000).length;
-     const scoutAgreement=analyzeScoutAgreement(observationRows);
+     const scoutAgreement=analyzeScoutAgreement(observationRows,identityRows.error?[]:(identityRows.data||[]));
      const completeRatings=observationRows.filter(o=>Object.values(SECTIONS).flat().every(k=>safeNumber((o.ratings||{})[k])!==null)).length;
      setQuality({loading:false,observations:observationRows.length,playersObserved:byPlayer.size,longitudinalPlayers:longitudinal,predictions:predictionRows.length,outcomes:outcomeRows.length,matchedOutcomes:matched.length,mae,evaluations:evaluations.error?0:(evaluations.data||[]).length,passedEvaluations:evaluations.error?0:(evaluations.data||[]).filter(x=>x.passed===true).length,trainingRuns:runs.error?0:(runs.data||[]).length,completeRatings,scoutAgreement});
    }else setQuality(q=>({...q,loading:false}));
+ }
+ async function confirmPlayerIdentity(){
+   if(!admin||!supabase||!profile?.id||!identitySource||!identityTarget||identityBusy)return;
+   const source=players.find(p=>String(p.player_id)===String(identitySource));
+   const target=players.find(p=>String(p.player_id)===String(identityTarget));
+   if(!source||!target){setError('Spielerzuordnung nicht möglich: Datensätze fehlen.');return;}
+   if(identityLinks.some(x=>String(x.player_id)===String(source.player_id))){setError('Der Ausgangsspieler besitzt bereits eine bestätigte Identität.');return;}
+   setIdentityBusy(true);setError('');
+   try{
+     let identityId=identityLinks.find(x=>String(x.player_id)===String(target.player_id))?.identity_id;
+     if(!identityId){
+       const {data:identity,error:createError}=await supabase.from('asi_player_identities').insert({confirmed_by:profile.id,confirmation_note:'Manuelle Admin-Bestätigung der Spieleridentität.'}).select('id').single();
+       if(createError)throw createError;
+       identityId=identity.id;
+       const {error:targetError}=await supabase.from('asi_player_identity_links').insert({player_id:target.player_id,identity_id:identityId,owner_id:target.owner_id,linked_by:profile.id});
+       if(targetError)throw targetError;
+     }
+     const {error:sourceError}=await supabase.from('asi_player_identity_links').insert({player_id:source.player_id,identity_id:identityId,owner_id:source.owner_id,linked_by:profile.id});
+     if(sourceError)throw sourceError;
+     setIdentitySource('');setIdentityTarget('');onNotice('Spieleridentität wurde manuell bestätigt.');await loadMeta();
+   }catch(e){setError(e.message||'Spieleridentität konnte nicht bestätigt werden.');}
+   finally{setIdentityBusy(false);}
  }
  async function loadObservations(playerId){
    if(!supabase||!playerId)return;
@@ -290,15 +319,23 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
        <div><strong>Modellfreigabe</strong><span className={quality.passedEvaluations>0&&quality.matchedOutcomes>=30?"ready":"blocked"}>{quality.passedEvaluations>0&&quality.matchedOutcomes>=30?"Evaluation vorhanden – Admin-Prüfung erforderlich":"Gesperrt · bestandene unabhängige Evaluation und ausreichende Ergebnisbasis fehlen"}</span></div>
      </div>
      <div className="asi-scout-agreement">
+       <div className="asi-panel-heading"><div><span className="asi-eyebrow">IDENTITY RESOLUTION · ADMIN ONLY</span><h3>Eindeutige Spieleridentität bestätigen</h3></div><ShieldCheck size={18}/></div>
+       <p className="asi-footnote">Keine automatische Namens- oder Ähnlichkeitssuche: Verknüpfe zwei Datensätze nur, wenn verlässliche Nachweise bestätigen, dass sie dieselbe reale Person betreffen. Die Zuordnung bleibt für Scouts unsichtbar.</p>
+       <div className="asi-identity-controls">
+         <label>Neuer, noch nicht zugeordneter Datensatz<select value={identitySource} onChange={e=>setIdentitySource(e.target.value)}><option value="">Spieler auswählen…</option>{players.filter(p=>!identityLinks.some(x=>String(x.player_id)===String(p.player_id))).map(p=><option key={p.player_id} value={p.player_id}>{p.name} · {p.year||"Jahrgang unbekannt"} · {p.club||"Verein unbekannt"} · ID {p.player_id}</option>)}</select></label>
+         <label>Vergleichsdatensatz<select value={identityTarget} onChange={e=>setIdentityTarget(e.target.value)}><option value="">Spieler auswählen…</option>{players.filter(p=>String(p.player_id)!==String(identitySource)).map(p=><option key={p.player_id} value={p.player_id}>{p.name} · {p.year||"Jahrgang unbekannt"} · {p.club||"Verein unbekannt"} · ID {p.player_id}{identityLinks.some(x=>String(x.player_id)===String(p.player_id))?" · Identität vorhanden":""}</option>)}</select></label>
+         <button type="button" onClick={confirmPlayerIdentity} disabled={identityBusy||!identitySource||!identityTarget}>{identityBusy?"Wird bestätigt…":"Identität bestätigen und verknüpfen"}</button>
+       </div>
+       <div className="asi-identity-status"><strong>{identityLinks.length}</strong><span>bestätigte Datensatz-Zuordnungen · {new Set(identityLinks.map(x=>x.identity_id)).size} zentrale Identitäten</span></div>
        <div className="asi-panel-heading"><div><span className="asi-eyebrow">SCOUT CALIBRATION</span><h3>Vergleichbarkeit von Scoutbewertungen</h3></div><Activity size={18}/></div>
        <div className="asi-quality-grid">
-         <article><span>Verglichene Kriterien</span><strong>{quality.scoutAgreement.comparisons}</strong><small>Gleicher Spieler, unterschiedliche Scouts, maximal 14 Tage Abstand</small></article>
+         <article><span>Verglichene Kriterien</span><strong>{quality.scoutAgreement.comparisons}</strong><small>Gleiche bestätigte zentrale Spieleridentität, unterschiedliche Scouts, maximal 14 Tage Abstand</small></article>
          <article><span>Spieler im Vergleich</span><strong>{quality.scoutAgreement.pairedPlayers}</strong><small>Mit mindestens zwei unterschiedlichen Bewertenden</small></article>
          <article><span>Scout-Paare</span><strong>{quality.scoutAgreement.scoutPairs}</strong><small>Anzahl unterschiedlicher Bewerterpaare</small></article>
          <article><span>Mittlere Abweichung</span><strong>{quality.scoutAgreement.meanAbsoluteDifference===null?"–":quality.scoutAgreement.meanAbsoluteDifference.toFixed(2)}</strong><small>Absolute Skalenpunkte auf 1–5</small></article>
          <article><span>Abweichung höchstens 1 Punkt</span><strong>{quality.scoutAgreement.withinOne===null?"–":quality.scoutAgreement.withinOne+"%"}</strong><small>Anteil der vergleichbaren Kriterien</small></article>
        </div>
-       <p className="asi-footnote">{quality.scoutAgreement.comparisons<30?"Noch keine belastbare Auswertung: mindestens 30 vergleichbare Kriterien aus zeitnahen Bewertungen unterschiedlicher Scouts sind als interne Mindestschwelle vorgesehen.":"Deskriptive Übereinstimmung erreicht die interne Mindestmenge; sie ist keine Rangliste und beweist weder Scoutqualität noch Bewertungsrichtigkeit."} Es werden keine einzelnen Scouts bewertet oder öffentlich verglichen. Unterschiedliche Spielsituationen, Gegnerniveau und Beobachtungsbedingungen können Abweichungen erklären.</p>
+       <p className="asi-footnote">{quality.scoutAgreement.comparisons<30?"Noch keine belastbare Auswertung: mindestens 30 vergleichbare Kriterien aus zeitnahen Bewertungen unterschiedlicher Scouts sind als interne Mindestschwelle vorgesehen.":"Deskriptive Übereinstimmung erreicht die interne Mindestmenge; sie ist keine Rangliste und beweist weder Scoutqualität noch Bewertungsrichtigkeit."} Nur manuell bestätigte zentrale Spieleridentitäten werden verglichen; nicht zugeordnete Datensätze bleiben außen vor. Es werden keine einzelnen Scouts bewertet oder öffentlich verglichen. Unterschiedliche Spielsituationen, Gegnerniveau und Beobachtungsbedingungen können Abweichungen erklären.</p>
      </div>
      <p className="asi-footnote">Der MAE wird nur aus Prognosen und später erfassten Ergebnissen derselben Metrik berechnet. Ohne passende Paare bleibt er leer. Kleine Stichproben werden nicht als Leistungsnachweis gewertet. Trainingsläufe bisher: {quality.trainingRuns}. {quality.loading?"Daten werden aktualisiert.":""}</p>
    </section>}
