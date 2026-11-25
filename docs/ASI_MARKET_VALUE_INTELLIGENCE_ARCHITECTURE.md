@@ -185,3 +185,23 @@ Im Spieler-Dossier:
 - Systematic review, *Determinants of football players’ valuation*: Marktwerte und tatsächliche Transferpreise sind unterschiedliche Messgrößen; Transfermarkt-Werte werden in Forschung häufig als Crowd-Schätzer genutzt, nicht als tatsächlich gezahlte Ablösen.
 
 Diese Literatur dient als methodische Orientierung, nicht als Beleg dafür, dass unser Modell bereits trainiert oder validiert wäre.
+
+
+## 13. Abgleich mit dem vorhandenen Supabase-Staging-Schema (Read-only geprüft)
+
+Am 25.11.2026 wurde das Staging-Schema ausschließlich lesend geprüft. Es existieren bereits:
+- `asi_model_versions` und `asi_model_evaluations` für Modellversionen und Freigabe-/Evaluierungsmetadaten.
+- `asi_training_runs` für Trainingsläufe und Dataset-Fingerprints.
+- `asi_prediction_records` und `asi_prediction_outcomes` für Prognosen und spätere Ergebnisse.
+- `asi_player_identities`, `asi_player_identity_links` und `asi_player_identity_audit` für Identitätszuordnung.
+- `asi_player_observations`, `asi_player_analyses`, `asi_external_sources`, `asi_external_evidence` sowie `asi_player_candidates`.
+
+Für diese Tabellen wurde RLS als aktiviert festgestellt; die abgefragten Tabellen hatten jeweils mindestens eine Policy. Das ist kein vollständiger Policy-Audit und ersetzt keine Prüfung der konkreten Policy-Ausdrücke.
+
+**Architekturkorrektur:** Keine parallelen Tabellen für Modellversionen, Trainingsläufe, Prognosen, Outcomes oder Spieleridentitäten anlegen. Zuerst deren vorhandene Constraints, Policies und Datenverträge prüfen und diese Tabellen wiederverwenden, sofern sie fachlich passen. Neue Tabellen zunächst auf die tatsächlich fehlenden Domänen begrenzen:
+- `asi_valuation_sources` (Quellen-/Lizenzregister, sofern `asi_external_sources` nicht alle Lizenzfelder abdeckt),
+- `asi_valuation_observations` (normalisierte wirtschaftliche/Transfer-Beobachtungen, sofern `asi_player_observations` nicht dafür geeignet ist),
+- `asi_market_value_runs` (spezifischer Bewertungs-Snapshot, sofern `asi_prediction_records` die benötigte Stichtags-/Intervall-/Vergleichsgruppenstruktur nicht sauber abbildet),
+- optional `asi_market_value_benchmarks` (nur für rechtmäßig gespeicherte externe Referenzwerte).
+
+Vor jeder Migration: vollständige Tabellendefinitionen, Foreign Keys, Constraints, Trigger, Grants und konkrete RLS-Ausdrücke prüfen. Es wurden in diesem Schritt keine Datenbankänderungen ausgeführt.
