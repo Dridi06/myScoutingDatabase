@@ -8,7 +8,7 @@ const MIN_EXAMPLES = 30;
 const clamp = (n,min,max) => Math.max(min,Math.min(max,n));
 const toScore = value => {
   const n=Number(value);
-  return Number.isFinite(n) ? clamp(n <= 1 ? n*100 : n,0,100) : null;
+  return Number.isFinite(n) ? clamp(n,0,100) : null;
 };
 function vectorFor(example, keys) {
   return keys.map(key => toScore(example.dimension_scores?.[key]));
