@@ -287,6 +287,16 @@ function researchHandler(id,input){
    const supported=input._trusted_source_bundle===true&&messinhoValueSupported(text,evidenceUrls(input),sources,claims);
    return result(id,supported?'verified':'unverified',{field,value,supported,source_count:sources.length,source_origin:input._trusted_source_bundle===true?'server_retrieved_ASI':'untrusted_request_payload',rule:'Verification requires a matching claim in server-retrieved HTTPS source text.'});
  }
+ if(id==='video_source_research'){
+   const licensed=sources.filter(s=>s.license_status==='licensed'||s.license_status==='owned'||s.usage_rights==='confirmed');
+   return result(id,licensed.length?'completed':'insufficient_data',{source_count:sources.length,licensed_source_count:licensed.length,sources:audited,reason:licensed.length?'Only explicitly licensed or owned sources are returned.':'HTTPS availability is not a licence. No source is treated as usable without explicit rights evidence.'});
+ }
+ if(id==='contract_expiry_monitor'||id==='contract_research'){
+   if(!sources.length)return missingResult(id,['contract_sources']);
+   const patterns=[/(?:contract|vertrag).{0,80}?(?:expires|expiry|läuft bis|laeuft bis|bis zum|until|through)\\s+(\\d{1,2}[.\\-/]\\d{1,2}[.\\-/]\\d{2,4}|\\d{4}-\\d{2}-\\d{2})/i,/(?:contract|vertrag).{0,80}?(\\d{4}-\\d{2}-\\d{2})/i];
+   const mentions=sources.flatMap(source=>patterns.flatMap(pattern=>{const match=String(source.content||'').match(pattern);return match?[{date_mention:match[1],source_url:source.url,source_title:source.title||null,verified:false}]:[];}));
+   return result(id,mentions.length?'needs_review':'insufficient_data',{contract_date_mentions:mentions,source_count:sources.length,rule:'Extracted dates are leads only and require confirmation from an official club or league source.'});
+ }
  if(id==='source_cross_check'||id==='rumour_verification'){
    if(!sources.length)return missingResult(id,['sources']);
    const domains=audited.map(x=>x.assessment.host).filter(Boolean);
