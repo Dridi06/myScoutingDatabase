@@ -822,7 +822,7 @@ app.post('/api/messinho/development/analyze',messinhoDevelopmentLimiter,async(re
     const active=await getActiveMessinhoModel();
     const assessment=buildMessinhoExplainableAssessment({name:player.name,positions:player.positions||[],ratings:player.ratings||{}},active?.configuration?.profiles||null);
     const events=Array.isArray(req.body?.events)?req.body.events.slice(0,2000):[];
-    const match=events.length?analyzeMessinhoMatch(events):null;
+    const match=events.length?{...analyzeMessinhoMatch(events),provenance:'scout_submitted_structured_events',verified:false}:null;
     const analysis={player:assessment,match,created_at:new Date().toISOString(),model_version:active?.version||'1.1.0-baseline'};
     const {data:stored,error:storeError}=await db.from('asi_player_analyses').insert({
       player_id:player.player_id,owner_id:player.owner_id,created_by:actor.user.id,
