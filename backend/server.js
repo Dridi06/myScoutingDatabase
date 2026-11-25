@@ -651,7 +651,8 @@ app.get('/api/messinho/learning/status',async(req,res)=>{
     return res.json({calibration_count:count||0,active_model:active?{id:active.id,version:active.version,metrics:active.metrics}:null,learning_status:active?'approved_model_active':'collecting_verified_outcomes',admin:actor.profile.role==='admin',pending_calibrations:pendingCalibrations,proposals});
   }catch(error){console.error('MESSINHO learning status failed:',error.message);return res.status(500).json({error:'Lernstatus konnte nicht geladen werden.'});}
 });
-app.post('/api/messinho/learning/evaluate',async(req,res)=>{
+const messinhoLearningLimiter=rateLimit({windowMs:60*60*1000,limit:5,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Lern-Evaluationen. Bitte später erneut versuchen.'}});
+app.post('/api/messinho/learning/evaluate',messinhoLearningLimiter,async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
