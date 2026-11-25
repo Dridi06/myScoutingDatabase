@@ -167,6 +167,14 @@ function evaluationHandler(id,input){
    const value=dimension(entries,dimensionMap[id]);
    return value===null?missingResult(id,[dimensionMap[id]+'_metrics']):result(id,'completed',{score:Math.round(value),dimension:dimensionMap[id],metric_count:entries.length});
  }
+ if(id==='development_score'||id==='consistency_score'){
+   const rows=sortedDated(asArray(input.time_series||input.history||p.history));
+   const key=input.metric_key||'score';
+   const values=rows.map(x=>finite(x[key])).filter(v=>v!==null);
+   if(values.length<2)return missingResult(id,['dated_metrics']);
+   const spread=std(values),mean=avg(values);
+   return result(id,'completed',{score:id==='consistency_score'?Math.round(clamp(100-(spread||0)*2)):Math.round(clamp(50+(values.at(-1)-values[0]))),mean:round(mean),standard_deviation:round(spread),observations:values.length});
+ }
  if(id==='data_quality_score'){
    const expected=['technical','tactical','athletic','mental'],present=expected.filter(k=>dims[k]!==null).length;
    return result(id,'completed',{score:Math.round(present/expected.length*100),present_dimensions:present,expected_dimensions:expected.length,metric_count:entries.length,missing_dimensions:expected.filter(k=>dims[k]===null)});
@@ -259,7 +267,7 @@ function researchHandler(id,input){
    if(value===null||value===undefined)return missingResult(id,[field]);
    const text=String(Array.isArray(value)?value.join(' '):value);
    const supported=messinhoValueSupported(text,evidenceUrls(input),sources,claims);
-   return result(id,supported?'verified':'unverified',{field,value,supported,source_count:sources.length,rule:'The claim must be supported by the supplied source evidence.'});
+   return result(id,'unverified',{field,value,supported:false,source_count:sources.length,source_origin:'untrusted_request_payload',rule:'Client-supplied source text is not accepted as independent verification. Verification must use a server-retrieved ASI evidence record.'});
  }
  if(id==='source_cross_check'||id==='rumour_verification'){
    if(!sources.length)return missingResult(id,['sources']);
