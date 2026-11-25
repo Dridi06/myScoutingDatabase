@@ -56,3 +56,14 @@
 - Einschränkung: Ein Browser-Login-/UI-Test sowie echte Scout-Session-RLS-Negativtests konnten über die verfügbaren Deployment-/Datenbankwerkzeuge nicht authentifiziert ausgeführt werden. Die leeren ASI-Tabellen erlauben zudem keinen belastbaren Read/Write-Negativtest anhand existierender Datensätze.
 - Auth-Leaked-Password-Protection ist eine Supabase-Auth-Projekteinstellung und nicht per SQL-Migration zu aktivieren. Sie bleibt als Dashboard-Schritt offen.
 - Keine Änderung an Produktion.
+
+
+## Meta-Intelligence-Qualitätskontrolle – 2026-11-25
+- Commit `0511007d6727ec28dbcfe9f60f3598b2dfb9d1df`: Beobachtungsverlauf je Spieler ergänzt; Commit `7f70f3c4528cc2ef8e6997b7b6378482cee33455`: Timeline-Styling. Render-Deploy `dep-dc32ha4sg75s73d2gbgg` wurde als `LIVE` bestätigt.
+- Commit `875f783986f3164a5d38831699874aabb2962186`: Admin-Meta-Intelligence mit Datenqualitätskennzahlen, zeitlicher Vergleichbarkeit, vollständigen Rating-Snapshots, passenden Prognose-/Ergebnispaaren, MAE und dokumentierten Modell-Evaluationen.
+- Commit `537dc2d14e4c8ace670864c34f295a544f7ff5d0`: Styling der Qualitätskontrolle. Render-Deploy `dep-dc32i1qvmuic73f7bk70` wurde beim Check noch als `QUEUED` gemeldet; Live-Status muss nachgeprüft werden.
+- Admin-Qualitätsbereich verwendet nur tatsächliche Daten aus ASI-Tabellen. MAE wird nur bei passender Ziel-/Beobachtungsmetrik und verknüpftem Prognoseergebnis berechnet. Keine Paare = kein Fehlerwert.
+- Interne Freigabeschwellen sind sichtbar und explizit als interne Mindestkriterien gekennzeichnet: mindestens 30 passende Ergebnispaare und 10 Spieler für die Trainingsdatenbasis; mindestens 5 Spieler mit zwei Beobachtungen im Abstand von mindestens 30 Tagen für zeitliche Vergleichbarkeit. Modellfreigabe bleibt bis zu einer bestandenen Evaluation und ausreichender Ergebnisbasis gesperrt. Diese Schwellen ersetzen keine fachliche Validierung oder unabhängige Prüfung.
+- Direkte Staging-Datenbankzählung nach Implementierung: 0 Beobachtungen, 0 Analysen, 0 Feedbacks, 0 Prognosen, 0 Outcomes, 0 Evaluationen, 0 Trainingsläufe. Entsprechend sind MAE und Modellgüte derzeit nicht berechenbar; die Qualitätskontrolle muss „gesperrt/nicht ausreichend“ anzeigen.
+- Die Admin-Qualitätsabfragen laufen ausschließlich bei Admin-Ansicht; Scout-Ansichten erhalten keine globalen ASI-Statistiken.
+- Weiter offen: Live-Status des Deploys `dep-dc32i1qvmuic73f7bk70` und Browserprüfung mit Admin-/Scout-Konten sowie RLS-Negativtest. Produktionssystem weiterhin unangetastet.
