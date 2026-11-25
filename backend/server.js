@@ -600,7 +600,7 @@ app.post('/api/messinho/capabilities/:capabilityId/execute',messinhoCapabilityLi
     if(!supplied||typeof supplied!=='object'||Array.isArray(supplied))return res.status(400).json({error:'Bitte ein Eingabeobjekt übermitteln.'});
     const input={...supplied};
     // Client payloads are never accepted as verified training outcomes, player records or source evidence.
-    for(const key of ['outcomes','predictions','sources','evidence','verified_insights','training_dataset','scout_assessments','market_comparables','player','candidate','players'])delete input[key];
+    for(const key of ['outcomes','predictions','sources','evidence','verified_insights','training_dataset','scout_assessments','market_comparables','player','candidate','players','_trusted_video_bundle'])delete input[key];
     const playerId=Number(req.body?.player_id??input.player_id);
     if(Number.isSafeInteger(playerId)&&playerId>0){
       const playerQuery=scopeMessinhoOwner(db.from('players').select('*').eq('player_id',playerId),actor);
