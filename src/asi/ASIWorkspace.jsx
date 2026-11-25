@@ -12,6 +12,19 @@ const MODEL_VERSION='player_snapshot_baseline@0.1.0';
 const safeNumber=v=>{if(v===null||v===undefined||String(v).trim()==='')return null;const n=Number(v);return Number.isInteger(n)&&n>=1&&n<=5?n:null;};
 const containsPrivateContact=value=>/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})|(?:\+?\d[\d\s()./-]{7,}\d)/i.test(String(value||''));
 const normalizeRatings=ratings=>Object.fromEntries(Object.values(SECTIONS).flat().map(key=>[key,safeNumber(ratings?.[key])]).filter(([,value])=>value!==null));
+function compareObservations(rows){
+ const ordered=[...(rows||[])].sort((a,b)=>String(a.observed_on).localeCompare(String(b.observed_on))||String(a.created_at).localeCompare(String(b.created_at)));
+ if(ordered.length<2)return null;
+ const previous=ordered[ordered.length-2],latest=ordered[ordered.length-1];
+ const changes=Object.entries(SECTIONS).map(([section,criteria])=>{
+  const items=criteria.map(label=>({label,from:safeNumber(previous.ratings?.[label]),to:safeNumber(latest.ratings?.[label])})).filter(x=>x.from!==null&&x.to!==null).map(x=>({...x,delta:x.to-x.from}));
+  const average=items.length?Number((items.reduce((sum,x)=>sum+x.delta,0)/items.length).toFixed(2)):null;
+  return {section,items,average};
+ });
+ const comparable=changes.flatMap(x=>x.items);
+ if(!comparable.length)return {previous,latest,changes,comparable:0,average:null,improved:0,declined:0,unchanged:0};
+ return {previous,latest,changes,comparable:comparable.length,average:Number((comparable.reduce((sum,x)=>sum+x.delta,0)/comparable.length).toFixed(2)),improved:comparable.filter(x=>x.delta>0).length,declined:comparable.filter(x=>x.delta<0).length,unchanged:comparable.filter(x=>x.delta===0).length};
+}
 function buildSnapshot(player){
  const ratings=player.ratings&&typeof player.ratings==='object'?player.ratings:{};
  const sections=Object.entries(SECTIONS).map(([name,criteria])=>{
@@ -51,6 +64,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  const [error,setError]=useState('');
  const [search,setSearch]=useState('');
  const selected=players.find(p=>String(p.player_id)===String(selectedId));
+ const evolution=useMemo(()=>compareObservations(observations),[observations]);
  const visiblePlayers=useMemo(()=>players.filter(p=>(p.name+' '+(p.club||'')+' '+(p.positions||[]).join(' ')).toLowerCase().includes(search.toLowerCase())),[players,search]);
  const ratedCount=useMemo(()=>players.filter(p=>p.ratings&&Object.values(p.ratings).some(v=>safeNumber(v)!==null)).length,[players]);
  async function loadMeta(){
@@ -184,6 +198,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
      <p className="asi-footnote">Die aktuelle Spielerbewertung wird als Snapshot mitgespeichert. Künftige Bewertungen können so zeitlich miteinander verglichen werden.</p>
    </section>}
    {selected&&<section className="asi-panel asi-history-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">TALENT EVOLUTION</span><h2>Beobachtungsverlauf</h2></div><Clock3 size={20}/></div>{observations.length===0?<p className="asi-empty">Noch keine Beobachtungen gespeichert. Neue Einträge erscheinen hier chronologisch.</p>:<div className="asi-history-list">{observations.map(o=><article className="asi-observation-entry" key={o.id}><div className="asi-result-top"><strong>{new Date(o.observed_on+'T12:00:00').toLocaleDateString('de-DE')}</strong><small>{o.source_type==='internal_scout'?'Interner Scout':'Quelle: '+o.source_type}</small></div>{o.observation&&<p>{o.observation}</p>}<small>{Object.keys(o.ratings||{}).length} Bewertungsfelder im Snapshot · erfasst {new Date(o.created_at).toLocaleString('de-DE')}</small></article>)}</div>}</section>}
+   {selected&&<section className="asi-panel asi-evolution-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">TALENT EVOLUTION</span><h2>Entwicklung zwischen Beobachtungen</h2></div><TrendingUp size={20}/></div>{!evolution?<p className="asi-empty">Für einen Vergleich werden mindestens zwei gespeicherte Beobachtungen benötigt.</p>:evolution.comparable===0?<p className="asi-empty">Zwischen den letzten beiden Beobachtungen gibt es keine gemeinsamen gültigen Bewertungskriterien. Ein Vergleich wäre daher nicht belastbar.</p>:<><div className="asi-evolution-meta"><span>Vorher: <strong>{new Date(evolution.previous.observed_on+'T12:00:00').toLocaleDateString('de-DE')}</strong></span><span>Zuletzt: <strong>{new Date(evolution.latest.observed_on+'T12:00:00').toLocaleDateString('de-DE')}</strong></span><span>Verglichene Kriterien: <strong>{evolution.comparable}</strong></span></div><div className="asi-evolution-summary"><article><small>Mittlere Veränderung</small><strong>{evolution.average>0?'+':''}{evolution.average.toFixed(2)}</strong><small>Skalenpunkte · 1 bis 5</small></article><article><small>Verbessert</small><strong>{evolution.improved}</strong><small>Kriterien mit höherem Wert</small></article><article><small>Unverändert</small><strong>{evolution.unchanged}</strong><small>Gleicher Wert</small></article><article><small>Niedriger</small><strong>{evolution.declined}</strong><small>Kriterien mit niedrigerem Wert</small></article></div><div className="asi-evolution-sections">{evolution.changes.filter(s=>s.items.length).map(s=><article key={s.section}><div><strong>{s.section}</strong><span>Ø {s.average>0?'+':''}{s.average.toFixed(2)}</span></div><div className="asi-evolution-criteria">{s.items.map(x=><span key={x.label}>{x.label}<strong className={x.delta>0?'positive':x.delta<0?'negative':'neutral'}>{x.delta>0?'+':''}{x.delta}</strong></span>)}</div></article>)}</div><p className="asi-footnote">Verglichen werden ausschließlich Kriterien, die in beiden letzten Beobachtungen gültige ganzzahlige Werte von 1–5 besitzen. Das ist eine deskriptive Veränderung und kein Beleg für Ursache, Prognose oder objektive Leistungsentwicklung.</p></>}</section>}
    {selected&&<section className="asi-panel asi-history-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">MODEL HISTORY</span><h2>Frühere Analysen</h2></div><TrendingUp size={20}/></div>{loading?<p className="asi-empty">Analysen werden geladen…</p>:history.length===0?<p className="asi-empty">Für diesen Spieler gibt es noch keine gespeicherten ASI-Analysen.</p>:<div className="asi-history-list">{history.map(h=><button type="button" key={h.id} className={analysis?.id===h.id?'selected':''} onClick={()=>openHistory(h)}><span><strong>{h.analysis_type}</strong><small>{new Date(h.created_at).toLocaleString('de-DE')}</small></span><span>{h.model_version}</span></button>)}</div>}</section>}
    {admin&&<section className="asi-panel asi-quality-panel">
      <div className="asi-panel-heading"><div><span className="asi-eyebrow">META INTELLIGENCE · QUALITY GATE</span><h2>Daten- und Modellqualität</h2></div><ShieldCheck size={20}/></div>
