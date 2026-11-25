@@ -20,7 +20,7 @@ test('normalizes percentage and 0..1 inputs',()=>{
  assert.equal(result.score,78);
 });
 test('ranking places scored players before unscored players',()=>{
- const ranked=rankMessinhoPlayers([{name:'A',positions:['Torwart'],analysis:{ratings:{goalkeeping:90}}},{name:'B',positions:['Stürmer'],analysis:{}}]);
+ const ranked=rankMessinhoPlayers([{name:'A',positions:['Torwart'],analysis:{ratings:{goalkeeping:90,technical:80}}},{name:'B',positions:['Stürmer'],analysis:{}}]);
  assert.equal(ranked[0].name,'A');assert.equal(ranked[1].messinho_rating.score,null);
 });
 test('history sanitizer limits, validates roles and truncates text',()=>{
