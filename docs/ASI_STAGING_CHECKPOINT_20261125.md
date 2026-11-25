@@ -84,3 +84,14 @@
 - Leere Snapshots ohne gültige Bewertungen werden verhindert. Der Snapshot-Button ist deaktiviert, solange kein gültiger ganzzahliger Ratingwert 1–5 vorliegt; die Funktion prüft dies zusätzlich vor dem Datenbank-Insert.
 - Die Daten bleiben unverändert; keine Testdatensätze eingefügt. Nur Staging.
 - Deploy für diesen Commit steht noch aus und muss auf LIVE geprüft werden.
+
+
+## Longitudinale Spielerentwicklung – 2026-11-25
+- Commit `55ac81f52736e7169508b4f8cabb289dbfa39cb5`: Vergleich der zwei zeitlich letzten Beobachtungen eines Spielers ergänzt.
+- Verglichen werden ausschließlich Kriterien, die in beiden Beobachtungs-Snapshots als ganzzahlige Werte von 1 bis 5 vorhanden sind. Fehlende oder ungültige Werte werden nicht als 0 interpretiert.
+- Anzeige: vorheriges/neuestes Beobachtungsdatum, Anzahl gemeinsamer Kriterien, mittlere Punktveränderung, Anzahl gestiegener/gesunkener/unveränderter Kriterien sowie Veränderungen je Bereich und Kriterium.
+- Bei weniger als zwei Beobachtungen oder ohne gemeinsame gültige Kriterien wird kein Vergleichswert vorgetäuscht; stattdessen erscheint ein erklärender Hinweis.
+- Der Vergleich ist ausdrücklich deskriptiv: keine Kausalitätsbehauptung und keine Prognose. Gleiche Beobachtungstage werden nicht als zeitliche Entwicklungsrate interpretiert.
+- Commit `88be4aef4b7947d806c71d1285c8c3e9df2bb637`: responsive Gestaltung für den Vergleich ergänzt.
+- Keine Datenbankänderung und keine Testdatensätze. Ausschließlich Staging; Produktion unangetastet.
+- Render-Deployment und anschließender Browser-Test stehen noch aus.
