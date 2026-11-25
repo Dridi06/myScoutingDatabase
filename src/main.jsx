@@ -213,7 +213,39 @@ function App(){
  async function sendPasswordReset(e){e.preventDefault();if(!sb){N('Der Dienst ist momentan nicht verfügbar.');return}L(true);try{const {error}=await sb.auth.resetPasswordForEmail(auth.email.trim(),{redirectTo:window.location.origin});if(error)throw error;N('Wenn ein Konto zu dieser E-Mail-Adresse gehört, erhältst du in Kürze eine Nachricht mit dem Link zum Zurücksetzen.');}catch(e){N('Die Anfrage konnte nicht gesendet werden. Bitte prüfe die E-Mail-Adresse und versuche es erneut.')}finally{L(false)}}
  async function updateRecoveredPassword(e){e.preventDefault();if(auth.password.length<12){N('Das neue Passwort muss mindestens 12 Zeichen lang sein.');return}if(auth.password!==auth.password2){N('Die Passwörter stimmen nicht überein.');return}L(true);try{const {error}=await sb.auth.updateUser({password:auth.password});if(error)throw error;await sb.auth.signOut();S(null);A({username:'',email:'',password:'',password2:''});AM('login');N('Passwort erfolgreich geändert. Du kannst dich jetzt anmelden.')}catch(e){N(e.message||'Passwort konnte nicht geändert werden.')}finally{L(false)}}
  async function changeAdminPassword(e){e.preventDefault();if(!admin){N('Nur der Administrator darf dieses Passwort ändern.');return}if(adminPasswordForm.password.length<12){N('Das neue Passwort muss mindestens 12 Zeichen lang sein.');return}if(adminPasswordForm.password!==adminPasswordForm.password2){N('Die Passwörter stimmen nicht überein.');return}L(true);APS(null);try{const{data,error}=await sb.auth.updateUser({password:adminPasswordForm.password});if(error)throw error;if(!data?.user?.id||data.user.id!==session?.user?.id)throw new Error('Supabase hat keine eindeutige Bestätigung für dein Admin-Konto zurückgegeben. Bitte melde dich erneut an und prüfe das Passwort.');const confirmedAt=new Date().toLocaleString('de-DE');APS({at:confirmedAt,userId:data.user.id});APF({password:'',password2:''});N('Bestätigt: Supabase Auth hat die Passwortänderung angenommen.');}catch(e){N(e.message||'Admin-Passwort konnte nicht geändert werden.')}finally{L(false)}}
- async function save(e){e.preventDefault();L(true);try{const {id,player_id,owner_id,created_at,updated_at,...cleanForm}=form;const payload={...cleanForm,height:form.height?Number(form.height):null,positions:form.positions,ratings:form.ratings};let q;if(edit)q=await sb.from('players').update(payload).eq('player_id',edit);else q=await sb.rpc('create_player',{p_player:payload});if(q.error)throw q.error;N('Spielerdaten gespeichert.');F(EMPTY);E(null);G('all');await load()}catch(e){N(e.message)}finally{L(false)}}
+ async function save(e){
+ e.preventDefault();if(loading)return;L(true);
+ try{
+  const {id,player_id,owner_id,created_at,updated_at,...cleanForm}=form;
+  const payload={...cleanForm,height:form.height?Number(form.height):null,positions:form.positions,ratings:form.ratings};
+  let q,historyNotice='';
+  if(edit){
+   const before=players.find(p=>Number(p.player_id)===Number(edit));
+   q=await sb.from('players').update(payload).eq('player_id',edit);
+   if(q.error)throw q.error;
+   const validRatings=Object.fromEntries(ratingCriteria.map(k=>[k,Number(payload.ratings?.[k])]).filter(([,v])=>Number.isInteger(v)&&v>=1&&v<=5));
+   const previousRatings=Object.fromEntries(ratingCriteria.map(k=>[k,Number(before?.ratings?.[k])]).filter(([,v])=>Number.isInteger(v)&&v>=1&&v<=5));
+   const changed=JSON.stringify(validRatings)!==JSON.stringify(previousRatings);
+   if(changed&&Object.keys(validRatings).length){
+    const observedOn=payload.observed_on||new Date().toISOString().slice(0,10);
+    const {data:existing,error:lookupError}=await sb.from('asi_player_observations').select('id,ratings').eq('player_id',Number(edit)).eq('observed_on',observedOn);
+    if(lookupError)historyNotice=' Spieler gespeichert; die automatische ASI-Historisierung konnte nicht geprüft werden.';
+    else{
+     const duplicate=(existing||[]).some(row=>JSON.stringify(Object.fromEntries(ratingCriteria.map(k=>[k,Number(row.ratings?.[k])]).filter(([,v])=>Number.isInteger(v)&&v>=1&&v<=5)))===JSON.stringify(validRatings));
+     if(!duplicate){
+      const {error:historyError}=await sb.from('asi_player_observations').insert({player_id:Number(edit),owner_id:owner_id||before?.owner_id,created_by:session.user.id,observed_on:observedOn,ratings:validRatings,observation:'Automatisch beim Speichern geänderter Spielerbewertungen dokumentiert.',source_type:'internal_scout'});
+      if(historyError)historyNotice=' Spieler gespeichert; ASI-Beobachtung konnte nicht automatisch angelegt werden.';
+      else historyNotice=' Die geänderten Bewertungen wurden zusätzlich in der ASI-Zeitleiste dokumentiert.';
+     }else historyNotice=' Der identische Bewertungsstand war für dieses Datum bereits in der ASI-Zeitleiste vorhanden.';
+    }
+   }
+  }else{
+   q=await sb.rpc('create_player',{p_player:payload});
+   if(q.error)throw q.error;
+  }
+  N('Spielerdaten gespeichert.'+historyNotice);F(EMPTY);E(null);G('all');await load();
+ }catch(e){N(e.message)}finally{L(false)}
+ }
  async function removeSelectedPlayer(player){if(!admin){N('Nur Administratoren dürfen Spieler löschen.');return}if(!player?.player_id)return;L(true);try{const paths=new Set(player.photo_path?[player.photo_path]:[]);if(player.owner_id){const{data:files,error:fileError}=await sb.storage.from('player-photos').list(player.owner_id,{limit:1000});if(fileError)throw new Error('Zugehörige Fotodateien konnten nicht ermittelt werden: '+fileError.message);for(const file of files||[])if(file.name.startsWith(String(player.player_id)+'-'))paths.add(player.owner_id+'/'+file.name)}if(paths.size){const{error:storageError}=await sb.storage.from('player-photos').remove([...paths]);if(storageError)throw new Error('Die Fotodateien konnten nicht vollständig gelöscht werden. Der Spieler-Datensatz wurde nicht gelöscht: '+storageError.message)}const{data:deleted,error:deleteError}=await sb.rpc('admin_delete_player',{p_player_id:player.player_id});if(deleteError)throw deleteError;if(!deleted?.length)throw new Error('Löschung wurde nicht bestätigt.');D(prev=>prev.filter(x=>x.player_id!==player.player_id));SP(null);DCO(false);G('all');N('Spieler #'+player.player_id+' und sämtliche zugeordneten Daten und Fotodateien wurden unwiderruflich gelöscht. Das Löschprotokoll wurde gespeichert.')}catch(e){N(e.message||'Spieler konnte nicht vollständig gelöscht werden.')}finally{L(false)}}
  async function removeSelectedPlayerPhoto(player){if(!admin){N('Nur Administratoren dürfen Spielerfotos löschen.');return}if(!player?.photo_path)return;const oldPath=player.photo_path;L(true);try{const{data:updatedRow,error:updateError}=await sb.from('players').update({photo_path:null}).eq('player_id',player.player_id).select('player_id').maybeSingle();if(updateError||!updatedRow)throw updateError||new Error('Foto-Zuordnung konnte nicht entfernt werden.');const{error:storageError}=await sb.storage.from('player-photos').remove([oldPath]);if(storageError){const{error:restoreError}=await sb.from('players').update({photo_path:oldPath}).eq('player_id',player.player_id);if(restoreError)throw new Error('Foto-Datei konnte nicht gelöscht werden und die Zuordnung ließ sich nicht wiederherstellen: '+restoreError.message);throw new Error('Foto konnte nicht gelöscht werden: '+storageError.message)}const updated={...player,photo_path:null};SP(updated);D(prev=>prev.map(x=>x.player_id===player.player_id?{...x,photo_path:null}:x));PDCO(false);N('Spielerfoto wurde gelöscht. Der Spielerdatensatz bleibt erhalten.')}catch(e){N(e.message||'Spielerfoto konnte nicht gelöscht werden.')}finally{L(false)}}
  async function loadDeletionLogs(){if(!admin)return;const{data,error}=await sb.from('player_deletion_logs').select('*').order('deleted_at',{ascending:false});if(error)N('Löschprotokoll konnte nicht geladen werden: '+error.message);else DL(data||[])}
