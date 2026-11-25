@@ -155,3 +155,15 @@
 - Admin-Oberfläche ergänzt: zwei Datensätze auswählen; bei erstmaliger Verknüpfung wird eine neue zentrale Identität erstellt, bei weiterer Verknüpfung wird eine bestehende Identität verwendet.
 - Datenbestand bei Einführung: zwei Spielerprofile, beide gehören aktuell demselben owner_id; es wurde keine automatische Identität behauptet oder vorab verknüpft.
 - Noch offen: Build/Deploy, responsive Browserprüfung, Admin-RLS-Funktionstest, Negativtest für Scoutzugriff und fachliche Verifikation des Zuordnungsablaufs. Produktion unangetastet.
+
+
+
+## Identitätsprüfung: atomare Bestätigung, Korrektur und Audit – 2026-11-25
+- Migration `asi_identity_audit_and_atomic_resolution` erfolgreich auf Staging angewendet.
+- Neue Tabelle `asi_player_identity_audit` protokolliert jede Bestätigung und Aufhebung mit Admin-ID, Zeitstempel, Spieler-ID, zentraler Identität, Grund sowie Vorher-/Nachher-Zustand.
+- RPC `asi_confirm_player_identity` führt Identitätsanlage und beide Profilverknüpfungen in einer Datenbanktransaktion aus. Prüft Admin-Berechtigung, Existenz beider Profile, unterschiedliche IDs, noch nicht verknüpften Ausgangsdatensatz und verpflichtenden Prüfvermerk.
+- RPC `asi_unlink_player_identity` ermöglicht Admin-Korrekturen; der Grund ist Pflicht und die Zuordnung wird vor dem Entfernen im Audit protokolliert.
+- Direkte INSERT-/UPDATE-/DELETE-Rechte auf Identitäts- und Linktabellen für authenticated wurden entzogen. Schreibzugriffe erfolgen ausschließlich über die geprüften SECURITY-DEFINER-RPCs. Admins behalten SELECT-Zugriff; Scouts bleiben ausgeschlossen.
+- Frontend nutzt jetzt atomare RPCs statt mehrerer Client-Inserts, verlangt einen Prüfvermerk und zeigt die letzten 30 Identitätsänderungen. Korrekturaktion verlangt eine Begründung.
+- Keine bestehenden Spieler- oder Beobachtungsdatensätze wurden verändert oder gelöscht. Es wurden keine Identitäten automatisch vergeben.
+- Noch offen: Build/Deploy des Frontends, Prüfung der RPC-Ausführung mit Admin-Session und Negativtest mit Scout-Session. Ausschließlich Staging.
