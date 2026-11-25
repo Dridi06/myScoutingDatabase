@@ -96,6 +96,7 @@ export function buildMessinhoLearningProposal(calibrationRows,baselineProfiles,o
  }
  const profiles={},report={};let trainedGroups=0;
  for(const [group,examples] of byGroup){
+  examples.sort((a,b)=>a.player_id.localeCompare(b.player_id)||JSON.stringify(a.dimension_scores).localeCompare(JSON.stringify(b.dimension_scores))||a.target-b.target);
   const keys=Object.keys(baselineProfiles?.[group]||{technical:1,tactical:1,athletic:1,mental:1}).filter(key=>DIMENSIONS.includes(key));
   const uniquePlayers=new Set(examples.map(row=>row.player_id));
   if(examples.length<minExamples||uniquePlayers.size<10){report[group]={status:'insufficient_data',examples:examples.length,unique_players:uniquePlayers.size,required_examples:minExamples,required_unique_players:10};continue;}
