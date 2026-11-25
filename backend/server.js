@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { createClient } from '@supabase/supabase-js';
 import { parseMessinhoScoutingRequest, matchesPosition, sourceSupportsRegion } from './messinho-validation.js';
-import { rankMessinhoPlayers, sanitizeMessinhoHistory, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
+import { rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFollowUp, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
@@ -973,7 +973,8 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const ownerId=authData.user.id;
     const actor={user:authData.user,profile};
     const normalized=message.toLocaleLowerCase('de-DE').normalize('NFKC');
-    const help=/\b(hilfe|was kannst du|befehle|funktionen)\b/.test(normalized);
+    const isPlayerFollowUp=Boolean(resolveMessinhoPlayerFollowUp(message,history));
+    const help=/\b(hilfe|befehle|funktionen)\b/.test(normalized)||(/\bwas kannst du\b/.test(normalized)&&!isPlayerFollowUp);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
     const wantsComparison=/\b(vergleiche|vergleich|rangliste|ranking|bewerte meine kandidaten)\b/.test(normalized);
     const wantsSummary=/\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\b/.test(normalized);
@@ -993,6 +994,23 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const ranked=rankMessinhoPlayers(candidates,activeModel?.configuration?.profiles||null).slice(0,quantity);
       const reply='Die Recherche wurde über die vorhandene ASI-Quellenpipeline ausgeführt und anschließend durch MESSINHOs eigene positionsgewichtete Bewertungslogik sortiert. Ich habe '+candidates.length+' belegte Kandidaten erhalten und zeige '+ranked.length+' davon. Zielniveau: '+targetLevel+'. '+(payload.underfilled?'Die gewünschte Anzahl konnte mit der verfügbaren Quellenlage nicht vollständig belegt werden.':'Nicht belegte Leistungswerte wurden nicht geschätzt.');
       return res.json({reply,intent:'scouting_results',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null,requested:{quantity,yearFrom,yearTo,position,region,targetLevel},sources:payload.sources||[],source_count:payload.source_count||0,saved_count:payload.saved_count||0,duplicate_count:payload.duplicate_count||0,underfilled:!!payload.underfilled,provider:payload.provider||null,limitations:payload.limitations||[]});
+    }
+    if(isPlayerFollowUp){
+      const rememberedPlayer=resolveMessinhoPlayerFollowUp(message,history);
+      const external=await researchMessinhoPlayerProfile(rememberedPlayer);
+      const profile=external.profile||{};
+      const facts=Array.isArray(profile.facts)?profile.facts:[];
+      const factLines=facts.slice(0,8).map(f=>typeof f==='string'?f:[f.label||f.name,f.value].filter(Boolean).join(': ')).filter(Boolean);
+      const career=Array.isArray(profile.career)?profile.career.slice(0,5):[];
+      const performance=profile.recent_performance&&typeof profile.recent_performance==='object'?Object.entries(profile.recent_performance).slice(0,6).map(([k,v])=>k+': '+v):[];
+      const sections=[profile.summary,profile.corrected_name&&profile.corrected_name!==rememberedPlayer?'Gemeint ist wahrscheinlich '+profile.corrected_name+'.':null,
+        factLines.length?'Wichtige Informationen: '+factLines.join(' · '):null,
+        career.length?'Karriere: '+career.map(x=>typeof x==='string'?x:JSON.stringify(x)).join(' · '):null,
+        performance.length?'Aktuelle Leistung: '+performance.join(' · '):null,
+        Array.isArray(profile.missing_data)&&profile.missing_data.length?'Noch nicht zuverlässig belegt: '+profile.missing_data.join(', '):null].filter(Boolean);
+      const sourceItems=(external.sources||[]).map((source,index)=>({id:'source-'+index,name:source.title||source.publisher||source.url,kind:'Externe Quelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
+      const reply=sections.length?sections.join('\n\n'):'Ich habe die vorherige Suche zu '+rememberedPlayer+' wieder aufgenommen. Die gefundenen Quellen enthalten derzeit aber noch kein ausreichend verlässliches, zusammengefasstes Spielerprofil. Du kannst die angezeigten Quellen öffnen; ich werde fehlende Angaben nicht erfinden.';
+      return res.json({reply,intent:'player_research_followup',items:sourceItems,player:external.player,profile:external.profile,sources:external.sources||[],provider:external.provider||null,researched_at:external.researched_at||null});
     }
     if(help)return res.json({reply:'Ich bin MESSINHO, die zentrale KI von myScoutingDatabase. Ich steuere vorhandene Recherche- und Analysefunktionen und frage fehlende Suchkriterien nach. Weitere Plattformmodule werden schrittweise angebunden.',intent:'help',items:[]});
     if(wantsComparison){
