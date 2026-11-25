@@ -485,8 +485,8 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
         if(inserted.error){console.error('ASI discovery candidate persistence failed:',inserted.error.message);return res.status(500).json({error:'Die Recherche war erfolgreich, aber die Kandidaten konnten nicht in der Datenbank gespeichert werden.'});}
         savedRows=inserted.data||[];
       }
-      const savedByName=new Set(savedRows.map(x=>String(x.player_name).normalize('NFKC').toLocaleLowerCase('de')));
-      const returnedCandidates=candidates.map(c=>({...c,saved:savedByName.has(c.name.normalize('NFKC').toLocaleLowerCase('de')),duplicate:existingNames.has(c.name.normalize('NFKC').toLocaleLowerCase('de'))}));
+      const savedByName=new Map(savedRows.map(x=>[String(x.player_name).normalize('NFKC').toLocaleLowerCase('de'),x]));
+      const returnedCandidates=candidates.map(c=>{const savedRow=savedByName.get(c.name.normalize('NFKC').toLocaleLowerCase('de'));return {...c,id:savedRow?.id||null,saved:!!savedRow,duplicate:existingNames.has(c.name.normalize('NFKC').toLocaleLowerCase('de'))};});
       res.set('Cache-Control','no-store');
       return res.json({mode:'discover',requested:{ageMin,ageMax,birthYearFrom,birthYearTo,position,nationality,region,targetLevel,limit:Math.max(1,Math.min(15,Number(filters.limit)||15))},candidates:returnedCandidates,
         source_count:discoverySources.length,sources:discoverySources.map(({content,...s})=>s),
