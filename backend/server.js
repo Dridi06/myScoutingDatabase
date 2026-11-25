@@ -9,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import { parseMessinhoScoutingRequest, matchesPosition, sourceSupportsRegion } from './messinho-validation.js';
 import { rankMessinhoPlayers, sanitizeMessinhoHistory, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
-import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit } from './messinho-intelligence.js';
+import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
 
 const app=express();
@@ -461,21 +461,26 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
           return source&&sourceSupportsRegion(region,[source.title,source.content,e.claim].join(' '),player.current_club);
         }):evidence;
         if(region&&!regionEvidence.length)return null;
-        const urls=[...new Set(evidence.map(e=>e.source_url))];
-        const candidateSources=discoverySources.filter(s=>regionEvidence.some(e=>e.source_url===s.url));
+        const candidateEvidence=validateMessinhoCandidateEvidence({name,birth_year:birthYear},regionEvidence,discoverySources);
+        if(!candidateEvidence.valid)return null;
+        const verifiedEvidence=regionEvidence.filter(e=>candidateEvidence.supporting_source_urls.includes(e.source_url));
+        const candidateSources=discoverySources.filter(s=>candidateEvidence.supporting_source_urls.includes(s.url));
         const evidenceAssessment=assessMessinhoEvidence(candidateSources);
-        const tacticalFit=evaluateMessinhoTacticalFit({positions:Array.isArray(player.positions)?player.positions:[],performance_metrics:player.performance_metrics||{}},filters.teamProfile);
+        const supportedPositions=(Array.isArray(player.positions)?player.positions:[]).filter(value=>messinhoValueSupported(value,candidateEvidence.supporting_source_urls,discoverySources));
+        if(position&&!matchesPosition(position,supportedPositions))return null;
+        const supportedClub=messinhoValueSupported(player.current_club,candidateEvidence.supporting_source_urls,discoverySources)?player.current_club:null;
+        const supportedNationality=messinhoValueSupported(player.nationality,candidateEvidence.supporting_source_urls,discoverySources)?player.nationality:null;
+        const tacticalFit=evaluateMessinhoTacticalFit({positions:supportedPositions,performance_metrics:player.performance_metrics||{}},filters.teamProfile);
         const sources=candidateSources.map(({content,...s})=>s);
         const normalized=name.normalize('NFKC').toLocaleLowerCase('de');
-        if(!name||!birthYear||birthYear<birthYearFrom||birthYear>birthYearTo||!evidence.length||seen.has(normalized))return null;
-        if(position&&!matchesPosition(position,player.positions))return null;
+        if(!name||!birthYear||birthYear<birthYearFrom||birthYear>birthYearTo||!verifiedEvidence.length||seen.has(normalized))return null;
         seen.add(normalized);
         const level=['priority','watchlist','review','reject'].includes(player.recommendation?.level)?player.recommendation.level:'review';
         const identityConfidence=player.identity_confidence!==null&&player.identity_confidence!==undefined&&Number.isFinite(Number(player.identity_confidence))?Math.max(0,Math.min(1,Number(player.identity_confidence))):null;
         const analysis={
           method:'asi_multi_source_discovery_v1',researched_at:new Date().toISOString(),
-          player:{name,birth_year:birthYear,nationality:player.nationality||null,current_club:player.current_club||null,
-            positions:Array.isArray(player.positions)?player.positions.slice(0,6):[],identity_confidence:identityConfidence},
+          player:{name,birth_year:birthYear,nationality:supportedNationality||null,current_club:supportedClub||null,
+            positions:supportedPositions.slice(0,6),identity_confidence:identityConfidence},
           performance_metrics:player.performance_metrics&&typeof player.performance_metrics==='object'?player.performance_metrics:{},
           fit_score:player.fit_score!==null&&player.fit_score!==undefined&&Number.isFinite(Number(player.fit_score))?Math.max(0,Math.min(100,Number(player.fit_score))):null,
           level_fit_reason:String(player.level_fit_reason||'').slice(0,1000),
@@ -485,13 +490,13 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
           data_quality:{confidence:player.data_quality?.confidence!==null&&player.data_quality?.confidence!==undefined&&Number.isFinite(Number(player.data_quality.confidence))?Math.max(0,Math.min(1,Number(player.data_quality.confidence))):null,
             limitations:Array.isArray(player.data_quality?.limitations)?player.data_quality.limitations:[]},
           evidence_assessment:evidenceAssessment,tactical_fit:tacticalFit,
-          evidence:regionEvidence.map(e=>({source_url:e.source_url,claim:String(e.claim||'').slice(0,500)})),
+          evidence:verifiedEvidence.map(e=>({source_url:e.source_url,claim:String(e.claim||'').slice(0,500)})),
           analysis:String(player.analysis||'').slice(0,3000),
           selection_notes:Array.isArray(discovery.selection_notes)?discovery.selection_notes:[],
           limitations:Array.isArray(discovery.limitations)?discovery.limitations:[]
         };
-        return {name,birthYear,nationality:player.nationality||null,currentClub:player.current_club||null,
-          positions:Array.isArray(player.positions)?player.positions.slice(0,6):[],identityConfidence,analysis,sources};
+        return {name,birthYear,nationality:supportedNationality||null,currentClub:supportedClub||null,
+          positions:supportedPositions.slice(0,6),identityConfidence,analysis,sources};
       }).filter(Boolean).sort((a,b)=>(b.analysis.fit_score??-1)-(a.analysis.fit_score??-1)).slice(0,Math.max(1,Math.min(15,Number(filters.limit)||15)));
       if(!candidates.length)return res.status(422).json({error:'Die KI konnte keine Spieler mit bestätigbarem Geburtsjahr, passender Position und belastbarem Quellenbeleg zum angeforderten Standort identifizieren. Es wurden keine Kandidaten gespeichert.',sourceCount:discoverySources.length});
       const [existingCandidates,existingPlayers]=await Promise.all([
