@@ -86,7 +86,7 @@ async function requireSupabaseAdmin(req,res,next){
 // Administrator system diagnostics: persistent, auditable checks.
 async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=null){
   const started=Date.now(),startedAt=new Date().toISOString(),checks=[];
-  const add=(name,category,ok,detail='',severity='critical')=>checks.push({name,category,ok,detail:String(detail||''),severity,checkedAt:new Date().toISOString()});
+  const add=(name,category,ok,detail='',severity='critical')=>checks.push({name,category,ok,detail:String(detail||''),severity,recommendation:ok?'Keine Maßnahme erforderlich.':name==='Externe Recherche'?'TAVILY_API_KEY in den Render-Umgebungsvariablen prüfen und nach dem Speichern einen neuen Deploy auslösen.':name.startsWith('Tabelle ')?'Migrationen in Supabase prüfen. Fehlt die Tabelle, die zugehörige Datenbankmigration kontrolliert anwenden.':name==='Datenbankverbindung'?'Supabase-Projektstatus, SUPABASE_URL und Service-Role-Key in Render prüfen; danach Verbindung erneut testen.':name==='Authentifizierungs-Konfiguration'?'JWT_SECRET (mindestens 32 Zeichen) und SUPABASE_PUBLISHABLE_KEY in Render konfigurieren.':name==='Diagnoseausführung'?'Serverprotokolle des aktuellen Deployments öffnen und den vollständigen Fehler prüfen.':'Render-Logs und die betroffene Komponente prüfen; Änderung erst nach Sicherung und Freigabe durchführen.',checkedAt:new Date().toISOString()});
   try{
     if(!db){add('Supabase-Verbindung','Datenbank',false,'Service-Client ist nicht konfiguriert.');}
     else{
