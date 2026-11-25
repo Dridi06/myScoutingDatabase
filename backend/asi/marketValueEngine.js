@@ -17,7 +17,7 @@ export function estimateMarketValue(input = {}) {
   const age = Number(player.age);
   const minutes = Number(player.minutesLast12Months);
   const performance = Number(player.performanceScore);
-  const contractYears = Number(player.contractYears);
+  const contractYears = player.contractYears === null || player.contractYears === undefined || player.contractYears === '' ? NaN : Number(player.contractYears);
   const position = String(player.position || '').trim();
   const validComparables = comparables.filter(item =>
     item && item.verified === true &&
