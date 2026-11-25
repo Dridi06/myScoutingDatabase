@@ -122,3 +122,21 @@
 .asi-self-reflection>small{color:var(--muted,#a9a9a9);font-size:.76rem}
 .asi-self-reflection .asi-result-top{margin:0}
 .asi-self-reflection .asi-status{white-space:nowrap}
+
+.asi-contract-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.asi-contract-summary article{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;min-width:0}
+.asi-contract-summary small,.asi-contract-form label{display:block;color:var(--muted,#9ca3af);font-size:12px}
+.asi-contract-summary strong{display:block;margin-top:6px;overflow-wrap:anywhere}
+.asi-contract-form{display:grid;gap:10px;margin-top:12px;padding:14px;border:1px solid rgba(212,175,55,.25);border-radius:12px}
+.asi-contract-form input,.asi-contract-form select,.asi-contract-form textarea{display:block;width:100%;margin-top:5px;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:#111;color:inherit}
+.asi-contract-form textarea{min-height:70px}
+.asi-contract-dates{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.asi-contract-history{margin:12px 0}
+.asi-contract-history article,.asi-evidence-item{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.asi-evidence-item p{margin:5px 0}.asi-evidence-item small{display:block;color:var(--muted,#9ca3af);font-size:11px}
+.asi-evidence-item a{display:inline-block;margin:5px 10px 0 0}
+.asi-evidence-warning{color:#e8b85a!important;margin-top:6px}
+.asi-evidence-actions{display:flex;gap:6px;align-items:flex-start}.asi-evidence-actions button{background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:7px;color:inherit;cursor:pointer}
+.asi-contract-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;color:var(--muted,#9ca3af);font-size:12px}
+.asi-contract-footer span,.asi-contract-footer button{display:flex;align-items:center;gap:6px}.asi-contract-footer button{background:transparent;border:0;color:inherit;cursor:pointer}
+@media(max-width:700px){.asi-contract-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.asi-contract-dates{grid-template-columns:1fr}.asi-evidence-item{flex-direction:column}.asi-contract-footer{align-items:flex-start;flex-direction:column}}
