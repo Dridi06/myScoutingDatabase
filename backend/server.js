@@ -556,7 +556,7 @@ app.post('/api/messinho/feedback',async(req,res)=>{
       position_group:positionRating?.position_group||'default',
       target_score:checked.value.target_score,
       dimension_scores:checked.value.dimension_scores,comment:checked.value.comment
-    }).select('id,player_id,position_group,target_score,created_at').single();
+    },{onConflict:'candidate_id,scout_id'}).select('id,player_id,position_group,target_score,created_at').single();
     if(error){console.error('MESSINHO feedback save failed:',error.message);return res.status(500).json({error:'Scout-Feedback konnte nicht gespeichert werden. Wurde die Staging-Migration ausgeführt?'});}
     return res.status(201).json({ok:true,feedback:data,message:'Feedback gespeichert. Es fließt erst nach ausreichender Datenmenge in eine Modellprüfung ein.'});
   }catch(error){console.error('MESSINHO feedback error:',error.message);return res.status(500).json({error:'Feedback konnte nicht gespeichert werden.'});}
