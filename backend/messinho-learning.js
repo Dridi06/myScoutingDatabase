@@ -7,8 +7,9 @@ const DIMENSIONS = ['technical','tactical','athletic','mental','goalkeeping'];
 const MIN_EXAMPLES = 30;
 const clamp = (n,min,max) => Math.max(min,Math.min(max,n));
 const toScore = value => {
+  if(value===null||value===undefined||value==='')return null;
   const n=Number(value);
-  return Number.isFinite(n) ? clamp(n,0,100) : null;
+  return Number.isFinite(n)&&n>=0&&n<=100 ? n : null;
 };
 function vectorFor(example, keys) {
   return keys.map(key => toScore(example.dimension_scores?.[key]));
