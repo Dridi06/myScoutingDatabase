@@ -77,3 +77,8 @@
 @media(max-width:650px){.asi-evolution-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.asi-evolution-sections{grid-template-columns:1fr}}
 
 .asi-saving-icon{animation:asi-save-spin 1s linear infinite}@keyframes asi-save-spin{to{transform:rotate(360deg)}}
+
+.asi-trend-panel .asi-evolution-summary article{min-height:104px;align-content:start}
+.asi-trend-panel .asi-evolution-criteria strong{font-size:10px;text-align:right;white-space:nowrap}
+.asi-trend-panel .asi-footnote{margin-top:14px}
+@media(max-width:650px){.asi-trend-panel .asi-evolution-criteria>span{align-items:flex-start}.asi-trend-panel .asi-evolution-criteria strong{white-space:normal}}
