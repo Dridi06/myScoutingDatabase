@@ -43,7 +43,6 @@ export function assessContractEvidence(row) {
   if (!row?.identity_status || row.identity_status !== 'matched') issues.push('Spieleridentität nicht bestätigt');
   if (!['confirmed','corroborated'].includes(row?.verification_status)) issues.push('Angabe nicht ausreichend bestätigt');
   if (row?.data_classification === 'health_sensitive' && row?.legal_review_status !== 'approved') issues.push('Gesundheitsdaten ohne rechtliche Freigabe gesperrt');
-  if (row?.review_status !== 'approved') issues.push('Admin-Prüfung steht aus');
   return {usable:issues.length===0,issues};
 }
 
