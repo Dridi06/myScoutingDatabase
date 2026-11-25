@@ -199,3 +199,6 @@ Dieser Stand bleibt Draft auf `feature/messinho-agent-workspace` und Render-Stag
 - Trainingsdatensatz-Fingerprints enthalten jetzt die tatsächlichen verifizierten Outcomes, Positionsgruppen, Dimensionswerte und Beobachtungsdaten statt nur Datensatz-IDs.
 - Holdout-Aufteilung und Trainingsreihenfolge sind anhand stabil sortierter Spieler-/Datensatzmerkmale reproduzierbar.
 - Aufwendige Lern-Evaluationen sind auf fünf Versuche pro Stunde begrenzt; Tavily-, OpenAI- und verschachtelte Rechercheaufrufe haben feste Timeouts.
+
+- Externe Kandidaten werden nicht mehr allein aufgrund einer KI-Aussage übernommen: Name und Geburtsjahr müssen gemeinsam in mindestens einem der tatsächlich gelieferten HTTPS-Belege vorkommen. Nicht belegte Vereins-, Nationalitäts- und Positionsangaben werden nicht in das gespeicherte Spielerprofil übernommen.
+- Die Oberfläche unterscheidet sichtbar zwischen der deterministischen Start-Baseline (nicht trainiert) und einer später administrativ freigegebenen, datenbasiert trainierten Modellversion.
