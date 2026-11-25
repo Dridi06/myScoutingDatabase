@@ -39,3 +39,22 @@
 .messinho-learning-panel>article{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding-top:9px;border-top:1px solid rgba(198,163,91,.16)}
 .messinho-learning-panel>article span{display:flex;flex-direction:column;gap:3px;min-width:0}
 .messinho-learning-panel>p{width:100%;margin:0;color:#f0a4a4;font-size:12px}
+
+.messinho-learning-panel{display:flex;flex-direction:column;gap:12px;margin:14px 0;padding:14px;border:1px solid rgba(198,163,91,.28);border-radius:12px;background:rgba(18,17,15,.72)}
+.messinho-learning-summary{display:flex;flex-direction:column;gap:4px}
+.messinho-learning-panel strong{color:#e2c47d;font-size:13px}
+.messinho-learning-panel small{color:#aaa18e;font-size:11px}
+.messinho-calibration-entry{display:grid;grid-template-columns:1fr 1fr auto;align-items:end;gap:9px}
+.messinho-calibration-entry label,.messinho-review-fields label{display:flex;flex-direction:column;gap:5px;color:#bdb7a8;font-size:11px}
+.messinho-calibration-entry select,.messinho-calibration-entry input,.messinho-review-fields input{width:100%;min-width:0;padding:8px;border:1px solid rgba(198,163,91,.25);border-radius:6px;background:#151515;color:#fff}
+.messinho-learning-panel button{padding:8px 12px;border:1px solid #b8964f;border-radius:7px;background:#b8964f;color:#111;font-weight:700;cursor:pointer}
+.messinho-learning-panel button.secondary{border-color:rgba(198,163,91,.35);background:transparent;color:#d8c69d}
+.messinho-learning-panel button:disabled{opacity:.55;cursor:wait}
+.messinho-admin-learning{display:flex;flex-direction:column;gap:10px}
+.messinho-learning-actions,.messinho-review-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.messinho-calibration-review{display:flex;flex-direction:column;gap:7px;padding:11px;border:1px solid rgba(198,163,91,.18);border-radius:9px;background:rgba(0,0,0,.16)}
+.messinho-calibration-review>b{color:#e2c47d;font-size:12px}
+.messinho-calibration-review>small{color:#aaa18e;font-size:11px;overflow-wrap:anywhere}
+.messinho-review-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.messinho-learning-panel>p{width:100%;margin:0;color:#f0a4a4;font-size:12px}
+@media(max-width:620px){.messinho-calibration-entry{grid-template-columns:1fr}.messinho-review-fields{grid-template-columns:1fr 1fr}}
