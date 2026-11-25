@@ -158,10 +158,10 @@ export function resolveMessinhoPlayerFollowUp(message, history = []) {
 export function extractMessinhoPlayerSearchTerm(message) {
   const value = String(message || '').trim().replace(/[?.!]+$/, '').trim();
   if (!value || value.length > 120) return null;
-  const explicit = value.match(/(?:suche|finde|such|zeige|zeig)\\s+(?:mir\\s+)?(?:den spieler|die spielerin|spieler|spielerin|kandidat|kandidaten)?\\s*[:'"]?(.{2,100})$/i)
-    || value.match(/(?:wer ist|infos? zu|informationen zu|profil von|analysiere)\\s+(.{2,100})$/i);
+  const explicit = value.match(/(?:suche|finde|such|zeige|zeig)\s+(?:mir\s+)?(?:den spieler|die spielerin|spieler|spielerin|kandidat|kandidaten)?\s*[:'"]?(.{2,100})$/i)
+    || value.match(/(?:wer ist|infos? zu|informationen zu|profil von|analysiere)\s+(.{2,100})$/i);
   if (explicit) return explicit[1].replace(/[.!?]+$/, '').trim().slice(0,100) || null;
-  if (!/^[\\p{L}][\\p{L}'’.-]*(?:\\s+[\\p{L}][\\p{L}'’.-]*){1,3}$/iu.test(value)) return null;
+  if (!/^[\p{L}][\p{L}'’.-]*(?:\s+[\p{L}][\p{L}'’.-]*){1,3}$/iu.test(value)) return null;
   const normalized = value.toLocaleLowerCase('de-DE');
   const generic = new Set(['hallo messinho','guten tag messinho','was kannst du','was machst du','danke messinho']);
   if (generic.has(normalized)) return null;
