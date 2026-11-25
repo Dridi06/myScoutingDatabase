@@ -111,3 +111,45 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 - Runtime-Ende-zu-Ende-Tests bleiben blockiert: Render-Staging-Logs melden `SUPABASE_SERVICE_ROLE_KEY` fehlt; außerdem `Tavily=false` und `OpenAI=false`. Die Variablen müssen direkt im Render-Dashboard des Staging-Dienstes unter den vom Backend unterstützten Namen gesetzt werden.
 - In der Staging-Kalibrierungstabelle liegen aktuell 0 Einträge und 0 verifizierte Ergebnisse. Noch offen sind authentifizierte Admin-/Scout-Tests, erste Kalibrierungserfassung, Admin-Verifizierung, Training mit mindestens 30 verifizierten Einträgen und 10 Spielern je Position sowie Modellfreigabe.
 - Da derzeit noch keine verifizierten Kalibrierungsdaten vorhanden sind, kann noch kein neues Modell trainiert oder aktiviert werden. Die Lernfunktion sammelt zunächst echte Daten; sie erfindet keine Trainingswerte.
+
+
+## Arbeitsstand 25.11.2026 – Ausbau in sechs Entwicklungsphasen
+
+### Phase 1 – Fundament und Datenqualität
+- Neues provider-unabhängiges Modul `backend/messinho-intelligence.js`.
+- Quellen werden technisch geprüft: HTTPS, URL-Gültigkeit, Domain-Diversität, Veröffentlichungsdatum und Aktualitätsfenster.
+- Quellenqualität wird ausdrücklich nicht mit journalistischer Glaubwürdigkeit gleichgesetzt; unbekannte Datumsangaben und begrenzte Auszüge bleiben als Einschränkungen sichtbar.
+- Keine fehlenden Fakten oder Leistungswerte werden ergänzt.
+
+### Phase 2 – Taktische Passung
+- Neuer taktischer Abgleich mit einem ausdrücklich vom Verein übergebenen Anforderungsprofil.
+- Formation, Rolle und gewünschte Attribute können berücksichtigt werden.
+- Ein Fit-Wert wird nur berechnet, wenn mindestens drei reale Spielerattribute vorliegen und mindestens 50 % der Profilgewichtung abgedeckt sind.
+- Die Berechnung ist als transparente Heuristik gekennzeichnet, nicht als automatische Erfolgsvorhersage. Ohne Vereinsprofil oder ausreichende Daten bleibt der Wert null.
+
+### Phase 3 – Kontrolliertes Lernen
+- Bestehende supervised-learning-Architektur bleibt auf administrativ verifizierte 12-Monats-Ergebnisse begrenzt.
+- Mindestmengen, Spieler-Holdout, MAE-Vergleich, maximale Gewichtsverschiebung und Admin-Freigabe bleiben verpflichtende Schutzmechanismen.
+- Noch keine realen Trainingsdaten vorhanden; ein tatsächlicher Lernzyklus ist deshalb noch nicht nachgewiesen.
+
+### Phase 4 – Internationale Recherche und Quellenprüfung
+- Die bestehende Tavily-/ASI-Recherche erhält eine nachvollziehbare Quellen- und Aktualitätsbewertung.
+- Unsichere HTTP-Quellen werden nicht als Belege zurückgegeben; Quellen ohne Datum werden nicht als aktuell ausgegeben.
+- Die externe Recherche bleibt bis zur Konfiguration der Staging-Zugangsdaten deaktiviert.
+
+### Phase 5 – Berechtigungen und Datenschutz
+- Bestehende Supabase-Authentifizierung, Rollenprüfung, Eigentümerfilter und Admin-only-Lernfreigabe bleiben verbindlich.
+- Keine sensiblen Gesundheits- oder psychologischen Bewertungen.
+- Staging-only; keine Änderungen an Produktion oder PFMS.
+
+### Phase 6 – Automatisierte Qualitätssicherung
+- Neue Tests für HTTPS-/Freshness-Prüfung, Quellen-Deduplizierung, Quellenabdeckung und taktische Fit-Berechnung.
+- GitHub Actions führt die gesamte Node-Test-Suite und den Frontend-Build aus.
+- Release erst nach erfolgreichen CI-, Staging-, Rollen- und End-to-End-Tests sowie ausdrücklicher Freigabe.
+
+### Verifikation und Einschränkungen
+- Neue Dateien: `backend/messinho-intelligence.js`, `tests/messinho-intelligence.test.js`.
+- `backend/server.js` bindet Quellenbewertung und taktische Passung in die vorhandene Rechercheantwort ein.
+- Es wurden keine neuen Datenbanktabellen oder Migrationen für diese Erweiterung benötigt.
+- Die Staging-Umgebung benötigt weiterhin die fehlenden Backend-Schlüssel. Ohne sie können Recherche und Authentifizierungs-E2E nicht realistisch getestet werden.
+- Der aktuelle Branch-Head muss nach Abschluss der CI-Prüfung erneut auf Render-Staging bereitgestellt und dort getestet werden.
