@@ -164,6 +164,8 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  const [externalSources,setExternalSources]=useState([]);
  const [quality,setQuality]=useState({loading:false,observations:0,playersObserved:0,longitudinalPlayers:0,predictions:0,outcomes:0,matchedOutcomes:0,mae:null,evaluations:0,passedEvaluations:0,trainingRuns:0,completeRatings:0,scoutAgreement:{comparisons:0,pairedPlayers:0,scoutPairs:0,meanAbsoluteDifference:null,withinOne:null}});
  const [error,setError]=useState('');
+ const [accessDiagnostics,setAccessDiagnostics]=useState(null);
+ const [diagnosticsBusy,setDiagnosticsBusy]=useState(false);
  const [search,setSearch]=useState('');
  const [selectedRole,setSelectedRole]=useState(Object.keys(ROLE_PROFILES)[0]);
  useEffect(()=>{if(selected)setSelectedRole(isGoalkeeper(selected)?'Torwart · Shot-Stopper':Object.keys(ROLE_PROFILES).find(k=>!k.startsWith('Torwart ·'))||Object.keys(ROLE_PROFILES)[0]);},[selectedId]);
@@ -173,6 +175,33 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  const visiblePlayers=useMemo(()=>players.filter(p=>(p.name+' '+(p.club||'')+' '+(p.positions||[]).join(' ')).toLowerCase().includes(search.toLowerCase())),[players,search]);
  const ratedCount=useMemo(()=>players.filter(p=>p.ratings&&Object.values(p.ratings).some(v=>safeNumber(v)!==null)).length,[players]);
  const roleFit=useMemo(()=>selected?scoreRoleFit(selected.ratings||{},selectedRole):null,[selected,selectedRole]);
+ const logicChecks=useMemo(()=>{
+  const checks=[];
+  Object.entries(ROLE_PROFILES).forEach(([name,profile])=>{const ratings=Object.fromEntries(Object.keys(profile.criteria).map(k=>[k,3]));const result=scoreRoleFit(ratings,name);checks.push({name:'Rollenprofil: '+name,ok:!!result&&result.fit===50&&result.coverage===100&&result.available===result.total});});
+  const missing=scoreRoleFit({},Object.keys(ROLE_PROFILES)[0]);checks.push({name:'Fehlende Werte werden nicht als Null gewertet',ok:missing.fit===null&&missing.coverage===0&&missing.available===0});
+  const trend=analyzeLongitudinalTrend([{observed_on:'2026-10-21',ratings:{Dribbling:2}},{observed_on:'2026-11-08',ratings:{Dribbling:3}},{observed_on:'2026-11-25',ratings:{Dribbling:4}}]);checks.push({name:'Longitudinalanalyse: 3 Messpunkte / 35 Tage',ok:trend.ready&&trend.count===3&&trend.days===35&&trend.up===1});
+  const short=analyzeLongitudinalTrend([{observed_on:'2026-11-01',ratings:{Dribbling:2}},{observed_on:'2026-11-10',ratings:{Dribbling:3}}]);checks.push({name:'Zu kurze Zeitreihe wird gesperrt',ok:!short.ready});
+  const duplicate=analyzeLongitudinalTrend([{observed_on:'2026-10-21',ratings:{Dribbling:2}},{observed_on:'2026-10-21',ratings:{Dribbling:2}},{observed_on:'2026-11-08',ratings:{Dribbling:3}},{observed_on:'2026-11-25',ratings:{Dribbling:4}}]);checks.push({name:'Identische Tages-Snapshots werden ignoriert',ok:duplicate.ready&&duplicate.count===3&&duplicate.duplicates===1});
+  return checks;
+ },[]);
+ async function runAccessDiagnostics(){
+  if(!supabase||!profile?.id||diagnosticsBusy)return;setDiagnosticsBusy(true);setAccessDiagnostics(null);
+  const checks=[];
+  try{
+   const {data:{user},error:userError}=await supabase.auth.getUser();
+   checks.push({name:'Authentifizierte Sitzung',ok:!userError&&!!user&&user.id===profile.id,detail:userError?.message||''});
+   const [obsResult,analysisResult]=await Promise.all([
+    supabase.from('asi_player_observations').select('id,owner_id').eq('owner_id',profile.id).limit(20),
+    supabase.from('asi_player_analyses').select('id,owner_id').eq('owner_id',profile.id).limit(20)
+   ]);
+   checks.push({name:'Eigene ASI-Beobachtungen lesen',ok:!obsResult.error&&Array.isArray(obsResult.data)&&obsResult.data.every(x=>x.owner_id===profile.id),detail:obsResult.error?.message||((obsResult.data||[]).length+' Datensätze')});
+   checks.push({name:'Eigene ASI-Analysen lesen',ok:!analysisResult.error&&Array.isArray(analysisResult.data)&&analysisResult.data.every(x=>x.owner_id===profile.id),detail:analysisResult.error?.message||((analysisResult.data||[]).length+' Datensätze')});
+   if(!admin){const foreign=await supabase.from('players').select('player_id').in('player_id',Array.from({length:24},(_,i)=>i+8));checks.push({name:'Fremde Admin-Testspieler bleiben verborgen',ok:!foreign.error&&(foreign.data||[]).length===0,detail:foreign.error?.message||((foreign.data||[]).length+' fremde Profile sichtbar')});}
+   else checks.push({name:'Scout-Negativtest',ok:null,detail:'Bitte separat mit einem Scout-Konto ausführen; Adminrechte können den Scout-Zugriff nicht simulieren.'});
+   setAccessDiagnostics(checks);
+  }catch(e){setAccessDiagnostics([{name:'Zugriffstest',ok:false,detail:e.message||'Unbekannter Fehler'}]);}
+  finally{setDiagnosticsBusy(false);}
+ }
  async function loadMeta(){
    if(!supabase)return;
    setQuality(q=>({...q,loading:true}));
@@ -326,6 +355,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
      <div><span className="asi-eyebrow">ADAPTIVE SCOUTING INTELLIGENCE</span><h1>Scouting Intelligence</h1><p>Analysen, Beobachtungen und Modellqualität – transparent und nachvollziehbar.</p></div>
      <button type="button" className="asi-refresh" onClick={()=>{loadMeta();if(selectedId){loadHistory(selectedId);loadObservations(selectedId);}}} title="Aktualisieren"><RefreshCw size={17}/></button>
    </div>
+   <section className="asi-panel asi-diagnostics-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">SYSTEM VALIDATION</span><h2>ASI-Funktions- und Zugriffstests</h2></div><ShieldCheck size={20}/></div><p className="asi-role-intro">Automatische, nicht-destruktive Prüfungen der Rollenberechnung, Zeitreihenlogik und aktuellen Sitzung. Es werden keine Spieler- oder Beobachtungsdaten verändert.</p><div className="asi-diagnostic-summary"><strong>{logicChecks.filter(x=>x.ok).length}/{logicChecks.length}</strong><span>Logiktests bestanden</span></div><div className="asi-diagnostic-list">{logicChecks.map((x,i)=><div key={i}><span>{x.name}</span><b className={x.ok?'is-ok':'is-fail'}>{x.ok?'BESTANDEN':'FEHLER'}</b></div>)}</div><button type="button" className="asi-action" onClick={runAccessDiagnostics} disabled={diagnosticsBusy}>{diagnosticsBusy?'Zugriff wird geprüft…':'Sitzungs- und RLS-Test starten'}</button>{accessDiagnostics&&<div className="asi-diagnostic-list">{accessDiagnostics.map((x,i)=><div key={i}><span>{x.name}{x.detail?' · '+x.detail:''}</span><b className={x.ok===null?'is-skip':x.ok?'is-ok':'is-fail'}>{x.ok===null?'MANUELL':x.ok?'BESTANDEN':'FEHLER'}</b></div>)}</div>}<p className="asi-footnote">Der Scout-Negativtest muss mit einem echten Scout-Login ausgeführt werden. Ein Admin-Login kann fremde Daten absichtlich sehen und ist dafür kein gültiger Test.</p></section>
    <div className="asi-stat-grid">
      <article><span>Spielerprofile</span><strong>{players.length}</strong><small>Im aktuellen Zugriff</small></article>
      <article><span>Mit Bewertungen</span><strong>{ratedCount}</strong><small>Mindestens ein gültiger Wert von 1–5</small></article>
