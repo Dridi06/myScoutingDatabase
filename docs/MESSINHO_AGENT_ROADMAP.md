@@ -104,5 +104,8 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 - Die Freigabe erfolgt ausschließlich über die bestehende Admin-RPC `asi_review_model_candidate`; Kalibrierungen werden über `asi_review_scout_calibration` verifiziert. Damit bleiben Audit, Berechtigungen und Modellhistorie zentral in ASI.
 - Freigegebene MESSINHO-Profile werden in der eigenen positionsbezogenen Scoring-Engine genutzt. Nicht trainierte Positionen behalten die vorhandenen Basisgewichte.
 - Keine automatische Modellaktivierung, kein autonomes Umschreiben von Code und kein selbstständiges Deployment.
-- Staging-Supabase-Migration ist angewendet. Noch offen sind die vollständige Testsuite, Frontend-Build, Staging-Deploy des aktuellen Branch-Heads sowie Ende-zu-Ende-Tests mit echten Admin-/Scout-Konten und vorhandenen Kalibrierungsdaten.
+- Staging-Supabase-Migration ist angewendet und verifiziert. Staging-Deploy `dep-dc3db37avr4c73f2vmg0` auf Commit `d05bc8956af616ccc937cba88d1af9af7ecccb84` ist live; Vite-Build und Backend-Start waren erfolgreich.
+- GitHub Actions: MESSINHO validation Run #122 und ASI quality checks Run #79 sind erfolgreich; beide führten Unit-Tests und Frontend-Build aus.
+- Runtime-Ende-zu-Ende-Tests bleiben blockiert: Render-Staging-Logs melden fehlenden Supabase-Server-Schlüssel; außerdem sind Tavily und OpenAI nicht bereit (`Tavily=false`, `OpenAI=false`). Die erforderlichen Staging-Variablen müssen direkt im Render-Dashboard gesetzt werden.
+- Noch offen sind authentifizierte Admin-/Scout-Tests, echte Kalibrierungserfassung, Admin-Verifizierung, Training mit mindestens 30 verifizierten Einträgen und 10 Spielern pro Position sowie Modellfreigabe. Aktuell liegen noch keine verifizierten Kalibrierungsdaten vor.
 - Da derzeit noch keine verifizierten Kalibrierungsdaten vorhanden sind, kann noch kein neues Modell trainiert oder aktiviert werden. Die Lernfunktion sammelt zunächst echte Daten; sie erfindet keine Trainingswerte.
