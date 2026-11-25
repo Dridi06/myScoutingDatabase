@@ -351,7 +351,7 @@ const playerSearchLimiter=rateLimit({windowMs:60*60*1000,limit:20,standardHeader
 app.post('/api/asi/player-search',playerSearchLimiter,async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
-    const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+    const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
     if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
     const {data:authData,error:authError}=await db.auth.getUser(token);
     if(authError||!authData?.user)return res.status(401).json({error:'Sitzung ungültig oder abgelaufen.'});
@@ -669,7 +669,7 @@ app.post('/api/messinho/calibration/:id/review',async(req,res)=>{
     const observedOn=typeof req.body?.observed_on==='string'?req.body.observed_on:'';
     const sourceUrl=typeof req.body?.source_url==='string'?req.body.source_url.trim():'';
     if(reason.length<10)return res.status(400).json({error:'Bitte einen Prüfgrund mit mindestens 10 Zeichen angeben.'});
-    if(decision==='verify'&&(!Number.isFinite(value)||value<0||value>100||!/^\\d{4}-\\d{2}-\\d{2}$/.test(observedOn)||!/^https:\\/\\//i.test(sourceUrl)))return res.status(400).json({error:'Für die Verifizierung sind Ergebnis 0–100, Datum und HTTPS-Quellenlink erforderlich.'});
+    if(decision==='verify'&&(!Number.isFinite(value)||value<0||value>100||!/^\d{4}-\d{2}-\d{2}$/.test(observedOn)||!/^https:\/\//i.test(sourceUrl)))return res.status(400).json({error:'Für die Verifizierung sind Ergebnis 0–100, Datum und HTTPS-Quellenlink erforderlich.'});
     const userClient=createMessinhoUserClient(actor.token);
     if(!userClient)return res.status(503).json({error:'Supabase Publishable Key ist nicht konfiguriert.'});
     const {data,error}=await userClient.rpc('asi_review_scout_calibration',{p_record_id:req.params.id,p_decision:decision,p_reason:reason,p_verified_outcome:decision==='verify'?value:null,p_observed_on:decision==='verify'?observedOn:null,p_source_url:decision==='verify'?sourceUrl:null});
