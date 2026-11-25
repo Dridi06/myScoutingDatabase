@@ -86,9 +86,11 @@ export function correctMessinhoInput(input) {
     const normalized = normalizeToken(token);
     const exact = ALIASES.get(normalized);
     const suggestion = exact || closestVocabularyMatch(normalized);
-    if (!suggestion || suggestion === token) return token;
-    corrections.push({from:token,to:suggestion,kind:exact?'known_typo':'contextual_spelling'});
-    return suggestion;
+    if (!suggestion) return token;
+    const output = /^[A-ZÄÖÜ]/u.test(token) ? suggestion[0].toLocaleUpperCase('de-DE') + suggestion.slice(1) : suggestion;
+    if (output === token) return token;
+    corrections.push({from:token,to:output,kind:exact?'known_typo':'contextual_spelling'});
+    return output;
   });
 
   return {
