@@ -47,6 +47,18 @@ function dimensionValue(analysis, dimension) {
     const value = numeric(ratings[key]?.score ?? ratings[key] ?? analysis?.[key]);
     if (value !== null) return value;
   }
+  // Rating keys in existing scout records are not fully normalized (e.g. "Technik").
+  // Match aliases case-/accent-insensitively before concluding that a dimension is missing.
+  const normalizedRating = Object.entries(ratings).find(([key]) => aliases.some(alias => norm(key) === norm(alias)));
+  if (normalizedRating) {
+    const value = numeric(normalizedRating[1]?.score ?? normalizedRating[1]);
+    if (value !== null) return value;
+  }
+  const directAnalysis = Object.entries(analysis || {}).find(([key]) => aliases.some(alias => norm(key) === norm(alias)));
+  if (directAnalysis) {
+    const value = numeric(directAnalysis[1]?.score ?? directAnalysis[1]);
+    if (value !== null) return value;
+  }
   const metrics = analysis?.performance_metrics || {};
   const keys = Object.keys(metrics);
   const matching = keys.filter(key => aliases.some(alias => norm(key).includes(norm(alias))));
