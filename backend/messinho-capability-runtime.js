@@ -293,7 +293,7 @@ function researchHandler(id,input){
  }
  if(id==='contract_expiry_monitor'||id==='contract_research'){
    if(!sources.length)return missingResult(id,['contract_sources']);
-   const patterns=[/(?:contract|vertrag).{0,80}?(?:expires|expiry|läuft bis|laeuft bis|bis zum|until|through)\\s+(\\d{1,2}[.\\-/]\\d{1,2}[.\\-/]\\d{2,4}|\\d{4}-\\d{2}-\\d{2})/i,/(?:contract|vertrag).{0,80}?(\\d{4}-\\d{2}-\\d{2})/i];
+   const patterns=[/(?:contract|vertrag).{0,80}?(?:expires|expiry|läuft bis|laeuft bis|bis zum|until|through)(?:\\s+(?:on|am))?\\s+(\\d{1,2}[.\\-/]\\d{1,2}[.\\-/]\\d{2,4}|\\d{4}-\\d{2}-\\d{2})/i,/(?:contract|vertrag).{0,80}?(\\d{4}-\\d{2}-\\d{2})/i];
    const mentions=sources.flatMap(source=>patterns.flatMap(pattern=>{const match=String(source.content||'').match(pattern);return match?[{date_mention:match[1],source_url:source.url,source_title:source.title||null,verified:false}]:[];}));
    return result(id,mentions.length?'needs_review':'insufficient_data',{contract_date_mentions:mentions,source_count:sources.length,rule:'Extracted dates are leads only and require confirmation from an official club or league source.'});
  }
