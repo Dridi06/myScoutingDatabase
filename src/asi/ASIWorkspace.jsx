@@ -33,6 +33,35 @@ function compareObservations(rows){
  if(!comparable.length)return {previous,latest,changes,comparable:0,average:null,improved:0,declined:0,unchanged:0,ignoredDuplicates};
  return {previous,latest,changes,comparable:comparable.length,average:Number((comparable.reduce((sum,x)=>sum+x.delta,0)/comparable.length).toFixed(2)),improved:comparable.filter(x=>x.delta>0).length,declined:comparable.filter(x=>x.delta<0).length,unchanged:comparable.filter(x=>x.delta===0).length,ignoredDuplicates};
 }
+function analyzeLongitudinalTrend(rows){
+ const ordered=[...(rows||[])].sort((a,b)=>String(a.observed_on).localeCompare(String(b.observed_on))||String(a.created_at).localeCompare(String(b.created_at)));
+ const seen=new Set();
+ const distinct=ordered.filter(row=>{
+  const vals=normalizeRatings(row.ratings||{});
+  const key=String(row.observed_on)+'|'+JSON.stringify(vals);
+  if(seen.has(key))return false;seen.add(key);return true;
+ });
+ if(distinct.length<3)return {ready:false,count:distinct.length,duplicates:ordered.length-distinct.length};
+ const first=distinct[0],last=distinct[distinct.length-1];
+ const start=Date.parse(first.observed_on+'T00:00:00Z'),end=Date.parse(last.observed_on+'T00:00:00Z');
+ const days=Math.round((end-start)/86400000);
+ if(!Number.isFinite(days)||days<30)return {ready:false,count:distinct.length,days,duplicates:ordered.length-distinct.length};
+ const sections=Object.entries(SECTIONS).map(([section,criteria])=>{
+  const metrics=criteria.map(label=>{
+   const points=distinct.map(o=>({date:o.observed_on,value:safeNumber(o.ratings?.[label])})).filter(p=>p.value!==null);
+   if(points.length<2)return null;
+   const delta=points[points.length-1].value-points[0].value;
+   const steps=points.slice(1).map((p,i)=>p.value-points[i].value).filter(v=>v!==0);
+   const direction=delta===0?'stable':delta>0?'up':'down';
+   const consistent=steps.length>0&&steps.every(v=>Math.sign(v)===Math.sign(delta))&&delta!==0;
+   return {label,delta,points:points.length,direction,consistent};
+  }).filter(Boolean);
+  const average=metrics.length?Number((metrics.reduce((s,m)=>s+m.delta,0)/metrics.length).toFixed(2)):null;
+  return {section,metrics,average};
+ }).filter(s=>s.metrics.length);
+ const all=sections.flatMap(s=>s.metrics);
+ return {ready:all.length>0,count:distinct.length,days,first,last,duplicates:ordered.length-distinct.length,sections,criteriaCount:all.length,up:all.filter(x=>x.delta>0).length,down:all.filter(x=>x.delta<0).length,stable:all.filter(x=>x.delta===0).length,consistent:all.filter(x=>x.consistent).length};
+}
 function buildSnapshot(player){
  const ratings=player.ratings&&typeof player.ratings==='object'?player.ratings:{};
  const sections=Object.entries(SECTIONS).map(([name,criteria])=>{
@@ -75,6 +104,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  const [search,setSearch]=useState('');
  const selected=players.find(p=>String(p.player_id)===String(selectedId));
  const evolution=useMemo(()=>compareObservations(observations),[observations]);
+ const longTrend=useMemo(()=>analyzeLongitudinalTrend(observations),[observations]);
  const visiblePlayers=useMemo(()=>players.filter(p=>(p.name+' '+(p.club||'')+' '+(p.positions||[]).join(' ')).toLowerCase().includes(search.toLowerCase())),[players,search]);
  const ratedCount=useMemo(()=>players.filter(p=>p.ratings&&Object.values(p.ratings).some(v=>safeNumber(v)!==null)).length,[players]);
  async function loadMeta(){
@@ -106,7 +136,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  }
  async function loadObservations(playerId){
    if(!supabase||!playerId)return;
-   const {data,error:loadError}=await supabase.from('asi_player_observations').select('id,player_id,observed_on,ratings,observation,source_type,created_at,created_by').eq('player_id',Number(playerId)).order('observed_on',{ascending:false}).order('created_at',{ascending:false}).limit(20);
+   const {data,error:loadError}=await supabase.from('asi_player_observations').select('id,player_id,observed_on,ratings,observation,source_type,created_at,created_by').eq('player_id',Number(playerId)).order('observed_on',{ascending:false}).order('created_at',{ascending:false}).limit(100);
    if(loadError){setError('ASI-Beobachtungen konnten nicht geladen werden.');setObservations([]);}
    else setObservations(data||[]);
  }
@@ -216,6 +246,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
      <form onSubmit={saveObservation} className="asi-observation-form"><label>Beobachtungsdatum<input type="date" value={observationDate} onChange={e=>setObservationDate(e.target.value)} required/></label><label>Beobachtungsnotiz<textarea value={observation} onChange={e=>setObservation(e.target.value)} maxLength={5000} placeholder="Beobachtbare Spielsituationen, Kontext, Gegnerniveau und konkrete Beispiele – keine privaten Kontaktdaten."/></label><button type="submit" disabled={busy||savingObservation}>{savingObservation?<><RefreshCw size={15} className="asi-saving-icon"/> Wird gespeichert…</>:<><Save size={15}/> Beobachtung speichern</>}</button></form>
      <p className="asi-footnote">Die aktuelle Spielerbewertung wird als Snapshot mitgespeichert. Künftige Bewertungen können so zeitlich miteinander verglichen werden.</p>
    </section>}
+   {selected&&<section className="asi-panel asi-trend-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">LONGITUDINAL INTELLIGENCE</span><h2>Spielerentwicklung über längere Zeit</h2></div><Activity size={20}/></div>{!longTrend.ready?<p className="asi-empty">Für eine längerfristige Auswertung benötigen wir mindestens drei unterschiedliche Bewertungsstände über mindestens 30 Tage und gemeinsame gültige Kriterien. Aktuell: {longTrend.count} unterschiedliche Stände{longTrend.days!==undefined?' über '+longTrend.days+' Tage':''}. {longTrend.duplicates>0?longTrend.duplicates+' identische Mehrfacheinträge wurden ausgeschlossen.':''}</p>:<><div className="asi-evolution-meta"><span>Zeitraum: <strong>{new Date(longTrend.first.observed_on+'T12:00:00').toLocaleDateString('de-DE')} – {new Date(longTrend.last.observed_on+'T12:00:00').toLocaleDateString('de-DE')}</strong></span><span>Beobachtungen: <strong>{longTrend.count}</strong></span><span>Zeitraum: <strong>{longTrend.days} Tage</strong></span><span>Kriterien: <strong>{longTrend.criteriaCount}</strong></span></div><div className="asi-evolution-summary"><article><small>Gestiegen</small><strong>{longTrend.up}</strong><small>Kriterien mit höherem Endwert</small></article><article><small>Gesunken</small><strong>{longTrend.down}</strong><small>Kriterien mit niedrigerem Endwert</small></article><article><small>Stabil</small><strong>{longTrend.stable}</strong><small>Gleicher Start- und Endwert</small></article><article><small>Gleichgerichtet</small><strong>{longTrend.consistent}</strong><small>Alle erfassten Zwischenschritte in Endrichtung</small></article></div><div className="asi-evolution-sections">{longTrend.sections.map(s=><article key={s.section}><div><strong>{s.section}</strong><span>Ø Endveränderung {s.average>0?'+':''}{s.average.toFixed(2)}</span></div><div className="asi-evolution-criteria">{s.metrics.map(m=><span key={m.label}>{m.label}<strong className={m.delta>0?'positive':m.delta<0?'negative':'neutral'}>{m.delta>0?'+':''}{m.delta} · {m.points} Messpunkte</strong></span>)}</div></article>)}</div><p className="asi-footnote">Die Auswertung vergleicht je Kriterium den ersten und letzten gültigen Wert im Zeitraum. „Gleichgerichtet“ bedeutet nur, dass die beobachteten Zwischenschritte dieselbe Richtung wie die Endveränderung hatten. Fehlende Werte werden ausgelassen. Dies ist eine rückblickende Beschreibung, keine Prognose und kein Nachweis für Trainingswirkung.</p></>}</section>}
    {selected&&<section className="asi-panel asi-history-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">TALENT EVOLUTION</span><h2>Beobachtungsverlauf</h2></div><Clock3 size={20}/></div>{observations.length===0?<p className="asi-empty">Noch keine Beobachtungen gespeichert. Neue Einträge erscheinen hier chronologisch.</p>:<div className="asi-history-list">{observations.map(o=><article className="asi-observation-entry" key={o.id}><div className="asi-result-top"><strong>{new Date(o.observed_on+'T12:00:00').toLocaleDateString('de-DE')}</strong><small>{o.source_type==='internal_scout'?'Interner Scout':'Quelle: '+o.source_type}</small></div>{o.observation&&<p>{o.observation}</p>}<small>{Object.keys(o.ratings||{}).length} Bewertungsfelder im Snapshot · erfasst {new Date(o.created_at).toLocaleString('de-DE')}</small></article>)}</div>}</section>}
    {selected&&<section className="asi-panel asi-evolution-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">TALENT EVOLUTION</span><h2>Entwicklung zwischen Beobachtungen</h2></div><TrendingUp size={20}/></div>{(!evolution||evolution.insufficient)?<p className="asi-empty">Für einen Vergleich werden mindestens zwei unterschiedliche Bewertungsstände benötigt. Identische Mehrfachspeicherungen zählen nicht als neue Entwicklung.{evolution?.ignoredDuplicates>0&&<> {evolution.ignoredDuplicates} identische Mehrfacheinträge wurden ausgeschlossen.</>}</p>:evolution.comparable===0?<p className="asi-empty">Zwischen den letzten beiden Beobachtungen gibt es keine gemeinsamen gültigen Bewertungskriterien. Ein Vergleich wäre daher nicht belastbar.</p>:<><div className="asi-evolution-meta"><span>Vorher: <strong>{new Date(evolution.previous.observed_on+'T12:00:00').toLocaleDateString('de-DE')}</strong></span><span>Zuletzt: <strong>{new Date(evolution.latest.observed_on+'T12:00:00').toLocaleDateString('de-DE')}</strong></span><span>Verglichene Kriterien: <strong>{evolution.comparable}</strong></span>{evolution.ignoredDuplicates>0&&<span>Ausgeschlossene Duplikate: <strong>{evolution.ignoredDuplicates}</strong></span>}</div><div className="asi-evolution-summary"><article><small>Mittlere Veränderung</small><strong>{evolution.average>0?'+':''}{evolution.average.toFixed(2)}</strong><small>Skalenpunkte · 1 bis 5</small></article><article><small>Verbessert</small><strong>{evolution.improved}</strong><small>Kriterien mit höherem Wert</small></article><article><small>Unverändert</small><strong>{evolution.unchanged}</strong><small>Gleicher Wert</small></article><article><small>Niedriger</small><strong>{evolution.declined}</strong><small>Kriterien mit niedrigerem Wert</small></article></div><div className="asi-evolution-sections">{evolution.changes.filter(s=>s.items.length).map(s=><article key={s.section}><div><strong>{s.section}</strong><span>Ø {s.average>0?'+':''}{s.average.toFixed(2)}</span></div><div className="asi-evolution-criteria">{s.items.map(x=><span key={x.label}>{x.label}<strong className={x.delta>0?'positive':x.delta<0?'negative':'neutral'}>{x.delta>0?'+':''}{x.delta}</strong></span>)}</div></article>)}</div><p className="asi-footnote">Verglichen werden ausschließlich Kriterien, die in beiden letzten Beobachtungen gültige ganzzahlige Werte von 1–5 besitzen. Das ist eine deskriptive Veränderung und kein Beleg für Ursache, Prognose oder objektive Leistungsentwicklung.</p></>}</section>}
    {selected&&<section className="asi-panel asi-history-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">MODEL HISTORY</span><h2>Frühere Analysen</h2></div><TrendingUp size={20}/></div>{loading?<p className="asi-empty">Analysen werden geladen…</p>:history.length===0?<p className="asi-empty">Für diesen Spieler gibt es noch keine gespeicherten ASI-Analysen.</p>:<div className="asi-history-list">{history.map(h=><button type="button" key={h.id} className={analysis?.id===h.id?'selected':''} onClick={()=>openHistory(h)}><span><strong>{h.analysis_type}</strong><small>{new Date(h.created_at).toLocaleString('de-DE')}</small></span><span>{h.model_version}</span></button>)}</div>}</section>}
