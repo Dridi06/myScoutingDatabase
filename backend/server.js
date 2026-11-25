@@ -449,7 +449,7 @@ app.post('/api/scout/tickets',requireApprovedScout,scoutTicketCreateLimiter,asyn
 // Verify it with Supabase Auth (not the app's separate JWT verifier).
 async function requireSupabaseAdmin(req,res,next){
   const authorization=typeof req.headers.authorization==='string'?req.headers.authorization:'';
-  const match=authorization.match(/^Bearer\\s+(\\S+)$/i);
+  const match=authorization.match(/^Bearer\s+(\S+)$/i);
   const token=match?.[1]||'';
   if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
   if(!db)return res.status(503).json({error:'Authentifizierungsdienst ist nicht verfügbar.'});
