@@ -76,7 +76,7 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
     .map(item => typeof item.text === 'string' ? item.text : '').join(' ');
   const lastAssistant = [...safeHistory].reverse().find(item => item?.role === 'assistant');
   const latest = normalize(message);
-  const startsNewRequest = /\b(benötige|brauche|suche|finde|scoute|recherchiere)\b/i.test(latest);
+  const startsNewRequest = /\b(benötige|brauche|suche|such|finde|scoute|recherchiere)\b/i.test(latest);
   const pending = !startsNewRequest && /(?:welches spielerlevel|welche spielklasse|leistungsniveau|welches land|welcher standort|welche position|welcher jahrgang|geburtsjahrgang)/i.test(String(lastAssistant?.text || ''));
   const context = (pending ? userContext + ' ' : '') + String(message || '');
   const yearMatches = [...context.matchAll(/\b(19\d{2}|20\d{2})\b/g)]
@@ -104,7 +104,7 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
   const quantityMatch = context.match(/\b(\d{1,2})\s+(?=(?:spieler|talente|kandidaten|linker|linksverteidiger|left|rechter|rechtsverteidiger|right|innenverteidiger|mittelstürmer|stürmer|torwart|goalkeeper|keeper|flügelspieler|winger|zentraler|defensives|offensives)\b)/i);
   const quantity = quantityMatch ? Math.max(1, Math.min(15, Number(quantityMatch[1]))) : 10;
 
-  const scoutingIntent = /\b(benötige|brauche|suche|finde|scoute|recherchiere|spieler|talent|kandidaten|scouting)\b/i.test(latest);
+  const scoutingIntent = /\b(benötige|brauche|suche|such|finde|scoute|recherchiere|spieler|talent|kandidaten|scouting)\b/i.test(latest);
   const hasCriteria = !!(yearFrom || position || region);
   const shouldHandle = pending || (scoutingIntent && (hasCriteria || !!quantityMatch));
   const missing = [];
