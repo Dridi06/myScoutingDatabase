@@ -56,5 +56,16 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 ## Noch offene Verifikation vor Live-Freigabe
 - Vollständiger `npm run build` und automatisierter CI-Lauf müssen noch bestätigt werden.
 - End-to-End-Test gegen die Staging-Supabase mit gültigem Staging-Auth-Token sowie konfigurierten Tavily-/OpenAI-Schlüsseln steht aus.
-- Der vorhandene Render-Webdienst `myscoutingdatabase` zeigt auf `main` und darf nicht verwendet oder verändert werden. Eine eigene Staging-Instanz ist noch nicht angelegt.
+- Der vorhandene Render-Webdienst `myscoutingdatabase` zeigt auf `main` und darf nicht verwendet oder verändert werden. Eine eigene Render-Staging-Instanz wurde angelegt: `myscoutingdatabase-messinho-staging` (Frankfurt, Free, Branch `feature/messinho-agent-workspace`, Auto-Deploy deaktiviert).
 - Keine Änderungen an `main`, Produktion, PFMS oder Supabase-Schema vorgenommen.
+
+## Render-Staging – Bereitstellung 25.11.2026
+- Staging-URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- Render-Service-ID: `srv-dc3chlqjnfac73acd6ig`
+- Render-Deploy-ID (letzter bestätigter Deploy): `dep-dc3ciigm7kps73dsit0g`
+- Build `npm install --no-audit --no-fund && npm run build`: erfolgreich; Vite hat 1.631 Module verarbeitet.
+- Start `npm start`: erfolgreich; Render meldet den Dienst als live.
+- `JWT_SECRET`, `APP_ORIGIN` und die öffentlichen Supabase-Verbindungswerte sind für Staging gesetzt.
+- Noch nicht gesetzt: `SUPABASE_SECRET_KEY` oder `SUPABASE_SERVICE_ROLE_KEY`, `TAVILY_API_KEY`, `OPENAI_API_KEY`. Deshalb ist die Datenbankverbindung im Backend derzeit nicht initialisiert und die ASI-Recherche meldet `ready=false`.
+- Vite meldet einen Haupt-JavaScript-Chunk von ca. 640,5 kB (gzip ca. 185 kB), oberhalb des 500-kB-Warnwerts. Build ist erfolgreich; Code-Splitting bleibt eine Performance-Optimierung.
+- Es wurde weder der Render-Dienst auf `main` noch PFMS verändert. Der Staging-Dienst deployt neue Branch-Commits nicht automatisch.
