@@ -179,3 +179,13 @@
 - Keine Datenbankmigration, keine künstlichen Daten, keine Änderung an bestehenden Spieler-/Beobachtungsdaten. Keine privaten Kontaktdaten werden verwendet.
 - Ausschließlich Staging vorgesehen; Produktion unangetastet.
 - Noch offen: Render-Build/Deploy-Live-Status, Browserprüfung auf Desktop/iPhone, fachliche Validierung der Gewichte durch Trainer/Scouting-Leitung und Rollen-/RLS-Negativtest mit Scout-Konto.
+
+
+## ASI-Ausbaustufe – Torwartintelligenz und Selbsttests – 2026-11-25
+- Commit `bbb0d156c51ef2f563a37fe0f483914f06a99ec4`: 12 zusätzliche Torwartkriterien ergänzt: Reflexe, Fangsicherheit, Strafraumbeherrschung, Eins-gegen-eins Torwart, Stellungsspiel Torwart, Antizipation Torwart, Flankenbeherrschung, Reboundkontrolle, Spieleröffnung kurz/lang, Abwurf und Abstoß, Kommunikation Torwart.
+- Drei spezialisierte Rollenprofile ergänzt: Shot-Stopper, Sweeper-Keeper und Spielaufbau. Rollenliste filtert Torwartprofile bei Torhütern und Feldspielerprofile bei Feldspielern.
+- Commit `88dcb0297eda2b950b02c17fa4343264c9844f24`: Torwartkriterien im Spielerformular werden nur bei Position Torwart angezeigt. Ratings bleiben in der vorhandenen JSONB-Spalte; keine destruktive Migration nötig.
+- Commit `14e9c9429f991c9113b0eb3845607e5d2006abc3`: ASI-interne Selbsttests ergänzt: alle Rollenprofile, fehlende Ratings, Mindestzeitraum, zu kurze Zeitreihe und Duplikatfilter. Zusätzlich nicht-destruktive Sitzungs-/RLS-Diagnose; Scout-Negativtest muss mit echter Scout-Sitzung ausgeführt werden.
+- Commit `a516f19e91d48da25d963c53aaa4d656d3227a0e`: Diagnose-/Torwart-Panel gestaltet.
+- Keine Test- oder Echtdaten in der Datenbank geändert. Ausschließlich Staging.
+- Noch zu verifizieren: Render-Build/Live-Status, Selbsttests im Browser, Torwartprofil-Speichern und anschließendes Laden, Analyse-/Feedback-Speicherung, RLS-Negativtest mit Scout-Konto. Prognosemodell bleibt gesperrt, bis echte Ergebnisdaten und ausreichende Evaluationen vorliegen.
