@@ -165,7 +165,12 @@ export function getMessinhoCapabilityCatalog() {
     description: group.description,
     total: group.functions.length,
     functions: group.functions.map(([id,name,description,inputs]) => ({
-      id, name, description, required_inputs: inputs.split(','),
+      id, name, description,
+      required_inputs: Array.isArray(inputs)
+        ? inputs.map(value => String(value).trim()).filter(Boolean)
+        : typeof inputs === 'string'
+          ? inputs.split(',').map(value => value.trim()).filter(Boolean)
+          : [],
       status: statusFor(id)
     }))
   }));
