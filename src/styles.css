@@ -1841,7 +1841,7 @@ button{touch-action:manipulation}
 
 /* Stadium backdrop for the existing minimal login card — card styles intentionally untouched */
 .auth-nexus.auth-minimal{background:#07101b}
-.auth-nexus.auth-minimal:before{display:block;content:"";position:absolute;inset:0;width:auto;height:auto;top:0;right:0;bottom:0;left:0;border:0;border-radius:0;filter:none;pointer-events:none;z-index:-1;background-image:linear-gradient(90deg,rgba(3,8,16,.38),rgba(3,8,16,.18) 50%,rgba(3,8,16,.38)),linear-gradient(0deg,rgba(2,7,13,.46),rgba(2,7,13,.14) 52%,rgba(2,7,13,.38)),url('/stadium-login-bg-2560.jpg');background-position:center;background-size:cover;background-repeat:no-repeat;opacity:.88;box-shadow:none}
+.auth-nexus.auth-minimal:before{display:block;content:"";position:absolute;inset:0;width:auto;height:auto;top:0;right:0;bottom:0;left:0;border:0;border-radius:0;filter:none;pointer-events:none;z-index:-1;background-image:linear-gradient(90deg,rgba(3,8,16,.38),rgba(3,8,16,.18) 50%,rgba(3,8,16,.38)),linear-gradient(0deg,rgba(2,7,13,.46),rgba(2,7,13,.14) 52%,rgba(2,7,13,.38)),url('/stadium-login-bg-2560.webp');background-position:center;background-size:cover;background-repeat:no-repeat;opacity:.88;box-shadow:none}
 .auth-nexus.auth-minimal:after{display:none}
 @media(max-width:600px){.auth-nexus.auth-minimal:before{background-position:center;background-size:cover;opacity:.72}}
 
