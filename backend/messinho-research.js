@@ -3,7 +3,7 @@
  * Tavily supplies attributable public search results; OpenAI only structures and
  * interprets that evidence. No FUSSBALL.DE scraping or unsupported value claims.
  */
-const clean=(v,max=500)=>String(v??'').replace(/[\\u0000-\\u001f\\u007f]/g,' ').replace(/\\s+/g,' ').trim().slice(0,max);
+const clean=(v,max=500)=>String(v??'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
 const safeUrl=value=>{try{const u=new URL(value);return u.protocol==='https:'?u.toString():null;}catch{return null;}};
 const num=value=>value===null||value===undefined||value===''?null:(Number.isFinite(Number(value))?Number(value):null);
 export function validateResearchInput(input={}){
@@ -16,9 +16,9 @@ export function validateResearchInput(input={}){
 export function normalizeResearchSources(results=[]){
  const seen=new Set();return (Array.isArray(results)?results:[]).flatMap(row=>{
   const url=safeUrl(row?.url);if(!url||seen.has(url))return[];seen.add(url);
-  let publisher='Unbekannt';try{publisher=new URL(url).hostname.replace(/^www\\./,'');}catch{}
+  let publisher='Unbekannt';try{publisher=new URL(url).hostname.replace(/^www\./,'');}catch{}
   // Do not query or ingest the FUSSBALL.DE portal until written permission exists.
-  if(/(^|\\.)fussball\\.de$/i.test(publisher))return[];
+  if(/(^|\.)fussball\.de$/i.test(publisher))return[];
   return [{title:clean(row.title,240),url,publisher,published_date:clean(row.published_date||row.publishedDate,40)||null,snippet:clean(row.content||row.snippet,1400)}];
  }).slice(0,15);
 }
