@@ -67,3 +67,13 @@
 - Direkte Staging-Datenbankzählung nach Implementierung: 0 Beobachtungen, 0 Analysen, 0 Feedbacks, 0 Prognosen, 0 Outcomes, 0 Evaluationen, 0 Trainingsläufe. Entsprechend sind MAE und Modellgüte derzeit nicht berechenbar; die Qualitätskontrolle muss „gesperrt/nicht ausreichend“ anzeigen.
 - Die Admin-Qualitätsabfragen laufen ausschließlich bei Admin-Ansicht; Scout-Ansichten erhalten keine globalen ASI-Statistiken.
 - Weiter offen: Live-Status des Deploys `dep-dc32i1qvmuic73f7bk70` und Browserprüfung mit Admin-/Scout-Konten sowie RLS-Negativtest. Produktionssystem weiterhin unangetastet.
+
+
+## ASI-Datennormalisierung und Beobachtungsvalidierung – 2026-11-25
+- Render deploy `dep-dc32nnri7qqc739s48j0` für Commit `1eaed0dc0027ce1e068b77b781dd2ed1c29478f0` ist LIVE. Commit `dc4e4a58e75ddd2e3465e6cdaa701996804cfbad` (ASI-Komponente erhält nur benötigte, nicht-kontaktbezogene Spielerfelder) wurde im nachfolgenden Deploy-Zyklus durch den neueren Commit ersetzt und ist damit ebenfalls enthalten.
+- ASI-Rating-Validierung akzeptiert ausschließlich ganzzahlige Werte 1–5; leere Werte bleiben fehlend und werden nicht als 0 interpretiert.
+- Commit `a40bfb09daafa17aa9d78d9f48ddfcd4ea7a119f`: ASI-Analysen und Beobachtungen speichern normalisierte Ratings ausschließlich aus den 34 definierten Kriterien. Der Analyse-Snapshot kennzeichnet die Skala als `1-5_integer_v1`.
+- Beobachtungsdatum darf nicht fehlen, ungültig sein oder in der Zukunft liegen.
+- Diese zuletzt genannte Änderung ist in GitHub gespeichert; Render-Deployment muss noch auf LIVE geprüft werden.
+- Datenbestand zuletzt: weiterhin 0 ASI-Beobachtungen, Analysen, Feedbacks, Prognosen, Outcomes, Evaluationen und Trainingsläufe. Keine Testdaten wurden erzeugt.
+- Browser-/RLS-Tests mit echten Admin- und Scout-Sitzungen bleiben offen. Ausschließlich Staging, Produktion unangetastet.
