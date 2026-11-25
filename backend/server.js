@@ -10,6 +10,7 @@ import { parseMessinhoScoutingRequest, matchesPosition, sourceSupportsRegion } f
 import { rankMessinhoPlayers, sanitizeMessinhoHistory, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit } from './messinho-intelligence.js';
+import { scopeMessinhoOwner } from './messinho-access.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -569,8 +570,7 @@ app.post('/api/messinho/tactical-fit',messinhoTacticalFitLimiter,async(req,res)=
     const requirements=Object.fromEntries(Object.entries(supplied.requirements).slice(0,20));
     if(Object.keys(requirements).length<3)return res.status(400).json({error:'Ein taktisches Anforderungsprofil benötigt mindestens drei Attribute.'});
     const teamProfile={formation:typeof supplied.formation==='string'?supplied.formation.slice(0,20):null,role:typeof supplied.role==='string'?supplied.role.slice(0,60):null,requirements};
-    let query=db.from('players').select('player_id,owner_id,name,positions,ratings').eq('player_id',playerId);
-    if(actor.profile.role!=='admin')query=query.eq('owner_id',actor.user.id);
+    const query=scopeMessinhoOwner(db.from('players').select('player_id,owner_id,name,positions,ratings').eq('player_id',playerId),actor);
     const {data:player,error}=await query.maybeSingle();
     if(error||!player)return res.status(404).json({error:'Spieler nicht gefunden oder kein Zugriff.'});
     const tacticalFit=evaluateMessinhoTacticalFit({positions:player.positions||[],performance_metrics:player.ratings||{}},teamProfile);
@@ -581,8 +581,7 @@ app.get('/api/messinho/learning/players',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
-    let query=db.from('players').select('player_id,owner_id,name,positions,ratings').order('name').limit(500);
-    if(actor.profile.role!=='admin')query=query.eq('owner_id',actor.user.id);
+    const query=scopeMessinhoOwner(db.from('players').select('player_id,owner_id,name,positions,ratings').order('name').limit(500),actor);
     const {data,error}=await query;
     if(error)return res.status(500).json({error:'Spieler für die Kalibrierung konnten nicht geladen werden.'});
     const players=(data||[]).map(player=>{
@@ -600,8 +599,7 @@ app.post('/api/messinho/calibration',messinhoCalibrationLimiter,async(req,res)=>
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
     const playerId=Number(req.body?.player_id);
     if(!Number.isSafeInteger(playerId)||playerId<=0)return res.status(400).json({error:'Bitte einen gültigen Spieler auswählen.'});
-    let playerQuery=db.from('players').select('player_id,owner_id,name,positions,ratings').eq('player_id',playerId);
-    if(actor.profile.role!=='admin')playerQuery=playerQuery.eq('owner_id',actor.user.id);
+    const playerQuery=scopeMessinhoOwner(db.from('players').select('player_id,owner_id,name,positions,ratings').eq('player_id',playerId),actor);
     const {data:player,error:playerError}=await playerQuery.maybeSingle();
     if(playerError||!player)return res.status(404).json({error:'Spieler nicht gefunden oder kein Zugriff.'});
     const dimensions=extractMessinhoDimensionScores(player.ratings||{},player.positions||[]);
@@ -707,6 +705,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const history=sanitizeMessinhoHistory(req.body?.history);
     const dialog=parseMessinhoScoutingRequest(message,history);
     const ownerId=authData.user.id;
+    const actor={user:authData.user,profile};
     const normalized=message.toLocaleLowerCase('de-DE').normalize('NFKC');
     const help=/\b(hilfe|was kannst du|befehle|funktionen)\b/.test(normalized);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
@@ -738,8 +737,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       return res.json({reply:'Ich habe deine Kandidaten nach den verfügbaren positionsspezifischen Leistungsdaten sortiert. Nicht belegte Werte wurden nicht geschätzt; Kandidaten ohne ausreichende Daten erhalten keinen Score.',intent:'comparison',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null});
     }
     if(wantsSummary){
-      let playerCountQuery=db.from('players').select('player_id',{count:'exact',head:true});
-      if(profile.role==='scout')playerCountQuery=playerCountQuery.eq('owner_id',ownerId);
+      const playerCountQuery=scopeMessinhoOwner(db.from('players').select('player_id',{count:'exact',head:true}),actor);
       const [playerCount,candidateCount]=await Promise.all([playerCountQuery,db.from('asi_player_candidates').select('id',{count:'exact',head:true}).eq('owner_id',ownerId)]);
       if(playerCount.error||candidateCount.error)return res.status(500).json({error:'Die Bestandsübersicht konnte nicht vollständig geladen werden.'});
       return res.json({reply:'Aktueller Datenbestand: '+(playerCount.count||0)+' '+(profile.role==='admin'?'Spieler im Gesamtkatalog':'eigene Spieler')+' und '+(candidateCount.count||0)+' Kandidaten in deinem persönlichen Bereich.',intent:'summary',metrics:{players:playerCount.count||0,candidates:candidateCount.count||0},items:[]});
@@ -753,8 +751,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(searchMatch){
       const term=searchMatch[1].replace(/[.!?]+$/,'').trim().slice(0,100);
       const safeTerm=term.replace(/[%,_()]/g,' ').trim();
-      let playerQuery=db.from('players').select('player_id,name,club,year,positions,foot').ilike('name','%'+safeTerm+'%').order('name').limit(10);
-      if(profile.role==='scout')playerQuery=playerQuery.eq('owner_id',ownerId);
+      const playerQuery=scopeMessinhoOwner(db.from('players').select('player_id,name,club,year,positions,foot').ilike('name','%'+safeTerm+'%').order('name').limit(10),actor);
       const [players,candidates]=await Promise.all([playerQuery,db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status').eq('owner_id',ownerId).ilike('player_name','%'+safeTerm+'%').limit(10)]);
       if(players.error||candidates.error)return res.status(500).json({error:'Die interne Spielersuche ist fehlgeschlagen.'});
       const items=[...(players.data||[]).map(p=>({kind:'Spielerkatalog',id:p.player_id,name:p.name,club:p.club,year:p.year,positions:p.positions||[],foot:p.foot})),...(candidates.data||[]).map(p=>({kind:'Kandidat',id:p.id,name:p.player_name,club:p.current_club,year:p.birth_year,positions:p.positions||[],recommendation:p.recommendation,status:p.status}))];
