@@ -126,7 +126,7 @@ export default function PlayerSearchWorkspace({supabase,profile,admin=false,onNo
     <label className="ps-comparables">Verifizierte Vergleichstransaktionen (JSON)
      <textarea rows="5" value={marketInputs.comparables} onChange={e=>setMarketInputs(v=>({...v,comparables:e.target.value}))} spellCheck="false"/>
     </label>
-    <small>Jeder Vergleich benötigt playerName, feeEur, sourceUrl, eventDate, similarity (0,5–1), verified:true und optional sourceConfidence (0–1). Nur rechtmäßig nutzbare Quellen verwenden. Keine Transfermarkt-Scrapes oder -Datenbankexports.</small>
+    <small>Jeder Vergleich benötigt playerName, sourceName (muss im ASI-Quellenregister freigegeben sein), feeEur, sourceUrl, eventDate und similarity (0.5–1). Der Server prüft die Quelle auf approved_public, Zweck market_value, kommerzielle Nutzung und Speicherung. verified wird ausschließlich serverseitig gesetzt.</small>
     {marketError&&<div className="ps-error">{marketError}</div>}
     <button className="ps-market-button" onClick={calculateMarketValue} disabled={marketBusy}>{marketBusy?'Berechnung läuft …':'ASI-Marktwert berechnen'}</button>
     {marketValue&&<div className="ps-market-output">
