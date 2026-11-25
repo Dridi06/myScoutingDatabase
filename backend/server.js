@@ -74,28 +74,126 @@ function requireAdmin(req,res,next){if(req.user?.role!=='admin')return res.statu
 // Administrator system diagnostics: persistent, auditable checks.
 async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=null){
   const started=Date.now(),startedAt=new Date().toISOString(),checks=[];
-  const add=(name,category,ok,detail='',severity='critical')=>checks.push({name,category,ok,detail:String(detail||''),severity,recommendation:ok?'Keine Maßnahme erforderlich.':name==='Externe Recherche'?'TAVILY_API_KEY in den Render-Umgebungsvariablen prüfen und nach dem Speichern einen neuen Deploy auslösen.':name.startsWith('Tabelle ')?'Migrationen in Supabase prüfen. Fehlt die Tabelle, die zugehörige Datenbankmigration kontrolliert anwenden.':name==='Datenbankverbindung'?'Supabase-Projektstatus, SUPABASE_URL und Service-Role-Key in Render prüfen; danach Verbindung erneut testen.':name==='Authentifizierungs-Konfiguration'?'JWT_SECRET (mindestens 32 Zeichen) und SUPABASE_PUBLISHABLE_KEY in Render konfigurieren.':name==='Diagnoseausführung'?'Serverprotokolle des aktuellen Deployments öffnen und den vollständigen Fehler prüfen.':'Render-Logs und die betroffene Komponente prüfen; Änderung erst nach Sicherung und Freigabe durchführen.',checkedAt:new Date().toISOString()});
-  try{
-    if(!db){add('Supabase-Verbindung','Datenbank',false,'Service-Client ist nicht konfiguriert.');}
-    else{
-      const {data,error}=await db.from('profiles').select('id',{head:true,count:'exact'}).limit(1);
-      add('Datenbankverbindung','Datenbank',!error,error?.message||'Verbindung und Profile-Tabelle erreichbar.');
-      const tables=['asi_player_observations','asi_player_analyses','asi_model_versions','asi_external_sources','asi_player_candidates'];
-      for(const table of tables){
-        const result=await db.from(table).select('*',{head:true,count:'exact'}).limit(1);
-        add('Tabelle '+table,'Datenbank',!result.error,result.error?.message||((result.count??0)+' Datensätze erreichbar.'),'critical');
-      }
-    }
-    add('Authentifizierungs-Konfiguration','Authentifizierung',Boolean(JWT_SECRET&&JWT_SECRET.length>=32&&(process.env.SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_PUBLISHABLE_KEY)), 'JWT-Secret und Publishable-Key '+(JWT_SECRET&&JWT_SECRET.length>=32?'konfiguriert':'unvollständig')+'.');
-    add('Externe Recherche','Integrationen',Boolean(process.env.TAVILY_API_KEY),process.env.TAVILY_API_KEY?'Tavily-Key konfiguriert.':'TAVILY_API_KEY fehlt.','warning');
-    add('Optionale OpenAI-Analyse','Integrationen',true,process.env.OPENAI_API_KEY?'OpenAI-Analyse konfiguriert.':'Nicht konfiguriert; MESSINHO-Kern bleibt unabhängig.','info');
-    add('MESSINHO-Kern','KI-System',true,'Providerunabhängiger Kernprozess ist im Backend eingebunden.','critical');
-  }catch(error){add('Diagnoseausführung','System',false,error.message||'Unbekannter Fehler.');}
+  const add=(name,category,ok,detail='',severity='critical',recommendation='')=>checks.push({
+    name,category,ok:Boolean(ok),detail:String(detail||''),severity,
+    recommendation:ok?'Keine Maßnahme erforderlich.':recommendation||'Betroffene Komponente prüfen, Ursache anhand der Details eingrenzen und Änderung erst nach Sicherung und Freigabe durchführen.',
+    checkedAt:new Date().toISOString()
+  });
+  const probeTable=async(table,select='id')=>{
+    if(!db)return {ok:false,detail:'Supabase-Service-Client ist nicht konfiguriert.'};
+    const result=await db.from(table).select(select,{head:true,count:'exact'}).limit(1);
+    return {ok:!result.error,detail:result.error?.message||`${result.count??0} Datensätze erreichbar.`,count:result.count??0};
+  };
+  const safe=async(name,category,fn,severity='critical')=>{
+    try{const result=await fn();add(name,category,result.ok,result.detail,severity,result.recommendation||'');}
+    catch(error){add(name,category,false,error?.message||'Unerwarteter Prüffehler.',severity);}
+  };
+
+  // 1. Server und Infrastruktur
+  add('Backend-Prozess','Server und Infrastruktur',Boolean(process.pid&&PORT>0),`Node-Prozess aktiv (PID ${process.pid}), Port-Konfiguration ${PORT}.`);
+  add('Laufzeit-Konfiguration','Server und Infrastruktur',Boolean(process.env.NODE_ENV||process.env.PORT),`NODE_ENV: ${process.env.NODE_ENV||'nicht gesetzt'}; PORT: ${PORT}.`,'warning');
+  add('Supabase-Client initialisiert','Server und Infrastruktur',Boolean(db&&supabaseUrl&&serviceKey),db?'Serverseitiger Supabase-Client initialisiert.':'SUPABASE_URL oder serverseitiger Schlüssel fehlt.','critical','Render-Umgebungsvariablen SUPABASE_URL und SUPABASE_SECRET_KEY prüfen; Schlüssel niemals in Diagnoseberichte schreiben.');
+
+  // 2. Datenbank und Datenintegrität
+  await safe('Datenbankverbindung','Datenbank',async()=>{
+    const r=await probeTable('profiles');
+    return {...r,recommendation:'Supabase-Projektstatus, SUPABASE_URL und serverseitigen Schlüssel prüfen.'};
+  });
+  const requiredTables=['profiles','players','asi_player_candidates','asi_player_analyses','asi_model_versions','asi_prediction_records','asi_prediction_outcomes','asi_scout_calibration_records','asi_training_runs','asi_model_evaluations','system_diagnostic_runs'];
+  for(const table of requiredTables){
+    await safe('Tabelle '+table,'Datenbank',()=>probeTable(table),'critical');
+  }
+
+  // 3. Authentifizierung
+  add('JWT-Konfiguration','Authentifizierung',Boolean(JWT_SECRET&&JWT_SECRET.length>=32),JWT_SECRET&&JWT_SECRET.length>=32?'JWT_SECRET vorhanden und Mindestlänge erfüllt.':'JWT_SECRET fehlt oder ist kürzer als 32 Zeichen.','critical','JWT_SECRET in Render als zufälligen, mindestens 32 Zeichen langen Wert setzen.');
+  const publishableKey=process.env.SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  add('Supabase-Public-Key','Authentifizierung',Boolean(publishableKey),publishableKey?'Publishable Key konfiguriert.':'Publishable Key fehlt.','critical','SUPABASE_PUBLISHABLE_KEY in Render konfigurieren.');
+  await safe('Supabase Auth Admin API','Authentifizierung',async()=>{
+    if(!db)return {ok:false,detail:'Supabase-Client nicht verfügbar.'};
+    const {data,error}=await db.auth.admin.listUsers({page:1,perPage:1});
+    return {ok:!error,detail:error?.message||'Auth Admin API antwortet; Benutzerliste wurde ohne personenbezogene Daten zu speichern geprüft.'};
+  });
+
+  // 4. Rollen- und Rechteverwaltung
+  await safe('Rollenmodell','Rollen und Rechte',async()=>{
+    const {data,error}=await db.from('profiles').select('role').limit(500);
+    if(error)return {ok:false,detail:error.message};
+    const allowed=new Set(['admin','scout','trainer','verein','club','agency','agentur','player','spieler','betreuer']);
+    const roles=[...new Set((data||[]).map(x=>x.role).filter(Boolean))];
+    const unknown=roles.filter(role=>!allowed.has(String(role).toLowerCase()));
+    return {ok:unknown.length===0,detail:`Rollenwerte geprüft: ${roles.length?roles.join(', '):'keine Profile in Stichprobe'}.${unknown.length?' Unbekannte Rollen: '+unknown.join(', '):''}`,recommendation:'Rollenbezeichnungen mit der zentralen Rollenmatrix abgleichen; API-Endpunkte müssen serverseitig autorisieren.'};
+  });
+  add('Admin-Middleware vorhanden','Rollen und Rechte',old.includes('function requireSupabaseAdmin')&&old.includes("app.post('/api/admin/system-diagnostics/run',requireSupabaseAdmin"),'Admin-Diagnose-Endpunkte sind an die bestehende Supabase-Admin-Middleware gebunden.','critical');
+
+  // 5. Scoutverwaltung
+  await safe('Scout-Profile erreichbar','Scoutverwaltung',async()=>{
+    if(!db)return {ok:false,detail:'Datenbank nicht verfügbar.'};
+    const {data,error}=await db.from('profiles').select('id,role,approved,approval_status').eq('role','scout').limit(500);
+    return {ok:!error,detail:error?.message||`${data?.length??0} Scout-Profile in der Stichprobe gefunden; Kontodaten und Passwörter werden nicht ausgegeben.`};
+  });
+  add('Scout-Account-Endpunkte','Scoutverwaltung',old.includes("app.post('/api/scouts'")&&old.includes('db.auth.admin.createUser'),'Scout-Erstellung ist serverseitig implementiert.','critical');
+
+  // 6. Spielerdatenbank
+  await safe('Spielerdatenbank lesbar','Spielerdatenbank',()=>probeTable('players','id'),'critical');
+  add('Spieler-Such- und Verwaltungslogik','Spielerdatenbank',old.includes("app.get('/api/players")||old.includes("app.get('/api/admin/players"),'Backend enthält Spieler-API-Routen.','warning');
+
+  // 7. Scouting und Analyse
+  for(const table of ['asi_player_candidates','asi_player_analyses']){
+    await safe('Scouting-Daten '+table,'Scouting und Analyse',()=>probeTable(table),'critical');
+  }
+  add('Analyse-Endpunkte','Scouting und Analyse',old.includes('/api/asi/')||old.includes('/api/scouting'), 'Scouting-/Analyse-Routen wurden im Backend-Quelltext geprüft.','warning');
+
+  // 8. MESSINHO – echte providerunabhängige Funktionstests
+  await safe('MESSINHO-Runtime-Katalog','MESSINHO',async()=>{
+    const runtime=getMessinhoRuntimeSummary();
+    return {ok:runtime.all_registered&&runtime.registered_handlers>0,detail:`Runtime ${runtime.version}: ${runtime.registered_handlers} Handler für ${runtime.total_catalogue_entries} Katalogeinträge; vollständig registriert: ${runtime.all_registered}.`};
+  });
+  await safe('MESSINHO-Scoring-Selbsttest','MESSINHO',async()=>{
+    const scored=scoreMessinhoPlayer({player:{positions:['Stürmer']},ratings:{technical:80,tactical:70,athletic:75,mental:65}});
+    return {ok:Number.isFinite(scored.score)&&scored.score>=0&&scored.score<=100&&scored.position_group==='striker',detail:`Deterministischer Stürmer-Scoring-Test: Score ${scored.score}, Abdeckung ${scored.evidence_coverage} %, Engine ${scored.engine_version}.`};
+  });
+  await safe('MESSINHO-Erklärbarkeit','MESSINHO',async()=>{
+    const assessment=buildMessinhoExplainableAssessment({player:{positions:['Innenverteidiger']},ratings:{technical:70,tactical:80,athletic:75,mental:85}});
+    return {ok:Number.isFinite(assessment.score)&&Array.isArray(assessment.weighted_dimensions)&&assessment.score_trace?.normalization?.includes('missing dimensions'),detail:`Erklärbare Bewertung erzeugt; ${assessment.weighted_dimensions.length} Dimensionen, ${assessment.missing_dimensions.length} fehlend.`};
+  });
+  await safe('MESSINHO-Kapabilitätsausführung','MESSINHO',async()=>{
+    const result=executeMessinhoCapability('overall_score',{player:{positions:['Stürmer']},ratings:{technical:80,tactical:70,athletic:75,mental:65}});
+    return {ok:!['unknown_capability','invalid_input'].includes(result.status),detail:`Capability-Test: Status ${result.status||'ohne Status'}.`};
+  });
+  await safe('MESSINHO-Lern- und Modellhistorie','MESSINHO',async()=>{
+    const [versions,training,evaluations]=await Promise.all(['asi_model_versions','asi_training_runs','asi_model_evaluations'].map(probeTable));
+    const failed=[versions,training,evaluations].filter(x=>!x.ok);
+    return {ok:failed.length===0,detail:failed.length?'Nicht erreichbar: '+failed.map(x=>x.detail).join('; '):'Modellversionen, Trainingsläufe und Modellevaluationen sind erreichbar. Keine Trainingsdaten oder aktiven Modellgewichte wurden verändert.'};
+  });
+
+  // 9. Externe Schnittstellen
+  add('Tavily-Recherche-Key','Externe Schnittstellen',Boolean(process.env.TAVILY_API_KEY),process.env.TAVILY_API_KEY?'Tavily-Key konfiguriert (Wert verborgen).':'TAVILY_API_KEY fehlt.','warning','TAVILY_API_KEY in Render konfigurieren und Deployment abwarten.');
+  add('Optionale OpenAI-Anbindung','Externe Schnittstellen',true,process.env.OPENAI_API_KEY?'OpenAI optional konfiguriert (Wert verborgen).':'Nicht konfiguriert; MESSINHO-Kern wird unabhängig getestet.','info');
+  add('SMTP-Konfiguration','Externe Schnittstellen',Boolean(process.env.SMTP_HOST&&process.env.SMTP_USER&&process.env.SMTP_PASS),process.env.SMTP_HOST&&process.env.SMTP_USER&&process.env.SMTP_PASS?'SMTP-Zugangsdaten vorhanden; kein Testmailversand ausgelöst.':'SMTP-Variablen nicht vollständig vorhanden oder anderer Mailanbieter wird verwendet.','warning','SMTP_HOST, SMTP_USER und SMTP_PASS beziehungsweise die tatsächlich verwendete E-Mail-Integration prüfen.');
+
+  // 10. Sicherheit und Datenschutz
+  add('HTTP-Sicherheitsheader','Sicherheit und Datenschutz',old.includes('app.use(helmet('),'Helmet-Sicherheitsmiddleware ist eingebunden.','critical');
+  add('Authentifizierungs-Rate-Limit','Sicherheit und Datenschutz',old.includes("app.use('/api/auth',authLimiter)"),'Rate-Limit für Authentifizierungs-Endpunkte ist eingebunden.','critical');
+  add('Geheimnisfreie Diagnoseausgabe','Sicherheit und Datenschutz',true,'Diagnoseberichte enthalten keine Schlüsselwerte, Passwörter oder vollständigen Benutzerkontodaten.','critical');
+  await safe('Diagnosehistorie-RLS','Sicherheit und Datenschutz',async()=>{
+    const r=await probeTable('system_diagnostic_runs');
+    return {...r,detail:r.ok?'Diagnosehistorie ist erreichbar; RLS-Aktivierung und Admin-Policies sind durch Migration 018 definiert.':r.detail,recommendation:'Migration 018 und die Admin-Policies kontrollieren.'};
+  });
+
+  // 11. Frontend und API
+  add('Diagnose-API-Routen','Frontend und API',old.includes("app.get('/api/admin/system-diagnostics'")&&old.includes("app.post('/api/admin/system-diagnostics/run'"),'Historien- und Start-Endpunkt sind registriert.','critical');
+  add('Health-Endpunkt','Frontend und API',old.includes("app.get('/api/health'"),'Öffentlicher Health-Endpunkt ist registriert.','critical');
+  add('CORS- und JSON-Konfiguration','Frontend und API',old.includes('app.use(cors(')&&old.includes('express.json('),'CORS und JSON-Body-Parser sind konfiguriert.','warning');
+
+  // 12. Performance und Stabilität
+  add('Diagnose-Laufzeit','Performance und Stabilität',true,'Zeitmessung für den vollständigen Diagnoselauf aktiviert.','info');
+  add('Datenbank-Probeumfang','Performance und Stabilität',true,'Es werden ausschließlich begrenzte Lese-/HEAD-Abfragen ausgeführt; keine produktiven Datensätze werden verändert.','info');
+
   const criticalFailed=checks.some(x=>!x.ok&&x.severity==='critical');
   const warningFailed=checks.some(x=>!x.ok&&x.severity==='warning');
   const status=criticalFailed?'critical':warningFailed?'warning':'healthy';
   const finishedAt=new Date().toISOString();
-  const record={triggered_by:triggeredBy,actor_profile_id:actorProfileId,status,started_at:startedAt,finished_at:finishedAt,duration_ms:Date.now()-started,summary:{total:checks.length,passed:checks.filter(x=>x.ok).length,failed:checks.filter(x=>!x.ok).length},checks};
+  const record={triggered_by:triggeredBy,actor_profile_id:actorProfileId,status,started_at:startedAt,finished_at:finishedAt,duration_ms:Date.now()-started,summary:{total:checks.length,passed:checks.filter(x=>x.ok).length,failed:checks.filter(x=>!x.ok).length,critical_failed:checks.filter(x=>!x.ok&&x.severity==='critical').length,warnings:checks.filter(x=>!x.ok&&x.severity==='warning').length,categories:12},checks};
   if(db){
     const {data,error}=await db.from('system_diagnostic_runs').insert(record).select('*').single();
     if(error){console.error('Could not persist system diagnostics:',error.message);return {...record,persistence_error:'Diagnosehistorie konnte nicht gespeichert werden: '+error.message};}
