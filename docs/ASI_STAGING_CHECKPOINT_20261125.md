@@ -42,3 +42,17 @@
 - Beobachtung/Feedback/Analyse speichern und erneut laden.
 - Supabase Auth Leaked Password Protection aktivieren (über Auth-Projektkonfiguration; nicht per SQL verfügbar).
 - Produktionssystem wurde nicht angefasst.
+
+
+## Nachprüfung – 2026-11-25, 00:14 UTC
+- Neuester Commit `56f72eb2fead9b915216866c982c9824976b1bff` („Update ASI staging checkpoint and security controls“) ist auf Render als `LIVE` bestätigt.
+- Render-Service `myscoutingdatabase` läuft in Frankfurt; aktuelle Logs bestätigen gestarteten Node-Server, vorhandene Supabase-Server-Credentials und HTTP 200 der Supabase Data API.
+- Supabase-Projektstatus: `ACTIVE_HEALTHY`; Migration `20261125001150 restrict_security_definer_function_execution` ist registriert.
+- Live-Dateninventur erneut bestätigt: 2 Spieler, 3 Profile, 0 Beobachtungen, 0 Analysen, 0 Feedbacks, 0 Prognosen, 0 Prognose-Outcomes.
+- RLS-Policies der ASI-Tabellen wurden aus `pg_policies` geprüft. Scout-Datensätze sind auf `owner_id = auth.uid()` begrenzt; Admin-Zugriff läuft über `private.is_admin()`. Die Admin-Register-/Trainings-/Evaluationsbereiche sind Admin-only.
+- SECURITY-DEFINER-Funktionen geprüft: `scout_heartbeat()` und `scout_mark_login()` prüfen `auth.uid()` und aktualisieren ausschließlich das Profil dieser angemeldeten Person. Advisor-Warnung bleibt deshalb dokumentiert und ist funktional begründet.
+- Aktueller Security-Advisor: 2 INFO-Hinweise für RLS-geschützte Backend-only-Supporttabellen ohne Client-Policies (beabsichtigt); 2 WARN-Hinweise für die benötigten authentifizierten SECURITY-DEFINER-RPCs; 1 WARN-Hinweis für deaktivierten Schutz gegen kompromittierte Passwörter.
+- Performance-Advisor meldet weiterhin fehlende FK-Indizes auf `player_deletion_logs.deleted_by`, `support_ticket_messages.sender_id` und `support_tickets.resolved_by`. Diese betreffen bestehende Nicht-ASI-Tabellen und werden nicht ohne Prüfung der vorhandenen Zugriffsmuster verändert. Unbenutzte Indizes sind bei der sehr kleinen Testdatenmenge kein belastbarer Löschgrund.
+- Einschränkung: Ein Browser-Login-/UI-Test sowie echte Scout-Session-RLS-Negativtests konnten über die verfügbaren Deployment-/Datenbankwerkzeuge nicht authentifiziert ausgeführt werden. Die leeren ASI-Tabellen erlauben zudem keinen belastbaren Read/Write-Negativtest anhand existierender Datensätze.
+- Auth-Leaked-Password-Protection ist eine Supabase-Auth-Projekteinstellung und nicht per SQL-Migration zu aktivieren. Sie bleibt als Dashboard-Schritt offen.
+- Keine Änderung an Produktion.
