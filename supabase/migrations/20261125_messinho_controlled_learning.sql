@@ -28,6 +28,9 @@ create table if not exists public.messinho_model_versions (
 );
 create unique index if not exists messinho_one_active_model_idx on public.messinho_model_versions(status) where status='active';
 
+grant select, insert, update, delete on public.messinho_scout_feedback to service_role;
+grant select, insert, update, delete on public.messinho_model_versions to service_role;
+
 alter table public.messinho_scout_feedback enable row level security;
 alter table public.messinho_model_versions enable row level security;
 drop policy if exists messinho_feedback_read_own on public.messinho_scout_feedback;
@@ -41,7 +44,7 @@ create policy messinho_models_admin_read on public.messinho_model_versions for s
 create or replace function public.messinho_activate_model(p_model_id uuid,p_admin_id uuid)
 returns void
 language plpgsql
-security definer
+security invoker
 set search_path = public
 as $$
 begin
