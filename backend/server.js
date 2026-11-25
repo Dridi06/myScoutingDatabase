@@ -71,18 +71,6 @@ async function bootstrapAdmin(){
 }
 function requireAuth(req,res,next){const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});try{req.user=jwt.verify(token,JWT_SECRET,{issuer:'myScoutingDatabase'});if(!req.user.approved)return res.status(403).json({error:'Konto noch nicht freigeschaltet.'});next();}catch{return res.status(401).json({error:'Sitzung abgelaufen. Bitte erneut anmelden.'});}}
 function requireAdmin(req,res,next){if(req.user?.role!=='admin')return res.status(403).json({error:'Admin-Rechte erforderlich.'});next();}
-async function requireSupabaseAdmin(req,res,next){
-  const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
-  if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
-  try{
-    const {data,error}=await db.auth.getUser(token);
-    if(error||!data?.user)return res.status(401).json({error:'Sitzung ungültig oder abgelaufen.'});
-    const {data:profile,error:profileError}=await db.from('profiles').select('id,role,approved,approval_status').eq('id',data.user.id).maybeSingle();
-    if(profileError||!profile||profile.role!=='admin'||!profile.approved||profile.approval_status!=='approved')return res.status(403).json({error:'Admin-Rechte erforderlich.'});
-    req.adminProfile=profile;next();
-  }catch(error){return res.status(401).json({error:'Administrator-Sitzung konnte nicht bestätigt werden.'});}
-}
-
 // Administrator system diagnostics: persistent, auditable checks.
 async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=null){
   const started=Date.now(),startedAt=new Date().toISOString(),checks=[];
