@@ -46,6 +46,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  const [loading,setLoading]=useState(false);
  const [models,setModels]=useState([]);
  const [externalSources,setExternalSources]=useState([]);
+ const [quality,setQuality]=useState({loading:false,observations:0,playersObserved:0,longitudinalPlayers:0,predictions:0,outcomes:0,matchedOutcomes:0,mae:null,evaluations:0,passedEvaluations:0,trainingRuns:0,completeRatings:0});
  const [error,setError]=useState('');
  const [search,setSearch]=useState('');
  const selected=players.find(p=>String(p.player_id)===String(selectedId));
@@ -53,12 +54,30 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  const ratedCount=useMemo(()=>players.filter(p=>p.ratings&&Object.values(p.ratings).some(v=>safeNumber(v)!==null)).length,[players]);
  async function loadMeta(){
    if(!supabase)return;
-   const [m,s]=await Promise.all([
+   setQuality(q=>({...q,loading:true}));
+   const [m,s,obs,preds,outcomes,evaluations,runs]=await Promise.all([
      supabase.from('asi_model_versions').select('id,model_key,version,model_family,status,metrics,created_at').order('created_at',{ascending:false}).limit(12),
-     admin?supabase.from('asi_external_sources').select('id,source_name,provider,source_type,license_status,last_synced_at').order('created_at',{ascending:false}):Promise.resolve({data:[],error:null})
+     admin?supabase.from('asi_external_sources').select('id,source_name,provider,source_type,license_status,last_synced_at').order('created_at',{ascending:false}):Promise.resolve({data:[],error:null}),
+     admin?supabase.from('asi_player_observations').select('player_id,observed_on,ratings'):Promise.resolve({data:[],error:null}),
+     admin?supabase.from('asi_prediction_records').select('id,target_metric,predicted_value'):Promise.resolve({data:[],error:null}),
+     admin?supabase.from('asi_prediction_outcomes').select('prediction_id,observed_metric,observed_value'):Promise.resolve({data:[],error:null}),
+     admin?supabase.from('asi_model_evaluations').select('id,passed'):Promise.resolve({data:[],error:null}),
+     admin?supabase.from('asi_training_runs').select('id,status'):Promise.resolve({data:[],error:null})
    ]);
    if(!m.error)setModels(m.data||[]);
    if(!s.error)setExternalSources(s.data||[]);
+   if(admin){
+     const observationRows=obs.error?[]:(obs.data||[]);
+     const predictionRows=preds.error?[]:(preds.data||[]);
+     const outcomeRows=outcomes.error?[]:(outcomes.data||[]);
+     const matched=outcomeRows.map(o=>({outcome:o,prediction:predictionRows.find(p=>p.id===o.prediction_id)})).filter(x=>x.prediction&&x.prediction.target_metric===x.outcome.observed_metric&&Number.isFinite(Number(x.prediction.predicted_value))&&Number.isFinite(Number(x.outcome.observed_value)));
+     const mae=matched.length?matched.reduce((sum,x)=>sum+Math.abs(Number(x.prediction.predicted_value)-Number(x.outcome.observed_value)),0)/matched.length:null;
+     const byPlayer=new Map();
+     observationRows.forEach(o=>{const dates=byPlayer.get(o.player_id)||[];dates.push(new Date(o.observed_on+'T00:00:00Z').getTime());byPlayer.set(o.player_id,dates);});
+     const longitudinal=[...byPlayer.values()].filter(ds=>ds.length>=2&&Math.max(...ds)-Math.min(...ds)>=30*86400000).length;
+     const completeRatings=observationRows.filter(o=>Object.values(SECTIONS).flat().every(k=>safeNumber((o.ratings||{})[k])!==null)).length;
+     setQuality({loading:false,observations:observationRows.length,playersObserved:byPlayer.size,longitudinalPlayers:longitudinal,predictions:predictionRows.length,outcomes:outcomeRows.length,matchedOutcomes:matched.length,mae,evaluations:evaluations.error?0:(evaluations.data||[]).length,passedEvaluations:evaluations.error?0:(evaluations.data||[]).filter(x=>x.passed===true).length,trainingRuns:runs.error?0:(runs.data||[]).length,completeRatings});
+   }else setQuality(q=>({...q,loading:false}));
  }
  async function loadObservations(playerId){
    if(!supabase||!playerId)return;
@@ -163,6 +182,24 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
    </section>}
    {selected&&<section className="asi-panel asi-history-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">TALENT EVOLUTION</span><h2>Beobachtungsverlauf</h2></div><Clock3 size={20}/></div>{observations.length===0?<p className="asi-empty">Noch keine Beobachtungen gespeichert. Neue Einträge erscheinen hier chronologisch.</p>:<div className="asi-history-list">{observations.map(o=><article className="asi-observation-entry" key={o.id}><div className="asi-result-top"><strong>{new Date(o.observed_on+'T12:00:00').toLocaleDateString('de-DE')}</strong><small>{o.source_type==='internal_scout'?'Interner Scout':'Quelle: '+o.source_type}</small></div>{o.observation&&<p>{o.observation}</p>}<small>{Object.keys(o.ratings||{}).length} Bewertungsfelder im Snapshot · erfasst {new Date(o.created_at).toLocaleString('de-DE')}</small></article>)}</div>}</section>}
    {selected&&<section className="asi-panel asi-history-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">MODEL HISTORY</span><h2>Frühere Analysen</h2></div><TrendingUp size={20}/></div>{loading?<p className="asi-empty">Analysen werden geladen…</p>:history.length===0?<p className="asi-empty">Für diesen Spieler gibt es noch keine gespeicherten ASI-Analysen.</p>:<div className="asi-history-list">{history.map(h=><button type="button" key={h.id} className={analysis?.id===h.id?'selected':''} onClick={()=>openHistory(h)}><span><strong>{h.analysis_type}</strong><small>{new Date(h.created_at).toLocaleString('de-DE')}</small></span><span>{h.model_version}</span></button>)}</div>}</section>}
+   {admin&&<section className="asi-panel asi-quality-panel">
+     <div className="asi-panel-heading"><div><span className="asi-eyebrow">META INTELLIGENCE · QUALITY GATE</span><h2>Daten- und Modellqualität</h2></div><ShieldCheck size={20}/></div>
+     <p className="asi-quality-intro">Admin-Übersicht auf Basis der tatsächlich gespeicherten ASI-Datensätze. Interne Mindestschwellen sind konservative Prüfkriterien, keine statistische oder regulatorische Zertifizierung.</p>
+     <div className="asi-quality-grid">
+       <article><span>Beobachtungen</span><strong>{quality.observations}</strong><small>{quality.playersObserved} Spieler mit mindestens einer Beobachtung</small></article>
+       <article><span>Zeitlich vergleichbar</span><strong>{quality.longitudinalPlayers}</strong><small>Spieler mit mindestens 2 Beobachtungen über mindestens 30 Tage</small></article>
+       <article><span>Vollständige Ratings</span><strong>{quality.completeRatings}</strong><small>Beobachtungen mit allen {Object.values(SECTIONS).flat().length} Kriterien</small></article>
+       <article><span>Prognose-Ergebnisse</span><strong>{quality.matchedOutcomes}</strong><small>Passende Prognose-/Ergebnispaare von {quality.outcomes} Ergebnissen</small></article>
+       <article><span>Mittlerer absoluter Fehler</span><strong>{quality.mae===null?"–":quality.mae.toFixed(2)}</strong><small>{quality.mae===null?"Noch nicht berechenbar":"MAE · nur gleiche Metriken, "+quality.matchedOutcomes+" Paare"}</small></article>
+       <article><span>Modell-Evaluationen</span><strong>{quality.passedEvaluations}/{quality.evaluations}</strong><small>Bestandene dokumentierte Prüfungen</small></article>
+     </div>
+     <div className="asi-quality-gates">
+       <div><strong>Trainingsdatenbasis</strong><span className={quality.matchedOutcomes>=30&&quality.playersObserved>=10?"ready":"blocked"}>{quality.matchedOutcomes>=30&&quality.playersObserved>=10?"Mindestschwelle erreicht":"Gesperrt · benötigt ≥30 Ergebnispaare und ≥10 Spieler"}</span></div>
+       <div><strong>Zeitliche Vergleichbarkeit</strong><span className={quality.longitudinalPlayers>=5?"ready":"blocked"}>{quality.longitudinalPlayers>=5?"Mindestschwelle erreicht":"Gesperrt · benötigt ≥5 Spieler mit ≥2 Beobachtungen über ≥30 Tage"}</span></div>
+       <div><strong>Modellfreigabe</strong><span className={quality.passedEvaluations>0&&quality.matchedOutcomes>=30?"ready":"blocked"}>{quality.passedEvaluations>0&&quality.matchedOutcomes>=30?"Evaluation vorhanden – Admin-Prüfung erforderlich":"Gesperrt · bestandene unabhängige Evaluation und ausreichende Ergebnisbasis fehlen"}</span></div>
+     </div>
+     <p className="asi-footnote">Der MAE wird nur aus Prognosen und später erfassten Ergebnissen derselben Metrik berechnet. Ohne passende Paare bleibt er leer. Kleine Stichproben werden nicht als Leistungsnachweis gewertet. Trainingsläufe bisher: {quality.trainingRuns}. {quality.loading?"Daten werden aktualisiert.":""}</p>
+   </section>}
    {admin&&<section className="asi-admin-grid"><section className="asi-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">META INTELLIGENCE</span><h2>Modellregister</h2></div><ShieldCheck size={20}/></div>{models.length===0?<p className="asi-empty">Noch keine Modellversionen registriert.</p>:models.map(m=><div className="asi-model-row" key={m.id}><span><strong>{m.model_key} · {m.version}</strong><small>{m.model_family}</small></span><span className={'asi-model-status '+m.status}>{m.status}</span></div>)}</section><section className="asi-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">HYBRID DATA</span><h2>Externe Datenquellen</h2></div><Database size={20}/></div>{externalSources.length===0?<p className="asi-empty">Noch keine Datenquelle registriert. Externe Quellen werden erst nach Lizenz- und Datenschutzprüfung freigeschaltet.</p>:externalSources.map(s=><div className="asi-model-row" key={s.id}><span><strong>{s.source_name}</strong><small>{s.provider||s.source_type}</small></span><span className={'asi-model-status '+s.license_status}>{s.license_status}</span></div>)}</section></section>}
  </section>;
 }
