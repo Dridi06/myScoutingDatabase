@@ -29,3 +29,13 @@
 .messinho-feedback button{padding:8px 12px;border:1px solid #b8964f;border-radius:7px;background:#b8964f;color:#111;font-weight:700;cursor:pointer}
 .messinho-feedback button:disabled{opacity:.55;cursor:wait}
 @media(max-width:520px){.messinho-feedback-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.messinho-learning-panel{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:14px 0;padding:13px 15px;border:1px solid rgba(198,163,91,.28);border-radius:12px;background:rgba(18,17,15,.72)}
+.messinho-learning-panel>div{display:flex;flex:1;min-width:190px;flex-direction:column;gap:4px}
+.messinho-learning-panel strong{color:#e2c47d;font-size:13px}
+.messinho-learning-panel small{color:#aaa18e;font-size:11px}
+.messinho-learning-panel button{padding:8px 12px;border:1px solid #b8964f;border-radius:7px;background:#b8964f;color:#111;font-weight:700;cursor:pointer}
+.messinho-learning-panel button:disabled{opacity:.55;cursor:wait}
+.messinho-learning-panel>article{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding-top:9px;border-top:1px solid rgba(198,163,91,.16)}
+.messinho-learning-panel>article span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.messinho-learning-panel>p{width:100%;margin:0;color:#f0a4a4;font-size:12px}
