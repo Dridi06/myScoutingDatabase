@@ -71,6 +71,53 @@ async function bootstrapAdmin(){
 }
 function requireAuth(req,res,next){const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});try{req.user=jwt.verify(token,JWT_SECRET,{issuer:'myScoutingDatabase'});if(!req.user.approved)return res.status(403).json({error:'Konto noch nicht freigeschaltet.'});next();}catch{return res.status(401).json({error:'Sitzung abgelaufen. Bitte erneut anmelden.'});}}
 function requireAdmin(req,res,next){if(req.user?.role!=='admin')return res.status(403).json({error:'Admin-Rechte erforderlich.'});next();}
+
+// Administrator system diagnostics: persistent, auditable checks.
+async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=null){
+  const started=Date.now(),startedAt=new Date().toISOString(),checks=[];
+  const add=(name,category,ok,detail='',severity='critical')=>checks.push({name,category,ok,detail:String(detail||''),severity,checkedAt:new Date().toISOString()});
+  try{
+    if(!db){add('Supabase-Verbindung','Datenbank',false,'Service-Client ist nicht konfiguriert.');}
+    else{
+      const {data,error}=await db.from('profiles').select('id',{head:true,count:'exact'}).limit(1);
+      add('Datenbankverbindung','Datenbank',!error,error?.message||'Verbindung und Profile-Tabelle erreichbar.');
+      const tables=['asi_player_observations','asi_player_analyses','asi_model_versions','asi_external_sources','asi_player_candidates'];
+      for(const table of tables){
+        const result=await db.from(table).select('*',{head:true,count:'exact'}).limit(1);
+        add('Tabelle '+table,'Datenbank',!result.error,result.error?.message||((result.count??0)+' Datensätze erreichbar.'),'critical');
+      }
+    }
+    add('Authentifizierungs-Konfiguration','Authentifizierung',Boolean(JWT_SECRET&&JWT_SECRET.length>=32&&(process.env.SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_PUBLISHABLE_KEY)), 'JWT-Secret und Publishable-Key '+(JWT_SECRET&&JWT_SECRET.length>=32?'konfiguriert':'unvollständig')+'.');
+    add('Externe Recherche','Integrationen',Boolean(process.env.TAVILY_API_KEY),process.env.TAVILY_API_KEY?'Tavily-Key konfiguriert.':'TAVILY_API_KEY fehlt.','warning');
+    add('Optionale OpenAI-Analyse','Integrationen',true,process.env.OPENAI_API_KEY?'OpenAI-Analyse konfiguriert.':'Nicht konfiguriert; MESSINHO-Kern bleibt unabhängig.','info');
+    add('MESSINHO-Kern','KI-System',true,'Providerunabhängiger Kernprozess ist im Backend eingebunden.','critical');
+  }catch(error){add('Diagnoseausführung','System',false,error.message||'Unbekannter Fehler.');}
+  const criticalFailed=checks.some(x=>!x.ok&&x.severity==='critical');
+  const warningFailed=checks.some(x=>!x.ok&&x.severity==='warning');
+  const status=criticalFailed?'critical':warningFailed?'warning':'healthy';
+  const finishedAt=new Date().toISOString();
+  const record={triggered_by:triggeredBy,actor_profile_id:actorProfileId,status,started_at:startedAt,finished_at:finishedAt,duration_ms:Date.now()-started,summary:{total:checks.length,passed:checks.filter(x=>x.ok).length,failed:checks.filter(x=>!x.ok).length},checks};
+  if(db){
+    const {data,error}=await db.from('system_diagnostic_runs').insert(record).select('*').single();
+    if(error){console.error('Could not persist system diagnostics:',error.message);return {...record,persistence_error:'Diagnosehistorie konnte nicht gespeichert werden: '+error.message};}
+    return data;
+  }
+  return record;
+}
+app.get('/api/admin/system-diagnostics',requireAuth,requireAdmin,async(req,res)=>{
+  const limit=Math.min(100,Math.max(1,Number(req.query.limit)||30));
+  const {data,error}=await db.from('system_diagnostic_runs').select('*').order('created_at',{ascending:false}).limit(limit);
+  if(error)return res.status(500).json({error:'Diagnosehistorie konnte nicht geladen werden. Wurde Migration 018 ausgeführt?',detail:error.message});
+  return res.json(data||[]);
+});
+app.post('/api/admin/system-diagnostics/run',requireAuth,requireAdmin,async(req,res)=>{
+  try{
+    const run=await executeSystemDiagnostics('admin',req.user.id);
+    if(run.persistence_error)return res.status(503).json({error:run.persistence_error,run});
+    return res.status(201).json(run);
+  }catch(error){console.error('Admin diagnostics failed:',error.message);return res.status(500).json({error:'Systemdiagnose fehlgeschlagen.',detail:error.message});}
+});
+
 app.get('/api/health',async(_req,res)=>{
   const tavilyReady=Boolean(process.env.TAVILY_API_KEY);
   const openAiReady=Boolean(process.env.OPENAI_API_KEY);
@@ -1099,4 +1146,4 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
 
 app.use(express.static('dist',{maxAge:'1h',setHeaders(res,path){if(path.endsWith('/index.html'))res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');}}));
 app.get(/^(?!\/api\/).*/,(_req,res)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');res.sendFile(process.cwd()+'/dist/index.html');});
-app.listen(PORT,async()=>{console.log(`myScoutingDatabase API listening on ${PORT}`);console.log(`ASI SEARCH CHECK: Tavily=${Boolean(process.env.TAVILY_API_KEY)} OpenAI=${Boolean(process.env.OPENAI_API_KEY)} Model=${process.env.OPENAI_MODEL||'gpt-4.1-mini'}`);await diagnoseSupabase();try{await bootstrapAdmin();}catch(e){console.error('Admin bootstrap failed:',e.message);}});
+app.listen(PORT,async()=>{console.log(`myScoutingDatabase API listening on ${PORT}`);console.log(`ASI SEARCH CHECK: Tavily=${Boolean(process.env.TAVILY_API_KEY)} OpenAI=${Boolean(process.env.OPENAI_API_KEY)} Model=${process.env.OPENAI_MODEL||'gpt-4.1-mini'}`);await diagnoseSupabase();try{await bootstrapAdmin();}catch(e){console.error('Admin bootstrap failed:',e.message);}try{await executeSystemDiagnostics('deployment',null);}catch(e){console.error('Deployment diagnostics failed:',e.message);}setInterval(()=>executeSystemDiagnostics('automatic',null).catch(e=>console.error('Scheduled diagnostics failed:',e.message)),15*60*1000).unref();});
