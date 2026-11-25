@@ -9,6 +9,32 @@ const SECTIONS={
   Mentalität:['Einstellung','Führungsspieler','Kommunikation','Risikofreude','Positive Körpersprache','Teamplayer','Spieleinfluss','Disziplin/Konzentration']
 };
 const MODEL_VERSION='player_snapshot_baseline@0.1.0';
+
+const ROLE_PROFILES={
+ 'Innenverteidiger · Aufbauspieler':{group:'Abwehr',criteria:{'Passspiel kurz':2,'Passspiel lang':2,'Erster Kontakt':1.5,'Ball An/Mitnahme':1.5,'Antizipationsfähigkeit':2,'1:1 Defensiv':2,'Kopfballspiel':1,'Raumverhalten':2,'Handlungsschnelligkeit':1.5,'Kommunikation':1}},
+ 'Innenverteidiger · Zweikampfspieler':{group:'Abwehr',criteria:{'1:1 Defensiv':2,'Zweikampf':2,'Kopfballspiel':2,'Antizipationsfähigkeit':2,'Körperlichkeit':1.5,'Raumverhalten':1.5,'Disziplin/Konzentration':1,'Kommunikation':1}},
+ 'Außenverteidiger · Klassisch':{group:'Abwehr',criteria:{'Laufaktivität':2,'Schnelligkeit Distanz':1.5,'Antrittsschnelligkeit':1.5,'1:1 Defensiv':2,'Passspiel kurz':1.5,'Spiel ohne Ball':1.5,'Flanken':0,'Bewegungsgeschicklichkeit':1}},
+ 'Außenverteidiger · Invers':{group:'Abwehr',criteria:{'Erster Kontakt':2,'Passspiel kurz':2,'Kreativität':1.5,'Raumverhalten':2,'Handlungsschnelligkeit':1.5,'Dribbling':1.5,'Anspielbereitschaft':1.5,'Umschaltspiel':1}},
+ 'Defensives Mittelfeld · Sechser':{group:'Mittelfeld',criteria:{'Antizipationsfähigkeit':2,'Raumverhalten':2,'Passspiel kurz':2,'Umschaltspiel':1.5,'Zweikampf':1.5,'1:1 Defensiv':1.5,'Handlungsschnelligkeit':1.5,'Anspielbereitschaft':1.5,'Disziplin/Konzentration':1}},
+ 'Zentrales Mittelfeld · Achter':{group:'Mittelfeld',criteria:{'Laufaktivität':1.5,'Passspiel kurz':1.5,'Passspiel lang':1.5,'Umschaltspiel':1.5,'Raumverhalten':1.5,'Anspielbereitschaft':1.5,'Handlungsschnelligkeit':1.5,'Spieleinfluss':1.5,'Zweikampf':1}},
+ 'Offensives Mittelfeld · Zehner':{group:'Mittelfeld',criteria:{'Kreativität':2,'Passspiel kurz':1.5,'Erster Kontakt':1.5,'Dribbling':1.5,'Spiel ohne Ball':1.5,'Spieleinfluss':2,'Handlungsschnelligkeit':1.5,'Variabler Torschuss':1}},
+ 'Flügel · Eins-gegen-eins':{group:'Angriff',criteria:{'Dribbling':2,'1:1 Offensiv':2,'Antrittsschnelligkeit':1.5,'Schnelligkeit Distanz':1.5,'Repertoire Finten':1.5,'Ball An/Mitnahme':1.5,'Variabler Torschuss':1,'Spiel ohne Ball':1}},
+ 'Stürmer · Tiefenläufer':{group:'Angriff',criteria:{'Antrittsschnelligkeit':2,'Schnelligkeit Distanz':2,'Spiel ohne Ball':2,'Lösen vom Gegner':2,'Variabler Torschuss':1.5,'Erster Kontakt':1,'Handlungsschnelligkeit':1.5,'Laufaktivität':1}},
+ 'Stürmer · Zielspieler':{group:'Angriff',criteria:{'Körperlichkeit':2,'Kopfballspiel':2,'Ball An/Mitnahme':1.5,'Erster Kontakt':1.5,'Variabler Torschuss':2,'Zweikampf':1.5,'Anspielbereitschaft':1,'Teamplayer':1}}
+};
+function scoreRoleFit(ratings,roleName){
+ const profile=ROLE_PROFILES[roleName];if(!profile)return null;
+ const rows=Object.entries(profile.criteria).map(([label,weight])=>({label,weight,value:safeNumber(ratings?.[label])}));
+ const available=rows.filter(x=>x.value!==null),totalWeight=rows.reduce((s,x)=>s+x.weight,0),usedWeight=available.reduce((s,x)=>s+x.weight,0);
+ const coverage=totalWeight?Math.round(usedWeight/totalWeight*100):0;
+ const weighted=usedWeight?available.reduce((s,x)=>s+x.value*x.weight,0)/usedWeight:null;
+ const fit=weighted===null?null:Math.round((weighted-1)/4*100);
+ const strengths=available.filter(x=>x.value>=4).sort((a,b)=>b.value-a.value).slice(0,4);
+ const gaps=available.filter(x=>x.value<=2).sort((a,b)=>a.value-b.value).slice(0,4);
+ const missing=rows.filter(x=>x.value===null).map(x=>x.label);
+ return {roleName,group:profile.group,fit,weighted:weighted===null?null:Number(weighted.toFixed(2)),coverage,available:available.length,total:rows.length,strengths,gaps,missing,confidence:coverage>=80?'Gute Datenabdeckung':coverage>=60?'Mittlere Datenabdeckung':coverage>=40?'Begrenzte Datenabdeckung':'Sehr geringe Datenabdeckung'};
+}
+
 const safeNumber=v=>{if(v===null||v===undefined||String(v).trim()==='')return null;const n=Number(v);return Number.isInteger(n)&&n>=1&&n<=5?n:null;};
 const containsPrivateContact=value=>/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})|(?:\+?\d[\d\s()./-]{7,}\d)/i.test(String(value||''));
 const normalizeRatings=ratings=>Object.fromEntries(Object.values(SECTIONS).flat().map(key=>[key,safeNumber(ratings?.[key])]).filter(([,value])=>value!==null));
@@ -132,11 +158,13 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  const [quality,setQuality]=useState({loading:false,observations:0,playersObserved:0,longitudinalPlayers:0,predictions:0,outcomes:0,matchedOutcomes:0,mae:null,evaluations:0,passedEvaluations:0,trainingRuns:0,completeRatings:0,scoutAgreement:{comparisons:0,pairedPlayers:0,scoutPairs:0,meanAbsoluteDifference:null,withinOne:null}});
  const [error,setError]=useState('');
  const [search,setSearch]=useState('');
+ const [selectedRole,setSelectedRole]=useState(Object.keys(ROLE_PROFILES)[0]);
  const selected=players.find(p=>String(p.player_id)===String(selectedId));
  const evolution=useMemo(()=>compareObservations(observations),[observations]);
  const longTrend=useMemo(()=>analyzeLongitudinalTrend(observations),[observations]);
  const visiblePlayers=useMemo(()=>players.filter(p=>(p.name+' '+(p.club||'')+' '+(p.positions||[]).join(' ')).toLowerCase().includes(search.toLowerCase())),[players,search]);
  const ratedCount=useMemo(()=>players.filter(p=>p.ratings&&Object.values(p.ratings).some(v=>safeNumber(v)!==null)).length,[players]);
+ const roleFit=useMemo(()=>selected?scoreRoleFit(selected.ratings||{},selectedRole):null,[selected,selectedRole]);
  async function loadMeta(){
    if(!supabase)return;
    setQuality(q=>({...q,loading:true}));
@@ -317,6 +345,15 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
        </div>}
      </section>
    </div>
+   {selected&&<section className="asi-panel asi-role-panel">
+     <div className="asi-panel-heading"><div><span className="asi-eyebrow">PLAYER INTELLIGENCE 2.0</span><h2>Taktische Rollenpassung</h2></div><Activity size={20}/></div>
+     <p className="asi-role-intro">Vergleicht vorhandene Scoutbewertungen mit einem transparent gewichteten Rollenprofil. Der Index beschreibt nur die Passung zu diesem Kriterienmodell – keine Einsatzgarantie und keine Leistungsprognose.</p>
+     <label className="asi-role-select">Taktische Rolle<select value={selectedRole} onChange={e=>setSelectedRole(e.target.value)}>{Object.entries(ROLE_PROFILES).map(([name,p])=><option key={name} value={name}>{p.group} · {name}</option>)}</select></label>
+     <div className="asi-role-result"><div className="asi-role-score"><strong>{roleFit.fit===null?'–':roleFit.fit+'%'}</strong><span>Rollen-Fit-Index</span></div><div className="asi-role-detail"><strong>{roleFit.confidence}</strong><span>{roleFit.available} von {roleFit.total} Kriterien bewertet · {roleFit.coverage}% gewichtete Abdeckung</span><div className="asi-progress"><span style={{width:roleFit.coverage+'%'}}/></div><small>Gewichteter Mittelwert: {roleFit.weighted===null?'–':roleFit.weighted+' / 5'}</small></div></div>
+     <div className="asi-role-findings"><article><strong>Passende Stärken</strong>{roleFit.strengths.length?roleFit.strengths.map(x=><span key={x.label}>{x.label} · {x.value}/5 · Gewicht {x.weight}</span>):<small>Keine bewertete Stärke ≥ 4 vorhanden.</small>}</article><article><strong>Entwicklungsfelder</strong>{roleFit.gaps.length?roleFit.gaps.map(x=><span key={x.label}>{x.label} · {x.value}/5 · Gewicht {x.weight}</span>):<small>Keine bewertete Schwäche ≤ 2 vorhanden.</small>}</article></div>
+     <details className="asi-role-method"><summary>Berechnung und fehlende Daten anzeigen</summary><p>Gewichteter Mittelwert der verfügbaren Kriterien; anschließend lineare Umrechnung der Skala 1–5 auf 0–100. Fehlende Kriterien werden nicht als 0 gewertet. Die Abdeckung wird separat ausgewiesen.</p><div>{roleFit.missing.length?roleFit.missing.map(x=><span key={x}>{x}</span>):<small>Alle Profilkriterien sind bewertet.</small>}</div></details>
+     <p className="asi-footnote">Die Rollenprofile sind ein fachlicher Startstandard und müssen durch Trainer/Scouting-Leitung an Spielmodell, Liga und Altersklasse angepasst werden. Bei geringer Abdeckung ist der Fit-Index besonders vorsichtig zu interpretieren.</p>
+   </section>}
    {selected&&<section className="asi-panel asi-observation-panel">
      <div className="asi-panel-heading"><div><span className="asi-eyebrow">TALENT EVOLUTION</span><h2>Neue Beobachtung dokumentieren</h2></div><Clock3 size={20}/></div>
      <form onSubmit={saveObservation} className="asi-observation-form"><label>Beobachtungsdatum<input type="date" value={observationDate} onChange={e=>setObservationDate(e.target.value)} required/></label><label>Beobachtungsnotiz<textarea value={observation} onChange={e=>setObservation(e.target.value)} maxLength={5000} placeholder="Beobachtbare Spielsituationen, Kontext, Gegnerniveau und konkrete Beispiele – keine privaten Kontaktdaten."/></label><button type="submit" disabled={busy||savingObservation}>{savingObservation?<><RefreshCw size={15} className="asi-saving-icon"/> Wird gespeichert…</>:<><Save size={15}/> Beobachtung speichern</>}</button></form>
