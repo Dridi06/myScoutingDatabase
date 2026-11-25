@@ -169,7 +169,7 @@ async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=n
     return {ok:!['unknown_capability','invalid_input'].includes(result.status),detail:`Capability-Test: Status ${result.status||'ohne Status'}.`};
   });
   await safe('MESSINHO-Lern- und Modellhistorie','MESSINHO',async()=>{
-    const [versions,training,evaluations]=await Promise.all(['asi_model_versions','asi_training_runs','asi_model_evaluations'].map(probeTable));
+    const [versions,training,evaluations]=await Promise.all(['asi_model_versions','asi_training_runs','asi_model_evaluations'].map(table=>probeTable(table)));
     const failed=[versions,training,evaluations].filter(x=>!x.ok);
     const proposal=buildMessinhoLearningProposal([],MESSINHO_DEFAULT_WEIGHTS);
     const learningReady=proposal?.status==='no_proposal'&&proposal?.guardrails?.requires_admin_approval===true;
