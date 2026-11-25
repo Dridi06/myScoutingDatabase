@@ -1021,12 +1021,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const [players,candidates]=await Promise.all([playerQuery,db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status').eq('owner_id',ownerId).ilike('player_name','%'+safeTerm+'%').limit(10)]);
       if(players.error||candidates.error)return res.status(500).json({error:'Die interne Spielersuche ist fehlgeschlagen.'});
       const items=[...(players.data||[]).map(p=>({kind:'Spielerkatalog',id:p.player_id,name:p.name,club:p.club,year:p.year,positions:p.positions||[],foot:p.foot})),...(candidates.data||[]).map(p=>({kind:'Kandidat',id:p.id,name:p.player_name,club:p.current_club,year:p.birth_year,positions:p.positions||[],recommendation:p.recommendation,status:p.status}))];
-      if(items.length)return res.json({reply:'Ich habe '+items.length+' gespeicherte Einträge gefunden. Soll ich dir den Spieler genauer analysieren oder aktuelle Informationen recherchieren?',intent:'search',items});
       const external=await researchMessinhoPlayerProfile(term);
-      const facts=external.profile?.facts||{};
-      const reply=external.profile?.summary||('Ich habe keinen internen Eintrag gefunden. Ich habe aber eine externe Recherche zu '+term+' gestartet. '+(external.sources?.length||0)+' Quellen wurden gefunden. '+(external.profile?.missing_data?.length?'Noch offen: '+external.profile.missing_data.join(', '):'Bitte prüfe die Quellen für aktuelle Details.'));
-      const sourceItems=(external.sources||[]).map((source,index)=>({id:'source-'+index,name:source.title||source.publisher||source.url,kind:'Quelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
-      return res.json({reply,intent:'player_research',items:sourceItems,player:external.player,profile:external.profile,sources:external.sources||[],provider:external.provider||null,researched_at:external.researched_at||null});
+      const reply=(items.length?'Ich habe '+items.length+' interne Treffer gefunden. ':'Ich habe keinen internen Eintrag gefunden. ')+(external.profile?.summary||('Ich habe eine externe Recherche zu '+term+' durchgeführt und '+(external.sources?.length||0)+' Quellen gefunden. '+(external.profile?.missing_data?.length?'Noch offen: '+external.profile.missing_data.join(', '):'Bitte prüfe die Quellen für aktuelle Details.')));
+      const sourceItems=(external.sources||[]).map((source,index)=>({id:'source-'+index,name:source.title||source.publisher||source.url,kind:'Externe Quelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
+      return res.json({reply,intent:'player_research',items:[...items,...sourceItems],player:external.player,profile:external.profile,sources:external.sources||[],provider:external.provider||null,researched_at:external.researched_at||null});
     }
     const conversationalContext=history.map(item=>({role:item.role,content:item.text})).slice(-10);
     if(process.env.OPENAI_API_KEY){
