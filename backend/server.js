@@ -545,7 +545,8 @@ async function messinhoAuthenticatedUser(req,res){
   if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved')){res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});return null;}
   return {user:data.user,profile,token};
 }
-app.post('/api/messinho/tactical-fit',async(req,res)=>{
+const messinhoTacticalFitLimiter=rateLimit({windowMs:60*60*1000,limit:30,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele taktische Abgleiche. Bitte später erneut versuchen.'}});
+app.post('/api/messinho/tactical-fit',messinhoTacticalFitLimiter,async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
