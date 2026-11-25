@@ -191,3 +191,6 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 
 ### Rollout-Grenze
 Dieser Stand bleibt Draft auf `feature/messinho-agent-workspace` und Render-Staging. Nicht mergen, nicht auf `main` deployen und keine produktive Datenbankmigration ausführen, bevor alle oben genannten Tests erfolgreich sind und eine ausdrückliche Freigabe erteilt wurde.
+
+- Admin-Bootstrap ist jetzt standardmäßig inaktiv und erfordert `ADMIN_BOOTSTRAP_ENABLED=true`, ein mindestens 12 Zeichen langes Initialpasswort und eine kontrollierte Mailbox. Ein bestehendes Nicht-Admin-Konto wird nicht automatisch zum Admin hochgestuft; nach einmaliger Nutzung müssen Flag und Initialpasswort entfernt werden.
+- Der öffentliche Health-Endpunkt prüft Datenbankerreichbarkeit und Anmeldekonfiguration tatsächlich und meldet externe Recherche getrennt als optionale Abhängigkeit.
