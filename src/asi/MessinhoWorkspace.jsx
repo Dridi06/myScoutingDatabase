@@ -182,7 +182,8 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     if(!selectedLearningPlayer){setDevelopmentError('Bitte zuerst einen Spieler auswählen.');return;}
     setDevelopmentBusy(true);setDevelopmentError('');
     try{
-      let events=[];if(matchEventsText.trim()){try{events=JSON.parse(matchEventsText);if(!Array.isArray(events))throw new Error('Die Ereignisliste muss ein JSON-Array sein.');}catch(e){throw new Error(e.message||'Die Spielereignisse sind kein gültiges JSON.');}}\n      const analysis=await learningRequest('/api/messinho/development/analyze','POST',{player_id:Number(selectedLearningPlayer),events});
+      let events=[];if(matchEventsText.trim()){try{events=JSON.parse(matchEventsText);if(!Array.isArray(events))throw new Error('Die Ereignisliste muss ein JSON-Array sein.');}catch(e){throw new Error(e.message||'Die Spielereignisse sind kein gültiges JSON.');}}
+      const analysis=await learningRequest('/api/messinho/development/analyze','POST',{player_id:Number(selectedLearningPlayer),events});
       const prediction=await learningRequest('/api/messinho/development/predict','POST',{player_id:Number(selectedLearningPlayer)});
       const audit=await learningRequest('/api/messinho/development/audit');
       setDevelopmentData({analysis,prediction,audit});
@@ -267,7 +268,8 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     </section>
     <section className="messinho-development-panel">
       <div className="messinho-learning-summary"><strong>MESSINHO · Entwicklungszyklus</strong><small>Analyse → nachvollziehbare Bewertung → Prognose → verifiziertes Ergebnis → Modellprüfung → Verbesserungshypothese</small><small>Jede Prognose wird mit Modellversion und Datensnapshot gespeichert. Ergebnisse werden erst nach Admin-Prüfung berücksichtigt.</small></div>
-      <label className="messinho-match-events-label">Strukturierte Spielereignisse (optional, JSON-Array)<textarea rows={3} value={matchEventsText} onChange={e=>setMatchEventsText(e.target.value)} placeholder='[{"minute":12,"phase":"offensive","action":"pass","successful":true,"xg":0.12}]'/></label>\n      <div className="messinho-development-actions">
+      <label className="messinho-match-events-label">Strukturierte Spielereignisse (optional, JSON-Array)<textarea rows={3} value={matchEventsText} onChange={e=>setMatchEventsText(e.target.value)} placeholder='[{"minute":12,"phase":"offensive","action":"pass","successful":true,"xg":0.12}]'/></label>
+      <div className="messinho-development-actions">
         <button type="button" disabled={developmentBusy||!selectedLearningPlayer} onClick={runDevelopmentCycle}>{developmentBusy?'Analysiert …':'Spieler analysieren & Prognose speichern'}</button>
         <button type="button" className="secondary" disabled={developmentBusy} onClick={refreshDevelopmentAudit}>Prognosekontrolle aktualisieren</button>
         {profile?.role==='admin'&&<button type="button" className="secondary" disabled={developmentBusy} onClick={createDevelopmentHypotheses}>Verbesserungshypothesen bilden</button>}
