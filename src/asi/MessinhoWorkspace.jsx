@@ -9,15 +9,17 @@ const suggestions=[
   'Suche Spieler Müller.'
 ];
 export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},compact=false}){
-  const [messages,setMessages]=useState([{id:'welcome',role:'assistant',text:'Hallo! Ich bin Messinho, dein Scouting-Agent. Ich kann zunächst deinen Datenbestand auswerten, gespeicherte Kandidaten anzeigen und Spieler im vorhandenen Katalog suchen. Meine autonomen Recherche- und Lernmodule werden schrittweise integriert.'}]);
+  const [messages,setMessages]=useState([{id:'welcome',role:'assistant',text:'Hallo! Ich bin Messinho, dein Scouting-Agent. Ich kann zunächst deinen Datenbestand auswerten, gespeicherte Kandidaten anzeigen und Spieler im vorhandenen Katalog suchen. Deine verifizierten Kalibrierungsdaten helfen, die Bewertungslogik kontrolliert zu verbessern.'}]);
   const [draft,setDraft]=useState('');
   const [busy,setBusy]=useState(false);
   const [listening,setListening]=useState(false);
   const [voiceOutput,setVoiceOutput]=useState(true);
   const [voiceAvailable,setVoiceAvailable]=useState(false);
   const [error,setError]=useState('');
-  const [feedbackDrafts,setFeedbackDrafts]=useState({});
-  const [feedbackBusy,setFeedbackBusy]=useState('');
+  const [learningPlayers,setLearningPlayers]=useState([]);
+  const [selectedLearningPlayer,setSelectedLearningPlayer]=useState('');
+  const [outcomeMetric,setOutcomeMetric]=useState('Leistungsniveau nach 12 Monaten');
+  const [calibrationDrafts,setCalibrationDrafts]=useState({});
   const [learningData,setLearningData]=useState(null);
   const [learningBusy,setLearningBusy]=useState(false);
   const [learningError,setLearningError]=useState('');
@@ -67,39 +69,35 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     try{recognition.start();setListening(true);}catch{setListening(false);setError('Das Mikrofon konnte nicht gestartet werden. Bitte prüfe die Browserberechtigung.');}
   }
 
-  async function submitFeedback(item){
-    const id=String(item?.id||'');
-    const draft=feedbackDrafts[id]||{};
-    const dimensionScores=Object.fromEntries(['technical','tactical','athletic','mental','goalkeeping'].filter(key=>draft[key]!==undefined&&draft[key]!=='' ).map(key=>[key,Number(draft[key])]));
-    if(!id){setError('Für diesen Eintrag fehlt eine gespeicherte Kandidaten-ID.');return;}
-    if(dimensionScores && Object.keys(dimensionScores).length<2){setError('Bitte mindestens zwei Leistungsdimensionen bewerten.');return;}
-    if(draft.target_score===''||draft.target_score===undefined||!Number.isFinite(Number(draft.target_score))){setError('Bitte eine Gesamtbewertung zwischen 0 und 100 angeben.');return;}
-    setFeedbackBusy(id);setError('');
-    try{
-      const {data:{session}}=await supabase.auth.getSession();
-      if(!session?.access_token)throw new Error('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
-      const response=await fetch('/api/messinho/feedback',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({candidate_id:id,player_id:String(item.player_id||item.name||item.player_name||id),target_score:Number(draft.target_score),dimension_scores:dimensionScores,comment:draft.comment||''})});
-      const payload=await response.json().catch(()=>({}));
-      if(!response.ok)throw new Error(payload.error||'Feedback konnte nicht gespeichert werden.');
-      setFeedbackDrafts(prev=>({...prev,[id]:{}}));
-      setMessages(prev=>[...prev,{id:'feedback-'+Date.now(),role:'assistant',text:'Danke. Deine Bewertung wurde als Scout-Feedback gespeichert. Sie fließt erst nach ausreichender Datenmenge in eine geprüfte Modell-Evaluation ein.'}]);
-    }catch(e){setError(e.message||'Feedback konnte nicht gespeichert werden.');}
-    finally{setFeedbackBusy('');}
-  }
-  function setFeedbackValue(id,key,value){setFeedbackDrafts(prev=>({...prev,[id]:{...(prev[id]||{}),[key]:value}}));}
-
-
-  async function learningRequest(path,method='GET'){
+  
+  async function learningRequest(path,method='GET',body=null){
     const {data:{session}}=await supabase.auth.getSession();
     if(!session?.access_token)throw new Error('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
-    const response=await fetch(path,{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token}});
+    const options={method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token}};
+    if(body!==null)options.body=JSON.stringify(body);
+    const response=await fetch(path,options);
     const payload=await response.json().catch(()=>({}));
     if(!response.ok)throw new Error(payload.error||'Lernfunktion konnte nicht ausgeführt werden.');
     return payload;
   }
   async function loadLearningStatus(){
-    try{const payload=await learningRequest('/api/messinho/learning/status');setLearningData(payload);setLearningError('');}
-    catch(e){setLearningError(e.message||'Lernstatus nicht verfügbar.');}
+    try{
+      const [status,players]=await Promise.all([
+        learningRequest('/api/messinho/learning/status'),
+        learningRequest('/api/messinho/learning/players')
+      ]);
+      setLearningData(status);setLearningPlayers(players.players||[]);setLearningError('');
+    }catch(e){setLearningError(e.message||'Lernstatus nicht verfügbar.');}
+  }
+  async function saveCalibration(){
+    if(!selectedLearningPlayer){setLearningError('Bitte zuerst einen Spieler auswählen.');return;}
+    setLearningBusy(true);setLearningError('');
+    try{
+      const payload=await learningRequest('/api/messinho/calibration','POST',{player_id:Number(selectedLearningPlayer),outcome_metric:outcomeMetric});
+      await loadLearningStatus();
+      setMessages(prev=>[...prev,{id:'calibration-'+Date.now(),role:'assistant',text:payload.message||'Kalibrierung gespeichert.'}]);
+    }catch(e){setLearningError(e.message||'Kalibrierung konnte nicht gespeichert werden.');}
+    finally{setLearningBusy(false);}
   }
   async function evaluateLearning(){
     setLearningBusy(true);setLearningError('');
@@ -113,11 +111,24 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     catch(e){setLearningError(e.message||'Modellfreigabe fehlgeschlagen.');}
     finally{setLearningBusy(false);}
   }
-
+  async function reviewCalibration(id,decision){
+    const draft=calibrationDrafts[id]||{};
+    setLearningBusy(true);setLearningError('');
+    try{
+      const payload=await learningRequest('/api/messinho/calibration/'+encodeURIComponent(id)+'/review','POST',{
+        decision,reason:draft.reason||'Ergebnis anhand der dokumentierten Quelle geprüft.',
+        verified_outcome:draft.verified_outcome,observed_on:draft.observed_on,source_url:draft.source_url
+      });
+      await loadLearningStatus();
+      setMessages(prev=>[...prev,{id:'cal-review-'+Date.now(),role:'assistant',text:decision==='verify'?'Kalibrierung wurde verifiziert und kann bei der nächsten Evaluation berücksichtigt werden.':'Kalibrierung wurde abgelehnt und wird nicht zum Lernen verwendet.'}]);
+    }catch(e){setLearningError(e.message||'Kalibrierung konnte nicht geprüft werden.');}
+    finally{setLearningBusy(false);}
+  }
+  function setCalibrationValue(id,key,value){setCalibrationDrafts(prev=>({...prev,[id]:{...(prev[id]||{}),[key]:value}}));}
   useEffect(()=>{if(profile?.role==='admin'||profile?.role==='scout')loadLearningStatus();},[profile?.role]);
   function renderItems(items){
     if(!items?.length)return null;
-    return <div className="messinho-results">{items.map((item,index)=><article key={String(item.id||item.name||index)} className="messinho-result-row"><div className="messinho-result-icon"><Users size={16}/></div><div className="messinho-result-copy"><strong>{index+1}. {item.name||item.player_name||'Unbenannter Eintrag'}</strong><span>{[item.club||item.current_club||item.currentClub,item.year||item.birth_year||item.birthYear,item.positions?.join(', '),item.analysis?.fit_score!==null&&item.analysis?.fit_score!==undefined?'Fit '+item.analysis.fit_score+'/100':null,item.kind,item.analysis?.recommendation?.label||item.recommendation?.label||item.recommendation].filter(Boolean).join(' · ')}</span>{item.messinho_rating&&<small>{item.messinho_rating.score===null?'MESSINHO-Score: nicht ausreichend belegt':'MESSINHO-Score: '+item.messinho_rating.score+'/100'} · Datenabdeckung {item.messinho_rating.evidence_coverage}% · {item.messinho_rating.confidence}</small>}{item.analysis?.analysis&&<small>{item.analysis.analysis}</small>}{item.sources?.map(source=><a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.publisher||source.title||'Quelle öffnen'}</a>)}{item.id&&<details className="messinho-feedback"><summary>Scout-Bewertung abgeben</summary><div className="messinho-feedback-grid"><label>Gesamtbewertung (0–100)<input type="number" min="0" max="100" value={feedbackDrafts[String(item.id)]?.target_score??''} onChange={e=>setFeedbackValue(String(item.id),'target_score',e.target.value)}/></label>{[['technical','Technik'],['tactical','Taktik'],['athletic','Athletik'],['mental','Mental'],['goalkeeping','Torwart']].map(([key,label])=><label key={key}>{label}<input type="number" min="0" max="100" value={feedbackDrafts[String(item.id)]?.[key]??''} onChange={e=>setFeedbackValue(String(item.id),key,e.target.value)}/></label>)}</div><button type="button" disabled={feedbackBusy===String(item.id)} onClick={()=>submitFeedback(item)}>{feedbackBusy===String(item.id)?'Speichert …':'Bewertung speichern'}</button></details>}</div></article>)}</div>;
+    return <div className="messinho-results">{items.map((item,index)=><article key={String(item.id||item.name||index)} className="messinho-result-row"><div className="messinho-result-icon"><Users size={16}/></div><div className="messinho-result-copy"><strong>{index+1}. {item.name||item.player_name||'Unbenannter Eintrag'}</strong><span>{[item.club||item.current_club||item.currentClub,item.year||item.birth_year||item.birthYear,item.positions?.join(', '),item.analysis?.fit_score!==null&&item.analysis?.fit_score!==undefined?'Fit '+item.analysis.fit_score+'/100':null,item.kind,item.analysis?.recommendation?.label||item.recommendation?.label||item.recommendation].filter(Boolean).join(' · ')}</span>{item.messinho_rating&&<small>{item.messinho_rating.score===null?'MESSINHO-Score: nicht ausreichend belegt':'MESSINHO-Score: '+item.messinho_rating.score+'/100'} · Datenabdeckung {item.messinho_rating.evidence_coverage}% · {item.messinho_rating.confidence}</small>}{item.analysis?.analysis&&<small>{item.analysis.analysis}</small>}{item.sources?.map(source=><a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.publisher||source.title||'Quelle öffnen'}</a>)}</div></article>)}</div>;
   }
   return <div className="messinho-workspace">
     {!compact&&<header className="messinho-hero"><div className="messinho-emblem"><BrainCircuit size={29}/></div><div className="messinho-hero-copy"><span>MYSCOUTINGDATABASE · KI-ASSISTENT</span><h1>Messinho</h1><p>Dein persönlicher Scouting-Agent</p></div><div className="messinho-status"><i/> Modul geladen</div></header>}
@@ -128,10 +139,27 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     </section>}
 
     <section className="messinho-learning-panel">
-      <div><strong>Kontrolliertes Lernen</strong><small>{learningData?.feedback_count??'–'} gespeicherte Scout-Bewertungen · {learningData?.active_model?.version?'Aktives Modell '+learningData.active_model.version:'Basisprofil aktiv'}</small></div>
-      {profile?.role==='admin'&&<button type="button" disabled={learningBusy} onClick={evaluateLearning}>{learningBusy?'Prüft …':'Lernmodell evaluieren'}</button>}
+      <div className="messinho-learning-summary"><strong>MESSINHO · Lern- und Kalibrierungssystem</strong><small>{learningData?.calibration_count??'–'} Kalibrierungen · {learningData?.active_model?.version?'Aktives Modell '+learningData.active_model.version:'Positions-Basisprofil aktiv'}</small><small>Nur administrativ verifizierte Ergebnisse fließen in neue Modellversionen ein.</small></div>
+      <div className="messinho-calibration-entry">
+        <label>Spieler auswählen<select value={selectedLearningPlayer} onChange={e=>setSelectedLearningPlayer(e.target.value)}><option value="">Spieler aus deiner Datenbank wählen</option>{learningPlayers.map(player=><option key={player.player_id} value={player.player_id}>{player.name} · {player.positions.join(', ')} · MESSINHO {player.messinho_rating}/100</option>)}</select></label>
+        <label>Später überprüfbares Ergebnis<input value={outcomeMetric} onChange={e=>setOutcomeMetric(e.target.value)} maxLength={160} placeholder="z. B. Leistungsniveau nach 12 Monaten"/></label>
+        <button type="button" disabled={learningBusy||!selectedLearningPlayer} onClick={saveCalibration}>{learningBusy?'Speichert …':'Kalibrierung erfassen'}</button>
+      </div>
       {learningError&&<p role="alert">{learningError}</p>}
-      {profile?.role==='admin'&&learningData?.proposals?.map(model=><article key={model.id}><span><b>{model.version}</b><small>{Object.entries(model.evaluation||{}).map(([group,report])=>group+': '+(report.status||'')).join(' · ')}</small></span><button type="button" disabled={learningBusy} onClick={()=>approveLearningModel(model.id)}>Freigeben</button></article>)}
+      {profile?.role==='admin'&&<div className="messinho-admin-learning">
+        <div className="messinho-learning-actions"><strong>Offene Kalibrierungen: {learningData?.pending_calibrations?.length||0}</strong><button type="button" disabled={learningBusy} onClick={evaluateLearning}>{learningBusy?'Prüft …':'Verifizierte Daten evaluieren'}</button></div>
+        {learningData?.pending_calibrations?.map(record=><article key={record.id} className="messinho-calibration-review">
+          <b>{record.player_name} · {record.outcome_metric}</b><small>MESSINHO-Prognose {record.scout_rating}/100 · {new Date(record.created_at).toLocaleDateString('de-DE')}</small>
+          <div className="messinho-review-fields">
+            <label>Ergebnis 0–100<input type="number" min="0" max="100" value={calibrationDrafts[record.id]?.verified_outcome??''} onChange={e=>setCalibrationValue(record.id,'verified_outcome',e.target.value)}/></label>
+            <label>Beobachtet am<input type="date" value={calibrationDrafts[record.id]?.observed_on??''} onChange={e=>setCalibrationValue(record.id,'observed_on',e.target.value)}/></label>
+            <label>HTTPS-Quelle<input type="url" value={calibrationDrafts[record.id]?.source_url??''} onChange={e=>setCalibrationValue(record.id,'source_url',e.target.value)} placeholder="https://…"/></label>
+            <label>Prüfgrund<input value={calibrationDrafts[record.id]?.reason??''} onChange={e=>setCalibrationValue(record.id,'reason',e.target.value)} placeholder="Beleg geprüft …"/></label>
+          </div>
+          <div className="messinho-review-actions"><button type="button" disabled={learningBusy} onClick={()=>reviewCalibration(record.id,'verify')}>Verifizieren</button><button type="button" className="secondary" disabled={learningBusy} onClick={()=>reviewCalibration(record.id,'reject')}>Ablehnen</button></div>
+        </article>)}
+        {learningData?.proposals?.map(model=><article key={model.id} className="messinho-calibration-review"><b>Modellkandidat {model.version}</b><small>{JSON.stringify(model.metrics?.report||model.metrics||{})}</small><button type="button" disabled={learningBusy} onClick={()=>approveLearningModel(model.id)}>Über ASI-Modellverwaltung freigeben</button></article>)}
+      </div>}
     </section>
     <section className="messinho-chat-card">
       <div className="messinho-chat-heading"><div><span>SCOUTING CONVERSATION</span><h2>Sprich mit Messinho</h2></div><button type="button" className="messinho-voice-toggle" onClick={()=>{setVoiceOutput(v=>!v);if(voiceOutput&&'speechSynthesis'in window)window.speechSynthesis.cancel();}} title={voiceOutput?'Sprachausgabe ausschalten':'Sprachausgabe einschalten'}>{voiceOutput?<Volume2 size={17}/>:<VolumeX size={17}/>}<span>{voiceOutput?'Sprache an':'Sprache aus'}</span></button></div>
