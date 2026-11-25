@@ -232,3 +232,8 @@
 .asi-diagnostic-pagination button{padding:7px 11px;border:1px solid rgba(163,185,211,.24);border-radius:8px;background:rgba(157,189,255,.08);color:#dce8f6;font-size:11px;font-weight:700;cursor:pointer}
 .asi-diagnostic-pagination button:disabled{opacity:.35;cursor:not-allowed}
 @media(max-width:600px){.asi-diagnostic-pagination{align-items:flex-start;flex-direction:column}.asi-diagnostic-pagination>div{width:100%;justify-content:space-between}}
+
+
+.asi-diagnostic-time{display:block;margin-top:3px;color:#91a4bb;font-size:10px;font-weight:500;line-height:1.35}
+.asi-diagnostic-list>div>span{min-width:0}
+.asi-diagnostic-list>div>span small{white-space:normal}
