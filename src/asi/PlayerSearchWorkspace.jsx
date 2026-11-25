@@ -12,7 +12,10 @@ export default function PlayerSearchWorkspace({supabase,profile,admin=false,onNo
  const [error,setError]=useState('');
  const [candidates,setCandidates]=useState([]);
  const [saving,setSaving]=useState(false);
- const [saved,setSaved]=useState(false);\n const [discoveryFilters,setDiscoveryFilters]=useState({ageMin:'18',ageMax:'23'});\n const [discoveryBusy,setDiscoveryBusy]=useState(false);\n const [discoveryResult,setDiscoveryResult]=useState(null);
+ const [saved,setSaved]=useState(false);
+ const [discoveryFilters,setDiscoveryFilters]=useState({ageMin:'18',ageMax:'23'});
+ const [discoveryBusy,setDiscoveryBusy]=useState(false);
+ const [discoveryResult,setDiscoveryResult]=useState(null);
 
  const loadCandidates=useCallback(async()=>{
   if(!supabase||!profile?.id)return;
