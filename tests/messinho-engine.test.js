@@ -77,3 +77,13 @@ test('recognizes mixed-case bare player names as searches',()=>{
 test('does not mistake generic greetings for player searches',()=>{
  assert.equal(extractMessinhoPlayerSearchTerm('Hallo Messinho'),null);
 });
+
+
+test('recognizes a comparison as a follow-up to the previously researched player',()=>{
+ const history=[{role:'user',text:'cristiano ronaldo'},{role:'assistant',text:'Recherche abgeschlossen.'}];
+ assert.equal(resolveMessinhoPlayerFollowUp('Vergleiche ihn mit Mbappe',history),'cristiano ronaldo');
+});
+test('resolves lowercase player names for pronoun follow-ups',()=>{
+ const history=[{role:'user',text:'cristiano ronaldo'},{role:'assistant',text:'Recherche abgeschlossen.'}];
+ assert.equal(resolveMessinhoPlayerFollowUp('Was kannst du mir über ihn sagen?',history),'cristiano ronaldo');
+});

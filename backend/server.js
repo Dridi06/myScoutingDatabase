@@ -1000,25 +1000,45 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const priorResearch=[...history].reverse().find(item=>item.role==='assistant'&&item.researchContext?.sources?.length);
       const context=priorResearch?.researchContext;
       if(!context){
-        return res.json({reply:'Ich erkenne, dass du dich auf '+rememberedPlayer+' beziehst. Die Quellen der vorherigen Suche sind in diesem Gespräch leider nicht mehr verfügbar. Bitte starte die Spielersuche einmal neu; danach kann ich die gefundenen Informationen auswerten, ohne die Quellen erneut aufzulisten.',intent:'player_research_context_missing',items:[]});
+        return res.json({reply:'Ich erkenne, dass du dich auf '+rememberedPlayer+' beziehst. Die vorherigen Quellen sind in diesem Gespräch nicht mehr verfügbar. Bitte starte die Spielersuche einmal neu.',intent:'player_research_context_missing',items:[]});
       }
-      const evidence=context.sources.slice(0,10).map(({title,url,publisher,published_date,snippet})=>({title,url,publisher,published_date,snippet}));
-      let profile=context.profile||null;
-      let reply=profile?.summary||'';
+      const evidence=(ctx)=> (ctx?.sources||[]).slice(0,10).map(({title,url,publisher,published_date,snippet})=>({title,url,publisher,published_date,snippet}));
+      const firstEvidence=evidence(context);
+      const compareMatch=message.match(/\\b(?:mit|gegen|vs\\.?|versus)\\s+([\\p{L}][\\p{L}'’.-]*(?:\\s+[\\p{L}][\\p{L}'’.-]*){0,2})/iu);
+      const secondName=compareMatch?.[1]?.trim();
+      let secondResearch=null;
+      if(secondName){
+        secondResearch=await researchMessinhoPlayerProfile(secondName);
+      }
+      const secondEvidence=evidence(secondResearch);
+      const isComparison=Boolean(secondName);
+      let reply='';
       if(process.env.OPENAI_API_KEY){
         try{
-          const analysis=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(30000),headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({
+          const analysis=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(35000),headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({
             model:process.env.OPENAI_MODEL||'gpt-4.1-mini',temperature:0.2,
             messages:[
-              {role:'system',content:'Du bist MESSINHO, ein fachkundiger Fußball-Scouting-Assistent. Beantworte die konkrete Folgefrage auf Deutsch anhand ausschließlich der übergebenen Recherchebelege. Erstelle eine klare, zusammenhängende Spielerübersicht mit Identität, Alter/Geburtsdatum, Nationalität, Position, Verein, Karriere und belegten Leistungsdaten, soweit vorhanden. Trenne aktuelle von historischen Daten. Erfinde nichts. Wenn eine Angabe fehlt oder Quellen widersprüchlich sind, sage das ausdrücklich. Keine erneute Quellenliste und keine Selbstvorstellung. Nenne die Quellentitel im Text nur dort, wo es zur Einordnung nötig ist.'},
-              {role:'user',content:JSON.stringify({player:context.player?.name||rememberedPlayer,question:message,existing_profile:profile,evidence})}
+              {role:'system',content:isComparison
+                ? 'Du bist MESSINHO, ein professioneller Fußball-Scouting-Assistent. Vergleiche die beiden genannten Spieler konkret und fair anhand ausschließlich der bereitgestellten Quellen. Gliedere nach Position/Rolle, Spielstil, belegten Leistungsdaten, Stärken, Grenzen und Datenqualität. Erfinde keine Zahlen und behaupte keine Gleichwertigkeit, wenn Daten fehlen. Weise ausdrücklich auf unterschiedliche Wettbewerbe, Saisons oder Datenstände hin. Keine erneute Recherche-Quellenliste und keine Selbstvorstellung. Schreibe verständlich auf Deutsch.'
+                : 'Du bist MESSINHO, ein professioneller Fußball-Scouting-Assistent. Beantworte die konkrete Folgefrage anhand ausschließlich der vorhandenen Quellen. Erstelle eine verständliche Spielerübersicht mit Identität, Alter/Geburtsdatum, Nationalität, Position, Verein, Karriere und belegten Leistungsdaten, soweit verfügbar. Trenne aktuelle von historischen Angaben. Erfinde nichts; markiere fehlende oder widersprüchliche Angaben. Keine Selbstvorstellung und keine erneute Quellenliste.'},
+              {role:'user',content:JSON.stringify(isComparison
+                ? {question:message,player_a:{name:context.player?.name||rememberedPlayer,profile:context.profile||null,evidence:firstEvidence},player_b:{name:secondResearch?.player?.name||secondName,profile:secondResearch?.profile||null,evidence:secondEvidence}}
+                : {player:context.player?.name||rememberedPlayer,question:message,existing_profile:context.profile||null,evidence:firstEvidence})}
             ]
           })});
-          if(analysis.ok){const data=await analysis.json();reply=data.choices?.[0]?.message?.content?.trim()||reply;}
+          if(analysis.ok){const data=await analysis.json();reply=data.choices?.[0]?.message?.content?.trim()||'';}
+          else console.error('MESSINHO follow-up analysis provider status:',analysis.status);
         }catch(error){console.error('MESSINHO evidence follow-up failed:',error.message);}
       }
-      if(!reply)reply='Ich habe die vorhandenen Quellen zu '+rememberedPlayer+' berücksichtigt, kann daraus aber noch kein verlässliches zusammenhängendes Profil erstellen. Einige wichtige Angaben fehlen oder sind in den Quellen nicht ausreichend belegt.';
-      return res.json({reply,intent:'player_research_followup',items:[],research_reused:true,player:context.player||{name:rememberedPlayer},researchContext:context});
+      if(!reply){
+        const facts=firstEvidence.filter(x=>x.snippet).slice(0,5).map(x=>'• '+x.snippet.slice(0,360));
+        const secondFacts=secondEvidence.filter(x=>x.snippet).slice(0,5).map(x=>'• '+x.snippet.slice(0,360));
+        reply=isComparison
+          ? 'Ich kann '+(context.player?.name||rememberedPlayer)+' und '+secondName+' anhand der gefundenen Quellen noch nicht belastbar vergleichen. Zu '+(context.player?.name||rememberedPlayer)+' liegen '+firstEvidence.length+' Quellen und zu '+secondName+' '+secondEvidence.length+' Quellen vor. Die belegten Auszüge sind verfügbar, aber eine verlässliche Gegenüberstellung der Leistungsdaten ist daraus derzeit nicht möglich.'
+          : 'Zu '+(context.player?.name||rememberedPlayer)+' habe ich folgende Angaben aus den gefundenen Quellen. Bitte beachte, dass Suchauszüge keine vollständige Spielerakte ersetzen:\\n'+(facts.join('\\n')||'Die Quellen enthalten derzeit keine ausreichend aussagekräftigen Textauszüge für ein belastbares Profil.');
+      }
+      const sourceItems=[...firstEvidence,...secondEvidence].map((source,index)=>({id:'source-'+index,name:source.title||source.publisher||source.url,kind:'Externe Quelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
+      return res.json({reply,intent:isComparison?'player_comparison':'player_research_followup',items:sourceItems,research_reused:true,player:context.player||{name:rememberedPlayer},researchContext:context,comparison: isComparison?{player_b:secondResearch?.player||{name:secondName},sources:secondResearch?.sources||[]}:undefined});
     }
     if(help)return res.json({reply:'Ich bin MESSINHO, die zentrale KI von myScoutingDatabase. Ich steuere vorhandene Recherche- und Analysefunktionen und frage fehlende Suchkriterien nach. Weitere Plattformmodule werden schrittweise angebunden.',intent:'help',items:[]});
     if(wantsComparison){
