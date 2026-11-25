@@ -194,3 +194,8 @@ Dieser Stand bleibt Draft auf `feature/messinho-agent-workspace` und Render-Stag
 
 - Admin-Bootstrap ist jetzt standardmäßig inaktiv und erfordert `ADMIN_BOOTSTRAP_ENABLED=true`, ein mindestens 12 Zeichen langes Initialpasswort und eine kontrollierte Mailbox. Ein bestehendes Nicht-Admin-Konto wird nicht automatisch zum Admin hochgestuft; nach einmaliger Nutzung müssen Flag und Initialpasswort entfernt werden.
 - Der öffentliche Health-Endpunkt prüft Datenbankerreichbarkeit und Anmeldekonfiguration tatsächlich und meldet externe Recherche getrennt als optionale Abhängigkeit.
+
+- Modellfreigabe ist zusätzlich durch einen partiellen Unique-Index abgesichert: pro `model_key` kann nur eine Version den Status `active` besitzen. Die Freigabe konkurrierender Admin-Aktionen kann dadurch keine zwei aktiven Modellversionen hinterlassen.
+- Trainingsdatensatz-Fingerprints enthalten jetzt die tatsächlichen verifizierten Outcomes, Positionsgruppen, Dimensionswerte und Beobachtungsdaten statt nur Datensatz-IDs.
+- Holdout-Aufteilung und Trainingsreihenfolge sind anhand stabil sortierter Spieler-/Datensatzmerkmale reproduzierbar.
+- Aufwendige Lern-Evaluationen sind auf fünf Versuche pro Stunde begrenzt; Tavily-, OpenAI- und verschachtelte Rechercheaufrufe haben feste Timeouts.
