@@ -1,4 +1,5 @@
 import React,{useEffect,useMemo,useState} from 'react';
+import './asi.css';
 import {BrainCircuit,Activity,ShieldCheck,RefreshCw,Search,Save,ThumbsUp,ThumbsDown,Info,Database,TrendingUp,Clock3} from 'lucide-react';
 
 const SECTIONS={
