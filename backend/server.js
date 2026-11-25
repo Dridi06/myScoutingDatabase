@@ -507,6 +507,66 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
   }catch(error){console.error('ASI player search failed:',error.message);return res.status(500).json({error:'Die KI-Spielersuche ist aufgrund eines Serverfehlers fehlgeschlagen.'});}
 });
 
+
+const agentChatLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:true,legacyHeaders:false,message:{error:'Messinho wurde in kurzer Zeit zu häufig angesprochen. Bitte später erneut versuchen.'}});
+app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+    if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
+    const {data:authData,error:authError}=await db.auth.getUser(token);
+    if(authError||!authData?.user)return res.status(401).json({error:'Sitzung ungültig oder abgelaufen.'});
+    const {data:profile,error:profileError}=await db.from('profiles').select('id,role,approved,approval_status,username').eq('id',authData.user.id).maybeSingle();
+    if(profileError||!profile||!['admin','scout'].includes(profile.role))return res.status(403).json({error:'Keine Berechtigung für Messinho.'});
+    if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved'))return res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});
+    const message=typeof req.body?.message==='string'?req.body.message.trim().slice(0,1200):'';
+    if(message.length<1)return res.status(400).json({error:'Bitte gib eine Nachricht ein.'});
+    const normalized=message.toLocaleLowerCase('de-DE').normalize('NFKC');
+    const ownerId=authData.user.id;
+    const help=/\\b(hilfe|was kannst du|befehle|funktionen)\\b/.test(normalized);
+    const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
+    const wantsSummary=/\\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\\b/.test(normalized);
+    const searchMatch=message.match(/(?:suche|finde|such|zeige|zeig)\\s+(?:mir\\s+)?(?:den spieler|die spielerin|spieler|spielerin|kandidat|kandidaten)?\\s*[:'"]?(.{2,100})$/i);
+    if(help){
+      return res.json({reply:'Ich bin Messinho, dein Scouting-Agent in myScoutingDatabase. In dieser ersten Ausbaustufe kann ich deinen Kandidatenbestand zusammenfassen, gespeicherte Kandidaten anzeigen und Spieler in der vorhandenen Datenbank suchen. Die autonome Quellenrecherche, tägliche Datenpflege und fortlaufende Modell-Evaluation werden schrittweise ergänzt.',intent:'help',items:[]});
+    }
+    if(wantsSummary){
+      const [playerCount,candidateCount]=await Promise.all([
+        db.from('players').select('player_id',{count:'exact',head:true}),
+        db.from('asi_player_candidates').select('id',{count:'exact',head:true}).eq('owner_id',ownerId)
+      ]);
+      if(playerCount.error||candidateCount.error)return res.status(500).json({error:'Die Bestandsübersicht konnte nicht vollständig geladen werden.'});
+      return res.json({reply:'Ich habe den aktuellen Datenbestand abgefragt: '+(playerCount.count||0)+' Spieler im zentralen Spielerkatalog und '+(candidateCount.count||0)+' Kandidaten in deinem persönlichen Kandidatenbereich. Das ist eine reine Bestandsabfrage; es wurden keine Daten verändert.',intent:'summary',metrics:{players:playerCount.count||0,candidates:candidateCount.count||0},items:[]});
+    }
+    if(wantsCandidates){
+      const {data,error}=await db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status,researched_at').eq('owner_id',ownerId).order('researched_at',{ascending:false}).limit(12);
+      if(error)return res.status(500).json({error:'Deine Kandidaten konnten nicht geladen werden.'});
+      const items=data||[];
+      const reply=items.length?'Ich habe '+items.length+' deiner zuletzt recherchierten Kandidaten gefunden. Ich zeige dir die gespeicherten Angaben; eine neue externe Recherche wurde nicht gestartet.':'In deinem persönlichen Kandidatenbereich sind noch keine Einträge vorhanden.';
+      return res.json({reply,intent:'candidates',items});
+    }
+    if(searchMatch){
+      const term=searchMatch[1].replace(/[.!?]+$/,'').trim().slice(0,100);
+      if(term.length<2)return res.status(400).json({error:'Bitte nenne mindestens zwei Zeichen für die Spielersuche.'});
+      const safeTerm=term.replace(/[,%()]/g,' ').trim();
+      const [players,candidates]=await Promise.all([
+        db.from('players').select('player_id,name,club,year,positions,foot').ilike('name','%'+safeTerm+'%').order('name').limit(10),
+        db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status').eq('owner_id',ownerId).ilike('player_name','%'+safeTerm+'%').limit(10)
+      ]);
+      if(players.error||candidates.error)return res.status(500).json({error:'Die Spielersuche in der vorhandenen Datenbank ist fehlgeschlagen.'});
+      const items=[
+        ...(players.data||[]).map(p=>({kind:'Spielerkatalog',id:p.player_id,name:p.name,club:p.club,year:p.year,positions:p.positions||[],foot:p.foot})),
+        ...(candidates.data||[]).map(p=>({kind:'Kandidat',id:p.id,name:p.player_name,club:p.current_club,year:p.birth_year,positions:p.positions||[],recommendation:p.recommendation,status:p.status}))
+      ];
+      return res.json({reply:items.length?'Ich habe '+items.length+' passende gespeicherte Einträge zu „'+term+'“ gefunden. Ich habe ausschließlich die interne Datenbank durchsucht.':'Ich habe in den vorhandenen Datenbankeinträgen keinen Treffer zu „'+term+'“ gefunden. Eine externe Recherche wurde nicht ausgelöst.',intent:'search',items});
+    }
+    return res.json({reply:'Ich habe deine Nachricht verstanden, aber diese Aufgabe ist in meiner ersten Ausbaustufe noch nicht freigeschaltet. Ich kann derzeit den Datenbestand zusammenfassen, deine gespeicherten Kandidaten anzeigen und Spieler im vorhandenen Katalog suchen. Externe Recherche oder Änderungen an Spielerdaten starte ich nicht ohne die dafür vorgesehenen, geprüften Module.',intent:'unsupported',items:[]});
+  }catch(error){
+    console.error('Messinho agent chat failed:',error.message);
+    return res.status(500).json({error:'Messinho konnte die Anfrage gerade nicht bearbeiten.'});
+  }
+});
+
 app.use(express.static('dist',{maxAge:'1h',setHeaders(res,path){if(path.endsWith('/index.html'))res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');}}));
 app.get(/^(?!\/api\/).*/,(_req,res)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');res.sendFile(process.cwd()+'/dist/index.html');});
 app.listen(PORT,async()=>{console.log(`myScoutingDatabase API listening on ${PORT}`);console.log(`ASI SEARCH CHECK: Tavily=${Boolean(process.env.TAVILY_API_KEY)} OpenAI=${Boolean(process.env.OPENAI_API_KEY)} Model=${process.env.OPENAI_MODEL||'gpt-4.1-mini'}`);await diagnoseSupabase();try{await bootstrapAdmin();}catch(e){console.error('Admin bootstrap failed:',e.message);}});
