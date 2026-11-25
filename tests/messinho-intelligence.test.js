@@ -50,3 +50,23 @@ test('tactical attributes accept the same 1-to-5 scout rating scale as learning 
   assert.equal(result.status,'heuristic_estimate');
   assert.equal(result.score,100);
 });
+
+test('integer scout rating 1 maps to 20 rather than 100', () => {
+  const result = evaluateMessinhoTacticalFit(
+    {performance_metrics:{acceleration:1,dribbling:5,crossing:3}},
+    {requirements:{acceleration:20,dribbling:100,crossing:60}}
+  );
+  assert.equal(result.status,'heuristic_estimate');
+  assert.equal(result.score,100);
+});
+
+test('future publication dates are never marked as fresh evidence', () => {
+  const now = Date.parse('2026-11-25T12:00:00Z');
+  const result = assessMessinhoSource(
+    {url:'https://club.example/player',title:'Player profile',published_date:'2027-12-01',content:'x'.repeat(100)},
+    {now}
+  );
+  assert.equal(result.freshness,'invalid_date');
+  assert.equal(result.age_days,null);
+  assert.ok(result.limitations.some(item=>item.includes('Zukunft')));
+});
