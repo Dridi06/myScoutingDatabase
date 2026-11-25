@@ -20,3 +20,12 @@
 .messinho-metrics{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}.messinho-metrics span{padding:7px 9px;border-radius:8px;background:rgba(181,140,69,.12);font-size:10px;font-weight:700}
 .messinho-roadmap{display:grid;gap:7px;padding:14px;border:1px solid var(--border,rgba(148,163,184,.2));border-radius:12px;background:var(--panel,#fff);font-size:10px;color:var(--muted,#64748b)}.messinho-roadmap strong{color:var(--text,#172033);font-size:12px}.messinho-roadmap b{color:#b28b48}
 @media(max-width:760px){.messinho-overview{grid-template-columns:1fr}.messinho-hero{padding:17px}.messinho-status{font-size:0}.messinho-status i{width:9px;height:9px}.messinho-messages{min-height:220px;max-height:55vh}.messinho-chat-heading{align-items:flex-start}.messinho-voice-toggle span{display:none}}
+
+.messinho-feedback{margin-top:12px;padding:10px;border:1px solid rgba(198,163,91,.28);border-radius:10px;background:rgba(0,0,0,.18)}
+.messinho-feedback summary{cursor:pointer;color:#d8b76b;font-size:12px;font-weight:700}
+.messinho-feedback-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+.messinho-feedback-grid label{display:flex;flex-direction:column;gap:4px;color:#bdb7a8;font-size:11px}
+.messinho-feedback-grid input{width:100%;min-width:0;padding:7px;border:1px solid rgba(198,163,91,.25);border-radius:6px;background:#151515;color:#fff}
+.messinho-feedback button{padding:8px 12px;border:1px solid #b8964f;border-radius:7px;background:#b8964f;color:#111;font-weight:700;cursor:pointer}
+.messinho-feedback button:disabled{opacity:.55;cursor:wait}
+@media(max-width:520px){.messinho-feedback-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
