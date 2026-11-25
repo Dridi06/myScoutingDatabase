@@ -42,3 +42,19 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 4. Dedizierte myScoutingDatabase-Staging-Instanz bereitstellen bzw. bestätigen und Build-/Integrationstests ausführen.
 5. Berechtigungs-, Eigentümer- und Rate-Limit-Tests für die Orchestrierung ergänzen.
 6. Quellenregister und tägliche Scheduler-Komponente implementieren; Hintergrundrecherche erst nach Quellenfreigabe aktivieren.
+
+## Arbeitsstand 25.11.2026 – Dialog- und Filterhärtung
+- Scouting-Dialog aus dem Express-Handler in das testbare Modul `backend/messinho-validation.js` ausgelagert.
+- Mengenangaben vor Positionsbezeichnungen werden erkannt; die angeforderte Anzahl wird auf das ASI-Maximum von 15 begrenzt.
+- Jahrgangsbereiche, Länder-Aliase und mehrstufige Rückfragen werden deterministisch verarbeitet.
+- Positionsabgleich nutzt kontrollierte Positions-Aliase statt unpräziser Teilstring-Suche.
+- Standortfilter akzeptiert einen Kandidaten nur, wenn ein zugeordneter Quellenbeleg sowohl das angeforderte Land als auch den angegebenen aktuellen Verein enthält. Das ist bewusst konservativ und kann die Trefferzahl reduzieren.
+- Acht automatisierte Tests für Dialog, Rückfragen, Jahrgang, Standort, Position und Quellenprüfung ergänzt; die Testfälle wurden lokal mit Node.js ausgeführt (8/8 bestanden).
+- Syntaxprüfung der aktualisierten `backend/server.js` erfolgreich.
+- GitHub-Actions-Workflow `.github/workflows/messinho-validation.yml` ergänzt, der auf dem Entwicklungszweig Unit-Tests und Frontend-Build ausführt. Ein CI-Lauf ist bislang nicht nachgewiesen.
+
+## Noch offene Verifikation vor Live-Freigabe
+- Vollständiger `npm run build` und automatisierter CI-Lauf müssen noch bestätigt werden.
+- End-to-End-Test gegen die Staging-Supabase mit gültigem Staging-Auth-Token sowie konfigurierten Tavily-/OpenAI-Schlüsseln steht aus.
+- Der vorhandene Render-Webdienst `myscoutingdatabase` zeigt auf `main` und darf nicht verwendet oder verändert werden. Eine eigene Staging-Instanz ist noch nicht angelegt.
+- Keine Änderungen an `main`, Produktion, PFMS oder Supabase-Schema vorgenommen.
