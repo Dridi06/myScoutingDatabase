@@ -87,6 +87,39 @@ export function messinhoValueSupported(value, sourceUrls = [], sources = [], evi
   });
 }
 
+export function messinhoMetricSupported(metric, value, sourceUrls = [], sources = [], evidence = []) {
+  const raw = value && typeof value === 'object' ? (value.score ?? value.value) : value;
+  if (raw === null || raw === undefined || raw === '' || !Number.isFinite(Number(raw))) return false;
+  const number = Number(raw);
+  const metricKey = normalize(metric);
+  const aliases = METRIC_ALIASES[metric] || METRIC_ALIASES[metricKey] || [String(metric || '')];
+  const metricNames = aliases.map(alias => normalize(alias)).filter(alias => alias.length >= 3);
+  const numericVariants = [String(raw).replace(',', '.')];
+  if (number > 0 && number < 1) numericVariants.push(String(Number((number * 100).toFixed(2))));
+  const allowed = new Set(Array.isArray(sourceUrls) ? sourceUrls : []);
+  const claims = new Map();
+  for (const item of Array.isArray(evidence) ? evidence : []) {
+    if (!allowed.has(item?.source_url)) continue;
+    claims.set(item.source_url, [...(claims.get(item.source_url)||[]), String(item.claim||'')]);
+  }
+  return (Array.isArray(sources) ? sources : []).some(source => {
+    if (!allowed.has(source.url)) return false;
+    const text = normalize([source.title, source.content, ...(claims.get(source.url)||[])].filter(Boolean).join(' ')).replace(/\s+/g, ' ').trim();
+    const metricMentioned = metricNames.some(alias => text.includes(alias));
+    const numberMentioned = numericVariants.some(variant => {
+      let index = text.indexOf(variant);
+      while (index >= 0) {
+        const before = index === 0 ? ' ' : text[index - 1];
+        const after = index + variant.length >= text.length ? ' ' : text[index + variant.length];
+        if (!/[0-9]/.test(before) && !/[0-9]/.test(after)) return true;
+        index = text.indexOf(variant, index + 1);
+      }
+      return false;
+    });
+    return metricMentioned && numberMentioned;
+  });
+}
+
 export function validateMessinhoCandidateEvidence(candidate = {}, evidence = [], sources = []) {
   const name = normalize(candidate.name).replace(/\s+/g, ' ').trim();
   const birthYear = Number(candidate.birth_year);
