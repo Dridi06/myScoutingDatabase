@@ -41,3 +41,12 @@ test('tactical fit never assigns a score to absent or invalid player metrics', (
   assert.equal(result.score,null);
   assert.equal(result.status,'insufficient_data');
 });
+
+test('tactical attributes accept the same 1-to-5 scout rating scale as learning calibration', () => {
+  const result = evaluateMessinhoTacticalFit(
+    {performance_metrics:{acceleration:4,dribbling:5,crossing:3}},
+    {requirements:{acceleration:80,dribbling:100,crossing:60}}
+  );
+  assert.equal(result.status,'heuristic_estimate');
+  assert.equal(result.score,100);
+});
