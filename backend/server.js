@@ -529,11 +529,6 @@ async function getActiveMessinhoModel(){
   if(error){console.error('MESSINHO active ASI model lookup failed:',error.message);return null;}
   return data||null;
 }
-function createMessinhoUserClient(token){
-  const publicKey=process.env.SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_ANON_KEY||process.env.VITE_SUPABASE_ANON_KEY;
-  if(!publicKey)return null;
-  return createClient(supabaseUrl,publicKey,{auth:{autoRefreshToken:false,persistSession:false,detectSessionInUrl:false},global:{headers:{Authorization:'Bearer '+token,'X-Client-Info':'messinho-user-review'}}});
-}
 async function messinhoAuthenticatedUser(req,res){
   const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
   if(!token){res.status(401).json({error:'Anmeldung erforderlich.'});return null;}
@@ -658,40 +653,6 @@ app.post('/api/messinho/learning/evaluate',async(req,res)=>{
     return res.status(201).json({proposal:{status:proposal.status,report:proposal.report,trained_groups:proposal.trained_groups},model,message:'Modellkandidat wurde in der bestehenden ASI-Modellverwaltung gespeichert. Eine Freigabe ist noch erforderlich.'});
   }catch(error){console.error('MESSINHO learning evaluation failed:',error.message);return res.status(500).json({error:'Lernmodell konnte nicht evaluiert werden.'});}
 });
-app.post('/api/messinho/calibration/:id/review',async(req,res)=>{
-  try{
-    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
-    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
-    if(actor.profile.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen Kalibrierungen verifizieren.'});
-    const decision=req.body?.decision==='reject'?'reject':'verify';
-    const reason=typeof req.body?.reason==='string'?req.body.reason.trim().slice(0,500):'';
-    const value=Number(req.body?.verified_outcome);
-    const observedOn=typeof req.body?.observed_on==='string'?req.body.observed_on:'';
-    const sourceUrl=typeof req.body?.source_url==='string'?req.body.source_url.trim():'';
-    if(reason.length<10)return res.status(400).json({error:'Bitte einen Prüfgrund mit mindestens 10 Zeichen angeben.'});
-    if(decision==='verify'&&(!Number.isFinite(value)||value<0||value>100||!/^\d{4}-\d{2}-\d{2}$/.test(observedOn)||!/^https:\/\//i.test(sourceUrl)))return res.status(400).json({error:'Für die Verifizierung sind Ergebnis 0–100, Datum und HTTPS-Quellenlink erforderlich.'});
-    const userClient=createMessinhoUserClient(actor.token);
-    if(!userClient)return res.status(503).json({error:'Supabase Publishable Key ist nicht konfiguriert.'});
-    const {data,error}=await userClient.rpc('asi_review_scout_calibration',{p_record_id:req.params.id,p_decision:decision,p_reason:reason,p_verified_outcome:decision==='verify'?value:null,p_observed_on:decision==='verify'?observedOn:null,p_source_url:decision==='verify'?sourceUrl:null});
-    if(error)return res.status(400).json({error:'Kalibrierung konnte nicht geprüft werden: '+String(error.message||'RPC fehlgeschlagen').slice(0,220)});
-    return res.json({ok:true,result:data});
-  }catch(error){return res.status(500).json({error:'Kalibrierungsprüfung fehlgeschlagen.'});}
-});
-app.post('/api/messinho/learning/:id/approve',async(req,res)=>{
-  try{
-    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
-    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
-    if(actor.profile.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen Modelle freigeben.'});
-    const userClient=createMessinhoUserClient(actor.token);
-    if(!userClient)return res.status(503).json({error:'Supabase Publishable Key ist nicht konfiguriert.'});
-    const reason=typeof req.body?.reason==='string'&&req.body.reason.trim().length>=10?req.body.reason.trim():'MESSINHO-Modell anhand der gespeicherten Holdout-Evaluation geprüft und freigegeben.';
-    const {data,error}=await userClient.rpc('asi_review_model_candidate',{p_model_version_id:req.params.id,p_decision:'approve',p_reason:reason});
-    if(error)return res.status(400).json({error:'Modellfreigabe wurde abgelehnt: '+String(error.message||'RPC fehlgeschlagen').slice(0,220)});
-    const active=await getActiveMessinhoModel();
-    return res.json({ok:true,active_model:active?{id:active.id,version:active.version}:null,message:'Das Modell wurde über die bestehende ASI-Modellverwaltung freigegeben und ist jetzt aktiv.'});
-  }catch(error){return res.status(500).json({error:'Modell konnte nicht freigegeben werden.'});}
-});
-
 const agentChatLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:true,legacyHeaders:false,message:{error:'Messinho wurde in kurzer Zeit zu häufig angesprochen. Bitte später erneut versuchen.'}});
 app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
   try{
