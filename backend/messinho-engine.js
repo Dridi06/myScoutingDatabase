@@ -2,7 +2,7 @@
  * MESSINHO core engine – provider-independent scouting logic.
  * Versioned deterministic scoring; no model/provider is allowed to invent missing metrics.
  */
-export const MESSINHO_ENGINE_VERSION = '1.0.0';
+export const MESSINHO_ENGINE_VERSION = '1.1.0';
 
 const POSITION_GROUPS = {
   goalkeeper: ['torwart','goalkeeper','keeper','gk','tw'],
@@ -25,6 +25,7 @@ const WEIGHTS = {
   striker: { technical: .30, tactical: .25, athletic: .25, mental: .20 },
   default: { technical: .30, tactical: .30, athletic: .25, mental: .15 }
 };
+export const MESSINHO_DEFAULT_WEIGHTS = WEIGHTS;
 const DIMENSION_ALIASES = {
   technical: ['technik','technical','technical_score'],
   tactical: ['taktik','tactical','tactical_score'],
@@ -58,11 +59,15 @@ function positionGroup(positions = []) {
     aliases.some(alias => values.some(value => value === norm(alias) || value.includes(norm(alias))))
   )?.[0] || 'default';
 }
-export function scoreMessinhoPlayer(candidate = {}) {
+export function scoreMessinhoPlayer(candidate = {}, modelProfiles = null) {
   const analysis = candidate.analysis || candidate;
   const player = analysis.player || candidate;
   const group = positionGroup(player.positions || candidate.positions || []);
-  const weights = WEIGHTS[group] || WEIGHTS.default;
+  const baseWeights = WEIGHTS[group] || WEIGHTS.default;
+  const proposed = modelProfiles?.[group];
+  const valid = proposed && typeof proposed === 'object' && Object.keys(baseWeights).every(key => Number.isFinite(Number(proposed[key])) && Number(proposed[key]) >= 0);
+  const proposedTotal = valid ? Object.keys(baseWeights).reduce((sum,key)=>sum+Number(proposed[key]),0) : 0;
+  const weights = proposedTotal > 0 ? Object.fromEntries(Object.keys(baseWeights).map(key=>[key,Number(proposed[key])/proposedTotal])) : baseWeights;
   const dimensions = {};
   let weighted = 0, availableWeight = 0;
   for (const [dimension, weight] of Object.entries(weights)) {
@@ -84,8 +89,8 @@ export function scoreMessinhoPlayer(candidate = {}) {
       : 'Positionsgewichtete Auswertung ausschließlich vorhandener numerischer Leistungsdaten; fehlende Werte wurden nicht geschätzt.'
   };
 }
-export function rankMessinhoPlayers(candidates = []) {
-  return candidates.map(candidate => ({ ...candidate, messinho_rating: scoreMessinhoPlayer(candidate) }))
+export function rankMessinhoPlayers(candidates = [], modelProfiles = null) {
+  return candidates.map(candidate => ({ ...candidate, messinho_rating: scoreMessinhoPlayer(candidate, modelProfiles) }))
     .sort((a,b) => (b.messinho_rating.score ?? -1) - (a.messinho_rating.score ?? -1)
       || b.messinho_rating.evidence_coverage - a.messinho_rating.evidence_coverage);
 }
