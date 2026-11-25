@@ -96,7 +96,7 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 ## Arbeitsstand 25.11.2026 – Kontrollierte MESSINHO-Lernfunktion
 - MESSINHO nutzt die bereits vorhandene ASI-Infrastruktur, statt parallele Feedback- oder Modellverwaltungstabellen anzulegen.
 - Die bestehende Tabelle `asi_scout_calibration_records` wurde um zwei historische Snapshot-Felder erweitert: `messinho_position_group` und `messinho_dimension_scores`.
-- Die Migration `supabase/migrations/20261125_messinho_calibration_extension.sql` wurde erfolgreich ausschließlich im Supabase-Staging-Projekt `vxtybjaabtfhxfwctnyj` angewendet und die neuen Spalten wurden verifiziert.
+- Die Migration `supabase/migrations/20261125122958_messinho_calibration_extension.sql` wurde erfolgreich ausschließlich im Supabase-Staging-Projekt `vxtybjaabtfhxfwctnyj` angewendet und die neuen Spalten wurden verifiziert.
 - Scouts können einen vorhandenen Spieler auswählen. MESSINHO berechnet aus den gespeicherten sportfachlichen Ratings eine positionsbezogene Prognose und legt einen Kalibrierungseintrag an.
 - Ein Administrator muss später den tatsächlichen Wert, das Beobachtungsdatum und eine HTTPS-Quelle prüfen. Abgelehnte oder noch nicht verifizierte Kalibrierungen werden nicht zum Training verwendet.
 - Die Lern-Engine trainiert positionsspezifische Gewichtungen aus verifizierten Kalibrierungsergebnissen. Mindestbasis: 30 verifizierte Einträge und 10 unterschiedliche Spieler je Positionsgruppe; 20 % Holdout; mindestens 1 Punkt MAE-Verbesserung; maximal 0,20 Gewichtsverschiebung.
