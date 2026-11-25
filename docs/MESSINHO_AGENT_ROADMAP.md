@@ -8,9 +8,10 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 - Text-Chat mit authentifiziertem Backend-Endpunkt `POST /api/agent/chat`.
 - Browserbasierte Spracheingabe über Web Speech API, sofern der Browser sie unterstützt.
 - Optionale Sprachausgabe über Speech Synthesis.
-- Erste deterministische Intent-Verarbeitung ohne OpenAI- oder Tavily-Abhängigkeit.
-- Unterstützte Leseaktionen: Datenbestandsübersicht, persönliche Kandidaten anzeigen, Spieler im zentralen Spielerkatalog und persönlichen Kandidatenbestand suchen.
-- Endpunkt prüft Supabase-Access-Token und Profilrolle, begrenzt Anfragen und führt nur lesende Abfragen aus.
+- Deterministische Dialogsteuerung für Bestandsabfragen, interne Suche und strukturierte Scouting-Aufträge.
+- Scouting-Aufträge werden nach Jahrgang, Position, Standort und Zielspielklasse geklärt und anschließend an die vorhandene ASI-Recherche delegiert.
+- Die bestehende ASI-Pipeline führt die externe Recherche und Kandidatenanlage aus; MESSINHO erzeugt keine parallele Recherchepipeline.
+- Die Chat-Schnittstelle prüft Supabase-Access-Token und Profilrolle; die ASI-Recherche prüft Berechtigungen zusätzlich selbst.
 - MESSINHO kann strukturierte Scouting-Anfragen mit Rückfragen zu Jahrgang, Position, Standort und Zielspielklasse entgegennehmen.
 - Bei vollständigen Kriterien delegiert MESSINHO die Recherche an den bestehenden Endpunkt `/api/asi/player-search` im Modus `discover`; es wird keine zweite Recherche-Engine angelegt.
 - Die vorhandene ASI-Pipeline nutzt weiterhin Tavily für Quellensuche und OpenAI für die quellengebundene Kandidatenanalyse; neue Treffer werden über die vorhandene Kandidatenlogik gespeichert.
