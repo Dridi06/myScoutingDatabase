@@ -10,7 +10,7 @@ create table if not exists public.messinho_scout_feedback (
   comment text not null default '' check (char_length(comment) <= 1000),
   created_at timestamptz not null default now()
 );
-create index if not exists messinho_feedback_position_created_idx on public.messinho_scout_feedback(position_group, created_at desc);
+create unique index if not exists messinho_feedback_candidate_scout_unique on public.messinho_scout_feedback(candidate_id, scout_id) where candidate_id is not null;\ncreate index if not exists messinho_feedback_position_created_idx on public.messinho_scout_feedback(position_group, created_at desc);
 create index if not exists messinho_feedback_player_idx on public.messinho_scout_feedback(player_id);
 create index if not exists messinho_feedback_scout_idx on public.messinho_scout_feedback(scout_id, created_at desc);
 
