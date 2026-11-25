@@ -29,7 +29,7 @@ export function extractMessinhoDimensionScores(ratings={},positions=[]){
   if(matches.length)result[dimension]=Math.round(matches.reduce((a,b)=>a+b,0)/matches.length);
  }
  const positionText=(Array.isArray(positions)?positions:[positions]).map(normalizedKey).join(' ');
- if(/torwart|goalkeeper|keeper|gk/.test(positionText)){
+ if(/torwart|goalkeeper|keeper|\bgk\b/.test(positionText)){
   const direct=entries.find(([key])=>['goalkeeping','torwart'].includes(key));
   const matches=direct?[direct[1]]:entries.filter(([key])=>GROUP_PATTERNS.goalkeeping.test(key)).map(([,value])=>value);
   if(matches.length)result.goalkeeping=Math.round(matches.reduce((a,b)=>a+b,0)/matches.length);
