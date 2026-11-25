@@ -538,7 +538,8 @@ async function messinhoAuthenticatedUser(req,res){
   if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved')){res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});return null;}
   return {user:data.user,profile};
 }
-app.post('/api/messinho/feedback',async(req,res)=>{
+const messinhoFeedbackLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Feedback-Einträge. Bitte später erneut versuchen.'}});
+app.post('/api/messinho/feedback',messinhoFeedbackLimiter,async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
