@@ -60,3 +60,16 @@ test('longitudinal reflection flags insufficient comparable criteria', () => {
   assert.equal(result.requiresReview, true);
   assert.equal(result.changedCriteria, 1);
 });
+
+test('coverage is measured against all expected criteria, not only submitted ratings', () => {
+  const result = reflectOnAssessment({
+    ratings: { Dribbling: 4, 'Passspiel kurz': 3 },
+    expectedCriteria: ['Dribbling', 'Passspiel kurz', 'Passspiel lang', 'Kopfballspiel'],
+    metadata: { ratingScale: '1-5' }
+  });
+  assert.equal(result.expectedRatingCount, 4);
+  assert.equal(result.validRatingCount, 2);
+  assert.equal(result.missingRatingCount, 2);
+  assert.equal(result.coverage, 0.5);
+  assert.equal(result.status, 'caution');
+});
