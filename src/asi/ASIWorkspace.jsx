@@ -2,6 +2,7 @@ import React,{useEffect,useMemo,useRef,useState} from 'react';
 import './asi.css';
 import {BrainCircuit,Activity,ShieldCheck,RefreshCw,Search,Save,ThumbsUp,ThumbsDown,Info,Database,TrendingUp,Clock3} from 'lucide-react';
 import { reflectOnAssessment } from './selfReflection.js';
+import ContractIntelligencePanel from './ContractIntelligencePanel.jsx';
 
 const SECTIONS={
   Technik:['Dribbling','Passspiel kurz','Passspiel lang','Beidfüssigkeit','Kopfballspiel','1:1 Offensiv','Ball An/Mitnahme','Erster Kontakt','Repertoire Finten','Variabler Torschuss'],
@@ -403,6 +404,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
      <p className="asi-footnote">Die Rollenprofile sind ein fachlicher Startstandard und müssen durch Trainer/Scouting-Leitung an Spielmodell, Liga und Altersklasse angepasst werden. Bei geringer Abdeckung ist der Fit-Index besonders vorsichtig zu interpretieren.</p>
    </section>}
    {selected&&isGoalkeeper(selected)&&<section className="asi-panel asi-role-panel"><div className="asi-panel-heading"><div><span className="asi-eyebrow">GOALKEEPER INTELLIGENCE</span><h2>Torwart-Spezialprofil</h2></div><ShieldCheck size={20}/></div><p className="asi-role-intro">Torwartspezifische Kriterien werden getrennt von Feldspielerbewertungen erfasst. Die Rollenpassung nutzt nur diese spezialisierten Werte.</p><div className="asi-gk-note">Die 12 Torwartkriterien werden im Spielerprofil unter „Scouting-Bewertung“ gepflegt. Bestehende Feldspielerprofile bleiben unverändert.</div></section>}
+   {selected&&<ContractIntelligencePanel supabase={supabase} player={selected} profile={profile} admin={admin} onNotice={onNotice}/>}
    {selected&&<section className="asi-panel asi-observation-panel">
      <div className="asi-panel-heading"><div><span className="asi-eyebrow">TALENT EVOLUTION</span><h2>Neue Beobachtung dokumentieren</h2></div><Clock3 size={20}/></div>
      <form onSubmit={saveObservation} className="asi-observation-form"><label>Beobachtungsdatum<input type="date" value={observationDate} onChange={e=>setObservationDate(e.target.value)} required/></label><label>Beobachtungsnotiz<textarea value={observation} onChange={e=>setObservation(e.target.value)} maxLength={5000} placeholder="Beobachtbare Spielsituationen, Kontext, Gegnerniveau und konkrete Beispiele – keine privaten Kontaktdaten."/></label><button type="submit" disabled={busy||savingObservation}>{savingObservation?<><RefreshCw size={15} className="asi-saving-icon"/> Wird gespeichert…</>:<><Save size={15}/> Beobachtung speichern</>}</button></form>
