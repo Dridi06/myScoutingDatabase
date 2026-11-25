@@ -122,6 +122,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  const [loading,setLoading]=useState(false);
  const [models,setModels]=useState([]);
  const [identityLinks,setIdentityLinks]=useState([]);
+ const [identityStatuses,setIdentityStatuses]=useState([]);
  const [identitySource,setIdentitySource]=useState('');
  const [identityTarget,setIdentityTarget]=useState('');
  const [identityReason,setIdentityReason]=useState('');
@@ -139,7 +140,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  async function loadMeta(){
    if(!supabase)return;
    setQuality(q=>({...q,loading:true}));
-   const [m,s,obs,preds,outcomes,evaluations,runs,identityRows,auditRows]=await Promise.all([
+   const [m,s,obs,preds,outcomes,evaluations,runs,identityRows,statusRows,auditRows]=await Promise.all([
      supabase.from('asi_model_versions').select('id,model_key,version,model_family,status,metrics,created_at').order('created_at',{ascending:false}).limit(12),
      admin?supabase.from('asi_external_sources').select('id,source_name,provider,source_type,license_status,last_synced_at').order('created_at',{ascending:false}):Promise.resolve({data:[],error:null}),
      admin?supabase.from('asi_player_observations').select('player_id,observed_on,ratings,created_by,created_at'):Promise.resolve({data:[],error:null}),
@@ -148,11 +149,13 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
      admin?supabase.from('asi_model_evaluations').select('id,passed'):Promise.resolve({data:[],error:null}),
      admin?supabase.from('asi_training_runs').select('id,status'):Promise.resolve({data:[],error:null}),
      admin?supabase.from('asi_player_identity_links').select('player_id,identity_id,owner_id'):Promise.resolve({data:[],error:null}),
+     admin?supabase.from('asi_player_identities').select('id,identity_status,updated_at'):Promise.resolve({data:[],error:null}),
      admin?supabase.from('asi_player_identity_audit').select('id,identity_id,player_id,action,reason,created_at').order('created_at',{ascending:false}).limit(30):Promise.resolve({data:[],error:null})
    ]);
    if(!m.error)setModels(m.data||[]);
    if(!s.error)setExternalSources(s.data||[]);
    if(admin&&!identityRows.error)setIdentityLinks(identityRows.data||[]);
+   if(admin&&!statusRows.error)setIdentityStatuses(statusRows.data||[]);
    if(admin&&!auditRows.error)setIdentityAudit(auditRows.data||[]);
    if(admin){
      const observationRows=obs.error?[]:(obs.data||[]);
@@ -163,7 +166,9 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
      const byPlayer=new Map();
      observationRows.forEach(o=>{const dates=byPlayer.get(o.player_id)||[];dates.push(new Date(o.observed_on+'T00:00:00Z').getTime());byPlayer.set(o.player_id,dates);});
      const longitudinal=[...byPlayer.values()].filter(ds=>ds.length>=2&&Math.max(...ds)-Math.min(...ds)>=30*86400000).length;
-     const scoutAgreement=analyzeScoutAgreement(observationRows,identityRows.error?[]:(identityRows.data||[]));
+     const activeIdentityIds=new Set((statusRows.error?[]:(statusRows.data||[])).filter(x=>x.identity_status==='confirmed').map(x=>String(x.id)));
+     const activeLinks=(identityRows.error?[]:(identityRows.data||[])).filter(x=>activeIdentityIds.has(String(x.identity_id)));
+     const scoutAgreement=analyzeScoutAgreement(observationRows,activeLinks);
      const completeRatings=observationRows.filter(o=>Object.values(SECTIONS).flat().every(k=>safeNumber((o.ratings||{})[k])!==null)).length;
      setQuality({loading:false,observations:observationRows.length,playersObserved:byPlayer.size,longitudinalPlayers:longitudinal,predictions:predictionRows.length,outcomes:outcomeRows.length,matchedOutcomes:matched.length,mae,evaluations:evaluations.error?0:(evaluations.data||[]).length,passedEvaluations:evaluations.error?0:(evaluations.data||[]).filter(x=>x.passed===true).length,trainingRuns:runs.error?0:(runs.data||[]).length,completeRatings,scoutAgreement});
    }else setQuality(q=>({...q,loading:false}));
@@ -179,6 +184,18 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
      onNotice('Spieleridentität wurde atomar bestätigt und revisionsfähig protokolliert.');
      await loadMeta();
    }catch(e){setError(e.message||'Spieleridentität konnte nicht bestätigt werden.');}
+   finally{setIdentityBusy(false);}
+ }
+ async function setIdentityStatus(identityId,nextStatus){
+   const reason=window.prompt(nextStatus==='suspended'?'Warum wird diese zentrale Identität vorübergehend gesperrt?':'Warum darf diese zentrale Identität wieder verwendet werden?');
+   if(!reason||reason.trim().length<12){setError('Bitte einen nachvollziehbaren Grund mit mindestens 12 Zeichen eingeben.');return;}
+   setIdentityBusy(true);setError('');
+   try{
+     const {error:statusError}=await supabase.rpc('asi_set_player_identity_status',{p_identity_id:identityId,p_status:nextStatus,p_reason:reason.trim()});
+     if(statusError)throw statusError;
+     onNotice(nextStatus==='suspended'?'Identität wurde gesperrt. Scout-Vergleiche berücksichtigen sie nicht mehr.':'Identität wurde reaktiviert und kann wieder für Scout-Vergleiche verwendet werden.');
+     await loadMeta();
+   }catch(e){setError(e.message||'Identitätsstatus konnte nicht geändert werden.');}
    finally{setIdentityBusy(false);}
  }
  async function correctPlayerIdentity(playerId){
@@ -333,8 +350,9 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
          <label>Vergleichsdatensatz<select value={identityTarget} onChange={e=>setIdentityTarget(e.target.value)}><option value="">Spieler auswählen…</option>{players.filter(p=>String(p.player_id)!==String(identitySource)).map(p=><option key={p.player_id} value={p.player_id}>{p.name} · {p.year||"Jahrgang unbekannt"} · {p.club||"Verein unbekannt"} · ID {p.player_id}{identityLinks.some(x=>String(x.player_id)===String(p.player_id))?" · Identität vorhanden":""}</option>)}</select></label>
          <label>Nachweis / Prüfvermerk<textarea value={identityReason} onChange={e=>setIdentityReason(e.target.value)} maxLength={1000} placeholder="z. B. eindeutige offizielle Spieler-ID oder geprüfter Verbandsnachweis – keine Kontaktdaten."/></label><button type="button" onClick={confirmPlayerIdentity} disabled={identityBusy||!identitySource||!identityTarget||identityReason.trim().length<12}>{identityBusy?"Wird geprüft…":"Identität sicher bestätigen"}</button>
        </div>
-       <div className="asi-identity-status"><strong>{identityLinks.length}</strong><span>bestätigte Datensatz-Zuordnungen · {new Set(identityLinks.map(x=>x.identity_id)).size} zentrale Identitäten</span></div>
-       <div className="asi-identity-audit"><h4>Letzte Identitätsänderungen</h4>{identityAudit.length===0?<p className="asi-empty">Noch keine Identitätsänderungen protokolliert.</p>:identityAudit.map(item=><article key={item.id}><span><strong>{item.action==='linked'?'Zuordnung bestätigt':'Zuordnung aufgehoben'} · Spieler-ID {item.player_id}</strong><small>{new Date(item.created_at).toLocaleString('de-DE')}</small></span><p>{item.reason}</p><button type="button" onClick={()=>correctPlayerIdentity(item.player_id)} disabled={identityBusy||item.action==='unlinked'}>Zuordnung korrigieren</button></article>)}</div>
+       <div className="asi-identity-status"><strong>{identityLinks.length}</strong><span>{identityLinks.filter(x=>identityStatuses.find(y=>String(y.id)===String(x.identity_id))?.identity_status==='confirmed').length} aktive Datensatz-Zuordnungen · {identityStatuses.filter(x=>x.identity_status==='confirmed').length} aktive / {identityStatuses.filter(x=>x.identity_status==='suspended').length} gesperrte zentrale Identitäten</span></div>
+       <div className="asi-identity-audit"><h4>Identitätsverwaltung</h4>{identityStatuses.length===0?<p className="asi-empty">Noch keine zentrale Identität angelegt.</p>:identityStatuses.map(item=><article key={item.id}><span><strong>{item.identity_status==='suspended'?'Gesperrte Identität':'Aktive Identität'}</strong><small>{item.id} · aktualisiert {new Date(item.updated_at).toLocaleString('de-DE')}</small></span><button type="button" onClick={()=>setIdentityStatus(item.id,item.identity_status==='suspended'?'confirmed':'suspended')} disabled={identityBusy}>{item.identity_status==='suspended'?'Identität reaktivieren':'Identität sperren'}</button></article>)}</div>
+       <div className="asi-identity-audit"><h4>Letzte Identitätsänderungen</h4>{identityAudit.length===0?<p className="asi-empty">Noch keine Identitätsänderungen protokolliert.</p>:identityAudit.map(item=><article key={item.id}><span><strong>{item.action==='linked'?'Zuordnung bestätigt':item.action==='unlinked'?'Zuordnung aufgehoben':item.action==='identity_suspended'?'Zentrale Identität gesperrt':'Zentrale Identität reaktiviert'} · Spieler-ID {item.player_id}</strong><small>{new Date(item.created_at).toLocaleString('de-DE')}</small></span><p>{item.reason}</p>{item.action==='linked'&&identityLinks.some(x=>String(x.player_id)===String(item.player_id))&&<button type="button" onClick={()=>correctPlayerIdentity(item.player_id)} disabled={identityBusy}>Zuordnung korrigieren</button>}</article>)}</div>
        <div className="asi-panel-heading"><div><span className="asi-eyebrow">SCOUT CALIBRATION</span><h3>Vergleichbarkeit von Scoutbewertungen</h3></div><Activity size={18}/></div>
        <div className="asi-quality-grid">
          <article><span>Verglichene Kriterien</span><strong>{quality.scoutAgreement.comparisons}</strong><small>Gleiche bestätigte zentrale Spieleridentität, unterschiedliche Scouts, maximal 14 Tage Abstand</small></article>
