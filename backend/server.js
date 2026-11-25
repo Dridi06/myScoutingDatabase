@@ -661,7 +661,8 @@ app.post('/api/messinho/learning/evaluate',async(req,res)=>{
     const cutoff=latestObserved?new Date(latestObserved+'T23:59:59.999Z').toISOString():startedAt;
     const trainingConfig={learning_version:proposal.learning_version,engine_version:'1.1.0',source_table:'asi_scout_calibration_records',source_filter:'verification_status=verified AND outcome_metric=MESSINHO_CALIBRATION_METRIC',outcome_metric:MESSINHO_CALIBRATION_METRIC,minimum_examples_per_position:30,minimum_unique_players:10};
     if(proposal.status!=='proposal_ready'){
-      await db.from('asi_training_runs').insert({model_key:'messinho_position_weights',status:'succeeded',data_cutoff_at:cutoff,dataset_fingerprint:fingerprint,training_config:trainingConfig,evaluation_summary:{status:proposal.status,report:proposal.report,records:trainingRows.length},started_at:startedAt,finished_at:new Date().toISOString(),created_by:actor.user.id});
+      const {error:runError}=await db.from('asi_training_runs').insert({model_key:'messinho_position_weights',status:'insufficient_data',data_cutoff_at:cutoff,dataset_fingerprint:fingerprint,training_config:trainingConfig,evaluation_summary:{status:proposal.status,report:proposal.report,records:trainingRows.length,model_candidate_created:false},started_at:startedAt,finished_at:new Date().toISOString(),created_by:actor.user.id});
+      if(runError)return res.status(500).json({error:'Der Lernversuch konnte nicht revisionssicher protokolliert werden.'});
       return res.json({proposal:{status:proposal.status,report:proposal.report,trained_groups:0},stored:false,message:'Noch nicht genügend verifizierte Ergebnisse oder keine messbare Verbesserung. Es wird kein Modellkandidat angelegt.'});
     }
     const version='1.0.'+Date.now();
@@ -685,7 +686,12 @@ app.post('/api/messinho/learning/evaluate',async(req,res)=>{
       evaluation_summary:{status:proposal.status,report:proposal.report,records:trainingRows.length,model_version_id:model.id},
       started_at:startedAt,finished_at:new Date().toISOString(),created_by:actor.user.id
     });
-    if(runError)return res.status(500).json({error:'Trainingslauf konnte nicht protokolliert werden; der Modellkandidat bleibt zur Prüfung gespeichert.'});
+    if(runError){
+      const cleanupEvaluation=await db.from('asi_model_evaluations').delete().eq('model_version_id',model.id);
+      const cleanupModel=await db.from('asi_model_versions').delete().eq('id',model.id).eq('status','candidate');
+      if(cleanupEvaluation.error||cleanupModel.error)console.error('MESSINHO incomplete candidate cleanup failed:',cleanupEvaluation.error?.message||cleanupModel.error?.message);
+      return res.status(500).json({error:'Trainingslauf konnte nicht vollständig protokolliert werden. Ein unvollständiger Modellkandidat wurde zur Sicherheit entfernt.'});
+    }
     return res.status(201).json({proposal:{status:proposal.status,report:proposal.report,trained_groups:proposal.trained_groups},model,message:'Modellkandidat wurde in der bestehenden ASI-Modellverwaltung gespeichert. Eine Freigabe ist noch erforderlich.'});
   }catch(error){console.error('MESSINHO learning evaluation failed:',error.message);return res.status(500).json({error:'Lernmodell konnte nicht evaluiert werden.'});}
 });
