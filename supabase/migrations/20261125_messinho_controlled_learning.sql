@@ -36,3 +36,28 @@ drop policy if exists messinho_feedback_insert_own on public.messinho_scout_feed
 create policy messinho_feedback_insert_own on public.messinho_scout_feedback for insert to authenticated with check (scout_id = auth.uid());
 drop policy if exists messinho_models_admin_read on public.messinho_model_versions;
 create policy messinho_models_admin_read on public.messinho_model_versions for select to authenticated using (exists (select 1 from public.profiles p where p.id=auth.uid() and p.role='admin'));
+
+-- Atomic model activation: only administrators may activate a proposed model.
+create or replace function public.messinho_activate_model(p_model_id uuid,p_admin_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not exists (select 1 from public.profiles where id=p_admin_id and role='admin') then
+    raise exception 'administrator approval required';
+  end if;
+  if not exists (select 1 from public.messinho_model_versions where id=p_model_id and status='proposed') then
+    raise exception 'proposed model not found';
+  end if;
+  update public.messinho_model_versions
+    set status='retired'
+    where status='active';
+  update public.messinho_model_versions
+    set status='active', approved_by=p_admin_id, approved_at=now()
+    where id=p_model_id and status='proposed';
+end;
+$$;
+revoke all on function public.messinho_activate_model(uuid,uuid) from public, anon, authenticated;
+grant execute on function public.messinho_activate_model(uuid,uuid) to service_role;
