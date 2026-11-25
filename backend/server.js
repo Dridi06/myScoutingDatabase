@@ -14,6 +14,7 @@ import { scopeMessinhoOwner } from './messinho-access.js';
 import { getMessinhoCapabilityCatalog, getMessinhoCapabilitySummary } from './messinho-capabilities.js';
 import { executeMessinhoCapability, listExecutableMessinhoCapabilities, getMessinhoRuntimeSummary } from './messinho-capability-runtime.js';
 import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainableAssessment, generateMessinhoHypotheses } from './messinho-development.js';
+import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './messinho-research.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -579,6 +580,18 @@ async function messinhoAuthenticatedUser(req,res){
   if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved')){res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});return null;}
   return {user:data.user,profile,token};
 }
+const messinhoResearchLimiter=rateLimit({windowMs:60*60*1000,limit:12,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Marktwert-Recherchen. Bitte später erneut versuchen.'}});
+app.post('/api/messinho/research/market-value',messinhoResearchLimiter,async(req,res)=>{
+  try{
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    const result=await researchMessinhoMarketValue(req.body||{});
+    res.set('Cache-Control','no-store');
+    return res.json(result);
+  }catch(error){
+    console.error('MESSINHO market research failed:',error.message);
+    return res.status(502).json({error:error.message==='Bitte einen Spielernamen angeben.'||error.message==='Ungültiger Geburtsjahrgang.'?error.message:'Marktwert-Recherche konnte nicht abgeschlossen werden.'});
+  }
+});
 app.get('/api/messinho/capabilities',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
@@ -1000,7 +1013,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       if(error)return res.status(500).json({error:'Deine Kandidaten konnten nicht geladen werden.'});
       return res.json({reply:(data||[]).length?'Ich habe deine zuletzt recherchierten Kandidaten geladen.':'In deinem persönlichen Kandidatenbereich sind noch keine Einträge vorhanden.',intent:'candidates',items:data||[]});
     }
-    const searchMatch=message.match(/(?:suche|finde|such|zeige|zeig)\s+(?:mir\s+)?(?:den spieler|die spielerin|spieler|spielerin|kandidat|kandidaten)?\s*[:'"]?(.{2,100})$/i);
+    const searchMatch=message.match(/(?:suche|finde|such|zeige|zeig)\s+(?:mir\s+)?(?:den spieler|die spielerin|spieler|spielerin|kandidat|kandidaten)?\s*[:'"]?(.{2,100})$/i)||message.match(/(?:wer ist|infos? zu|informationen zu|profil von|analysiere)\s+(.{2,100})$/i)||message.match(/^([A-ZÄÖÜ][\p{L}'-]+(?:\s+[A-ZÄÖÜ][\p{L}'-]+){1,3})[?.!]*$/u);
     if(searchMatch){
       const term=searchMatch[1].replace(/[.!?]+$/,'').trim().slice(0,100);
       const safeTerm=term.replace(/[%,_()]/g,' ').trim();
@@ -1008,9 +1021,29 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const [players,candidates]=await Promise.all([playerQuery,db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status').eq('owner_id',ownerId).ilike('player_name','%'+safeTerm+'%').limit(10)]);
       if(players.error||candidates.error)return res.status(500).json({error:'Die interne Spielersuche ist fehlgeschlagen.'});
       const items=[...(players.data||[]).map(p=>({kind:'Spielerkatalog',id:p.player_id,name:p.name,club:p.club,year:p.year,positions:p.positions||[],foot:p.foot})),...(candidates.data||[]).map(p=>({kind:'Kandidat',id:p.id,name:p.player_name,club:p.current_club,year:p.birth_year,positions:p.positions||[],recommendation:p.recommendation,status:p.status}))];
-      return res.json({reply:items.length?'Ich habe '+items.length+' gespeicherte Einträge gefunden.':'Ich habe keinen internen Treffer gefunden.',intent:'search',items});
+      const external=await researchMessinhoPlayerProfile(term);
+      const reply=(items.length?'Ich habe '+items.length+' interne Treffer gefunden. ':'Ich habe keinen internen Eintrag gefunden. ')+(external.profile?.summary||('Ich habe eine externe Recherche zu '+term+' durchgeführt und '+(external.sources?.length||0)+' Quellen gefunden. '+(external.profile?.missing_data?.length?'Noch offen: '+external.profile.missing_data.join(', '):'Bitte prüfe die Quellen für aktuelle Details.')));
+      const sourceItems=(external.sources||[]).map((source,index)=>({id:'source-'+index,name:source.title||source.publisher||source.url,kind:'Externe Quelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
+      return res.json({reply,intent:'player_research',items:[...items,...sourceItems],player:external.player,profile:external.profile,sources:external.sources||[],provider:external.provider||null,researched_at:external.researched_at||null});
     }
-    return res.json({reply:'Ich habe deine Anfrage noch nicht eindeutig einem vorhandenen Modul zuordnen können. Beschreibe bitte Ziel, Spielerposition, Jahrgang und gewünschtes Leistungsniveau.',intent:'clarify',items:[]});
+    const conversationalContext=history.map(item=>({role:item.role,content:item.text})).slice(-10);
+    if(process.env.OPENAI_API_KEY){
+      try{
+        const chatResponse=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(30000),headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({
+          model:process.env.OPENAI_MODEL||'gpt-4.1-mini',temperature:0.35,
+          messages:[
+            {role:'system',content:'Du bist MESSINHO, der freundliche, fachkundige und natürliche Gesprächspartner einer professionellen Fußball-Scouting-Plattform. Führe echte Gespräche auf Deutsch: verstehe Nachfragen und Bezüge aus dem Verlauf, antworte direkt, stelle höchstens eine gezielte Rückfrage, wenn sie wirklich nötig ist. Du bist nicht auf starre Befehle beschränkt. Du kannst erklären, beraten, Spielerprofile besprechen und passende Funktionen vorschlagen. WICHTIG: Sprich immer in einfacher, klarer, natürlicher Benutzersprache – unabhängig davon, ob die angemeldete Person Administrator oder Scout ist. Gib in normalen Antworten niemals technische Erklärungen, Programmierdetails, Datenbank- oder API-Begriffe, interne Abläufe, Stacktraces, Modellnamen oder Entwicklerhinweise aus. Erkläre Ergebnisse und Probleme so, dass jeder Fußballnutzer sie sofort versteht, und nenne bei Problemen einen konkreten nächsten Schritt. Interne technische Details gehören ausschließlich in separate, ausdrücklich angeforderte Administrator-Diagnosen, niemals in den normalen Chat. Behaupte niemals, eine Recherche, Datenbankaktion oder Analyse ausgeführt zu haben, wenn dies nicht durch ein Tool/Modul geschehen ist. Erfinde keine Spielerfakten, Statistiken, Quellen oder Datenbankinhalte. Wenn der Nutzer einen konkreten Fußballspieler nennt und Informationen sucht, sage klar, dass du eine belegte Recherche benötigst, statt zu raten. Halte MESSINHOs eigene Bewertungs- und Lernlogik unabhängig von OpenAI.'},
+            ...conversationalContext,
+            {role:'user',content:message}
+          ]
+        })});
+        if(chatResponse.ok){
+          const data=await chatResponse.json(),reply=data.choices?.[0]?.message?.content?.trim();
+          if(reply)return res.json({reply,intent:'conversation',items:[]});
+        }
+      }catch(chatError){console.error('Messinho conversational fallback failed:',chatError.message);}
+    }
+    return res.json({reply:'Ich bin MESSINHO. Ich kann mit dir über Spieler, Scouting, Taktik und deine Daten sprechen. Bei konkreten Spielerinformationen starte ich eine Quellenrecherche, statt Fakten zu erfinden. Was möchtest du wissen?',intent:'conversation',items:[]});
   }catch(error){console.error('Messinho agent chat failed:',error.message);return res.status(500).json({error:'Messinho konnte die Anfrage gerade nicht bearbeiten.'});}
 });
 

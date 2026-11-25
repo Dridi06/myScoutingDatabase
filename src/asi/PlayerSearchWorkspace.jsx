@@ -17,6 +17,9 @@ export default function PlayerSearchWorkspace({supabase,profile,admin=false,onNo
  const [discoveryFilters,setDiscoveryFilters]=useState({ageMin:'18',ageMax:'23'});
  const [discoveryBusy,setDiscoveryBusy]=useState(false);
  const [discoveryResult,setDiscoveryResult]=useState(null);
+ const [marketBusy,setMarketBusy]=useState(false);
+ const [marketResult,setMarketResult]=useState(null);
+ const [marketError,setMarketError]=useState('');
 
  const loadCandidates=useCallback(async()=>{
   if(!supabase||!profile?.id)return;
@@ -57,6 +60,19 @@ export default function PlayerSearchWorkspace({supabase,profile,admin=false,onNo
   finally{setDiscoveryBusy(false);}
  }
 
+ async function researchMarketValue(){
+  if(!a?.player?.name&&!query.trim())return;
+  setMarketBusy(true);setMarketError('');setMarketResult(null);
+  try{
+   const {data:{session}}=await supabase.auth.getSession();
+   if(!session?.access_token)throw new Error('Sitzung abgelaufen. Bitte neu anmelden.');
+   const response=await fetch('/api/messinho/research/market-value',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({name:a?.player?.name||query.trim(),club:a?.player?.current_club||'',position:a?.player?.positions?.[0]||filters.position||'',birthYear:a?.player?.birth_year||null})});
+   const payload=await response.json().catch(()=>({}));
+   if(!response.ok)throw new Error(payload.error||'Marktwert-Recherche fehlgeschlagen.');
+   setMarketResult(payload);
+  }catch(e){setMarketError(e.message||'Marktwert-Recherche fehlgeschlagen.');}
+  finally{setMarketBusy(false);}
+ }
  async function saveCandidate(){
   if(!result?.analysis||saving||saved)return;
   setSaving(true);
@@ -131,6 +147,20 @@ export default function PlayerSearchWorkspace({supabase,profile,admin=false,onNo
     <article><h3><Users size={16}/> Scouting-Empfehlung</h3><p>{a.recommendation?.reason||'Noch keine belastbare Empfehlung.'}</p><small>{a.recommendation?.next_step||'Weitere Beobachtung erforderlich.'}</small></article>
    </div>
    <div className="ps-source-list"><h3>Quellen und Aktualität ({list(result.sources).length})</h3>{list(result.sources).map((s,i)=><a href={s.url} target="_blank" rel="noreferrer" key={i}><span><strong>{s.title||s.publisher||s.url}</strong><small>{s.publisher||'Quelle'} · {s.published_date||'Datum nicht angegeben'} · {s.relevance||'Kontextquelle'}</small></span><ExternalLink size={15}/></a>)}</div>
+   <section className="ps-market-research">
+    <div className="ps-section-heading"><div><span>MESSINHO · EXTERNE RECHERCHE</span><h3>Marktwert & Vergleichsspieler</h3><p>OpenAI analysiert öffentlich auffindbare Belege; MESSINHO trennt offizielle Angaben von eigener Schätzung.</p></div><button type="button" onClick={researchMarketValue} disabled={marketBusy}>{marketBusy?<><RefreshCw className="ps-spin" size={15}/> Recherche läuft…</>:<><Search size={15}/> Marktwert recherchieren</>}</button></div>
+    {marketError&&<div className="ps-error">{marketError}</div>}
+    {marketResult&&<div className="ps-market-result">
+     {marketResult.market_value?.official_market_value?<p><strong>Veröffentlichter Marktwert:</strong> {marketResult.market_value.official_market_value.value_eur.toLocaleString("de-DE")} € · <a href={marketResult.market_value.official_market_value.source_url} target="_blank" rel="noreferrer">Quelle öffnen</a></p>:<p><strong>Offizieller Marktwert:</strong> Nicht durch eine Quelle bestätigt.</p>}
+     {marketResult.market_value?.estimated_value?<p><strong>MESSINHO-Schätzung:</strong> {marketResult.market_value.estimated_value.low_eur.toLocaleString("de-DE")}–{marketResult.market_value.estimated_value.high_eur.toLocaleString("de-DE")} € · {marketResult.market_value.confidence}</p>:<p><strong>Eigene Wertspanne:</strong> Nicht berechenbar – mindestens drei belegte Vergleichsspieler fehlen.</p>}
+     {marketResult.market_value?.rationale&&<p>{marketResult.market_value.rationale}</p>}
+     <h4>Vergleichswerte ({marketResult.market_value?.comparables?.length||0})</h4>
+     {(marketResult.market_value?.comparables||[]).map((item,i)=><p key={i}>{item.player||"Vergleichsspieler"} · {item.reported_value_eur.toLocaleString("de-DE")} € · <a href={item.source_url} target="_blank" rel="noreferrer">Beleg</a></p>)}
+     <h4>Recherchequellen ({marketResult.sources?.length||0})</h4>
+     {(marketResult.sources||[]).map((item,i)=><p key={i}><a href={item.url} target="_blank" rel="noreferrer">{item.title||item.publisher}</a> · {item.published_date||"Datum nicht angegeben"}</p>)}
+     <small>Recherchezeitpunkt: {new Date(marketResult.researched_at).toLocaleString("de-DE")}. KI-Schätzungen sind keine offiziellen Marktwerte und müssen anhand der Quellen geprüft werden.</small>
+    </div>}
+   </section>
    <div className="ps-actions"><button onClick={saveCandidate} disabled={saving||saved}>{saved?'In Kandidatenliste gespeichert':saving?'Speichert…':<><Save size={16}/> Als Kandidat speichern</>}</button><small>Der reguläre Spielerbestand wird dadurch nicht automatisch verändert.</small></div>
    <p className="ps-disclaimer">{a.limitations||'Die Bewertung ist eine KI-gestützte Voranalyse. Sie ersetzt keine persönliche Sichtung. Nicht belegte Angaben werden als unbekannt behandelt.'}</p>
   </section>}
