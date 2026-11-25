@@ -70,9 +70,10 @@ async function bootstrapAdmin(){
 function requireAuth(req,res,next){const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});try{req.user=jwt.verify(token,JWT_SECRET,{issuer:'myScoutingDatabase'});if(!req.user.approved)return res.status(403).json({error:'Konto noch nicht freigeschaltet.'});next();}catch{return res.status(401).json({error:'Sitzung abgelaufen. Bitte erneut anmelden.'});}}
 function requireAdmin(req,res,next){if(req.user?.role!=='admin')return res.status(403).json({error:'Admin-Rechte erforderlich.'});next();}
 app.get('/api/health',async(_req,res)=>{
-  const aiSearchReady=Boolean(process.env.TAVILY_API_KEY&&process.env.OPENAI_API_KEY);
+  const tavilyReady=Boolean(process.env.TAVILY_API_KEY);
+  const openAiReady=Boolean(process.env.OPENAI_API_KEY);
   const authReady=Boolean(JWT_SECRET&&JWT_SECRET.length>=32&&(process.env.SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_PUBLISHABLE_KEY));
-  const dependencies={database:'unavailable',authentication:authReady?'ready':'not_configured',externalResearch:aiSearchReady?'ready':'not_configured'};
+  const dependencies={database:'unavailable',authentication:authReady?'ready':'not_configured',messinhoCore:'provider_independent',externalResearch:tavilyReady?'ready':'not_configured',optionalAiAnalysis:openAiReady?'ready':'not_configured'};
   if(!db)return res.status(503).json({ok:false,service:'myScoutingDatabase',dependencies});
   try{
     const {error}=await db.from('profiles').select('id',{head:true,count:'exact'}).limit(1);
