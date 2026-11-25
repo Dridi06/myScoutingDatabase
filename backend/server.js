@@ -6,6 +6,7 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { createClient } from '@supabase/supabase-js';
+import { parseMessinhoScoutingRequest, matchesPosition, sourceSupportsRegion } from './messinho-validation.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -421,24 +422,22 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
       if(!raw)return res.status(502).json({error:'Die KI lieferte keine auswertbare Spielerauswahl.'});
       let discovery;try{discovery=JSON.parse(raw)}catch{return res.status(502).json({error:'Das KI-Ergebnis der Spielersuche war kein gültiges JSON.'});}
       const allowedUrls=new Set(discoverySources.map(s=>s.url));
+      const sourceByUrl=new Map(discoverySources.map(source=>[source.url,source]));
       const seen=new Set();
       const candidates=(Array.isArray(discovery.players)?discovery.players:[]).map(player=>{
         const name=typeof player?.name==='string'?player.name.trim().slice(0,160):'';
         const birthYear=Number.isInteger(Number(player?.birth_year))?Number(player.birth_year):null;
         const evidence=(Array.isArray(player?.evidence)?player.evidence:[]).filter(e=>allowedUrls.has(e?.source_url));
+        const regionEvidence=region?evidence.filter(e=>{
+          const source=sourceByUrl.get(e.source_url);
+          return source&&sourceSupportsRegion(region,[source.title,source.content,e.claim].join(' '),player.current_club);
+        }):evidence;
+        if(region&&!regionEvidence.length)return null;
         const urls=[...new Set(evidence.map(e=>e.source_url))];
-        const sources=discoverySources.filter(s=>urls.includes(s.url)).map(({content,...s})=>s);
+        const sources=discoverySources.filter(s=>regionEvidence.some(e=>e.source_url===s.url)).map(({content,...s})=>s);
         const normalized=name.normalize('NFKC').toLocaleLowerCase('de');
         if(!name||!birthYear||birthYear<birthYearFrom||birthYear>birthYearTo||!evidence.length||seen.has(normalized))return null;
-        if(position){
-          const requested=position.toLocaleLowerCase('de');
-          const aliases=requested.includes('link')||requested.includes('left')?['linker verteidiger','linksverteidiger','left back','left-back','leftback','lb','lv']:
-            requested.includes('recht')||requested.includes('right')?['rechter verteidiger','rechtsverteidiger','right back','right-back','rightback','rb','rv']:
-            requested.includes('innen')||requested.includes('center')?['innenverteidiger','center back','centre back','cb']:
-            requested.includes('torwart')||requested.includes('keeper')?['torwart','goalkeeper','keeper','gk']:[requested];
-          const playerPositions=JSON.stringify(player.positions||[]).toLocaleLowerCase('de');
-          if(!aliases.some(alias=>playerPositions.includes(alias)))return null;
-        }
+        if(position&&!matchesPosition(position,player.positions))return null;
         seen.add(normalized);
         const level=['priority','watchlist','review','reject'].includes(player.recommendation?.level)?player.recommendation.level:'review';
         const identityConfidence=player.identity_confidence!==null&&player.identity_confidence!==undefined&&Number.isFinite(Number(player.identity_confidence))?Math.max(0,Math.min(1,Number(player.identity_confidence))):null;
@@ -454,7 +453,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
           recommendation:{level,label:player.recommendation?.label||'Prüfung erforderlich',reason:player.recommendation?.reason||'Quellenlage noch zu prüfen.',next_step:player.recommendation?.next_step||'Spielerprofil und aktuelle Leistungsdaten verifizieren.'},
           data_quality:{confidence:player.data_quality?.confidence!==null&&player.data_quality?.confidence!==undefined&&Number.isFinite(Number(player.data_quality.confidence))?Math.max(0,Math.min(1,Number(player.data_quality.confidence))):null,
             limitations:Array.isArray(player.data_quality?.limitations)?player.data_quality.limitations:[]},
-          evidence:evidence.map(e=>({source_url:e.source_url,claim:String(e.claim||'').slice(0,500)})),
+          evidence:regionEvidence.map(e=>({source_url:e.source_url,claim:String(e.claim||'').slice(0,500)})),
           analysis:String(player.analysis||'').slice(0,3000),
           selection_notes:Array.isArray(discovery.selection_notes)?discovery.selection_notes:[],
           limitations:Array.isArray(discovery.limitations)?discovery.limitations:[]
@@ -462,7 +461,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
         return {name,birthYear,nationality:player.nationality||null,currentClub:player.current_club||null,
           positions:Array.isArray(player.positions)?player.positions.slice(0,6):[],identityConfidence,analysis,sources};
       }).filter(Boolean).sort((a,b)=>(b.analysis.fit_score??-1)-(a.analysis.fit_score??-1)).slice(0,Math.max(1,Math.min(15,Number(filters.limit)||15)));
-      if(!candidates.length)return res.status(422).json({error:'Die KI konnte keine 18- bis 23-jährigen Spieler mit konkretem Quellenbeleg und bestätigbarem Geburtsjahr identifizieren. Es wurden keine Kandidaten gespeichert.',sourceCount:discoverySources.length});
+      if(!candidates.length)return res.status(422).json({error:'Die KI konnte keine Spieler mit bestätigbarem Geburtsjahr, passender Position und belastbarem Quellenbeleg zum angeforderten Standort identifizieren. Es wurden keine Kandidaten gespeichert.',sourceCount:discoverySources.length});
       const [existingCandidates,existingPlayers]=await Promise.all([
         db.from('asi_player_candidates').select('player_name').eq('owner_id',profile.id).limit(2000),
         db.from('players').select('name').eq('owner_id',profile.id).limit(2000)
@@ -487,7 +486,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
       const savedByName=new Set(savedRows.map(x=>String(x.player_name).normalize('NFKC').toLocaleLowerCase('de')));
       const returnedCandidates=candidates.map(c=>({...c,saved:savedByName.has(c.name.normalize('NFKC').toLocaleLowerCase('de')),duplicate:existingNames.has(c.name.normalize('NFKC').toLocaleLowerCase('de'))}));
       res.set('Cache-Control','no-store');
-      return res.json({mode:'discover',requested:{ageMin,ageMax,birthYearFrom,birthYearTo,position,nationality,region,targetLevel,limit:15},candidates:returnedCandidates,
+      return res.json({mode:'discover',requested:{ageMin,ageMax,birthYearFrom,birthYearTo,position,nationality,region,targetLevel,limit:Math.max(1,Math.min(15,Number(filters.limit)||15))},candidates:returnedCandidates,
         source_count:discoverySources.length,sources:discoverySources.map(({content,...s})=>s),
         saved_count:savedRows.length,duplicate_count:duplicateCount,provider:{search:'Tavily multi-query',analysis:'OpenAI',model},
         selection_notes:discovery.selection_notes||[],limitations:discovery.limitations||[],
@@ -533,44 +532,24 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved'))return res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});
     const message=typeof req.body?.message==='string'?req.body.message.trim().slice(0,1200):'';
     if(!message)return res.status(400).json({error:'Bitte gib eine Nachricht ein.'});
-    const normalized=message.toLocaleLowerCase('de-DE').normalize('NFKC');
-    const history=Array.isArray(req.body?.history)?req.body.history.slice(-10):[];
-    const priorUser=history.filter(x=>x?.role==='user').map(x=>String(x.text||'')).join(' ');
-    const context=(priorUser+' '+message).slice(-5000);
+    const dialog=parseMessinhoScoutingRequest(message,history);
     const ownerId=authData.user.id;
-    const help=/\b(hilfe|was kannst du|befehle|funktionen)\b/.test(normalized);
+    const normalized=message.toLocaleLowerCase('de-DE').normalize('NFKC');
+    const help=/\\b(hilfe|was kannst du|befehle|funktionen)\\b/.test(normalized);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
-    const wantsSummary=/\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\b/.test(normalized);
-    const scoutingIntent=/\b(benötige|brauche|suche|finde|scoute|recherchiere|spieler|talent|kandidaten)\b/.test(normalized);
-    const yearMatches=[...context.matchAll(/\b(19\d{2}|20\d{2})\b/g)].map(x=>Number(x[1])).filter(y=>y>=1990&&y<=new Date().getFullYear());
-    const yearFrom=yearMatches.length?Math.min(...yearMatches):null;
-    const yearTo=yearMatches.length?Math.max(...yearMatches):null;
-    const positionPattern=/(linker\s+verteidiger|linksverteidiger|left[- ]back|rechter\s+verteidiger|rechtsverteidiger|right[- ]back|innenverteidiger|center[- ]back|mittelstürmer|stürmer|torwart|keeper|zentraler?\s+mittelfeldspieler|defensives?\s+mittelfeld|flügelspieler)/i;
-    const positionMatch=context.match(positionPattern);
-    const position=positionMatch?positionMatch[0]:'';
-    const quantityMatch=context.match(/\b(\d{1,2})\s+(?:spieler|talente|kandidaten)\b/i);
-    const quantity=quantityMatch?Math.min(20,Math.max(1,Number(quantityMatch[1]))):10;
-    const regionMatch=context.match(/\b(in deutschland|deutschland|in england|england|in spanien|spanien|in italien|italien|in frankreich|frankreich)\b/i);
-    const region=regionMatch?regionMatch[1].replace(/^in\s+/i,'').trim():'';
-    const levelMatch=context.match(/\b(bundesliga|2\.?\s*bundesliga|3\.?\s*liga|regionalliga|oberliga|landesliga)\b/i);
-    const targetLevel=levelMatch?levelMatch[0]:'';
-    const pending=history.some(x=>x?.role==='assistant'&&/welches spielerlevel|welche spielklasse|leistungsniveau/i.test(String(x.text||'')));
-    const isNewScoutingRequest=scoutingIntent&&(yearFrom||position||region);
-    if(isNewScoutingRequest||pending){
-      const missing=[];
-      if(!yearFrom)missing.push('Geburtsjahrgang');
-      if(!position)missing.push('Position');
-      if(!region)missing.push('Land bzw. Liga-Standort');
-      if(missing.length)return res.json({reply:'Damit ich die Suche sauber eingrenzen kann, brauche ich noch: '+missing.join(', ')+'.',intent:'scouting_clarification',items:[],pending:true});
-      if(!targetLevel)return res.json({reply:'Verstanden. Ich suche '+quantity+' Spieler, Jahrgang '+yearFrom+(yearTo!==yearFrom?' oder '+yearTo:'')+', Position '+position+', Standort '+region+'. Welches Spielerlevel soll MESSINHO als Zielniveau verwenden: Bundesliga, 2. Bundesliga, 3. Liga, Regionalliga oder Oberliga? Soll ich eher sofort einsetzbare Spieler oder Talente mit hohem Entwicklungspotenzial bevorzugen?',intent:'scouting_clarification',items:[],pending:true,request:{quantity,yearFrom,yearTo,position,region}});
+    const wantsSummary=/\\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\\b/.test(normalized);
+    if(dialog.shouldHandle){
+      if(dialog.missing.length)return res.json({reply:'Damit ich die Suche sauber eingrenzen kann, brauche ich noch: '+dialog.missing.join(', ')+'.',intent:'scouting_clarification',items:[],pending:true});
+      const {quantity,yearFrom,yearTo,position,region,targetLevel}=dialog.request;
+      if(dialog.needsTargetLevel)return res.json({reply:'Verstanden. Ich suche '+quantity+' Spieler, Jahrgang '+yearFrom+(yearTo!==yearFrom?' bis '+yearTo:'')+', Position '+position+', Standort '+region+'. Welches Zielniveau soll ich berücksichtigen: Bundesliga, 2. Bundesliga, 3. Liga, Regionalliga oder Oberliga?',intent:'scouting_clarification',items:[],pending:true,request:{quantity,yearFrom,yearTo,position,region}});
       const modelYear=new Date().getFullYear();
       const ageMin=Math.max(16,Math.min(30,modelYear-yearTo));
       const ageMax=Math.max(ageMin,Math.min(30,modelYear-yearFrom));
       const origin=req.protocol+'://'+req.get('host');
-      const research=await fetch(origin+'/api/asi/player-search',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({mode:'discover',filters:{ageMin,ageMax,birthYearFrom:yearFrom,birthYearTo:yearTo,position,region,targetLevel,limit:15}})});
+      const research=await fetch(origin+'/api/asi/player-search',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({mode:'discover',filters:{ageMin,ageMax,birthYearFrom:yearFrom,birthYearTo:yearTo,position,region,targetLevel,limit:quantity}})});
       const payload=await research.json().catch(()=>({}));
       if(!research.ok)return res.status(research.status).json({error:payload.error||'Die vorhandene ASI-Recherche konnte nicht ausgeführt werden.'});
-      const candidates=Array.isArray(payload.candidates)?payload.candidates:[];
+      const candidates=Array.isArray(payload.candidates)?payload.candidates:[]; 
       const ranked=candidates.slice(0,quantity);
       const reply='Die vorhandene ASI-Recherche wurde mit deinen Kriterien ausgeführt. Ich habe '+candidates.length+' belegte Kandidaten erhalten und zeige '+ranked.length+' davon. Zielniveau: '+targetLevel+'. '+(payload.underfilled?'Die gewünschte Anzahl konnte mit der verfügbaren Quellenlage nicht vollständig belegt werden.':'Bitte beachte Quellen- und Datenqualität der einzelnen Profile.');
       return res.json({reply,intent:'scouting_results',items:ranked,requested:{quantity,yearFrom,yearTo,position,region,targetLevel},sources:payload.sources||[],source_count:payload.source_count||0,saved_count:payload.saved_count||0,duplicate_count:payload.duplicate_count||0,underfilled:!!payload.underfilled,provider:payload.provider||null,limitations:payload.limitations||[]});
