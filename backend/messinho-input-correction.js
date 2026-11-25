@@ -1,4 +1,5 @@
 const PHRASE_CORRECTIONS = [
+  [/\\bein\\s+stürmer\\b/giu, 'einen Stürmer'],
   [/\bab\s+schl(i|ie|i)ssen\b/giu, 'abschließen'],
   [/\babschluss\s+stark\b/giu, 'abschlussstark'],
   [/\bmittel\s+stürmer\b/giu, 'mittelstürmer'],
