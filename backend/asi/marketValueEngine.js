@@ -2,10 +2,16 @@ const MODEL_VERSION = 'asi_market_value_baseline@0.1.0';
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const roundMoney = value => Math.round(value / 100_000) * 100_000;
-const numeric = value => value === null || value === undefined || value === '' ? NaN : Number(value);\nconst weightedMedian = values => {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+const numeric = value => value === null || value === undefined || value === '' ? NaN : Number(value);
+const weightedMedian = values => {
+  const sorted = [...values].sort((a, b) => a.value - b.value);
+  const total = sorted.reduce((sum, item) => sum + item.weight, 0);
+  let cumulative = 0;
+  for (const item of sorted) {
+    cumulative += item.weight;
+    if (cumulative >= total / 2) return item.value;
+  }
+  return sorted.at(-1)?.value ?? 0;
 };
 const validUrl = value => {
   try { return ['http:', 'https:'].includes(new URL(value).protocol); } catch { return false; }
@@ -17,7 +23,7 @@ export function estimateMarketValue(input = {}) {
   const age = numeric(player.age);
   const minutes = numeric(player.minutesLast12Months);
   const performance = numeric(player.performanceScore);
-  const contractYears = player.contractYears === null || player.contractYears === undefined || player.contractYears === '' ? NaN : Number(player.contractYears);
+  const contractYears = numeric(player.contractYears);
   const position = String(player.position || '').trim();
   const validComparables = comparables.filter(item =>
     item && item.verified === true &&
@@ -54,7 +60,7 @@ export function estimateMarketValue(input = {}) {
   });
 
   // Conservative, transparent MVP adjustments. These are policy coefficients, not trained parameters.
-  let ageMultiplier = age <= 21 ? 1.08 : age <= 24 ? 1.12 : age <= 27 ? 1.08 : age <= 29 ? 1.0 : age <= 31 ? 0.88 : age <= 33 ? 0.72 : age <= 35 ? 0.52 : age <= 37 ? 0.34 : age <= 39 ? 0.22 : 0.12;
+  const ageMultiplier = age <= 21 ? 1.08 : age <= 24 ? 1.12 : age <= 27 ? 1.08 : age <= 29 ? 1.0 : age <= 31 ? 0.88 : age <= 33 ? 0.72 : age <= 35 ? 0.52 : age <= 37 ? 0.34 : age <= 39 ? 0.22 : 0.12;
   add('Karrierephase / Alter', ageMultiplier, 'Nichtlineare, konservative Alterskurve; reduziert erwartbare Restlaufzeit.');
   const performanceMultiplier = clamp(0.65 + performance / 100 * 0.7, 0.65, 1.35);
   add('Leistungsindex', performanceMultiplier, 'Skaliert den Vergleichswert anhand eines extern belegten Leistungsindex.');
@@ -63,16 +69,15 @@ export function estimateMarketValue(input = {}) {
   const contractMultiplier = Number.isFinite(contractYears) && contractYears >= 0
     ? clamp(0.85 + contractYears * 0.08, 0.85, 1.17) : 1;
   add('Vertragsrestlaufzeit', contractMultiplier, Number.isFinite(contractYears) ? 'Vertragslaufzeit aus verifizierter Quelle.' : 'Vertragslaufzeit unbekannt; neutral angesetzt.');
-
-  const leagueMultiplier = Number.isFinite(Number(player.leagueLevelMultiplier))
-    ? clamp(Number(player.leagueLevelMultiplier), 0.7, 1.3) : 1;
+  const leagueMultiplier = Number.isFinite(numeric(player.leagueLevelMultiplier))
+    ? clamp(numeric(player.leagueLevelMultiplier), 0.7, 1.3) : 1;
   add('Wettbewerbsniveau', leagueMultiplier, 'Nur verwenden, wenn das Niveau nachvollziehbar und konsistent kalibriert ist.');
+
   const adjusted = base * factors.reduce((product, factor) => product * factor.multiplier, 1);
   const pointEstimate = roundMoney(adjusted);
   const sourceQuality = validComparables.reduce((sum, item) => sum + clamp(Number(item.sourceConfidence ?? 0.8), 0, 1), 0) / validComparables.length;
   const countScore = clamp(validComparables.length / 8, 0, 1);
-  const inputScore = [age, position, minutes, performance].filter(value => value !== undefined && value !== null && value !== '').length / 4;
-  const confidenceScore = Math.round((0.45 * countScore + 0.35 * sourceQuality + 0.2 * inputScore) * 100);
+  const confidenceScore = Math.round((0.45 * countScore + 0.35 * sourceQuality + 0.2) * 100);
   const uncertainty = clamp(0.35 - confidenceScore / 100 * 0.2, 0.15, 0.35);
   return {
     status: 'estimated', modelVersion: MODEL_VERSION, currency: 'EUR',
