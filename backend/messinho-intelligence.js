@@ -70,6 +70,18 @@ export function assessMessinhoSource(source = {}, options = {}) {
   };
 }
 
+export function messinhoValueSupported(value, sourceUrls = [], sources = []) {
+  const normalized = normalize(value).replace(/\s+/g, ' ').trim();
+  if (!normalized) return false;
+  const tokens = normalized.split(' ').filter(token => token.length > 1);
+  const allowed = new Set(Array.isArray(sourceUrls) ? sourceUrls : []);
+  return (Array.isArray(sources) ? sources : []).some(source => {
+    if (!allowed.has(source.url)) return false;
+    const text = normalize([source.title, source.content].filter(Boolean).join(' ')).replace(/\s+/g, ' ').trim();
+    return tokens.length > 1 ? tokens.every(token => text.includes(token)) : text.includes(normalized);
+  });
+}
+
 export function validateMessinhoCandidateEvidence(candidate = {}, evidence = [], sources = []) {
   const name = normalize(candidate.name).replace(/\s+/g, ' ').trim();
   const birthYear = Number(candidate.birth_year);
