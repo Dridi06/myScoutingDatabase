@@ -545,6 +545,25 @@ async function messinhoAuthenticatedUser(req,res){
   if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved')){res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});return null;}
   return {user:data.user,profile,token};
 }
+app.post('/api/messinho/tactical-fit',async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    const playerId=Number(req.body?.player_id);
+    if(!Number.isSafeInteger(playerId)||playerId<=0)return res.status(400).json({error:'Bitte einen gültigen Spieler auswählen.'});
+    const supplied=req.body?.team_profile;
+    if(!supplied||typeof supplied!=='object'||Array.isArray(supplied)||!supplied.requirements||typeof supplied.requirements!=='object'||Array.isArray(supplied.requirements))return res.status(400).json({error:'Bitte ein Vereinsprofil mit konkreten Attributanforderungen übergeben.'});
+    const requirements=Object.fromEntries(Object.entries(supplied.requirements).slice(0,20));
+    if(Object.keys(requirements).length<3)return res.status(400).json({error:'Ein taktisches Anforderungsprofil benötigt mindestens drei Attribute.'});
+    const teamProfile={formation:typeof supplied.formation==='string'?supplied.formation.slice(0,20):null,role:typeof supplied.role==='string'?supplied.role.slice(0,60):null,requirements};
+    let query=db.from('players').select('player_id,owner_id,name,positions,ratings').eq('player_id',playerId);
+    if(actor.profile.role!=='admin')query=query.eq('owner_id',actor.user.id);
+    const {data:player,error}=await query.maybeSingle();
+    if(error||!player)return res.status(404).json({error:'Spieler nicht gefunden oder kein Zugriff.'});
+    const tacticalFit=evaluateMessinhoTacticalFit({positions:player.positions||[],performance_metrics:player.ratings||{}},teamProfile);
+    return res.json({player_id:player.player_id,player_name:player.name,formation:teamProfile.formation,role:teamProfile.role,tactical_fit:tacticalFit});
+  }catch(error){console.error('MESSINHO tactical fit failed:',error.message);return res.status(500).json({error:'Taktischer Abgleich konnte nicht abgeschlossen werden.'});}
+});
 app.get('/api/messinho/learning/players',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
