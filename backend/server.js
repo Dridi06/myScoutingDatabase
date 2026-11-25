@@ -18,6 +18,7 @@ const supabaseUrl=process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL;
 const serviceKey=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
 const adminUsername=process.env.ADMIN_USERNAME||'Admin';
 const adminInitialPassword=process.env.ADMIN_INITIAL_PASSWORD;
+const MESSINHO_CALIBRATION_METRIC='Leistungsniveau nach 12 Monaten (0-100)';
 if(!JWT_SECRET||JWT_SECRET.length<32) console.warn('WARNING: Set JWT_SECRET to a random value with at least 32 characters.');
 if(!supabaseUrl) console.error('CONFIG CHECK: SUPABASE_URL is missing or empty.');
 if(!serviceKey) console.error('CONFIG CHECK: SUPABASE_SERVICE_ROLE_KEY is missing or empty.');
@@ -561,9 +562,7 @@ app.post('/api/messinho/calibration',messinhoCalibrationLimiter,async(req,res)=>
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
     const playerId=Number(req.body?.player_id);
-    const metric=typeof req.body?.outcome_metric==='string'?req.body.outcome_metric.trim().slice(0,160):'';
     if(!Number.isSafeInteger(playerId)||playerId<=0)return res.status(400).json({error:'Bitte einen gültigen Spieler auswählen.'});
-    if(metric.length<3)return res.status(400).json({error:'Bitte ein konkretes später überprüfbares Leistungsmerkmal angeben.'});
     let playerQuery=db.from('players').select('player_id,owner_id,name,positions,ratings').eq('player_id',playerId);
     if(actor.profile.role!=='admin')playerQuery=playerQuery.eq('owner_id',actor.user.id);
     const {data:player,error:playerError}=await playerQuery.maybeSingle();
@@ -573,7 +572,7 @@ app.post('/api/messinho/calibration',messinhoCalibrationLimiter,async(req,res)=>
     if(rating.score===null)return res.status(422).json({error:'Für diesen Spieler liegen noch nicht genügend bewertete Leistungsdimensionen vor.'});
     const {data,error}=await db.from('asi_scout_calibration_records').insert({
       player_id:player.player_id,owner_id:player.owner_id,scout_id:actor.user.id,created_by:actor.user.id,
-      scout_rating:rating.score,outcome_metric:metric,verification_status:'pending',
+      scout_rating:rating.score,outcome_metric:MESSINHO_CALIBRATION_METRIC,verification_status:'pending',
       messinho_position_group:rating.position_group,messinho_dimension_scores:dimensions
     }).select('id,player_id,scout_rating,outcome_metric,verification_status,messinho_position_group,created_at').single();
     if(error){console.error('MESSINHO calibration record save failed:',error.message);return res.status(500).json({error:'Kalibrierung konnte nicht gespeichert werden. Staging-Migration prüfen.'});}
@@ -613,7 +612,7 @@ app.post('/api/messinho/learning/evaluate',async(req,res)=>{
     const startedAt=new Date().toISOString();
     const {data:records,error}=await db.from('asi_scout_calibration_records')
       .select('id,player_id,verified_outcome,messinho_position_group,messinho_dimension_scores,created_at')
-      .eq('verification_status','verified').not('verified_outcome','is',null)
+      .eq('verification_status','verified').eq('outcome_metric',MESSINHO_CALIBRATION_METRIC).not('verified_outcome','is',null)
       .not('messinho_position_group','is',null).order('created_at',{ascending:true}).limit(5000);
     if(error)return res.status(500).json({error:'Verifizierte Kalibrierungsdaten konnten nicht geladen werden. Staging-Migration prüfen.'});
     const active=await getActiveMessinhoModel();
@@ -623,7 +622,7 @@ app.post('/api/messinho/learning/evaluate',async(req,res)=>{
     const ids=(records||[]).map(row=>row.id).sort();
     const fingerprint=createHash('sha256').update(ids.join('|')).digest('hex');
     const cutoff=records?.at(-1)?.created_at||startedAt;
-    const trainingConfig={learning_version:proposal.learning_version,engine_version:'1.1.0',source_table:'asi_scout_calibration_records',source_filter:'verification_status=verified',minimum_examples_per_position:30,minimum_unique_players:10};
+    const trainingConfig={learning_version:proposal.learning_version,engine_version:'1.1.0',source_table:'asi_scout_calibration_records',source_filter:'verification_status=verified AND outcome_metric=MESSINHO_CALIBRATION_METRIC',outcome_metric:MESSINHO_CALIBRATION_METRIC,minimum_examples_per_position:30,minimum_unique_players:10};
     if(proposal.status!=='proposal_ready'){
       await db.from('asi_training_runs').insert({model_key:'messinho_position_weights',status:'succeeded',data_cutoff_at:cutoff,dataset_fingerprint:fingerprint,training_config:trainingConfig,evaluation_summary:{status:proposal.status,report:proposal.report,records:trainingRows.length},started_at:startedAt,finished_at:new Date().toISOString(),created_by:actor.user.id});
       return res.json({proposal:{status:proposal.status,report:proposal.report,trained_groups:0},stored:false,message:'Noch nicht genügend verifizierte Ergebnisse oder keine messbare Verbesserung. Es wird kein Modellkandidat angelegt.'});
@@ -640,7 +639,7 @@ app.post('/api/messinho/learning/evaluate',async(req,res)=>{
       model_version_id:model.id,baseline_version_id:active?.id||null,evaluation_name:'MESSINHO verified-outcome holdout evaluation',
       dataset_start:dates[0]?.slice(0,10)||null,dataset_end:dates.at(-1)?.slice(0,10)||null,
       metrics:proposal.report,passed:true,evaluated_by:actor.user.id,
-      notes:'Mindestens 30 verifizierte Kalibrierungen und 10 unterschiedliche Spieler pro Positionsgruppe; 20% Holdout; MAE-Verbesserung mindestens 1 Punkt; Gewichtungsänderung höchstens 0,20.'
+      notes:'Messgröße: Leistungsniveau nach 12 Monaten (0-100). Mindestens 30 verifizierte Kalibrierungen und 10 unterschiedliche Spieler pro Positionsgruppe; 20% Holdout; MAE-Verbesserung mindestens 1 Punkt; Gewichtungsänderung höchstens 0,20.'
     });
     if(evaluationError){await db.from('asi_model_versions').delete().eq('id',model.id);return res.status(500).json({error:'Modellbewertung konnte nicht gespeichert werden.'});}
     const {error:runError}=await db.from('asi_training_runs').insert({
