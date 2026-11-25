@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import { parseMessinhoScoutingRequest, matchesPosition, sourceSupportsRegion } from './messinho-validation.js';
 import { rankMessinhoPlayers, sanitizeMessinhoHistory, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
+import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit } from './messinho-intelligence.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -405,7 +406,7 @@ app.post('/api/asi/player-search',playerSearchLimiter,async(req,res)=>{
           relevance:'Tavily multi-query discovery'
         });
       }
-      const discoverySources=[...sourceMap.values()].slice(0,36);
+      const discoverySources=[...sourceMap.values()].slice(0,36).map(source=>({...source,quality:assessMessinhoSource(source)}));
       if(!discoverySources.length)return res.status(502).json({error:'Die externen Suchquellen lieferten keine verwertbaren Ergebnisse.'});
       const model=process.env.OPENAI_MODEL||'gpt-4.1-mini';
       const discoveryPrompt=`Du bist ASI, ein professioneller, evidenzorientierter Fußball-Scouting-Analyst. Extrahiere bis zu 15 unterschiedliche, möglichst wenig bekannte Nachwuchsspieler aus den gelieferten Suchquellen. Ordne die Spieler nach belegter Eignung für das angeforderte Zielniveau und die Position; gib die am besten belegten und passendsten zuerst aus. Trenne aktuelle Leistungsfähigkeit von Entwicklungspotenzial. Wenn Quellenlage oder Leistungsdaten keine seriöse Rangfolge erlauben, kennzeichne die Unsicherheit statt einen scheinpräzisen Score zu erfinden. Zielalter ${ageMin}-${ageMax}; zulässige Geburtsjahre ${birthYearFrom}-${birthYearTo}. Positionen: ${position||'alle'}. Nationalität: ${nationality||'alle'}. Gesuchter Ligastandort: ${region||'weltweit'}. Zielniveau: ${targetLevel||'nicht festgelegt'}. Nur Spieler aufnehmen, deren aktueller Verein oder aktuelle Liga zum Standort passt, sofern die Quellen dies belegen.
@@ -437,7 +438,10 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
         }):evidence;
         if(region&&!regionEvidence.length)return null;
         const urls=[...new Set(evidence.map(e=>e.source_url))];
-        const sources=discoverySources.filter(s=>regionEvidence.some(e=>e.source_url===s.url)).map(({content,...s})=>s);
+        const candidateSources=discoverySources.filter(s=>regionEvidence.some(e=>e.source_url===s.url));
+        const evidenceAssessment=assessMessinhoEvidence(candidateSources);
+        const tacticalFit=evaluateMessinhoTacticalFit({positions:Array.isArray(player.positions)?player.positions:[],performance_metrics:player.performance_metrics||{}},filters.teamProfile);
+        const sources=candidateSources.map(({content,...s})=>s);
         const normalized=name.normalize('NFKC').toLocaleLowerCase('de');
         if(!name||!birthYear||birthYear<birthYearFrom||birthYear>birthYearTo||!evidence.length||seen.has(normalized))return null;
         if(position&&!matchesPosition(position,player.positions))return null;
@@ -456,6 +460,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
           recommendation:{level,label:player.recommendation?.label||'Prüfung erforderlich',reason:player.recommendation?.reason||'Quellenlage noch zu prüfen.',next_step:player.recommendation?.next_step||'Spielerprofil und aktuelle Leistungsdaten verifizieren.'},
           data_quality:{confidence:player.data_quality?.confidence!==null&&player.data_quality?.confidence!==undefined&&Number.isFinite(Number(player.data_quality.confidence))?Math.max(0,Math.min(1,Number(player.data_quality.confidence))):null,
             limitations:Array.isArray(player.data_quality?.limitations)?player.data_quality.limitations:[]},
+          evidence_assessment:evidenceAssessment,tactical_fit:tacticalFit,
           evidence:regionEvidence.map(e=>({source_url:e.source_url,claim:String(e.claim||'').slice(0,500)})),
           analysis:String(player.analysis||'').slice(0,3000),
           selection_notes:Array.isArray(discovery.selection_notes)?discovery.selection_notes:[],
@@ -501,7 +506,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
     const searchResponse=await fetch('https://api.tavily.com/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:tavilyKey,query:searchTerms,search_depth:'advanced',max_results:10,include_answer:false,include_raw_content:false,topic:'general'})});
     if(!searchResponse.ok){console.error('Tavily search failed:',searchResponse.status);return res.status(502).json({error:'Der externe Suchanbieter ist aktuell nicht erreichbar.'});}
     const searchData=await searchResponse.json();
-    const sources=(searchData.results||[]).map(x=>({title:x.title||'',url:x.url||'',publisher:(()=>{try{return new URL(x.url).hostname}catch{return 'Unbekannt'}})(),published_date:x.published_date||null,content:String(x.content||'').slice(0,1800),relevance:'Suchtreffer'})).filter(x=>x.url.startsWith('http'));
+    const sources=(searchData.results||[]).map(x=>({title:x.title||'',url:x.url||'',publisher:(()=>{try{return new URL(x.url).hostname}catch{return 'Unbekannt'}})(),published_date:x.published_date||null,content:String(x.content||'').slice(0,1800),relevance:'Suchtreffer'})).filter(x=>x.url.startsWith('https://')).map(source=>({...source,quality:assessMessinhoSource(source)}));
     if(!sources.length)return res.status(404).json({error:'Keine verwertbaren Quellen gefunden. Bitte Suchbegriff oder Filter präzisieren.'});
     const model=process.env.OPENAI_MODEL||'gpt-4.1-mini';
     const aiResponse=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+openaiKey},body:JSON.stringify({
@@ -517,7 +522,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
     if(!raw)return res.status(502).json({error:'Die KI hat kein auswertbares Analyseergebnis geliefert.'});
     let analysis;try{analysis=JSON.parse(raw)}catch{return res.status(502).json({error:'Das KI-Ergebnis hatte kein gültiges Datenformat.'});}
     res.set('Cache-Control','no-store');
-    return res.json({analysis,sources:sources.map(({content,...source})=>source),provider:{search:'Tavily',model},researched_at:new Date().toISOString(),health_data_status:'not_enabled_pending_legal_review'});
+    return res.json({analysis,evidence_assessment:assessMessinhoEvidence(sources),sources:sources.map(({content,...source})=>source),provider:{search:'Tavily',model},researched_at:new Date().toISOString(),health_data_status:'not_enabled_pending_legal_review'});
   }catch(error){console.error('ASI player search failed:',error.message);return res.status(500).json({error:'Die KI-Spielersuche ist aufgrund eines Serverfehlers fehlgeschlagen.'});}
 });
 
