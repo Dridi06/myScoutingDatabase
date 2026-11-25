@@ -107,18 +107,25 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   }
   async function approveLearningModel(id){
     setLearningBusy(true);setLearningError('');
-    try{const payload=await learningRequest('/api/messinho/learning/'+encodeURIComponent(id)+'/approve','POST');await loadLearningStatus();setMessages(prev=>[...prev,{id:'approve-'+Date.now(),role:'assistant',text:payload.message||'Modell wurde aktiviert.'}]);}
-    catch(e){setLearningError(e.message||'Modellfreigabe fehlgeschlagen.');}
+    try{
+      const {error}=await supabase.rpc('asi_review_model_candidate',{p_model_version_id:id,p_decision:'approve',p_reason:'MESSINHO-Modell anhand der gespeicherten Holdout-Evaluation geprüft und freigegeben.'});
+      if(error)throw new Error(error.message||'Modellfreigabe fehlgeschlagen.');
+      await loadLearningStatus();
+      setMessages(prev=>[...prev,{id:'approve-'+Date.now(),role:'assistant',text:'Das Modell wurde über die bestehende ASI-Modellverwaltung freigegeben und ist jetzt aktiv.'}]);
+    }catch(e){setLearningError(e.message||'Modellfreigabe fehlgeschlagen.');}
     finally{setLearningBusy(false);}
   }
   async function reviewCalibration(id,decision){
     const draft=calibrationDrafts[id]||{};
     setLearningBusy(true);setLearningError('');
     try{
-      const payload=await learningRequest('/api/messinho/calibration/'+encodeURIComponent(id)+'/review','POST',{
-        decision,reason:draft.reason||'Ergebnis anhand der dokumentierten Quelle geprüft.',
-        verified_outcome:draft.verified_outcome,observed_on:draft.observed_on,source_url:draft.source_url
+      const {error}=await supabase.rpc('asi_review_scout_calibration',{
+        p_record_id:id,p_decision:decision,p_reason:draft.reason||'Ergebnis anhand der dokumentierten Quelle geprüft.',
+        p_verified_outcome:decision==='verify'?Number(draft.verified_outcome):null,
+        p_observed_on:decision==='verify'?draft.observed_on:null,
+        p_source_url:decision==='verify'?draft.source_url:null
       });
+      if(error)throw new Error(error.message||'Kalibrierung konnte nicht geprüft werden.');
       await loadLearningStatus();
       setMessages(prev=>[...prev,{id:'cal-review-'+Date.now(),role:'assistant',text:decision==='verify'?'Kalibrierung wurde verifiziert und kann bei der nächsten Evaluation berücksichtigt werden.':'Kalibrierung wurde abgelehnt und wird nicht zum Lernen verwendet.'}]);
     }catch(e){setLearningError(e.message||'Kalibrierung konnte nicht geprüft werden.');}
