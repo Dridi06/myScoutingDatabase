@@ -653,7 +653,7 @@ app.get('/api/messinho/learning/status',async(req,res)=>{
       pendingCalibrations=(pendingResult.data||[]).map(row=>({...row,player_name:playerMap.get(row.player_id)?.name||'Unbekannter Spieler',positions:playerMap.get(row.player_id)?.positions||[]}));
       proposals=proposalResult.data||[];
     }
-    return res.json({calibration_count:count||0,active_model:active?{id:active.id,version:active.version,metrics:active.metrics}:null,learning_status:active?'approved_model_active':'collecting_verified_outcomes',admin:actor.profile.role==='admin',pending_calibrations:pendingCalibrations,proposals});
+    return res.json({calibration_count:count||0,active_model:active?{id:active.id,version:active.version,metrics:active.metrics,trained:active.metrics?.trained===true,baseline_type:active.metrics?.baseline_type||null}:null,learning_status:active?.metrics?.trained===true?'trained_model_active':active?'deterministic_baseline_active':'collecting_verified_outcomes',admin:actor.profile.role==='admin',pending_calibrations:pendingCalibrations,proposals});
   }catch(error){console.error('MESSINHO learning status failed:',error.message);return res.status(500).json({error:'Lernstatus konnte nicht geladen werden.'});}
 });
 const messinhoLearningLimiter=rateLimit({windowMs:60*60*1000,limit:5,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Lern-Evaluationen. Bitte später erneut versuchen.'}});
@@ -685,7 +685,7 @@ app.post('/api/messinho/learning/evaluate',messinhoLearningLimiter,async(req,res
     const version='1.0.'+Date.now();
     const {data:model,error:modelError}=await db.from('asi_model_versions').insert({
       model_key:'messinho_position_weights',version,model_family:'deterministic_rules',status:'candidate',
-      training_data_cutoff:cutoff,metrics:{records:trainingRows.length,trained_groups:proposal.trained_groups,report:proposal.report},
+      training_data_cutoff:cutoff,metrics:{trained:true,baseline_type:'supervised_calibration',engine_version:'1.1.0',records:trainingRows.length,trained_groups:proposal.trained_groups,report:proposal.report},
       configuration:{profiles:proposal.profiles,learning_version:proposal.learning_version,engine_version:'1.1.0',source:'verified_asi_scout_calibration'}
     }).select('id,version,status,metrics,created_at').single();
     if(modelError)return res.status(500).json({error:'MESSINHO-Modellkandidat konnte nicht gespeichert werden.'});
