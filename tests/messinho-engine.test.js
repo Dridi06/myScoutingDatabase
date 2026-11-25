@@ -37,3 +37,9 @@ test('uses only an approved position profile when one is supplied',()=>{
  assert.equal(base.score,20);
  assert.equal(learned.score,70);
 });
+
+test('normalizes the legacy scout 1-to-5 rating scale to 20-to-100',()=>{
+ const result=scoreMessinhoPlayer({positions:['Stürmer'],ratings:{Technik:4,Taktik:4,Athletik:3,Mental:4}});
+ assert.equal(result.score,75);
+ assert.equal(result.evidence_coverage,100);
+});
