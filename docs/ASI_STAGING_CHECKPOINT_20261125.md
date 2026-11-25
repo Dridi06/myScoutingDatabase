@@ -123,3 +123,14 @@
 - Die Originaleinträge bleiben vollständig in der Beobachtungszeitleiste und Datenbank erhalten. Es werden keine historischen Daten gelöscht oder verändert.
 - Zweck: wiederholte Klicks auf „Beobachtung speichern“ dürfen keine künstliche Entwicklung oder scheinbar unveränderte Messreihe erzeugen.
 - Render-Deployment und iPhone-Browserprüfung stehen noch aus.
+
+
+## Längerfristige Spielerentwicklungsanalyse – 2026-11-25
+- Commit `d9d499a109c3ce3ec325d2e0c38690fda3ff61e3`: Zusätzlicher Bereich „Spielerentwicklung über längere Zeit“ implementiert.
+- Auswertung verlangt mindestens 3 unterschiedliche Bewertungs-Snapshots über mindestens 30 Tage. Identische Snapshots am selben Beobachtungstag werden ausgeschlossen.
+- Pro Kriterium werden erster und letzter gültiger Wert verglichen; fehlende Einzelwerte werden ausgelassen. Angezeigt werden Anzahl gestiegener/gesunkener/stabiler Kriterien, Zahl gleichgerichteter Zwischenverläufe, Beobachtungszeitraum und Messpunktzahl je Kriterium.
+- „Gleichgerichtet“ ist nur eine Beschreibung der tatsächlich gespeicherten Zwischenwerte und keine Aussage über Trainingswirkung oder Prognose.
+- Beobachtungsabruf je Spieler von 20 auf maximal 100 Datensätze erhöht, damit längere Verläufe nicht bereits nach 20 Einträgen abgeschnitten werden.
+- Commit `35a712e4621751b240ca8630d5ce29d6d5bb0a14`: Responsive Darstellung ergänzt.
+- Keine Datenbankänderung, keine künstlichen Daten und keine Änderung vorhandener Beobachtungen. Ausschließlich Staging; Produktion unangetastet.
+- Render-Build/Live-Status und fachlicher UI-Test stehen noch aus.
