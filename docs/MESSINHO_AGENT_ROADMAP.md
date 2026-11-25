@@ -211,3 +211,15 @@ Dieser Stand bleibt Draft auf `feature/messinho-agent-workspace` und Render-Stag
 - Wichtig: Der Katalog ist ein verbindlicher Implementierungsvertrag, keine Behauptung, dass alle 100 Funktionen bereits ausführbar sind. Bereits vorhandene Kernlogik, teilweise vorhandene Logik und noch benötigte Daten-/Provider-Integrationen werden getrennt ausgewiesen.
 - Die neuen Änderungen liegen ausschließlich auf `feature/messinho-agent-workspace). Noch kein Staging-Deploy und keine Produktionsänderung. GitHub Actions müssen den aktuellen Branch-Head vollständig prüfen, bevor ein neuer Staging-Deploy ausgelöst wird.
 - Nächster Umsetzungsschritt: Funktionsgruppen in ausführbare, getestete Backend-Services aufteilen; zunächst Analyse/Bewertung mit echten Spielerdaten, danach Lern- und Rechercheintegrationen mit Quellen-/Datenschutz-Gates.
+
+## 100-Funktionen-Runtime – Umsetzungsstand 25.11.2026
+- Neue Runtime `backend/messinho-capability-runtime.js`: jeder der 100 Katalog-IDs ist einem ausführbaren Handler in Analyse, Bewertung, Lernen oder Recherche zugeordnet.
+- Neue Tests `tests/messinho-capability-runtime.test.js`: 100 eindeutige Handler, sichere Behandlung fehlender Daten, Score-Skala, Marktdaten-Schwellen, Lern-Gates und Quellenregeln.
+- Neue geschützte API: `GET /api/messinho/capabilities` und `POST /api/messinho/capabilities/:capabilityId/execute`.
+- UI: Funktionslabor in `MessinhoWorkspace.jsx`; Auswahl aus allen 100 Fähigkeiten, Spielerbezug, Suchbegriff und Ergebnisdarstellung.
+- Datenzugriff: Spieler wird serverseitig aus der Datenbank geladen und für Scouts auf eigene Datensätze begrenzt. Lern-/Modellfunktionen sind Admin-only; Trainingsdaten werden ausschließlich aus verifizierten Kalibrierungsdatensätzen geladen.
+- Recherche: Talentsuche nutzt die bestehende ASI-Pipeline; weitere Recherchefunktionen nutzen Tavily und serverseitig abgerufene HTTPS-Quellen. Fehlen API-Schlüssel oder Suchkriterien, wird die Ausführung blockiert statt Ergebnisse zu erfinden.
+- Videoanalyse akzeptiert nur lizenzierte/eigene vorverarbeitete Ereignisdaten. Marktwertschätzungen erfordern mindestens drei Vergleichstransaktionen. Fehlende Daten führen zu `insufficient_data`.
+- MESSINHO-Scoring bleibt deterministisch und providerunabhängig; OpenAI ist kein Trainings- oder Bewertungszwang.
+- Grenzen: Die Runtime stellt 100 Handler bereit, aber Funktionen, deren externe Datengrundlage, Datenhistorie oder Lizenznachweise fehlen, liefern bewusst keinen positiven Befund. Echtes Modelltraining bleibt von ausreichenden administrativ verifizierten Outcomes abhängig.
+- Deployment: Änderungen bleiben auf `feature/messinho-agent-workspace`; Produktions-Deploy ist nicht freigegeben. Vor Staging-Deploy müssen die aktuellen CI-Läufe erfolgreich sein.
