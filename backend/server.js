@@ -551,7 +551,7 @@ app.post('/api/messinho/feedback',async(req,res)=>{
     if(candidateError||!candidate)return res.status(404).json({error:'Kandidat nicht gefunden oder kein Zugriff.'});
     const positionRating=rankMessinhoPlayers([{positions:candidate.positions||[],analysis:candidate.analysis||{}}])[0]?.messinho_rating;
     const {data,error}=await db.from('messinho_scout_feedback').insert({
-      player_id:checked.value.player_id||candidate.player_name,
+      player_id:String(candidate.player_name||candidate.id),
       candidate_id:candidate.id,scout_id:actor.user.id,
       position_group:positionRating?.position_group||'default',
       target_score:checked.value.target_score,
