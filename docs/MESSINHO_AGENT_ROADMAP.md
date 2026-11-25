@@ -202,3 +202,12 @@ Dieser Stand bleibt Draft auf `feature/messinho-agent-workspace` und Render-Stag
 
 - Externe Kandidaten werden nicht mehr allein aufgrund einer KI-Aussage übernommen: Name und Geburtsjahr müssen gemeinsam in mindestens einem der tatsächlich gelieferten HTTPS-Belege vorkommen. Nicht belegte Vereins-, Nationalitäts- und Positionsangaben werden nicht in das gespeicherte Spielerprofil übernommen.
 - Die Oberfläche unterscheidet sichtbar zwischen der deterministischen Start-Baseline (nicht trainiert) und einer später administrativ freigegebenen, datenbasiert trainierten Modellversion.
+
+## Erweiterung 25.11.2026 – 100-Funktionen-Katalog
+- Die vier Kompetenzbereiche Analyse, Bewertung, Lernen und Recherche wurden in einem versionierten MESSINHO-Funktionskatalog mit exakt 25 Einträgen pro Bereich abgebildet.
+- Neue Datei: `backend/messinho-capabilities.js`. Jede Funktion besitzt eine stabile ID, eine fachliche Beschreibung, deklarierte Eingabedaten und einen konservativen Implementierungsstatus.
+- Neue authentifizierte Backend-Route: `GET /api/messinho/capabilities`. Admins und freigeschaltete Scouts können den Katalog und den Status einsehen.
+- Tests: `tests/messinho-capabilities.test.js` prüft die vier Bereiche, 100 eindeutige IDs, Pflichtmetadaten und die Status-Summen.
+- Wichtig: Der Katalog ist ein verbindlicher Implementierungsvertrag, keine Behauptung, dass alle 100 Funktionen bereits ausführbar sind. Bereits vorhandene Kernlogik, teilweise vorhandene Logik und noch benötigte Daten-/Provider-Integrationen werden getrennt ausgewiesen.
+- Die neuen Änderungen liegen ausschließlich auf `feature/messinho-agent-workspace). Noch kein Staging-Deploy und keine Produktionsänderung. GitHub Actions müssen den aktuellen Branch-Head vollständig prüfen, bevor ein neuer Staging-Deploy ausgelöst wird.
+- Nächster Umsetzungsschritt: Funktionsgruppen in ausführbare, getestete Backend-Services aufteilen; zunächst Analyse/Bewertung mit echten Spielerdaten, danach Lern- und Rechercheintegrationen mit Quellen-/Datenschutz-Gates.
