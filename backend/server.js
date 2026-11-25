@@ -81,8 +81,12 @@ async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=n
   });
   const probeTable=async(table,select='id')=>{
     if(!db)return {ok:false,detail:'Supabase-Service-Client ist nicht konfiguriert.'};
-    const result=await db.from(table).select(select,{head:true,count:'exact'}).limit(1);
-    return {ok:!result.error,detail:result.error?.message||`${result.count??0} Datensätze erreichbar.`,count:result.count??0};
+    // A real, bounded SELECT is more reliable than HEAD-only count metadata
+    // across PostgREST/proxy configurations. No row contents are returned.
+    const result=await db.from(table).select(select,{count:'exact'}).limit(1);
+    if(result.error)return {ok:false,detail:result.error.message,count:null};
+    const count=Number.isFinite(result.count)?result.count:(result.data?.length??0);
+    return {ok:true,detail:`${count} Datensätze erreichbar.`,count};
   };
   const safe=async(name,category,fn,severity='critical')=>{
     try{const result=await fn();add(name,category,result.ok,result.detail,severity,result.recommendation||'');}
@@ -134,7 +138,11 @@ async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=n
   add('Scout-Account-Endpunkte','Scoutverwaltung',typeof db?.auth?.admin?.createUser==='function','Scout-Erstellung ist serverseitig implementiert.','critical');
 
   // 6. Spielerdatenbank
-  await safe('Spielerdatenbank lesbar','Spielerdatenbank',()=>probeTable('players','id'),'critical');
+  await safe('Spielerdatenbank lesbar','Spielerdatenbank',async()=>{
+    const result=await probeTable('players','id');
+    if(!result.ok)return result;
+    return {...result,detail:`Tabelle players erreichbar; ${result.count} Datensätze vorhanden.`};
+  },'critical');
   add('Spieler-Such- und Verwaltungslogik','Spielerdatenbank',typeof app.get==='function','Backend enthält Spieler-API-Routen.','warning');
 
   // 7. Scouting und Analyse
@@ -163,13 +171,17 @@ async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=n
   await safe('MESSINHO-Lern- und Modellhistorie','MESSINHO',async()=>{
     const [versions,training,evaluations]=await Promise.all(['asi_model_versions','asi_training_runs','asi_model_evaluations'].map(probeTable));
     const failed=[versions,training,evaluations].filter(x=>!x.ok);
-    return {ok:failed.length===0,detail:failed.length?'Nicht erreichbar: '+failed.map(x=>x.detail).join('; '):'Modellversionen, Trainingsläufe und Modellevaluationen sind erreichbar. Keine Trainingsdaten oder aktiven Modellgewichte wurden verändert.'};
+    const proposal=buildMessinhoLearningProposal([],MESSINHO_DEFAULT_WEIGHTS);
+    const learningReady=proposal?.status==='no_proposal'&&proposal?.guardrails?.requires_admin_approval===true;
+    const ok=failed.length===0&&learningReady;
+    return {ok,detail:!learningReady?'MESSINHO-Lernmodul lieferte kein gültiges, freigabepflichtiges Ergebnis.':failed.length?'Nicht erreichbare Tabellen: '+failed.map(x=>x.detail).join('; '):'Modellversionen, Trainingsläufe und Evaluationen sind erreichbar; Lernpipeline liefert bei fehlenden verifizierten Outcomes kontrolliert „no_proposal“. Keine aktiven Gewichte wurden verändert.',recommendation:'Lernpipeline und Tabellenzugriff prüfen; Modelländerungen weiterhin nur nach Holdout-Evaluation und Admin-Freigabe aktivieren.'};
   });
 
   // 9. Externe Schnittstellen
   add('Tavily-Recherche-Key','Externe Schnittstellen',Boolean(process.env.TAVILY_API_KEY),process.env.TAVILY_API_KEY?'Tavily-Key konfiguriert (Wert verborgen).':'TAVILY_API_KEY fehlt.','warning','TAVILY_API_KEY in Render konfigurieren und Deployment abwarten.');
   add('Optionale OpenAI-Anbindung','Externe Schnittstellen',true,process.env.OPENAI_API_KEY?'OpenAI optional konfiguriert (Wert verborgen).':'Nicht konfiguriert; MESSINHO-Kern wird unabhängig getestet.','info');
-  add('SMTP-Konfiguration','Externe Schnittstellen',Boolean(process.env.SMTP_HOST&&process.env.SMTP_USER&&process.env.SMTP_PASS),process.env.SMTP_HOST&&process.env.SMTP_USER&&process.env.SMTP_PASS?'SMTP-Zugangsdaten vorhanden; kein Testmailversand ausgelöst.':'SMTP-Variablen nicht vollständig vorhanden oder anderer Mailanbieter wird verwendet.','warning','SMTP_HOST, SMTP_USER und SMTP_PASS beziehungsweise die tatsächlich verwendete E-Mail-Integration prüfen.');
+  const mailProviderReady=Boolean((process.env.SMTP_HOST&&process.env.SMTP_USER&&process.env.SMTP_PASS)||process.env.RESEND_API_KEY||process.env.EMAIL_PROVIDER==='resend');
+  add('E-Mail-Provider-Konfiguration','Externe Schnittstellen',mailProviderReady,mailProviderReady?'Mindestens eine unterstützte E-Mail-Provider-Konfiguration ist vorhanden; es wurde keine Testmail versendet.':'Keine unterstützte E-Mail-Provider-Konfiguration erkannt.','warning','SMTP_HOST/SMTP_USER/SMTP_PASS oder RESEND_API_KEY beziehungsweise den konfigurierten E-Mail-Provider prüfen.');
 
   // 10. Sicherheit und Datenschutz
   add('HTTP-Sicherheitsheader','Sicherheit und Datenschutz',typeof helmet==='function','Helmet-Sicherheitsmiddleware ist eingebunden.','critical');
