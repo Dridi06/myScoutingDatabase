@@ -59,6 +59,7 @@ function positionGroup(positions = []) {
     aliases.some(alias => values.some(value => value === norm(alias) || value.includes(norm(alias))))
   )?.[0] || 'default';
 }
+export function getMessinhoPositionGroup(positions = []) { return positionGroup(positions); }
 export function scoreMessinhoPlayer(candidate = {}, modelProfiles = null) {
   const analysis = candidate.analysis || candidate;
   const player = analysis.player || candidate;
