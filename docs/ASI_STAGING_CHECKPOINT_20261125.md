@@ -77,3 +77,10 @@
 - Diese zuletzt genannte Änderung ist in GitHub gespeichert; Render-Deployment muss noch auf LIVE geprüft werden.
 - Datenbestand zuletzt: weiterhin 0 ASI-Beobachtungen, Analysen, Feedbacks, Prognosen, Outcomes, Evaluationen und Trainingsläufe. Keine Testdaten wurden erzeugt.
 - Browser-/RLS-Tests mit echten Admin- und Scout-Sitzungen bleiben offen. Ausschließlich Staging, Produktion unangetastet.
+
+
+## Spielerwechsel- und Snapshot-Schutz – 2026-11-25
+- Commit `37278580f108da5a69750cc9dbc85802a630b47c`: Beim Wechsel des ausgewählten Spielers werden vorherige Analyse, Feedback, Fehlermeldung, Historie und Beobachtungsverlauf sofort zurückgesetzt, damit keine Daten des zuvor ausgewählten Spielers im neuen Kontext angezeigt werden.
+- Leere Snapshots ohne gültige Bewertungen werden verhindert. Der Snapshot-Button ist deaktiviert, solange kein gültiger ganzzahliger Ratingwert 1–5 vorliegt; die Funktion prüft dies zusätzlich vor dem Datenbank-Insert.
+- Die Daten bleiben unverändert; keine Testdatensätze eingefügt. Nur Staging.
+- Deploy für diesen Commit steht noch aus und muss auf LIVE geprüft werden.
