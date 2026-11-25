@@ -132,12 +132,17 @@ export function validateMessinhoCandidateEvidence(candidate = {}, evidence = [],
   for (const item of Array.isArray(evidence) ? evidence : []) {
     const source = sourceMap.get(item?.source_url);
     if (!source) continue;
-    const text = normalize([source.title, source.content, item.claim].filter(Boolean).join(' ')).replace(/\s+/g, ' ').trim();
-    const nameMentioned = tokens.length > 1
-      ? tokens.every(token => text.includes(token))
-      : text.includes(name);
-    const yearMentioned = new RegExp('(?:^|\\D)' + birthYear + '(?:\\D|$)').test(text);
-    if (nameMentioned && yearMentioned && source.url?.startsWith('https://')) supported.push(source.url);
+    const fragments = [source.title, source.content, item.claim].filter(Boolean)
+      .flatMap(value => String(value).split(/[\\n.!?;]+/))
+      .map(value => normalize(value).replace(/\s+/g, ' ').trim()).filter(Boolean);
+    const sameFragmentSupportsIdentity = fragments.some(text => {
+      const nameMentioned = tokens.length > 1
+        ? tokens.every(token => text.includes(token))
+        : text.includes(name);
+      const yearMentioned = new RegExp('(?:^|\\D)' + birthYear + '(?:\\D|$)').test(text);
+      return nameMentioned && yearMentioned;
+    });
+    if (sameFragmentSupportsIdentity && source.url?.startsWith('https://')) supported.push(source.url);
   }
   const unique = [...new Set(supported)];
   return {
