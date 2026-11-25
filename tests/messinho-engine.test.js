@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { scoreMessinhoPlayer, rankMessinhoPlayers, sanitizeMessinhoHistory, MESSINHO_ENGINE_VERSION } from '../backend/messinho-engine.js';
+import { scoreMessinhoPlayer, rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFollowUp, MESSINHO_ENGINE_VERSION } from '../backend/messinho-engine.js';
 
 test('scores a centre-back using only supplied position-relevant dimensions',()=>{
  const result=scoreMessinhoPlayer({positions:['Innenverteidiger'],analysis:{ratings:{technical:{score:.8},tactical:{score:.9},athletic:{score:.7},mental:{score:.8}}}});
@@ -42,4 +42,18 @@ test('normalizes the legacy scout 1-to-5 rating scale to 20-to-100',()=>{
  const result=scoreMessinhoPlayer({positions:['Stürmer'],ratings:{Technik:4,Taktik:4,Athletik:3,Mental:4}});
  assert.equal(result.score,75);
  assert.equal(result.evidence_coverage,100);
+});
+
+
+test('routes a pronoun follow-up to the most recent player name',()=>{
+ const history=[{role:'user',text:'Cristiano Ronaldo'},{role:'assistant',text:'Ich habe externe Quellen gefunden.'}];
+ assert.equal(resolveMessinhoPlayerFollowUp('Was kannst du mir über ihn sagen?',history),'Cristiano Ronaldo');
+});
+test('does not treat a general help question as a player follow-up',()=>{
+ const history=[{role:'user',text:'Hallo Messinho'},{role:'assistant',text:'Hallo!'}];
+ assert.equal(resolveMessinhoPlayerFollowUp('Was kannst du?',history),null);
+});
+test('supports a previous explicit player search phrase',()=>{
+ const history=[{role:'user',text:'Suche Spieler Kylian Mbappé'},{role:'assistant',text:'Recherche abgeschlossen.'}];
+ assert.equal(resolveMessinhoPlayerFollowUp('Erzähl mir mehr über ihn.',history),'Kylian Mbappé');
 });
