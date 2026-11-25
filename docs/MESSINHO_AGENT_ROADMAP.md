@@ -153,3 +153,15 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 - Es wurden keine neuen Datenbanktabellen oder Migrationen für diese Erweiterung benötigt.
 - Die Staging-Umgebung benötigt weiterhin die fehlenden Backend-Schlüssel. Ohne sie können Recherche und Authentifizierungs-E2E nicht realistisch getestet werden.
 - Der aktuelle Branch-Head muss nach Abschluss der CI-Prüfung erneut auf Render-Staging bereitgestellt und dort getestet werden.
+
+
+### Umsetzungserweiterung – Quellen, taktischer Abgleich und Performance
+- Die Rechercheantworten liefern pro Quelle eine technische Qualitätskennzeichnung für HTTPS, Domain, Datumsstatus und Aktualitätsfenster. Dies ist ausdrücklich keine automatische Glaubwürdigkeits- oder Lizenzfreigabe.
+- Kandidatenanalysen erhalten eine aggregierte Quellenabdeckung mit Anzahl gültiger Quellen, unterschiedlichen Domains, aktuellen/undatierten/veralteten Quellen und konkreten Einschränkungen.
+- Neuer authentifizierter Endpunkt `POST /api/messinho/tactical-fit`: lädt nur einen für den angemeldeten Scout sichtbaren Spieler (Admin darf projektweit lesen) und vergleicht dessen gespeicherte Werte mit einem vom Verein übergebenen Anforderungsprofil. Rate-Limit: 30 Anfragen pro Stunde.
+- Die MESSINHO-Oberfläche enthält einen kompakten Vereinsprofil-Abgleich mit Formation, Rolle und drei editierbaren Attributanforderungen. Ergebnis, Abdeckung und Grenzen werden sichtbar ausgegeben.
+- Der taktische Score ist ein transparenter Abstand zu vereinsseitig definierten Zielwerten. Er ist kein statistisch validiertes Erfolgsmodell und wird bei weniger als drei echten Attributwerten oder weniger als 50 % Abdeckung nicht numerisch ausgegeben.
+- Quellenmetadaten und taktische Passung werden direkt in der Ergebnisoberfläche sichtbar gemacht.
+- Vite-Build-Konfiguration teilt React, Supabase und Lucide-Icons in separate Vendor-Chunks auf; die tatsächliche Chunk-Größe wird im nächsten Staging-Build geprüft.
+- Die zusätzlichen Tests prüfen HTTPS- und Datumsstatus, Deduplizierung, Domain-Diversität, fehlende Daten, Mindestabdeckung und die bestehende 1–5- bzw. 0–100-Bewertungsskala.
+- Die neue CI-Ausführung für den letzten Zwischenstand `fc66b227` war erfolgreich (MESSINHO validation und ASI quality checks). Die nachfolgenden UI-Erweiterungen werden gerade erneut durch CI geprüft.
