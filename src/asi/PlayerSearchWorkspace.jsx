@@ -1,6 +1,7 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import {Search,BrainCircuit,Save,RefreshCw,ExternalLink,ShieldCheck,AlertTriangle,Star,Users,Activity,Clock3} from 'lucide-react';
 import './playerSearch.css';
+import './marketValue.css';
 
 const pct=n=>n===null||n===undefined||n===''?'Nicht bewertet':Number.isFinite(Number(n))?Math.round(Number(n)*100)+'%':'Nicht bewertet';
 const list=v=>Array.isArray(v)?v:[];
