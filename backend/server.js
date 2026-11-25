@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { createClient } from '@supabase/supabase-js';
 import { parseMessinhoScoutingRequest, matchesPosition, sourceSupportsRegion } from './messinho-validation.js';
+import { correctMessinhoInput } from './messinho-input-correction.js';
 import { rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFollowUp, extractMessinhoPlayerSearchTerm, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
@@ -968,18 +969,21 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved'))return res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});
     const message=typeof req.body?.message==='string'?req.body.message.trim().slice(0,1200):'';
     if(!message)return res.status(400).json({error:'Bitte gib eine Nachricht ein.'});
-    const history=sanitizeMessinhoHistory(req.body?.history);
-    const dialog=parseMessinhoScoutingRequest(message,history);
+    const history=sanitizeMessinhoHistory(req.body?.history).map(item=>item.role==='user'?{...item,text:correctMessinhoInput(item.text).corrected}:item);
+    const correction=correctMessinhoInput(message);
+    const interpretedMessage=correction.corrected;
+    const respond=payload=>res.json({...payload,input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
+    const dialog=parseMessinhoScoutingRequest(interpretedMessage,history);
     const ownerId=authData.user.id;
     const actor={user:authData.user,profile};
-    const normalized=message.toLocaleLowerCase('de-DE').normalize('NFKC');
-    const isPlayerFollowUp=Boolean(resolveMessinhoPlayerFollowUp(message,history));
+    const normalized=interpretedMessage.toLocaleLowerCase('de-DE').normalize('NFKC');
+    const isPlayerFollowUp=Boolean(resolveMessinhoPlayerFollowUp(interpretedMessage,history));
     const help=/\b(hilfe|befehle|funktionen)\b/.test(normalized)||(/\bwas kannst du\b/.test(normalized)&&!isPlayerFollowUp);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
     const wantsComparison=/\b(vergleiche|vergleich|rangliste|ranking|bewerte meine kandidaten)\b/.test(normalized);
     const wantsSummary=/\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\b/.test(normalized);
     if(dialog.shouldHandle){
-      if(dialog.missing.length)return res.json({reply:'Damit ich die Suche sauber eingrenzen kann, brauche ich noch: '+dialog.missing.join(', ')+'.',intent:'scouting_clarification',items:[],pending:true});
+      if(dialog.missing.length)return respond({reply:'Damit ich die Suche sauber eingrenzen kann, brauche ich noch: '+dialog.missing.join(', ')+'.',intent:'scouting_clarification',items:[],pending:true});
       const {quantity,yearFrom,yearTo,position,region,targetLevel}=dialog.request;
       if(dialog.needsTargetLevel)return res.json({reply:'Verstanden. Ich suche '+quantity+' Spieler, Jahrgang '+yearFrom+(yearTo!==yearFrom?' bis '+yearTo:'')+', Position '+position+', Standort '+region+'. Welches Zielniveau soll ich berücksichtigen: Bundesliga, 2. Bundesliga, 3. Liga, Regionalliga oder Oberliga?',intent:'scouting_clarification',items:[],pending:true,request:{quantity,yearFrom,yearTo,position,region}});
       const modelYear=new Date().getFullYear();
@@ -996,7 +1000,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       return res.json({reply,intent:'scouting_results',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null,requested:{quantity,yearFrom,yearTo,position,region,targetLevel},sources:payload.sources||[],source_count:payload.source_count||0,saved_count:payload.saved_count||0,duplicate_count:payload.duplicate_count||0,underfilled:!!payload.underfilled,provider:payload.provider||null,limitations:payload.limitations||[]});
     }
     if(isPlayerFollowUp){
-      const rememberedPlayer=resolveMessinhoPlayerFollowUp(message,history);
+      const rememberedPlayer=resolveMessinhoPlayerFollowUp(interpretedMessage,history);
       const priorResearch=[...history].reverse().find(item=>item.role==='assistant'&&item.researchContext?.sources?.length);
       const context=priorResearch?.researchContext;
       if(!context){
@@ -1004,7 +1008,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       }
       const evidence=(ctx)=> (ctx?.sources||[]).slice(0,10).map(({title,url,publisher,published_date,snippet})=>({title,url,publisher,published_date,snippet}));
       const firstEvidence=evidence(context);
-      const compareMatch=message.match(/\\b(?:mit|gegen|vs\\.?|versus)\\s+([\\p{L}][\\p{L}'’.-]*(?:\\s+[\\p{L}][\\p{L}'’.-]*){0,2})/iu);
+      const compareMatch=interpretedMessage.match(/\\b(?:mit|gegen|vs\\.?|versus)\\s+([\\p{L}][\\p{L}'’.-]*(?:\\s+[\\p{L}][\\p{L}'’.-]*){0,2})/iu);
       const secondName=compareMatch?.[1]?.trim();
       let secondResearch=null;
       if(secondName){
@@ -1059,7 +1063,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       if(error)return res.status(500).json({error:'Deine Kandidaten konnten nicht geladen werden.'});
       return res.json({reply:(data||[]).length?'Ich habe deine zuletzt recherchierten Kandidaten geladen.':'In deinem persönlichen Kandidatenbereich sind noch keine Einträge vorhanden.',intent:'candidates',items:data||[]});
     }
-    const searchTerm=extractMessinhoPlayerSearchTerm(message);
+    const searchTerm=extractMessinhoPlayerSearchTerm(interpretedMessage);
     if(searchTerm){
        const term=searchTerm;
       const safeTerm=term.replace(/[%,_()]/g,' ').trim();
@@ -1080,7 +1084,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
           messages:[
             {role:'system',content:'Du bist MESSINHO, der freundliche, fachkundige und natürliche Gesprächspartner einer professionellen Fußball-Scouting-Plattform. Führe echte Gespräche auf Deutsch: verstehe Nachfragen und Bezüge aus dem Verlauf, antworte direkt, stelle höchstens eine gezielte Rückfrage, wenn sie wirklich nötig ist. Du bist nicht auf starre Befehle beschränkt. Du kannst erklären, beraten, Spielerprofile besprechen und passende Funktionen vorschlagen. WICHTIG: Sprich immer in einfacher, klarer, natürlicher Benutzersprache – unabhängig davon, ob die angemeldete Person Administrator oder Scout ist. Gib in normalen Antworten niemals technische Erklärungen, Programmierdetails, Datenbank- oder API-Begriffe, interne Abläufe, Stacktraces, Modellnamen oder Entwicklerhinweise aus. Erkläre Ergebnisse und Probleme so, dass jeder Fußballnutzer sie sofort versteht, und nenne bei Problemen einen konkreten nächsten Schritt. Interne technische Details gehören ausschließlich in separate, ausdrücklich angeforderte Administrator-Diagnosen, niemals in den normalen Chat. Behaupte niemals, eine Recherche, Datenbankaktion oder Analyse ausgeführt zu haben, wenn dies nicht durch ein Tool/Modul geschehen ist. Erfinde keine Spielerfakten, Statistiken, Quellen oder Datenbankinhalte. Wenn der Nutzer einen konkreten Fußballspieler nennt und Informationen sucht, sage klar, dass du eine belegte Recherche benötigst, statt zu raten. Halte MESSINHOs eigene Bewertungs- und Lernlogik unabhängig von OpenAI.'},
             ...conversationalContext,
-            {role:'user',content:message}
+            {role:'user',content:interpretedMessage}
           ]
         })});
         if(chatResponse.ok){
