@@ -8,7 +8,8 @@ const MIN_EXAMPLES=30;
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const normalizedKey=value=>String(value??'').normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[ä]/g,'a').replace(/[ö]/g,'o').replace(/[ü]/g,'u').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,' ').trim();
 function scaleRating(value){
- const n=Number(value);
+ const raw=value&&typeof value==='object'?(value.score??value.value):value;
+ const n=Number(raw);
  if(!Number.isFinite(n)||n<0)return null;
  return n<=5?n*20:clamp(n,0,100);
 }
@@ -52,8 +53,22 @@ function mae(rows,weights){
  const errors=rows.map(row=>{const p=predict(row.vector,weights);return p===null?null:Math.abs(p-row.target);}).filter(v=>v!==null);
  return errors.length?errors.reduce((a,b)=>a+b,0)/errors.length:null;
 }
+function projectWeights(values,baseline,maxShift=.20){
+ const lower=baseline.map(value=>Math.max(.02,value-maxShift));
+ const upper=baseline.map(value=>Math.min(.70,value+maxShift));
+ const projected=values.map((value,index)=>clamp(value,lower[index],upper[index]));
+ for(let iteration=0;iteration<24;iteration++){
+  const difference=1-projected.reduce((sum,value)=>sum+value,0);
+  if(Math.abs(difference)<1e-10)break;
+  const active=projected.map((value,index)=>({value,index})).filter(({value,index})=>difference>0?value<upper[index]-1e-12:value>lower[index]+1e-12);
+  if(!active.length)break;
+  const share=difference/active.length;
+  for(const {index} of active)projected[index]=clamp(projected[index]+share,lower[index],upper[index]);
+ }
+ return projected;
+}
 function trainWeights(rows,keys,baseline){
- let weights=keys.map(key=>baseline[key]||0);const total=weights.reduce((a,b)=>a+b,0)||1;weights=weights.map(v=>v/total);
+ let weights=baseline.slice();
  const rate=.000015;
  for(let step=0;step<12000;step++){
   const grad=weights.map(()=>0);let count=0;
@@ -64,8 +79,7 @@ function trainWeights(rows,keys,baseline){
    row.vector.forEach((value,i)=>{if(value!==null)grad[i]+=2*error*(value-pred)/denominator;});
   }
   if(!count)break;
-  weights=weights.map((w,i)=>clamp(w-rate*grad[i]/count,.02,.70));
-  const sum=weights.reduce((a,b)=>a+b,0);weights=weights.map(v=>v/sum);
+  weights=projectWeights(weights.map((w,i)=>w-rate*grad[i]/count),baseline);
  }
  return Object.fromEntries(keys.map((key,i)=>[key,Number(weights[i].toFixed(4))]));
 }
@@ -88,7 +102,7 @@ export function buildMessinhoLearningProposal(calibrationRows,baselineProfiles,o
   const heldoutIds=new Set([...uniquePlayers].filter((_,i)=>i%5===0));
   const train=rows.filter(row=>!heldoutIds.has(row.player_id));
   const validation=rows.filter(row=>heldoutIds.has(row.player_id));
-  if(train.length<minExamples-5||validation.length<5){report[group]={status:'insufficient_validation_data',examples:rows.length,validation_examples:validation.length};continue;}
+  if(train.length<Math.ceil(minExamples*.8)||validation.length<5){report[group]={status:'insufficient_validation_data',examples:rows.length,validation_examples:validation.length};continue;}
   const proposed=trainWeights(train,keys,base),baseArray=keys.map(k=>base[k]),nextArray=keys.map(k=>proposed[k]);
   const before=mae(validation,baseArray),after=mae(validation,nextArray);
   const maxShift=Math.max(...keys.map(k=>Math.abs(proposed[k]-base[k])));
