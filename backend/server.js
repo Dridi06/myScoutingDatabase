@@ -569,7 +569,13 @@ app.get('/api/messinho/learning/status',async(req,res)=>{
     if(actor.profile.role!=='admin')countQuery=countQuery.eq('scout_id',actor.user.id);
     const [{count,error},active]=await Promise.all([countQuery,getActiveMessinhoModel()]);
     if(error)return res.status(500).json({error:'Lernstatus konnte nicht geladen werden. Staging-Migration prüfen.'});
-    return res.json({feedback_count:count||0,active_model:active?{version:active.version,activated:true}:null,learning_status:active?'approved_model_active':'collecting_feedback',admin:actor.profile.role==='admin'});
+    let proposals=[];
+    if(actor.profile.role==='admin'){
+      const {data:pending,error:pendingError}=await db.from('messinho_model_versions').select('id,version,status,evaluation,created_at').eq('status','proposed').order('created_at',{ascending:false}).limit(20);
+      if(pendingError)return res.status(500).json({error:'Modellvorschläge konnten nicht geladen werden. Staging-Migration prüfen.'});
+      proposals=pending||[];
+    }
+    return res.json({feedback_count:count||0,active_model:active?{id:active.id,version:active.version,activated:true}:null,learning_status:active?'approved_model_active':'collecting_feedback',admin:actor.profile.role==='admin',proposals});
   }catch(error){return res.status(500).json({error:'Lernstatus konnte nicht geladen werden.'});}
 });
 app.post('/api/messinho/learning/evaluate',async(req,res)=>{
