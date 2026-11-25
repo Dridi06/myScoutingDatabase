@@ -461,7 +461,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
         };
         return {name,birthYear,nationality:player.nationality||null,currentClub:player.current_club||null,
           positions:Array.isArray(player.positions)?player.positions.slice(0,6):[],identityConfidence,analysis,sources};
-      }).filter(Boolean).slice(0,15);
+      }).filter(Boolean).sort((a,b)=>(b.analysis.fit_score??-1)-(a.analysis.fit_score??-1)).slice(0,Math.max(1,Math.min(15,Number(filters.limit)||15)));
       if(!candidates.length)return res.status(422).json({error:'Die KI konnte keine 18- bis 23-jährigen Spieler mit konkretem Quellenbeleg und bestätigbarem Geburtsjahr identifizieren. Es wurden keine Kandidaten gespeichert.',sourceCount:discoverySources.length});
       const [existingCandidates,existingPlayers]=await Promise.all([
         db.from('asi_player_candidates').select('player_name').eq('owner_id',profile.id).limit(2000),
@@ -491,7 +491,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
         source_count:discoverySources.length,sources:discoverySources.map(({content,...s})=>s),
         saved_count:savedRows.length,duplicate_count:duplicateCount,provider:{search:'Tavily multi-query',analysis:'OpenAI',model},
         selection_notes:discovery.selection_notes||[],limitations:discovery.limitations||[],
-        underfilled:returnedCandidates.length<15,researched_at:new Date().toISOString(),health_data_status:'not_enabled_pending_legal_review'});
+        underfilled:returnedCandidates.length<Math.max(1,Math.min(15,Number(filters.limit)||15)),researched_at:new Date().toISOString(),health_data_status:'not_enabled_pending_legal_review'});
     }
 
     if(query.length<2||query.length>180)return res.status(400).json({error:'Bitte einen Suchbegriff mit 2 bis 180 Zeichen eingeben.'});
