@@ -11,7 +11,7 @@ const PHRASE_CORRECTIONS = [
 const VOCABULARY = [
   'suche','such','finde','zeige','spieler','spielerin','stürmer','mittelstürmer',
   'innenverteidiger','linksverteidiger','rechtsverteidiger','torwart','flügelspieler',
-  'schnell','schnelligkeit','abschluss','abschließen','abschlussschwach','technik',
+  'schnell','schnellen','schneller','schnelle','schnelligkeit','abschluss','abschließen','abschlussschwach','technik',
   'dribbling','passspiel','passgenauigkeit','kopfball','zweikampf','ausdauer',
   'potential','potenzial','talent','kandidat','kandidaten','vergleich','vergleiche',
   'rangliste','bewertung','bewerte','scouting','recherchiere','jahrgang','geburtsjahrgang',
