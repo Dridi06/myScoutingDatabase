@@ -9,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import { parseMessinhoScoutingRequest, matchesPosition, sourceSupportsRegion } from './messinho-validation.js';
 import { rankMessinhoPlayers, sanitizeMessinhoHistory, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
-import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported } from './messinho-intelligence.js';
+import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
 
 const app=express();
@@ -470,7 +470,8 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
         if(position&&!matchesPosition(position,supportedPositions))return null;
         const supportedClub=messinhoValueSupported(player.current_club,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence)?player.current_club:null;
         const supportedNationality=messinhoValueSupported(player.nationality,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence)?player.nationality:null;
-        const tacticalFit=evaluateMessinhoTacticalFit({positions:supportedPositions,performance_metrics:player.performance_metrics||{}},filters.teamProfile);
+        const verifiedMetrics=Object.fromEntries(Object.entries(player.performance_metrics&&typeof player.performance_metrics==='object'?player.performance_metrics:{}).filter(([metric,value])=>messinhoMetricSupported(metric,value,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence)));
+        const tacticalFit=evaluateMessinhoTacticalFit({positions:supportedPositions,performance_metrics:verifiedMetrics},filters.teamProfile);
         const sources=candidateSources.map(({content,...s})=>s);
         const normalized=name.normalize('NFKC').toLocaleLowerCase('de');
         if(!name||!birthYear||birthYear<birthYearFrom||birthYear>birthYearTo||!verifiedEvidence.length||seen.has(normalized))return null;
@@ -481,8 +482,8 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
           method:'asi_multi_source_discovery_v1',researched_at:new Date().toISOString(),
           player:{name,birth_year:birthYear,nationality:supportedNationality||null,current_club:supportedClub||null,
             positions:supportedPositions.slice(0,6),identity_confidence:identityConfidence},
-          performance_metrics:player.performance_metrics&&typeof player.performance_metrics==='object'?player.performance_metrics:{},
-          fit_score:player.fit_score!==null&&player.fit_score!==undefined&&Number.isFinite(Number(player.fit_score))?Math.max(0,Math.min(100,Number(player.fit_score))):null,
+          performance_metrics:verifiedMetrics,
+          fit_score:null,
           level_fit_reason:String(player.level_fit_reason||'').slice(0,1000),
           strengths:Array.isArray(player.strengths)?player.strengths.slice(0,8):[],
           development_areas:Array.isArray(player.development_areas)?player.development_areas.slice(0,8):[],
