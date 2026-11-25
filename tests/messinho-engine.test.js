@@ -26,6 +26,6 @@ test('ranking places scored players before unscored players',()=>{
 test('history sanitizer limits, validates roles and truncates text',()=>{
  const history=[{role:'system',text:'no'},...Array.from({length:12},(_,i)=>({role:i%2?'assistant':'user',text:String(i)})),{role:'user',text:'x'.repeat(1300)}];
  const safe=sanitizeMessinhoHistory(history);
- assert.equal(safe.length,10);assert.equal(safe[0].text.length,1200);assert.ok(safe.every(x=>['user','assistant'].includes(x.role)));
+ assert.equal(safe.length,10);assert.equal(safe.at(-1).text.length,1200);assert.ok(safe.every(x=>['user','assistant'].includes(x.role)));
  assert.deepEqual(sanitizeMessinhoHistory({bad:true}),[]);
 });
