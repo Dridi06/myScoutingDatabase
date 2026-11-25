@@ -9,7 +9,7 @@ const SECTIONS={
   Mentalität:['Einstellung','Führungsspieler','Kommunikation','Risikofreude','Positive Körpersprache','Teamplayer','Spieleinfluss','Disziplin/Konzentration']
 };
 const MODEL_VERSION='player_snapshot_baseline@0.1.0';
-const safeNumber=v=>Number.isFinite(Number(v))?Number(v):null;
+const safeNumber=v=>v===null||v===undefined||String(v).trim()===''?null:(Number.isFinite(Number(v))?Number(v):null);
 const containsPrivateContact=value=>/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})|(?:\+?\d[\d\s()./-]{7,}\d)/i.test(String(value||''));
 function buildSnapshot(player){
  const ratings=player.ratings&&typeof player.ratings==='object'?player.ratings:{};
@@ -70,7 +70,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
      const observationRows=obs.error?[]:(obs.data||[]);
      const predictionRows=preds.error?[]:(preds.data||[]);
      const outcomeRows=outcomes.error?[]:(outcomes.data||[]);
-     const matched=outcomeRows.map(o=>({outcome:o,prediction:predictionRows.find(p=>p.id===o.prediction_id)})).filter(x=>x.prediction&&x.prediction.target_metric===x.outcome.observed_metric&&Number.isFinite(Number(x.prediction.predicted_value))&&Number.isFinite(Number(x.outcome.observed_value)));
+     const matched=outcomeRows.map(o=>({outcome:o,prediction:predictionRows.find(p=>p.id===o.prediction_id)})).filter(x=>x.prediction&&x.prediction.target_metric===x.outcome.observed_metric&&x.prediction.predicted_value!==null&&x.prediction.predicted_value!==undefined&&x.outcome.observed_value!==null&&x.outcome.observed_value!==undefined&&Number.isFinite(Number(x.prediction.predicted_value))&&Number.isFinite(Number(x.outcome.observed_value)));
      const mae=matched.length?matched.reduce((sum,x)=>sum+Math.abs(Number(x.prediction.predicted_value)-Number(x.outcome.observed_value)),0)/matched.length:null;
      const byPlayer=new Map();
      observationRows.forEach(o=>{const dates=byPlayer.get(o.player_id)||[];dates.push(new Date(o.observed_on+'T00:00:00Z').getTime());byPlayer.set(o.player_id,dates);});
