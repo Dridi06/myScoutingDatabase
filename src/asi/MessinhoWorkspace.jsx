@@ -45,7 +45,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{}}){
     try{
       const {data:{session}}=await supabase.auth.getSession();
       if(!session?.access_token)throw new Error('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
-      const response=await fetch('/api/agent/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({message:value})});
+      const response=await fetch('/api/agent/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({message:value,history:messages.map(m=>({role:m.role,text:m.text})).slice(-10)})});
       const payload=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(payload.error||'Messinho konnte nicht antworten.');
       const next={id:'a-'+Date.now(),role:'assistant',text:payload.reply||'Ich habe die Anfrage verarbeitet.',intent:payload.intent,items:Array.isArray(payload.items)?payload.items:[],metrics:payload.metrics||null};
@@ -62,7 +62,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{}}){
   }
   function renderItems(items){
     if(!items?.length)return null;
-    return <div className="messinho-results">{items.map((item,index)=><article key={String(item.id||index)} className="messinho-result-row"><div className="messinho-result-icon"><Users size={16}/></div><div className="messinho-result-copy"><strong>{item.name||item.player_name||'Unbenannter Eintrag'}</strong><span>{[item.club||item.current_club,item.year||item.birth_year,item.positions?.join(', '),item.kind,item.recommendation].filter(Boolean).join(' · ')}</span></div></article>)}</div>;
+    return <div className="messinho-results">{items.map((item,index)=><article key={String(item.id||item.name||index)} className="messinho-result-row"><div className="messinho-result-icon"><Users size={16}/></div><div className="messinho-result-copy"><strong>{index+1}. {item.name||item.player_name||'Unbenannter Eintrag'}</strong><span>{[item.club||item.current_club||item.currentClub,item.year||item.birth_year||item.birthYear,item.positions?.join(', '),item.kind,item.analysis?.recommendation?.label||item.recommendation?.label||item.recommendation].filter(Boolean).join(' · ')}</span>{item.analysis?.analysis&&<small>{item.analysis.analysis}</small>}{item.sources?.map(source=><a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.publisher||source.title||'Quelle öffnen'}</a>)}</div></article>)}</div>;
   }
   return <div className="messinho-workspace">
     <header className="messinho-hero"><div className="messinho-emblem"><BrainCircuit size={29}/></div><div className="messinho-hero-copy"><span>MYSCOUTINGDATABASE · KI-ASSISTENT</span><h1>Messinho</h1><p>Dein persönlicher Scouting-Agent</p></div><div className="messinho-status"><i/> Modul geladen</div></header>
