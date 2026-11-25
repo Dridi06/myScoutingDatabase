@@ -898,12 +898,12 @@ app.get('/api/messinho/development/audit',async(req,res)=>{
     const {data:predictions,error}=await predictionsQuery;
     if(error)return res.status(500).json({error:'Prognosen konnten nicht geladen werden.'});
     const ids=(predictions||[]).map(row=>row.id);
-    const {data:outcomes,outcomesError}=ids.length?await db.from('asi_prediction_outcomes').select('id,prediction_id,observed_value,observed_on,verification_status,verification_source_url').in('prediction_id',ids):{data:[],error:null};
+    const {data:outcomes,error:outcomesError}=ids.length?await db.from('asi_prediction_outcomes').select('id,prediction_id,observed_value,observed_on,verification_status,verification_source_url').in('prediction_id',ids):{data:[],error:null};
     if(outcomesError)return res.status(500).json({error:'Ergebnisse konnten nicht geladen werden.'});
     const byPrediction=new Map((outcomes||[]).map(row=>[row.prediction_id,row]));
     const pairs=(predictions||[]).map(row=>({prediction_id:row.id,player_id:row.player_id,predicted_value:row.predicted_value,observed_value:byPrediction.get(row.id)?.observed_value,verification_status:byPrediction.get(row.id)?.verification_status||'pending',model_version:row.model_version,created_at:row.created_at}));
     const audit=auditMessinhoPredictions(pairs);
-    return res.json({ok:true,audit,predictions:predictions||[],pending_outcomes:(outcomes||[]).filter(row=>row.verification_status==='pending').length});
+    return res.json({ok:true,audit,predictions:predictions||[],outcomes:outcomes||[],pending_outcomes:(outcomes||[]).filter(row=>row.verification_status==='pending').length});
   }catch(error){console.error('MESSINHO prediction audit failed:',error.message);return res.status(500).json({error:'Prognosekontrolle konnte nicht geladen werden.'});}
 });
 app.post('/api/messinho/development/hypotheses',messinhoDevelopmentLimiter,async(req,res)=>{
