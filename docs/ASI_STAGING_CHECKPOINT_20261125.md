@@ -104,3 +104,14 @@
 - Vorhandene Beobachtungen werden nicht verändert oder gelöscht. Die sechs vom Nutzer bestätigten wiederholten Einträge bleiben erhalten.
 - Keine Schemaänderung. Ausschließlich Staging; Produktion unangetastet.
 - Render-Deployment muss noch als LIVE bestätigt und anschließend im Browser getestet werden.
+
+
+## Automatische ASI-Historisierung bei Spielerbearbeitung – 2026-11-25
+- Commit `183480884a45a9da4ff3f4507be0e016088782dd`: Beim Speichern eines bestehenden Spielerprofils werden geänderte, gültige Ratings (1–5) erkannt und zusätzlich als ASI-Beobachtung gespeichert.
+- Die Historisierung erfolgt nur, wenn sich der normalisierte Rating-Snapshot gegenüber dem geladenen Profil tatsächlich geändert hat und mindestens ein gültiges Rating vorhanden ist.
+- Vor dem Insert wird geprüft, ob derselbe normalisierte Snapshot für denselben Spieler und Beobachtungstag bereits existiert. Identische Einträge werden nicht dupliziert.
+- Beobachtungsdatum stammt aus dem Spielerprofil (`observed_on`), ersatzweise vom aktuellen Datum. Der Scout/Admin wird als `created_by` gespeichert; Eigentümerzuordnung bleibt beim Spieler.
+- Neue Spieler werden von dieser Änderung nicht automatisch historisiert; nur Änderungen an bestehenden Profilen. Das vermeidet unklare Erstaufnahme-Duplikate.
+- Bei Fehlern der ASI-Historisierung bleibt die bereits erfolgreiche Spielerspeicherung bestehen; die Meldung weist ausdrücklich auf die fehlende automatische Beobachtung hin.
+- Keine Migration und keine Veränderung vorhandener Datensätze. Ausschließlich Staging; Produktion unangetastet.
+- Deployment und Prüfung mit Admin-/Scout-Sitzungen stehen aus.
