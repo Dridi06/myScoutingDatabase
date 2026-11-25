@@ -6,6 +6,7 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { createClient } from '@supabase/supabase-js';
+import { estimateMarketValue } from './asi/marketValueEngine.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -383,6 +384,43 @@ app.post('/api/asi/player-search',playerSearchLimiter,async(req,res)=>{
     res.set('Cache-Control','no-store');
     return res.json({analysis,sources:sources.map(({content,...source})=>source),provider:{search:'Tavily',model},researched_at:new Date().toISOString(),health_data_status:'not_enabled_pending_legal_review'});
   }catch(error){console.error('ASI player search failed:',error.message);return res.status(500).json({error:'Die KI-Spielersuche ist aufgrund eines Serverfehlers fehlgeschlagen.'});}
+});
+
+
+const marketValueLimiter=rateLimit({windowMs:60*60*1000,limit:30,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Marktwertberechnungen. Bitte später erneut versuchen.'}});
+app.post('/api/asi/market-value/estimate',marketValueLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+    if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
+    const {data:authData,error:authError}=await db.auth.getUser(token);
+    if(authError||!authData?.user)return res.status(401).json({error:'Sitzung ungültig oder abgelaufen.'});
+    const {data:profile,error:profileError}=await db.from('profiles').select('id,role,approved,approval_status').eq('id',authData.user.id).maybeSingle();
+    if(profileError||!profile||!['admin','scout'].includes(profile.role))return res.status(403).json({error:'Keine Berechtigung für die Marktwertberechnung.'});
+    if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved'))return res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});
+    const player=req.body?.player&&typeof req.body.player==='object'?req.body.player:{};
+    const supplied=Array.isArray(req.body?.comparables)?req.body.comparables:[];
+    if(supplied.length>50)return res.status(400).json({error:'Maximal 50 Vergleichstransaktionen erlaubt.'});
+    const sourceNames=[...new Set(supplied.map(item=>String(item?.sourceName||'').trim()).filter(Boolean))];
+    let approvedSources=[];
+    if(sourceNames.length){
+      const {data,error}=await db.from('asi_external_sources').select('source_name,license_status,permitted_purposes,metadata').in('source_name',sourceNames);
+      if(error)throw error;
+      approvedSources=(data||[]).filter(source=>{
+        const metadata=source.metadata||{};
+        const expiry=metadata.expires_at?Date.parse(metadata.expires_at):null;
+        return source.license_status==='approved_public'&&
+          Array.isArray(source.permitted_purposes)&&source.permitted_purposes.includes('market_value')&&
+          metadata.commercial_use===true&&metadata.storage_allowed===true&&
+          (!expiry||expiry>Date.now());
+      });
+    }
+    const approvedNames=new Set(approvedSources.map(source=>source.source_name));
+    const comparables=supplied.map(item=>({...item,verified:approvedNames.has(String(item?.sourceName||'').trim())}));
+    const result=estimateMarketValue({player,comparables});
+    res.set('Cache-Control','no-store');
+    return res.json({valuation:result,valuationDate:new Date().toISOString(),benchmark:{provider:'Transfermarkt',status:'disabled_no_verified_license'},sourceGate:{approvedSources:approvedNames.size,requiredPurpose:'market_value',commercialUse:true,storageAllowed:true},persistence:'not_persisted'});
+  }catch(error){console.error('ASI market value estimate failed:',error.message);return res.status(500).json({error:'Die Marktwertberechnung ist fehlgeschlagen.'});}
 });
 
 app.use(express.static('dist',{maxAge:'1h',setHeaders(res,path){if(path.endsWith('/index.html'))res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');}}));
