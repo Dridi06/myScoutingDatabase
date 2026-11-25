@@ -431,7 +431,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
         if(position&&!JSON.stringify(player.positions||[]).toLocaleLowerCase('de').includes(position.toLocaleLowerCase('de')))return null;
         seen.add(normalized);
         const level=['priority','watchlist','review','reject'].includes(player.recommendation?.level)?player.recommendation.level:'review';
-        const identityConfidence=Number.isFinite(Number(player.identity_confidence))?Math.max(0,Math.min(1,Number(player.identity_confidence))):null;
+        const identityConfidence=player.identity_confidence!==null&&player.identity_confidence!==undefined&&Number.isFinite(Number(player.identity_confidence))?Math.max(0,Math.min(1,Number(player.identity_confidence))):null;
         const analysis={
           method:'asi_multi_source_discovery_v1',researched_at:new Date().toISOString(),
           player:{name,birth_year:birthYear,nationality:player.nationality||null,current_club:player.current_club||null,
@@ -440,7 +440,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
           strengths:Array.isArray(player.strengths)?player.strengths.slice(0,8):[],
           development_areas:Array.isArray(player.development_areas)?player.development_areas.slice(0,8):[],
           recommendation:{level,label:player.recommendation?.label||'Prüfung erforderlich',reason:player.recommendation?.reason||'Quellenlage noch zu prüfen.',next_step:player.recommendation?.next_step||'Spielerprofil und aktuelle Leistungsdaten verifizieren.'},
-          data_quality:{confidence:Number.isFinite(Number(player.data_quality?.confidence))?Math.max(0,Math.min(1,Number(player.data_quality.confidence))):null,
+          data_quality:{confidence:player.data_quality?.confidence!==null&&player.data_quality?.confidence!==undefined&&Number.isFinite(Number(player.data_quality.confidence))?Math.max(0,Math.min(1,Number(player.data_quality.confidence))):null,
             limitations:Array.isArray(player.data_quality?.limitations)?player.data_quality.limitations:[]},
           evidence:evidence.map(e=>({source_url:e.source_url,claim:String(e.claim||'').slice(0,500)})),
           analysis:String(player.analysis||'').slice(0,3000),
