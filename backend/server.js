@@ -535,7 +535,7 @@ function createMessinhoUserClient(token){
   return createClient(supabaseUrl,publicKey,{auth:{autoRefreshToken:false,persistSession:false,detectSessionInUrl:false},global:{headers:{Authorization:'Bearer '+token,'X-Client-Info':'messinho-user-review'}}});
 }
 async function messinhoAuthenticatedUser(req,res){
-  const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+  const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
   if(!token){res.status(401).json({error:'Anmeldung erforderlich.'});return null;}
   const {data,error}=await db.auth.getUser(token);
   if(error||!data?.user){res.status(401).json({error:'Sitzung ungültig oder abgelaufen.'});return null;}
