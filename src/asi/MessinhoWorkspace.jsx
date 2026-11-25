@@ -16,6 +16,8 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   const [voiceOutput,setVoiceOutput]=useState(true);
   const [voiceAvailable,setVoiceAvailable]=useState(false);
   const [error,setError]=useState('');
+  const [feedbackDrafts,setFeedbackDrafts]=useState({});
+  const [feedbackBusy,setFeedbackBusy]=useState('');
   const endRef=useRef(null);
   const recognitionRef=useRef(null);
   useEffect(()=>{
@@ -61,9 +63,31 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     setError('');
     try{recognition.start();setListening(true);}catch{setListening(false);setError('Das Mikrofon konnte nicht gestartet werden. Bitte prüfe die Browserberechtigung.');}
   }
+
+  async function submitFeedback(item){
+    const id=String(item?.id||'');
+    const draft=feedbackDrafts[id]||{};
+    const dimensionScores=Object.fromEntries(['technical','tactical','athletic','mental','goalkeeping'].filter(key=>draft[key]!==undefined&&draft[key]!=='' ).map(key=>[key,Number(draft[key])]));
+    if(!id){setError('Für diesen Eintrag fehlt eine gespeicherte Kandidaten-ID.');return;}
+    if(dimensionScores && Object.keys(dimensionScores).length<2){setError('Bitte mindestens zwei Leistungsdimensionen bewerten.');return;}
+    if(draft.target_score===''||draft.target_score===undefined||!Number.isFinite(Number(draft.target_score))){setError('Bitte eine Gesamtbewertung zwischen 0 und 100 angeben.');return;}
+    setFeedbackBusy(id);setError('');
+    try{
+      const {data:{session}}=await supabase.auth.getSession();
+      if(!session?.access_token)throw new Error('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
+      const response=await fetch('/api/messinho/feedback',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({candidate_id:id,player_id:String(item.player_id||item.name||item.player_name||id),target_score:Number(draft.target_score),dimension_scores:dimensionScores,comment:draft.comment||''})});
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(payload.error||'Feedback konnte nicht gespeichert werden.');
+      setFeedbackDrafts(prev=>({...prev,[id]:{}}));
+      setMessages(prev=>[...prev,{id:'feedback-'+Date.now(),role:'assistant',text:'Danke. Deine Bewertung wurde als Scout-Feedback gespeichert. Sie fließt erst nach ausreichender Datenmenge in eine geprüfte Modell-Evaluation ein.'}]);
+    }catch(e){setError(e.message||'Feedback konnte nicht gespeichert werden.');}
+    finally{setFeedbackBusy('');}
+  }
+  function setFeedbackValue(id,key,value){setFeedbackDrafts(prev=>({...prev,[id]:{...(prev[id]||{}),[key]:value}}));}
+
   function renderItems(items){
     if(!items?.length)return null;
-    return <div className="messinho-results">{items.map((item,index)=><article key={String(item.id||item.name||index)} className="messinho-result-row"><div className="messinho-result-icon"><Users size={16}/></div><div className="messinho-result-copy"><strong>{index+1}. {item.name||item.player_name||'Unbenannter Eintrag'}</strong><span>{[item.club||item.current_club||item.currentClub,item.year||item.birth_year||item.birthYear,item.positions?.join(', '),item.analysis?.fit_score!==null&&item.analysis?.fit_score!==undefined?'Fit '+item.analysis.fit_score+'/100':null,item.kind,item.analysis?.recommendation?.label||item.recommendation?.label||item.recommendation].filter(Boolean).join(' · ')}</span>{item.messinho_rating&&<small>{item.messinho_rating.score===null?'MESSINHO-Score: nicht ausreichend belegt':'MESSINHO-Score: '+item.messinho_rating.score+'/100'} · Datenabdeckung {item.messinho_rating.evidence_coverage}% · {item.messinho_rating.confidence}</small>}{item.analysis?.analysis&&<small>{item.analysis.analysis}</small>}{item.sources?.map(source=><a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.publisher||source.title||'Quelle öffnen'}</a>)}</div></article>)}</div>;
+    return <div className="messinho-results">{items.map((item,index)=><article key={String(item.id||item.name||index)} className="messinho-result-row"><div className="messinho-result-icon"><Users size={16}/></div><div className="messinho-result-copy"><strong>{index+1}. {item.name||item.player_name||'Unbenannter Eintrag'}</strong><span>{[item.club||item.current_club||item.currentClub,item.year||item.birth_year||item.birthYear,item.positions?.join(', '),item.analysis?.fit_score!==null&&item.analysis?.fit_score!==undefined?'Fit '+item.analysis.fit_score+'/100':null,item.kind,item.analysis?.recommendation?.label||item.recommendation?.label||item.recommendation].filter(Boolean).join(' · ')}</span>{item.messinho_rating&&<small>{item.messinho_rating.score===null?'MESSINHO-Score: nicht ausreichend belegt':'MESSINHO-Score: '+item.messinho_rating.score+'/100'} · Datenabdeckung {item.messinho_rating.evidence_coverage}% · {item.messinho_rating.confidence}</small>}{item.analysis?.analysis&&<small>{item.analysis.analysis}</small>}{item.sources?.map(source=><a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.publisher||source.title||'Quelle öffnen'}</a>)}{item.id&&<details className="messinho-feedback"><summary>Scout-Bewertung abgeben</summary><div className="messinho-feedback-grid"><label>Gesamtbewertung (0–100)<input type="number" min="0" max="100" value={feedbackDrafts[String(item.id)]?.target_score??''} onChange={e=>setFeedbackValue(String(item.id),'target_score',e.target.value)}/></label>{[['technical','Technik'],['tactical','Taktik'],['athletic','Athletik'],['mental','Mental'],['goalkeeping','Torwart']].map(([key,label])=><label key={key}>{label}<input type="number" min="0" max="100" value={feedbackDrafts[String(item.id)]?.[key]??''} onChange={e=>setFeedbackValue(String(item.id),key,e.target.value)}/></label>)}</div><button type="button" disabled={feedbackBusy===String(item.id)} onClick={()=>submitFeedback(item)}>{feedbackBusy===String(item.id)?'Speichert …':'Bewertung speichern'}</button></details>}</div></article>)}</div>;
   }
   return <div className="messinho-workspace">
     {!compact&&<header className="messinho-hero"><div className="messinho-emblem"><BrainCircuit size={29}/></div><div className="messinho-hero-copy"><span>MYSCOUTINGDATABASE · KI-ASSISTENT</span><h1>Messinho</h1><p>Dein persönlicher Scouting-Agent</p></div><div className="messinho-status"><i/> Modul geladen</div></header>}
