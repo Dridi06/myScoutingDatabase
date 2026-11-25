@@ -89,3 +89,5 @@ Messinho ist ein integriertes Modul innerhalb von myScoutingDatabase. Es ist kei
 - „Selbstverbesserung“ bedeutet zunächst versionierte, anhand von Ergebnissen evaluierte Änderungen mit automatisierten Tests und menschlicher Freigabe. Kein autonomes Umschreiben oder selbstständiges Ausrollen von Code/Bewertungsregeln.
 - Externe Quellen- und Lizenzfreigabe, tägliche Hintergrundaktualisierung, historische Datenpflege und kontrollierte Modell-Evaluation bleiben gesonderte Ausbaustufen und sind nicht aktiviert.
 - Noch offen: automatisierte Unit-Test-Ausführung, erneuter Staging-Build auf aktuellem Branch-Head, Chat-End-to-End-Test mit eingerichteten Staging-Secrets und verifizierte Live-Interaktion im Browser.
+
+- Nach Korrektur des History-Testfalls wurden die fünf neuen Engine-Tests in einer isolierten Node-Umgebung erneut ausgeführt: 5/5 bestanden. Der vollständige Repository-Befehl `npm test` sowie die bestehenden Dialogtests wurden in dieser Sitzung noch nicht vollständig ausgeführt; daher ist die gesamte Testsuite weiterhin nicht als bestanden markiert.
