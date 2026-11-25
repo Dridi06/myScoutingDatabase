@@ -14,7 +14,7 @@ import { scopeMessinhoOwner } from './messinho-access.js';
 import { getMessinhoCapabilityCatalog, getMessinhoCapabilitySummary } from './messinho-capabilities.js';
 import { executeMessinhoCapability, listExecutableMessinhoCapabilities, getMessinhoRuntimeSummary } from './messinho-capability-runtime.js';
 import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainableAssessment, generateMessinhoHypotheses } from './messinho-development.js';
-import { researchMessinhoMarketValue } from './messinho-research.js';
+import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './messinho-research.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -1021,9 +1021,30 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const [players,candidates]=await Promise.all([playerQuery,db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status').eq('owner_id',ownerId).ilike('player_name','%'+safeTerm+'%').limit(10)]);
       if(players.error||candidates.error)return res.status(500).json({error:'Die interne Spielersuche ist fehlgeschlagen.'});
       const items=[...(players.data||[]).map(p=>({kind:'Spielerkatalog',id:p.player_id,name:p.name,club:p.club,year:p.year,positions:p.positions||[],foot:p.foot})),...(candidates.data||[]).map(p=>({kind:'Kandidat',id:p.id,name:p.player_name,club:p.current_club,year:p.birth_year,positions:p.positions||[],recommendation:p.recommendation,status:p.status}))];
-      return res.json({reply:items.length?'Ich habe '+items.length+' gespeicherte Einträge gefunden.':'Ich habe keinen internen Treffer gefunden.',intent:'search',items});
+      if(items.length)return res.json({reply:'Ich habe '+items.length+' gespeicherte Einträge gefunden. Soll ich dir den Spieler genauer analysieren oder aktuelle Informationen recherchieren?',intent:'search',items});
+      const external=await researchMessinhoPlayerProfile(term);
+      const facts=external.profile?.facts||{};
+      const reply=external.profile?.summary||('Ich habe keinen internen Eintrag gefunden. Ich habe aber eine externe Recherche zu '+term+' gestartet. '+(external.sources?.length||0)+' Quellen wurden gefunden. '+(external.profile?.missing_data?.length?'Noch offen: '+external.profile.missing_data.join(', '):'Bitte prüfe die Quellen für aktuelle Details.'));
+      return res.json({reply,intent:'player_research',items:[],player:external.player,profile:external.profile,sources:external.sources||[],provider:external.provider||null,researched_at:external.researched_at||null});
     }
-    return res.json({reply:'Ich habe deine Anfrage noch nicht eindeutig einem vorhandenen Modul zuordnen können. Beschreibe bitte Ziel, Spielerposition, Jahrgang und gewünschtes Leistungsniveau.',intent:'clarify',items:[]});
+    const conversationalContext=history.map(item=>({role:item.role,content:item.text})).slice(-10);
+    if(process.env.OPENAI_API_KEY){
+      try{
+        const chatResponse=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(30000),headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({
+          model:process.env.OPENAI_MODEL||'gpt-4.1-mini',temperature:0.35,
+          messages:[
+            {role:'system',content:'Du bist MESSINHO, der freundliche, fachkundige und natürliche Gesprächspartner einer professionellen Fußball-Scouting-Plattform. Führe echte Gespräche auf Deutsch: verstehe Nachfragen und Bezüge aus dem Verlauf, antworte direkt, stelle höchstens eine gezielte Rückfrage, wenn sie wirklich nötig ist. Du bist nicht auf starre Befehle beschränkt. Du kannst erklären, beraten, Spielerprofile besprechen und passende Funktionen vorschlagen. Behaupte niemals, eine Recherche, Datenbankaktion oder Analyse ausgeführt zu haben, wenn dies nicht durch ein Tool/Modul geschehen ist. Erfinde keine Spielerfakten, Statistiken, Quellen oder Datenbankinhalte. Wenn der Nutzer einen konkreten Fußballspieler nennt und Informationen sucht, sage klar, dass du eine belegte Recherche benötigst, statt zu raten. Halte MESSINHOs eigene Bewertungs- und Lernlogik unabhängig von OpenAI.'},
+            ...conversationalContext,
+            {role:'user',content:message}
+          ]
+        })});
+        if(chatResponse.ok){
+          const data=await chatResponse.json(),reply=data.choices?.[0]?.message?.content?.trim();
+          if(reply)return res.json({reply,intent:'conversation',items:[]});
+        }
+      }catch(chatError){console.error('Messinho conversational fallback failed:',chatError.message);}
+    }
+    return res.json({reply:'Ich bin MESSINHO. Ich kann mit dir über Spieler, Scouting, Taktik und deine Daten sprechen. Bei konkreten Spielerinformationen starte ich eine Quellenrecherche, statt Fakten zu erfinden. Was möchtest du wissen?',intent:'conversation',items:[]});
   }catch(error){console.error('Messinho agent chat failed:',error.message);return res.status(500).json({error:'Messinho konnte die Anfrage gerade nicht bearbeiten.'});}
 });
 
