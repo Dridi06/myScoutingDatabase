@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported } from '../backend/messinho-intelligence.js';
+import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from '../backend/messinho-intelligence.js';
 
 test('source assessment separates HTTPS validity and freshness from credibility', () => {
   const now = Date.parse('2026-11-25T12:00:00Z');
@@ -89,4 +89,12 @@ test('optional candidate fields are retained only when supported by cited source
  const sources=[{url:'https://club.example/player',title:'Karim Adeyemi 2002 Borussia Dortmund',content:'Karim Adeyemi plays for Borussia Dortmund.'}];
  assert.equal(messinhoValueSupported('Borussia Dortmund',['https://club.example/player'],sources),true);
  assert.equal(messinhoValueSupported('Bayern Munich',['https://club.example/player'],sources),false);
+});
+
+test('numeric scouting metrics require both metric name and value in cited evidence',()=>{
+ const sources=[{url:'https://league.example/stats',title:'Karim Adeyemi sprint speed 35.2 km/h',content:'The player reached a sprint speed of 35.2 km/h.'}];
+ const evidence=[{source_url:'https://league.example/stats',claim:'Sprint speed: 35.2 km/h'}];
+ assert.equal(messinhoMetricSupported('sprint_speed',35.2,['https://league.example/stats'],sources,evidence),true);
+ assert.equal(messinhoMetricSupported('sprint_speed',33.1,['https://league.example/stats'],sources,evidence),false);
+ assert.equal(messinhoMetricSupported('finishing',35.2,['https://league.example/stats'],sources,evidence),false);
 });
