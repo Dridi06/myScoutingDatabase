@@ -96,12 +96,13 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
  }
  useEffect(()=>{loadMeta();},[supabase,admin]);
  useEffect(()=>{if(initialPlayerId)setSelectedId(String(initialPlayerId));},[initialPlayerId]);
- useEffect(()=>{if(selectedId){loadHistory(selectedId);loadObservations(selectedId);}else{setAnalysis(null);setHistory([]);setObservations([]);}},[selectedId]);
+ useEffect(()=>{setAnalysis(null);setFeedback('');setFeedbackComment('');setError('');setHistory([]);setObservations([]);if(selectedId){loadHistory(selectedId);loadObservations(selectedId);}},[selectedId]);
  async function runAnalysis(){
    if(!selected||!supabase)return;
    setBusy(true);setError('');setFeedback('');
    try{
      const snapshot=buildSnapshot(selected);
+     if(snapshot.coverage===0)throw new Error('Keine gültigen Bewertungen vorhanden. Bitte zuerst mindestens ein Kriterium mit einem ganzzahligen Wert von 1 bis 5 erfassen.');
      const {data,error:saveError}=await supabase.from('asi_player_analyses').insert({
        player_id:selected.player_id,owner_id:selected.owner_id,created_by:profile.id,
        analysis_type:'player_snapshot',model_version:MODEL_VERSION,analysis_json:snapshot,
@@ -152,7 +153,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
    </div>
    <div className="asi-stat-grid">
      <article><span>Spielerprofile</span><strong>{players.length}</strong><small>Im aktuellen Zugriff</small></article>
-     <article><span>Mit Bewertungen</span><strong>{ratedCount}</strong><small>Mindestens ein Skalenwert</small></article>
+     <article><span>Mit Bewertungen</span><strong>{ratedCount}</strong><small>Mindestens ein gültiger Wert von 1–5</small></article>
      <article><span>Modellstatus</span><strong>{models.filter(m=>m.status==='active').length}</strong><small>Aktive Modellversionen</small></article>
      <article><span>Externe Quellen</span><strong>{externalSources.filter(s=>s.license_status==='approved').length}</strong><small>Freigegebene Quellen{!admin?' · Admin-Ansicht':''}</small></article>
    </div>
@@ -163,7 +164,7 @@ export default function ASIWorkspace({supabase,profile,players=[],admin=false,on
        <div className="asi-panel-heading"><div><span className="asi-eyebrow">PLAYER INTELLIGENCE</span><h2>Spieler auswählen</h2></div><Database size={20}/></div>
        <label className="asi-search"><Search size={16}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Name, Verein oder Position suchen"/></label>
        <div className="asi-player-list">{visiblePlayers.map(p=><button type="button" key={p.player_id} className={String(p.player_id)===String(selectedId)?'selected':''} onClick={()=>setSelectedId(String(p.player_id))}><span><strong>{p.name}</strong><small>{p.club||'Verein nicht hinterlegt'} · {(p.positions||[]).join(', ')||'Position offen'}</small></span><span className="asi-player-arrow">›</span></button>)}{visiblePlayers.length===0&&<p className="asi-empty">Keine Spieler im aktuellen Zugriff gefunden.</p>}</div>
-       {selected&&<div className="asi-selected-player"><div><strong>{selected.name}</strong><small>Jahrgang {selected.year||'–'} · {selected.foot||'Fuß offen'}</small></div><button type="button" onClick={runAnalysis} disabled={busy}>{busy?'Wird analysiert…':'Snapshot erstellen'}</button></div>}
+       {selected&&<div className="asi-selected-player"><div><strong>{selected.name}</strong><small>Jahrgang {selected.year||'–'} · {selected.foot||'Fuß offen'}</small></div><button type="button" onClick={runAnalysis} disabled={busy||!selected.ratings||!Object.values(selected.ratings).some(v=>safeNumber(v)!==null)}>{busy?'Wird analysiert…':'Snapshot erstellen'}</button></div>}
      </section>
      <section className="asi-panel asi-analysis-panel">
        <div className="asi-panel-heading"><div><span className="asi-eyebrow">PLAYER INTELLIGENCE</span><h2>Analyseergebnis</h2></div><Activity size={20}/></div>
