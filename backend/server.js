@@ -630,10 +630,9 @@ app.post('/api/messinho/learning/evaluate',async(req,res)=>{
     const cutoff=records?.at(-1)?.created_at||startedAt;
     const trainingConfig={learning_version:proposal.learning_version,engine_version:'1.1.0',source_table:'asi_scout_calibration_records',source_filter:'verification_status=verified',minimum_examples_per_position:30,minimum_unique_players:10};
     if(proposal.status!=='proposal_ready'){
-      await db.from('asi_training_runs').insert({model_key:'messinho_position_weights',status:'succeeded',data_cutoff_at:cutoff,dataset_fingerprint:fingerprint,training_config:evaluationSummarySafe(trainingConfig),evaluation_summary:{status:proposal.status,report:proposal.report,records:trainingRows.length},started_at:startedAt,finished_at:new Date().toISOString(),created_by:actor.user.id});
+      await db.from('asi_training_runs').insert({model_key:'messinho_position_weights',status:'succeeded',data_cutoff_at:cutoff,dataset_fingerprint:fingerprint,training_config:trainingConfig,evaluation_summary:{status:proposal.status,report:proposal.report,records:trainingRows.length},started_at:startedAt,finished_at:new Date().toISOString(),created_by:actor.user.id});
       return res.json({proposal:{status:proposal.status,report:proposal.report,trained_groups:0},stored:false,message:'Noch nicht genügend verifizierte Ergebnisse oder keine messbare Verbesserung. Es wird kein Modellkandidat angelegt.'});
     }
-    const latest=await db.from('asi_model_versions').select('version').eq('model_key','messinho_position_weights').order('created_at',{ascending:false}).limit(1).maybeSingle();
     const version='1.0.'+Date.now();
     const {data:model,error:modelError}=await db.from('asi_model_versions').insert({
       model_key:'messinho_position_weights',version,model_family:'deterministic_rules',status:'candidate',
@@ -727,7 +726,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       if(!research.ok)return res.status(research.status).json({error:payload.error||'Die vorhandene ASI-Recherche konnte nicht ausgeführt werden.'});
       const candidates=Array.isArray(payload.candidates)?payload.candidates:[]; 
       const activeModel=await getActiveMessinhoModel();
-      const ranked=rankMessinhoPlayers(candidates,activeModel?.profiles||null).slice(0,quantity);
+      const ranked=rankMessinhoPlayers(candidates,activeModel?.configuration?.profiles||null).slice(0,quantity);
       const reply='Die Recherche wurde über die vorhandene ASI-Quellenpipeline ausgeführt und anschließend durch MESSINHOs eigene positionsgewichtete Bewertungslogik sortiert. Ich habe '+candidates.length+' belegte Kandidaten erhalten und zeige '+ranked.length+' davon. Zielniveau: '+targetLevel+'. '+(payload.underfilled?'Die gewünschte Anzahl konnte mit der verfügbaren Quellenlage nicht vollständig belegt werden.':'Nicht belegte Leistungswerte wurden nicht geschätzt.');
       return res.json({reply,intent:'scouting_results',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null,requested:{quantity,yearFrom,yearTo,position,region,targetLevel},sources:payload.sources||[],source_count:payload.source_count||0,saved_count:payload.saved_count||0,duplicate_count:payload.duplicate_count||0,underfilled:!!payload.underfilled,provider:payload.provider||null,limitations:payload.limitations||[]});
     }
