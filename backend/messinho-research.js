@@ -72,3 +72,27 @@ export async function researchMessinhoMarketValue(input,env=process.env,fetchImp
  const marketValue=assessMarketValueOutput(parsed,sources);
  return {status:'completed',player,market_value:marketValue,sources,provider:{search:'Tavily',analysis:env.OPENAI_MODEL||'gpt-4.1-mini'},researched_at:new Date().toISOString()};
 }
+
+export async function researchMessinhoPlayerProfile(name,env=process.env,fetchImpl=fetch){
+ const query=clean(name,120);
+ if(query.length<2)throw new Error('Bitte einen Spielernamen angeben.');
+ if(!env.TAVILY_API_KEY)return {status:'provider_not_configured',player:{name:query},sources:[],profile:null,message:'TAVILY_API_KEY ist serverseitig nicht konfiguriert.'};
+ const response=await fetchImpl('https://api.tavily.com/search',{method:'POST',signal:AbortSignal.timeout(25000),headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:env.TAVILY_API_KEY,query:query+' footballer player profile current club position career statistics appearances goals 2025 2026',search_depth:'advanced',max_results:10,include_answer:false,include_raw_content:false,topic:'general'})});
+ if(!response.ok)throw new Error('Spielerrecherche ist derzeit nicht verfügbar.');
+ const payload=await response.json(),sources=normalizeResearchSources(payload.results||[]);
+ if(!sources.length)return {status:'insufficient_sources',player:{name:query},sources:[],profile:null,message:'Ich habe keine ausreichend geeigneten öffentlichen Quellen gefunden.'};
+ let profile=null;
+ if(env.OPENAI_API_KEY){
+  const prompt={requested_player:query,sources:sources.map(({title,url,publisher,published_date,snippet})=>({title,url,publisher,published_date,snippet})),instructions:[
+   'Identify whether sources refer to the requested football player. Do not assume identity from name alone.',
+   'If the requested name appears misspelled, suggest a correction only when sources clearly support it; explain the correction.',
+   'Summarize only supported facts: full name, birth date/year, nationality, position, current club, career highlights, recent performance/statistics when explicitly reported.',
+   'Do not invent missing data. Use null for unknown facts. Every factual item must cite one or more exact source URLs from the supplied list.',
+   'Mention source dates and distinguish current from historical information.',
+   'Return JSON with keys identity_status, corrected_name, summary, facts, career, recent_performance, missing_data.'
+  ]};
+  const aiResponse=await fetchImpl('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(35000),headers:{Authorization:'Bearer '+env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:env.OPENAI_MODEL||'gpt-4.1-mini',temperature:0,response_format:{type:'json_object'},messages:[{role:'system',content:'You are MESSINHO, a careful football scouting conversational assistant. Evidence only. Never fabricate. Output JSON.'},{role:'user',content:JSON.stringify(prompt)}]})});
+  if(aiResponse.ok){const ai=await aiResponse.json();try{profile=JSON.parse(ai.choices?.[0]?.message?.content||'{}');}catch{profile=null;}}
+ }
+ return {status:'completed',player:{name:query},profile,sources,provider:{search:'Tavily',analysis:profile?(env.OPENAI_MODEL||'gpt-4.1-mini'):'source_only'},researched_at:new Date().toISOString()};
+}
