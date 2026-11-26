@@ -2506,3 +2506,28 @@ Mathematics; statistics; physics; biology; medicine; sports science; football; c
 3. Begin the foundational curriculum only after approved works are available; populate atomic concepts with independent corroboration, formulas, limitations, prerequisite links and version provenance.
 4. Complete authenticated admin conflict-review and candidate-approval E2E tests, then authenticated chat retrieval and real scouting-capability tests on STAGING.
 5. Keep model-weight changes, scoring changes and production promotion behind their existing explicit approval gates.
+
+
+## 2026-11-26 — First work-level rights approvals and candidate intake
+
+### Rights review
+- Reviewed exact OpenStax work/edition notices and the CC BY 4.0 legal deed for four works:
+  1. *College Algebra 2e* (2021)
+  2. *Introductory Statistics 2e* (2023)
+  3. *University Physics Volume 1* (2021 PDF edition)
+  4. *Introductory Business Statistics 2e*
+- Their exact official PDFs state CC BY 4.0. Creative Commons' official FAQ confirms that CC 4.0 licenses permit private text/data mining, including commercial purposes for non-NC works, subject to license terms. The CC BY 4.0 deed permits commercial adaptation with attribution and indication of changes.
+- Added these four exact editions to `backend/messinho-rights-registry.js` with exact PDF/page URL scopes, Rice University as rights holder, CC BY 4.0 licence evidence, AI/TDM/commercial/derivative permissions and required attribution. The registry rejects lookalike hosts, non-HTTPS and URL paths outside the exact approved works.
+- OpenStax's library-wide CC BY-NC-SA default remains excluded; only the four exact work-level CC BY 4.0 notices are approved. Third-party figures/images are not reused. The pipeline stores no PDFs or source full text.
+- Other sources (OpenIntro CC BY-SA 3.0, Grinstead/Snell GNU FDL, NIST, etc.) remain quarantined pending further licence/compatibility review. The source register currently records 16 resources, of which 4 exact works are permitted.
+
+### Knowledge candidate pipeline
+- Updated `backend/messinho-knowledge-graph.js`: a compact candidate can now be stored from one exact rights-cleared source, with license URL, attribution, source edition, URL and change notice preserved.
+- Candidates remain inactive and are not used as trusted knowledge. Activation still requires two independent rights-cleared source domains, corroborated claims, active prerequisite concepts, no open conflicts and explicit approved-admin review.
+- Added regression tests for exact source URL scope, full rights tuple, single-source candidate provenance and the rule that one-source candidates cannot be promoted.
+- No candidate was seeded during this code change; concepts, links, versions, conflicts and reviews remain at 0 until MESSINHO receives a matching foundational research question.
+
+### Verification / deployment
+- The rights and graph code changes are committed to the STAGING feature branch. Check CI on the latest HEAD before deployment.
+- The currently live STAGING runtime predates these latest rights/candidate changes; manual STAGING deployment is still required after CI passes.
+- Production `main`, production Render/Supabase, PFMS/PFSS and PR merge state remain untouched. PR #47 remains Draft/open/unmerged.
