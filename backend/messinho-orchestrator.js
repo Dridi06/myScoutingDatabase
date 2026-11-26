@@ -244,7 +244,7 @@ function isIncompleteStatus(status) {
   return ['insufficient_data','error','denied','invalid_input','unknown_capability','unverified','needs_review','no_reliable_improvement'].includes(status);
 }
 
-export function runMessinhoCapabilityPlan(plan,input={},role='scout',options={}) {
+export async function runMessinhoCapabilityPlan(plan,input={},role='scout',options={}) {
   if (!plan || plan.denied) return {
     status:'denied',results:[],blocked_capabilities:plan?.blocked_capabilities||[],
     model_weights_changed:false,provider_independent:true,replan_recommended:false
@@ -275,6 +275,11 @@ export function runMessinhoCapabilityPlan(plan,input={},role='scout',options={})
     } catch (error) {
       results.push({capability_id:id,status:'error',error:'Der Arbeitsschritt konnte nicht abgeschlossen werden.',
         error_code:error?.code||'CAPABILITY_EXECUTION_ERROR'});
+    }
+    if(typeof options.onStep==='function'){
+      const pending=unique([...steps.slice(results.length),...(plan.deferred_capabilities||[])]);
+      try{await options.onStep({capability_id:id,result:results.at(-1),completed_results:results.slice(),pending_capabilities:pending,execution_index:results.length});}
+      catch{ /* A failed checkpoint must not invalidate the actual capability result. */ }
     }
     if(budgetExceeded)break;
   }
