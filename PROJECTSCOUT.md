@@ -904,3 +904,35 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - This is a safety quarantine, not a full exactly-once execution guarantee. Before enabling automatic recovery, capability-level idempotency keys and side-effect classification must be implemented and tested.
 - Code change commit: `9dc97876532ecced908625afb9750b281ac50638` on `feature/messinho-unified-ai-integration`.
 - CI for this new commit must complete before it is considered verified. Staging deployment, DB migration and all production actions remain unperformed.
+
+
+---
+
+## 17. Candidate CI and Staging deployment audit — 2026-11-26
+
+### Candidate verification
+- Candidate branch: `feature/messinho-unified-ai-integration`.
+- Candidate SHA reviewed: `2e606b4a554ed9de1954500da7a4030893323ff2`.
+- PR #47 remains open, draft, unmerged; base is `main`.
+- GitHub Actions on the exact candidate SHA all completed successfully:
+  - `validate`: success — job `139667760568`.
+  - `test`: success — job `139667760395`.
+  - `test-and-build`: success — job `139667760113`.
+- This confirms automated checks/build only; authenticated staging E2E and database isolation tests remain outstanding.
+
+### Staging Render audit
+- Staging service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`).
+- URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- Current configured branch: `feature/messinho-agent-workspace` (not the candidate branch).
+- Auto-deploy remains disabled.
+- Most recent successful deployment: `dep-dc3pnoui0phs7386bvg0`, commit `e9e5157abf38b9f98514a5020bf910bfbb7fbeb0`, completed `2026-11-26T02:39:49Z`.
+- That deployed commit is not the candidate SHA. Therefore the candidate is **not yet deployed to Staging**.
+- The available Render connection exposes service inspection, deploy and environment-variable operations, but no direct service-branch update operation. Do not repoint or overwrite the divergent old branch, and do not trigger a deployment of it as a substitute.
+- No staging migration was applied during this audit. Production Render and production Supabase remain untouched.
+
+### Next safe action
+1. Change the Staging Render service's Git branch to `feature/messinho-unified-ai-integration` through the Render service settings (preserve all existing environment variables; do not replace them).
+2. Keep auto-deploy disabled; verify the selected branch and exact candidate SHA before triggering a Staging-only deployment.
+3. Verify health/startup logs and then execute authenticated E2E checks for chat, ASI, capability execution, memory/task persistence, owner isolation, resume safety, provider fallback and mobile UI.
+4. Review and apply the two versioned MESSINHO migrations to the Staging Supabase project only after schema/RLS review and backup.
+5. Keep PR #47 unmerged and production untouched until all gates pass and the owner explicitly authorizes promotion.
