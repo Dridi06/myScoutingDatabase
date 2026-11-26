@@ -1301,6 +1301,36 @@ app.post('/api/messinho/knowledge/:id/review',messinhoKnowledgeReviewLimiter,asy
     return res.json({ok:true,review:result,message:decision==='approve'?'Fachwissen wurde nach Prüfung freigegeben.':'Prüfentscheidung wurde revisionssicher gespeichert.'});
   }catch(error){console.error('MESSINHO knowledge review failed:',error.message);return res.status(500).json({error:'Wissensprüfung aktuell nicht möglich.'});}
 });
+const messinhoKnowledgeConflictLimiter=rateLimit({windowMs:60*60*1000,limit:30,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Wissenskonflikt-Prüfungen. Bitte später erneut versuchen.'}});
+app.get('/api/messinho/knowledge-conflicts',messinhoKnowledgeConflictLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    if(actor.profile.role!=='admin'||!actor.profile.approved||actor.profile.approval_status!=='approved')return res.status(403).json({error:'Nur freigeschaltete Administratoren dürfen Wissenskonflikte einsehen.'});
+    const status=['open','approved','rejected','resolved'].includes(req.query.status)?req.query.status:'open';
+    const {data,error}=await db.from('messinho_knowledge_conflicts')
+      .select('id,concept_id,proposed_concept,evidence,conflict_reason,status,created_at,reviewed_by,reviewed_at,resolution_note')
+      .eq('status',status).order('created_at',{ascending:false}).limit(100);
+    if(error)return res.status(500).json({error:'Wissenskonflikte konnten nicht geladen werden.'});
+    return res.json({ok:true,conflicts:data||[]});
+  }catch(error){console.error('MESSINHO knowledge conflict list failed:',error.message);return res.status(500).json({error:'Wissenskonflikte konnten nicht geladen werden.'});}
+});
+app.post('/api/messinho/knowledge-conflicts/:id/review',messinhoKnowledgeConflictLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    if(actor.profile.role!=='admin'||!actor.profile.approved||actor.profile.approval_status!=='approved')return res.status(403).json({error:'Nur freigeschaltete Administratoren dürfen Wissenskonflikte entscheiden.'});
+    const decision=String(req.body?.decision||''),reason=typeof req.body?.reason==='string'?req.body.reason.trim():'';
+    if(!['reject_proposal','keep_existing'].includes(decision)||reason.length<10||reason.length>500)return res.status(400).json({error:'Entscheidung oder Begründung ist ungültig.'});
+    const {data,error}=await db.from('messinho_knowledge_conflicts').update({
+      status:decision==='reject_proposal'?'rejected':'resolved',
+      reviewed_by:actor.profile.id,reviewed_at:new Date().toISOString(),resolution_note:reason
+    }).eq('id',req.params.id).eq('status','open').select('id,concept_id,status,reviewed_at,resolution_note').maybeSingle();
+    if(error)return res.status(500).json({error:'Wissenskonflikt konnte nicht gespeichert werden.'});
+    if(!data)return res.status(409).json({error:'Der Wissenskonflikt existiert nicht oder wurde bereits entschieden.'});
+    return res.json({ok:true,conflict:data,message:decision==='reject_proposal'?'Der neue Vorschlag wurde abgelehnt; der bestehende Wissensstand bleibt unverändert.':'Der bestehende Wissensstand wurde bestätigt und der Konflikt geschlossen.'});
+  }catch(error){console.error('MESSINHO knowledge conflict review failed:',error.message);return res.status(500).json({error:'Wissenskonflikt konnte nicht entschieden werden.'});}
+});
 const messinhoHypothesisLimiter=rateLimit({windowMs:60*60*1000,limit:40,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Änderungen am Verbesserungsprozess. Bitte später erneut versuchen.'}});
 async function requireApprovedMessinhoAdmin(req,res){
   const actor=await messinhoAuthenticatedUser(req,res);
