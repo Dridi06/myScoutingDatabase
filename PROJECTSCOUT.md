@@ -247,8 +247,7 @@ The sequence below is the working roadmap. Reorder only when dependencies, risk,
 
 ### Phase 5 — Learning and monitoring
 - [ ] Audit learning persistence, model versioning, and approval flow.
-- [ ] Ensure only verified outcomes enter calibration.
-- [ ] Add monitoring tasks and event triggers with explicit user/role permissions.
+- [ ] Ensure only verified outcomes enter calibration.- [ ] Add monitoring tasks and event triggers with explicit user/role permissions.
 - [ ] Add auditability, rollback, and model comparison before activation.
 
 ### Phase 6 — UX, visual quality, and accessibility
@@ -497,7 +496,6 @@ The 100 MESSINHO capabilities must no longer be presented as 100 individual func
 ### New owner decision — autonomous chat behavior
 
 The owner wants the entire chat experience improved as part of the same agent integration: language understanding, spelling/name interpretation, natural conversation, context retention, clarification behavior, explanation quality, and final answers. These improvements must be consistent across all chat branches, not only the capability-run response formatter. OpenAI remains optional; the deterministic MESSINHO path must remain useful without it.
-
 
 ### Runtime audit finding — 2026-11-26
 
@@ -749,7 +747,6 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 3. Danach Ende-zu-Ende-Tests pro Fähigkeitsfamilie mit isolierten Testdaten ergänzen und Completion erst bei echten Integrationsnachweisen erhöhen.
 4. Keine Live-Erfolgsaussage über externe Suche, Datenbankpersistenz oder Modelllernen machen, solange diese Pfade nicht separat belegt sind.
 
-
 ---
 
 ## 13. Unified AI integration decision — 2026-11-26
@@ -997,8 +994,7 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 
 ## 2026-11-26 — MESSINHO natural conversation and provider error handling
 
-- **User request:** Make MESSINHO behave naturally in everyday conversation (e.g. hello ↔ hello, “how are you?” ↔ “I'm well, thank you, and you?”), and integrate everyday conversational behavior as a normal capability.
-- **Observed production-like Staging failure:** The global player-selection call reached OpenAI but returned HTTP 429 with `insufficient_quota` / `credit_balance_exhausted`. Tavily and OpenAI credentials were detected by the Staging process; provider billing quota, not request parsing, blocked analysis.
+- **User request:** Make MESSINHO behave naturally in everyday conversation (e.g. hello ↔ hello, “how are you?” ↔ “I'm well, thank you, and you?”), and integrate everyday conversational behavior as a normal capability.- **Observed production-like Staging failure:** The global player-selection call reached OpenAI but returned HTTP 429 with `insufficient_quota` / `credit_balance_exhausted`. Tavily and OpenAI credentials were detected by the Staging process; provider billing quota, not request parsing, blocked analysis.
 - **Implemented on Staging candidate branch:**
   - Added provider failure classifier distinguishing exhausted quota, invalid API key, rate limit, temporary provider outage, and generic provider errors.
   - Discovery endpoint now returns a clear, safe German user-facing message and stable error code rather than the generic “global player selection” message.
@@ -1248,7 +1244,6 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - GitHub combined status returned no status checks for the latest test commit; no successful CI result has yet been confirmed for this change.
 - This change has **not** been deployed to Render STAGING and is not live.
 - Production branch, production Render service, and production Supabase remain untouched.
-
 **Next steps:**
 1. Run the new and full Node test suite plus backend syntax check in CI.
 2. Fix any failures before deployment.
@@ -1401,3 +1396,95 @@ Before the next staging deployment, the general research path was hardened:
 - Production Render service, production Supabase, and `main` were not modified. PR #47 remains Draft, open, and unmerged.
 
 - One intermediate deployment attempt exposed three missing dispatch cases for the added normal/hypergeometric/combinatorics tests; these were corrected before the final deployment. Final build/test gate passed all 169 tests.
+
+## 2026-11-26 — Comprehensive STAGING test pass and security hardening
+
+**Owner instruction:** Continue the existing myScoutingDatabase/MESSINHO project from its current state. Work only on dedicated STAGING. Record all work and test results in this master file so a new chat can resume without losing context.
+
+### Exact scope
+- Repository: `Dridi06/myScoutingDatabase`.
+- Active development branch: `feature/messinho-unified-ai-integration`.
+- STAGING Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`), URL https://myscoutingdatabase-messinho-staging.onrender.com.
+- STAGING Supabase project ref: `nwqwnrhupbyhshsprxjt`.
+- PR #47 remains Draft/open/unmerged.
+- Production Render service: `myscoutingdatabase` (`srv-dc25n13rjlhs73e2ae1g`), URL https://myscoutingdatabase.onrender.com.
+- PFMS/PFSS are unrelated and must not be modified.
+
+### Verified automated test and deployment results
+- Latest feature-branch CI commit tested: `1c5bfbfb351a65e8285e73d2b561578c55077c0c`.
+- MESSINHO Node tests workflow run `45765883276`: **success**; all workflow steps completed, including install, full Node tests and backend syntax.
+- MESSINHO validation workflow run `45765883304`: **success**; unit tests and frontend build completed.
+- ASI quality checks workflow run `45765883266`: **success**; ASI unit tests and frontend build completed.
+- Backend syntax workflow run `45765883315`: **success**.
+- STAGING health smoke test workflow run `45765883273`: **success**.
+- Previously verified full Node suite: **169 passed, 0 failed**.
+- Previously verified Vite build: successful, 1,636 modules transformed.
+- STAGING Render runtime logs confirm Node API listening on port 10000, Supabase Data API HTTP 200, Tavily configured and OpenAI configured (no secret values disclosed).
+- Persisted MESSINHO diagnostics: **healthy, 9 passed, 0 failed, 0 warnings**, completed 2026-11-26 06:05:11 UTC.
+- Persisted system diagnostics: **healthy, 46 passed, 0 failed, 0 warnings**, latest stored run 2026-11-26 03:49:36 UTC.
+- Scout3 profile verified in STAGING database: `role=scout`, `approved=true`, `approval_status=approved`.
+- The knowledge-memory table exists with owner-scoped RLS; row count is currently 0. No knowledge records were seeded.
+- A real authenticated Scout3 chat E2E test has **not** been completed by the assistant. Do not claim it has. It requires the user's existing logged-in browser session; never request or store a password, bearer token or JWT.
+
+### STAGING database changes made during this pass
+All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshsprxjt`, and source migrations were committed to the active feature branch:
+
+1. `supabase/migrations/20261126210000_staging_security_performance_hardening.sql`
+   - Revoke all table privileges on `messinho_diagnostic_runs` from PUBLIC, anon and authenticated.
+   - Retain backend CRUD for service_role only.
+   - Add missing FK indexes for `asi_model_versions.approved_by`, `messinho_diagnostic_runs.actor_profile_id`, and `system_diagnostic_runs.actor_profile_id`.
+   - Optimize two admin-only RLS policies on `system_diagnostic_runs` to use `(select auth.uid())`.
+2. `supabase/migrations/20261126211000_fix_admin_login_diagnostic_source.sql`
+   - Fix `system_diagnostic_runs_triggered_by_check` to allow the actual source `admin_login` alongside `automatic`, `admin`, and `deployment`.
+   - This was prompted by Render logs showing admin-login diagnostic persistence failing due to the constraint.
+3. `supabase/migrations/20261126212000_harden_system_diagnostic_table_grants.sql`
+   - Revoke broad default table grants from PUBLIC, anon and authenticated on `system_diagnostic_runs`.
+   - Grant authenticated only SELECT/INSERT (still subject to admin-only RLS policies).
+   - Retain backend CRUD for service_role.
+   - Explicitly remove TRUNCATE/DELETE from browser roles; TRUNCATE bypasses RLS.
+
+### Scout approval fix carried forward
+- Earlier STAGING migration `20261126200000_fix_admin_scout_approval_rls.sql` changed `admin_set_scout_approval` to a narrowly scoped SECURITY DEFINER function.
+- Function validates `auth.uid()` and `private.is_admin()`, uses empty search_path, changes only scout approval fields, and is not executable by anon/PUBLIC.
+- Scout3 now verified approved in STAGING as described above.
+
+### Security advisor findings and remaining action
+- Supabase Auth leaked-password protection is still disabled. This is an Auth dashboard/configuration setting and was **not** changed by SQL. Enable it in STAGING Auth password/security settings before release.
+- The SECURITY DEFINER warning for `admin_set_scout_approval` is intentional and narrowly constrained by the admin check.
+- `messinho_diagnostic_runs` has RLS enabled with no browser policies intentionally; browser roles have no table privileges, only backend service_role may access it.
+- Supabase flagged 31 unused indexes. Do not drop these without workload evidence; most are on new/empty tables. Three missing FK indexes were added.
+- The full authenticated Scout3 login/chat test, calculation routing, unknown-question research and persistent memory reuse remain unverified until exercised from the user's real authenticated session.
+
+### Production branch/deploy recovery incident — transparently recorded
+- During this test pass, one migration source file was accidentally created on `main` instead of the feature branch. This was an operator error.
+- The `main` ref was immediately force-reset with an expected-SHA guard to its exact prior commit `fa0d4dfbdd779f280bb3caf44c6cc70be8dcb5b6`.
+- Render production auto-deploy had already begun for the temporary commit. It briefly deployed that commit, which contained only a migration source file; no application source, production database schema or production data was changed.
+- After `main` was restored, Render redeployed the prior commit. Recovery deployment `dep-dc3soico3iic73cbldog` was verified **live**, completed 2026-11-26 06:06:56 UTC.
+- Production runtime logs confirm the API started and the production Supabase Data API returned HTTP 200.
+- Current GitHub `main` HEAD was verified back at `fa0d4dfbdd779f280bb3caf44c6cc70be8dcb5b6`.
+- Production Supabase was never modified.
+- Do not merge PR #47 or promote STAGING. Continue on feature branch and dedicated STAGING only.
+
+### Current STAGING application release state
+- STAGING app deployment remains `2c828e68624d36ce5e663becc75bb48ee6ff1c3f`, deployment `dep-dc3sbdk9v7es73d4nd5g`, verified live.
+- Latest changes in this test pass were database migrations and documentation; no STAGING application-code deployment was needed.
+- Render STAGING auto-deploy remains disabled.
+- PR #47 remains Draft and unmerged.
+
+### Next actions
+1. Continue reading this `PROJECTSCOUT.md` before any further project work.
+2. Enable leaked-password protection in STAGING Supabase Auth configuration.
+3. Have the owner sign in as Scout3 on STAGING and perform authenticated E2E checks:
+   - ordinary question and current time;
+   - arithmetic and percentage;
+   - binomial/Poisson/Bayes/scouting probability;
+   - physics formula;
+   - unknown knowledge question with at least two independent sources;
+   - exact and paraphrase knowledge-memory reuse after a source-backed answer is persisted;
+   - missing parameters, provider failure, invalid input and safe fallback;
+   - verify Scout role permissions and cross-owner data isolation.
+4. Inspect each chat result and backend logs; record screenshots/results without exposing secrets.
+5. Re-run diagnostics after Auth setting is enabled.
+6. Keep production and PFMS/PFSS untouched. Do not merge PR #47 or claim production readiness until authenticated E2E and security follow-up are complete.
+
+**Persistent test checkpoint file:** `docs/STAGING_TEST_CHECKPOINT_20261126.md` (feature branch). This detailed master record is authoritative for continuation; the checkpoint file contains the test matrix and incident timeline.
