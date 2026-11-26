@@ -73,6 +73,7 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 - Added graph schema, typed relations and immutable version snapshots.
 - Added backend/messinho-knowledge-graph.js with level/type validation, rights allowlist enforcement, two independent source-domain requirement, compact payloads, candidate-only insertion, conflict refusal, version snapshotting and active-only retrieval.
 - Connected graph retrieval to the existing POST /api/agent/chat flow and passed retrieved concepts to the scouting agent input and conversational context.
+- Updated the capability runtime to merge active graph concepts with the legacy rights-verified knowledge context for relevant explanations across the capability handlers. Scoring/model-weight functions remain protected: reference knowledge cannot alter numerical scores or weights.
 - Added tests/messinho-knowledge-graph.test.js for level/link contracts, invalid rights, prerequisite validation and fail-closed storage behavior.
 - The graph remains empty until rights-cleared source material is reviewed. No books/PDFs were imported and no model weights or scoring rules were changed.
 
