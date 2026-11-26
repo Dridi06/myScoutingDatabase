@@ -2137,3 +2137,14 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Backend syntax checks passed; Vite production build completed successfully (1,636 modules transformed).
 - Manual STAGING deployment only. Render auto-deploy remains disabled.
 - Production/main, production Supabase and PFMS/PFSS remain untouched. PR #47 remains Draft/open/unmerged.
+
+
+## 2026-11-26 – Freshness-bounded knowledge memory
+
+- Closed a cache-expiry edge case: a current-events answer could previously remain in the 14-day owner-scoped cache after its oldest supporting source crossed the 90-day freshness limit.
+- Time-sensitive knowledge is now persistable only when its evidence explicitly records the freshness gate as passed, with at least two fresh sources from two independent domains.
+- Its memory expiry is the earlier of the normal 14-day cache TTL or the 90-day freshness deadline of its oldest dated supporting source.
+- Missing freshness metadata, insufficient dates or an already-expired freshness window fail closed; the answer is not stored as durable knowledge.
+- Stable, non-time-sensitive knowledge keeps the existing 14-day cache TTL.
+- Added regression tests for the shortened expiry boundary and rejection of current knowledge without explicit freshness evidence.
+- No migration required; the existing owner scoping, provenance and verified-only memory rules remain intact. Full test/build and manual STAGING deploy pending.
