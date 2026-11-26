@@ -18,3 +18,17 @@ test('hypergeometric probability without replacement',()=>{const r=calculateMess
 test('combinations count',()=>{assert.equal(calculateMessinhoMathQuestion('Kombination n=5 k=2').value,10);});
 
 test('bare year ranges are not treated as arithmetic',()=>{assert.equal(calculateMessinhoMathQuestion('2004-2006'),null);assert.equal(calculateMessinhoMathQuestion('2004 – 2006'),null);assert.equal(calculateMessinhoMathQuestion('Berechne 2004-2006').value,-2);});
+
+test('natural-language speed problem extracts distance and time with SI conversions',()=>{
+ const r=calculateMessinhoMathQuestion('Ein Fußballer läuft 100 Meter in 12 Sekunden. Wie schnell ist er?');
+ assert.equal(r.kind,'physics');assert.equal(r.unit,'m/s');assert.ok(Math.abs(r.value-8.33333333)<1e-7);
+ assert.equal(r.converted.formatted_km_h,'30 km/h');assert.equal(r.known_values.distance_m,100);assert.equal(r.known_values.time_s,12);
+});
+test('natural-language speed handles kilometres and minutes',()=>{
+ const r=calculateMessinhoMathQuestion('Ein Läufer legt 3 Kilometer in 15 Minuten zurück. Wie schnell ist er?');
+ assert.ok(Math.abs(r.value-(3000/900))<1e-7);assert.ok(Math.abs(r.converted.km_h-12)<1e-8);
+});
+test('Ohm law rejects zero current without producing Infinity',()=>{
+ const r=calculateMessinhoMathQuestion('Ohm Widerstand u=12 i=0');assert.equal(r.status,'invalid_input');
+});
+test('non-finite arithmetic is rejected',()=>{assert.equal(calculateMessinhoMathQuestion('Berechne 999999999999999999999999 ^ 999999999999999999999999').status,'invalid_input');});
