@@ -29,3 +29,15 @@ test('mobile layouts respect narrow screens and safe-area insets', () => {
 test('main workspace header remains available while scrolling', () => {
   assert.match(css, /\.shell main>header\s*\{\s*position:sticky/);
 });
+
+const messinhoCss = await readFile(new URL('../src/asi/messinho.css', import.meta.url), 'utf8');
+
+test('MESSINHO chat uses a fixed frame with an independently scrolling message list', () => {
+  assert.match(messinhoCss, /\.messinho-chat-card\s*\{[^}]*height:clamp\(480px,68vh,680px\)/s);
+  assert.match(messinhoCss, /\.messinho-chat-card \.messinho-messages\s*\{[^}]*height:0;[^}]*overflow-y:auto/s);
+  assert.match(messinhoCss, /overflow-anchor:none/);
+});
+
+test('MESSINHO mobile composer uses at least 16px text to prevent iOS input auto-zoom', () => {
+  assert.match(messinhoCss, /@media\(max-width:760px\)[\s\S]*?\.messinho-chat-card \.messinho-composer input\s*\{[^}]*font-size:16px !important/s);
+});
