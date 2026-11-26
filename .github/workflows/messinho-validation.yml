@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/messinho-agent-workspace
+      - feature/messinho-live-data-context
   pull_request:
     branches:
       - main
