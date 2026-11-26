@@ -818,7 +818,7 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - Added one bounded retry for deterministic handler errors; missing data is not retried or fabricated.
 - Added structured validation for duplicate/missing capability results and unsupported statuses.
 - Integrated the lifecycle into the existing authenticated `/api/agent/chat` route; existing role checks, owner-scoped player retrieval, chat UI and memory persistence remain in place.
-- Implemented deterministic technical, tactical, athletic, mental and goalkeeper dimension scoring.
+- Confirmed that deterministic technical, tactical, athletic, mental and goalkeeper dimension scoring already exists in the evaluation handler; included those five capabilities in specialist coverage reporting.
 - Moved seasonal comparison into the learning dispatch path; it compares supplied season metrics without training or changing weights.
 - Corrected capability diagnostics to distinguish dispatch from specialist logic and generic fallback. Specialist handlers are marked `partial`, not fully verified.
 - **Tests added:** lifecycle, clarification, duplicate/missing result validation and budget visibility.
