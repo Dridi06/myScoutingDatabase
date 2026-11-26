@@ -127,3 +127,25 @@ test('recognizes U19, U-19 and U 19 as the same age group', () => {
     assert.equal(result.request.quantity, 3, phrase);
   }
 });
+
+
+test('retains the 21-year-old defensive-midfielder search after the location clarification',()=>{
+ const history=[
+  {role:'user',text:'Finde mir ein 21-jährigen linksfüßigen Mittelfeld Spieler der als 6er agieren kann und gut in der Defensive ist. Am besten deutsch'},
+  {role:'assistant',text:'Damit ich die Suche sauber eingrenzen kann, brauche ich noch: Geburtsjahrgang oder Altersklasse, Land bzw. Liga-Standort.'}
+ ];
+ const result=parseMessinhoScoutingRequest('Deutschland 3 Liga oder Regionalliga',history,2026);
+ assert.equal(result.shouldHandle,true);
+ assert.deepEqual(result.missing,[]);
+ assert.equal(result.request.age,21);
+ assert.equal(result.request.position,'defensiver Mittelfeldspieler');
+ assert.equal(result.request.region,'deutschland');
+ assert.equal(result.request.targetLevel,'3 Liga');
+});
+
+test('recognizes German nationality adjective as Germany',()=>{
+ const result=parseMessinhoScoutingRequest('Suche einen 21-jährigen Sechser, am besten deutsch',[],2026);
+ assert.equal(result.shouldHandle,true);
+ assert.equal(result.request.age,21);
+ assert.equal(result.request.region,'deutschland');
+});
