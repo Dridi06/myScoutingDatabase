@@ -58,3 +58,34 @@ test('invalid API credentials and temporary rate limits have different messages'
   assert.equal(classifyMessinhoProviderFailure(429, { error: { code: 'rate_limit_exceeded' } }).code, 'provider_rate_limited');
   assert.equal(classifyMessinhoProviderFailure(503, {}).code, 'provider_unavailable');
 });
+
+test('MESSINHO resolves current time from the runtime clock in Berlin without a language-model provider', async () => {
+  const { resolveMessinhoLiveQuestion } = await import('../backend/messinho-conversation.js');
+  const result = resolveMessinhoLiveQuestion('Wie spät ist es?', {
+    now: new Date('2026-11-26T04:31:00.000Z'),
+    timeZone: 'Europe/Berlin'
+  });
+  assert.equal(result.intent, 'live_time');
+  assert.equal(result.tool, 'system_clock');
+  assert.match(result.reply, /05:31 Uhr/);
+  assert.equal(result.time_zone, 'Europe/Berlin');
+  assert.equal(result.verified_at, '2026-11-26T04:31:00.000Z');
+});
+
+test('MESSINHO resolves date and combined date/time questions from the same trusted clock', async () => {
+  const { resolveMessinhoLiveQuestion } = await import('../backend/messinho-conversation.js');
+  const now = new Date('2026-11-26T04:31:00.000Z');
+  const date = resolveMessinhoLiveQuestion('Welcher Wochentag ist heute?', { now });
+  assert.equal(date.intent, 'live_date');
+  assert.match(date.reply, /Donnerstag/);
+  const both = resolveMessinhoLiveQuestion('Wie spät ist es und welches Datum haben wir?', { now });
+  assert.equal(both.intent, 'live_time_and_date');
+  assert.match(both.reply, /05:31 Uhr/);
+  assert.match(both.reply, /Donnerstag/);
+});
+
+test('unknown general questions are not falsely answered by the live clock resolver', async () => {
+  const { resolveMessinhoLiveQuestion } = await import('../backend/messinho-conversation.js');
+  assert.equal(resolveMessinhoLiveQuestion('Warum ist der Himmel blau?'), null);
+  assert.equal(resolveMessinhoLiveQuestion('Wie spielt ein inverser Außenverteidiger?'), null);
+});
