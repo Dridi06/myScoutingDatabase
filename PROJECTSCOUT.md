@@ -1719,3 +1719,25 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Unsupported units/values are not promoted to findings.
 
 **Verification status:** Code and regression tests committed to the staging feature branch. Runtime test suite, build, Render staging deployment and live verification are still pending; do not describe this feature as live until the exact deployment commit is confirmed. Production `main`, production Render/Supabase, PFMS and PFSS remain untouched.
+
+
+## 2026-11-26 — Autonomous Agent Core 2.0 foundation (STAGING; verification pending)
+
+**Owner request:** Implement the autonomous-agent improvements discussed in the conversation, including goal planning, automatic tool selection, execution observation, error recovery, persistent task continuity, self-improvement safeguards, and football intelligence. Work remains restricted to `feature/messinho-unified-ai-integration` and the dedicated STAGING service.
+
+**Changes committed:**
+- Added `backend/messinho-autonomy.js` with a provider-independent goal contract, autonomous plan construction through the existing capability catalogue/dependency resolver, protected-side-effect approval detection, execution observation, bounded JSON task checkpoint creation, and strict owner/organization resume-scope validation.
+- Integrated autonomous goal interpretation and observation into `backend/messinho-agent-core.js`; the core can now derive a plan when no caller-supplied plan exists, emits trace events for planning/observation, exposes the goal contract and observation, and chooses a next action from observed missing inputs/errors/deferred steps.
+- Routed the normal chat orchestration path through the autonomy supervisor in `backend/server.js`; the API response now exposes the goal contract and observation alongside the existing task checkpoint.
+- Added `tests/messinho-autonomy.test.js` for autonomous plan creation, goal contracts, protected-action approval, observation states, checkpoint owner/organization isolation, completed-task resume prevention, and empty-goal rejection.
+
+**Existing foundations reused rather than duplicated:**
+- The repository already contains an owner-scoped `messinho_agent_tasks` ledger, per-step checkpoint writes, lease handling, stale-task quarantine, a user task-list endpoint, and an explicit resume endpoint.
+- Existing verified knowledge memory, research evidence checks, learning safeguards, role restrictions, and the autonomous performance-intelligence module remain in place.
+- The current task resume mechanism is still explicit/user-triggered; a background worker that autonomously resumes tasks is not yet enabled or verified.
+- The new checkpoint constructor is a bounded serialization/ownership contract; it does not replace the existing database ledger or silently persist data by itself.
+- The current planner still relies on the reviewed capability vocabulary/catalogue and dependency resolver. This is a safer autonomous supervisor around the current planner, not unrestricted semantic planning.
+- Error recovery remains bounded; the current retry behavior does not constitute general-purpose root-cause repair or automatic source-code modification.
+- External contact, destructive data changes, model-weight activation, and consequential actions remain behind human approval and role checks.
+
+**Verification status:** Source and test changes are committed to the STAGING feature branch. Full `npm test`, backend syntax checks, Vite build, Render manual deployment, and exact live-commit verification are pending. Do not report this implementation as live until those checks pass. No production or PFMS/PFSS resources were changed.
