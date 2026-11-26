@@ -309,7 +309,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       <div className="messinho-chat-heading"><div><span>SCOUTING CONVERSATION</span><h2>Sprich mit Messinho</h2></div><button type="button" className="messinho-voice-toggle" onClick={()=>{setVoiceOutput(v=>!v);if(voiceOutput&&'speechSynthesis'in window)window.speechSynthesis.cancel();}} title={voiceOutput?'Sprachausgabe ausschalten':'Sprachausgabe einschalten'}>{voiceOutput?<Volume2 size={17}/>:<VolumeX size={17}/>}<span>{voiceOutput?'Sprache an':'Sprache aus'}</span></button></div>
       {openTasks.length>0&&<div className="messinho-task-list"><div className="messinho-task-heading"><strong>Gespeicherte Aufgaben</strong><span>{openTasks.length} offen</span></div>
         {openTasks.map(task=><article key={task.id} className="messinho-task-row"><div><b>{task.goal}</b><small>{task.pending_capabilities?.length||0} Arbeitsschritte ausstehend · zuletzt {new Date(task.updated_at).toLocaleString('de-DE')}</small></div>
-          {task.status==='partial'?<button type="button" disabled={taskBusy||busy} onClick={()=>resumeTask(task.id)}>{taskBusy?'Setzt fort …':'Fortsetzen'}</button>:<span className="messinho-task-waiting">Benötigt weitere Angaben im Chat</span>}
+          {task.status==='partial'?<button type="button" disabled={taskBusy||busy} onClick={()=>resumeTask(task.id)}>{taskBusy?'Setzt fort …':'Fortsetzen'}</button>:task.status==='running'?<span className="messinho-task-waiting">Wird fortgesetzt …</span>:<span className="messinho-task-waiting">Benötigt weitere Angaben im Chat</span>}
         </article>)}
       </div>}
       {taskError&&<p role="status" className="messinho-error">{taskError}</p>}
