@@ -28,7 +28,7 @@ const VERIFIED_SOURCE_RIGHTS = Object.freeze([
     license:'CC BY 4.0',
     license_url:'https://creativecommons.org/licenses/by/4.0/',
     rights_holder:'Ken Kuttler (Lyryx)',
-    evidence_url:'https://math.libretexts.org/Bookshelves/Linear_Algebra/A_First_Course_in_Linear_Algebra_%28Kuttler%29/02%3A_Matrices/2.02%3A_Multiplication_of_Matrices',
+    evidence_url:'https://math.libretexts.org/Bookshelves/Linear_Algebra/A_First_Course_in_Linear_Algebra_%28Kuttler%29/02%3A_Matrices',
     tdm_evidence_url:'https://creativecommons.org/licenses/by/4.0/',
     ai_tdm:true,commercial_use:true,derivative_use:true,
     reviewed_at:'2026-11-26',
@@ -38,7 +38,7 @@ const VERIFIED_SOURCE_RIGHTS = Object.freeze([
     retrieval_method:'libretexts_html',
     retrieval_url:'https://math.libretexts.org/Bookshelves/Linear_Algebra/A_First_Course_in_Linear_Algebra_%28Kuttler%29/02%3A_Matrices/2.02%3A_Multiplication_of_Matrices',
     title:'2.2: Multiplication of Matrices',
-    edition:'2022'
+    edition:'LibreTexts chapter revision 2023'
   },
   {
     source_id:'austin_matrix_multiplication_2026',
@@ -46,7 +46,7 @@ const VERIFIED_SOURCE_RIGHTS = Object.freeze([
     license:'CC BY 4.0',
     license_url:'https://creativecommons.org/licenses/by/4.0/',
     rights_holder:'David Austin',
-    evidence_url:'https://math.libretexts.org/Bookshelves/Linear_Algebra/Understanding_Linear_Algebra_%28Austin%29',
+    evidence_url:'https://understandinglinearalgebra.org/colophon-1.html',
     tdm_evidence_url:'https://creativecommons.org/licenses/by/4.0/',
     ai_tdm:true,commercial_use:true,derivative_use:true,
     reviewed_at:'2026-11-26',
@@ -56,7 +56,7 @@ const VERIFIED_SOURCE_RIGHTS = Object.freeze([
     retrieval_method:'austin_html',
     retrieval_url:'https://understandinglinearalgebra.org/sec-matrices-lin-combs.html',
     title:'2.2 Matrix multiplication and linear combinations',
-    edition:'2026'
+    edition:'2023 update; site maintenance August 2026'
   },
   {
     source_id:'pmc_cardiorespiratory_fitness_2022',
