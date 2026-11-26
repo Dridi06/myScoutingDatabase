@@ -1583,3 +1583,28 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Runtime: Node API listening on port 10000; STAGING Supabase Data API returned HTTP 200.
 - STAGING service remains on feature/messinho-unified-ai-integration with auto-deploy disabled. Production and PFMS/PFSS remain untouched.
 - Remaining verification: owner must confirm on the physical iPhone that focusing/typing/sending in MESSINHO no longer triggers visual zoom or outer page resizing. Automated tests prove CSS contracts and deployment health, not device-specific Safari rendering.
+
+
+## 2026-11-26 — MESSINHO screenshot-driven answer correctness and formatting fix (STAGING)
+
+**User-provided iPhone screenshot findings:**
+- MESSINHO displayed the literal characters `\\n` in a calculation response instead of readable line breaks.
+- A bare scouting year range `2004-2006` was incorrectly intercepted by the deterministic arithmetic parser and returned as subtraction (`-2`).
+- The chat frame itself appears bounded in this screenshot; this report exposed response-format and intent-routing defects in addition to the earlier iOS viewport concern.
+
+**Implemented on `feature/messinho-unified-ai-integration`:**
+- `backend/messinho-math.js`: a bare four-digit year range (hyphen, en dash or em dash) is no longer treated as arithmetic. Explicitly requested arithmetic such as `Berechne 2004-2006` remains valid.
+- `backend/server.js`: calculation replies now contain actual newline characters rather than literal backslash-n sequences.
+- `src/asi/messinho.css`: chat message paragraphs use `white-space:pre-line` so multiline responses remain readable.
+- `tests/messinho-math.test.js`: regression tests for bare year ranges and explicit subtraction.
+- `tests/responsive-layout.test.js`: regression test for multiline chat formatting.
+
+**Commits (feature branch only):**
+- `d1a4f7569e4189bccaa7bea3d14b8588b8df02fb` — year-range guard initial implementation.
+- `5430641b4aa283daa38710b21517e43e538e5bab` — actual newline formatting in calculation replies.
+- `09bb10901c638c178ca664884dc273c5f5668516` — preserve multiline text in chat bubbles.
+- `81fb04b87a6dec84df5c24783bdbe84a2ea091e5` — correct regex source for year-range guard.
+- `7a66e1732d45e7a65025e04e679b47556a80113e` — math regression tests.
+- `34ad2add7ea49ee8311f6c21c62c608693c63c65` — chat formatting regression test.
+
+**Deployment status at checkpoint:** Code is committed to the STAGING feature branch. Render build and deployment are pending. Do not call the fix live until the exact deployed commit is verified live and the health check succeeds. Production, PFMS/PFSS and production Supabase remain untouched. STAGING auto-deploy remains disabled.
