@@ -93,3 +93,24 @@ test('negation and different topic wording do not pass the lexical threshold',()
  const match=scoreMessinhoKnowledgeSimilarity('Welche Faktoren verbessern die Sprintleistung eines Spielers?','Welche Faktoren verschlechtern die Sprintleistung eines Spielers?');
  assert.equal(match.eligible,false);
 });
+
+
+test('time-sensitive memory expires no later than 90 days after its oldest supporting source',()=>{
+ const currentResearch={
+  ...research,
+  sources:[
+   {...research.sources[0],published_date:'2026-09-02'},
+   {...research.sources[1],published_date:'2026-09-10'}
+  ],
+  evidence:{can_answer:true,limitations:[],freshness:{required:true,status:'current_sources',fresh_source_count:2,fresh_distinct_domains:2}}
+ };
+ const row=buildMessinhoKnowledgeRecord(ownerA,'Wer ist aktuell der Trainer?',currentResearch,now);
+ assert.ok(row);
+ assert.equal(Date.parse(row.expires_at),Date.parse('2026-12-01T00:00:00.000Z'));
+});
+
+test('does not persist current knowledge without explicit freshness evidence',()=>{
+ const currentResearch={...research,evidence:{can_answer:true,limitations:[]}};
+ assert.equal(isMessinhoKnowledgePersistable('Wer ist aktuell der Trainer?',currentResearch),false);
+ assert.equal(buildMessinhoKnowledgeRecord(ownerA,'Wer ist aktuell der Trainer?',currentResearch,now),null);
+});
