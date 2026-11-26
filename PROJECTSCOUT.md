@@ -897,3 +897,70 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - Supabase project inventory still shows only one `myScoutingDatabase` project (`vxtybjaabtfhxfwctnyj`) plus unrelated PFSS/PFFS test projects. The sole myScoutingDatabase project is treated as production. **Do not copy LIVE Supabase URL/keys into staging**, because that would connect staging to production and violate the no-production-mutation boundary.
 - Next safe action: user must enter/copy only the AI-provider credentials (e.g. OpenAI and Tavily keys) from LIVE into the STAGING Render Environment page, without copying any production Supabase credentials. For full authenticated agent/task-ledger tests, a dedicated myScoutingDatabase staging Supabase project is still required; do not apply the task-ledger migration to the sole production project.
 - No environment change, deployment, database migration, or production mutation was performed in this configuration-check step.
+
+
+## 22. Verbindlicher Übergabe- und Go-live-Checkpoint — 2026-11-26 (letzter Stand)
+
+### Aktuelle Entscheidung
+Der Nutzer wollte ausdrücklich wissen, ob das System bereits regulär LIVE gehen kann. **Entscheidung zum Zeitpunkt dieses Checkpoints: noch kein regulärer Produktions-Go-live.** Der Code ist weit genug für einen kontrollierten STAGING-Pilot, aber die vollständige Betriebs- und Integrationsreife ist nicht belegt. Erfolgreiche Code-/CI-Prüfungen sind von noch fehlenden Laufzeit-, Datenbank- und Ende-zu-Ende-Nachweisen zu unterscheiden.
+
+### Unveränderliche Arbeitsgrenzen
+- Ausschließlich Repository Dridi06/myScoutingDatabase, Branch feature/messinho-agent-workspace, und die dedizierte Render-STAGING-Instanz bearbeiten.
+- Niemals main, LIVE-Render, die produktive Supabase-Datenbank oder LIVE-Secrets verändern.
+- PFMS/PFSS bleiben vollständig außen vor.
+- Keine Produktions-Supabase-Zugangsdaten in STAGING eintragen oder übernehmen.
+- Vor jeder Änderung zuerst diesen Checkpoint und den aktuellen Git-/Render-Zustand erneut prüfen. Keine Annahme aus diesem Eintrag ungeprüft als aktuellen Zustand behandeln.
+
+### Repository und CI
+- Staging-Branch: feature/messinho-agent-workspace
+- Zuletzt bekannter Branch-HEAD: acc7d6ace9bc7b1acbfe4f0aecce30b8c76d3af4
+- Dieser Dokumentations-Commit verändert PROJECTSCOUT.md; danach den tatsächlichen aktuellen HEAD erneut ermitteln.
+- GitHub Actions für den Code-Stand acc7d6a: beide Workflows erfolgreich: MESSINHO staging validation (Run 45739767066) und MESSINHO validation (Run 45739767122).
+- CI-Erfolge belegen Tests/Build im Workflow, nicht die vollständige Auth-, Datenbank-, Provider- oder Browser-E2E-Funktionalität.
+
+### Render STAGING — Deployment ist hinter dem Branch
+- Service: myscoutingdatabase-messinho-staging; ID srv-dc3chlqjnfac73acd6ig.
+- URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- Branch: feature/messinho-agent-workspace; Auto-Deploy deaktiviert.
+- Letztes bekanntes Deployment: dep-dc3orud6e07s73d5295g; deployed commit 80d8d3a4646179fb6e09d0bda7371a7b599b0bd5; Deployment erfolgreich.
+- Dieser Deploy ist älter als der zuletzt bekannte Branch-HEAD acc7d6a. Der neueste Code ist somit noch nicht nachweislich auf STAGING deployed.
+- Nächster Deploy muss kontrolliert manuell erfolgen; danach verifizieren, dass exakt der aktuelle Commit läuft und der Dienst gesund startet. Auto-Deploy nicht unbedacht einschalten.
+
+### STAGING-Konfiguration — letzte beobachtete Runtime-Meldungen
+Die zuletzt verfügbaren Startup-Logs des Staging-Deployments meldeten SUPABASE_SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY missing or empty, Tavily=false und OpenAI=false (Modell gpt-4.1-mini). Diese Logs stammen aus dem zuletzt verfügbaren Startvorgang am 2026-11-26 gegen 01:40:48 UTC (02:40:48 CET); das Deployment-Event zeigte keine Environment-Änderung.
+
+Der Nutzer hat mitgeteilt, dass die Konfiguration erledigt sei. Die verfügbaren Logs belegen diese spätere Änderung jedoch noch nicht. Im nächsten Chat nicht pauschal behaupten, der Nutzer habe nichts eingerichtet. Zuerst aktuelle Render-Events und frische Startup-Logs abfragen, um zu prüfen, ob nach dem letzten beobachteten Start Änderungen oder ein Neustart erfolgt sind. Keine Secrets ausgeben, auslesen oder in Logs kopieren; nur Vorhandensein/Status prüfen. KI-Provider-Secrets kann der Nutzer gezielt in STAGING konfigurieren. Keine Supabase-Produktions-URL oder -Keys übernehmen.
+
+### Datenbank und Task-Persistenz — blockierender Integrationsnachweis
+- Migration: supabase/migrations/20261126_messinho_agent_task_ledger.sql
+- Migration ist im Repository vorhanden, aber auf keiner myScoutingDatabase-Datenbank angewendet.
+- Es gibt nach dem letzten Projektinventar kein separates dediziertes myScoutingDatabase-STAGING-Supabase-Projekt.
+- Das einzige Projekt myScoutingDatabase (vxtybjaabtfhxfwctnyj) wird als PRODUKTION behandelt und darf nicht für Tests/Migrationen verwendet werden.
+- PFFS-Test und PFSS gehören zu einem anderen Projekt und dürfen nicht benutzt werden.
+- Vor Datenbank-E2E muss ein eigenes, getrenntes myScoutingDatabase-STAGING-Supabase-Projekt eingerichtet und ausschließlich dessen Credentials im STAGING-Render-Service hinterlegt werden. Erst danach Migration auf dieser STAGING-Datenbank anwenden und verifizieren.
+- Niemals die Task-Ledger-Migration auf die einzige produktive myScoutingDatabase-Datenbank anwenden.
+
+### Implementierungsstand MESSINHO
+- 100 Capability-IDs besitzen spezialisierte Handler-Zweige; Auswahl erfolgt automatisch über Agent-/Natural-Language-Planer. Kein manueller Einzel-Funktions-Auswahlschalter; die Oberfläche zeigt Status nur lesend.
+- 24 zuvor generische Fallback-Bereiche wurden mit domänenspezifischer Logik erweitert.
+- Alle 100 Handler bleiben wahrheitsgemäß partial, bis vollständige Contracts und Integrations-/E2E-Tests nachgewiesen sind. Nicht als „100 Funktionen vollständig fertig“ bezeichnen.
+- Lernfunktionen umfassen Scout-Feedback, Kohortenanalyse, Talentpfad, Breakthrough, Positionswechsel, Outcome/Verfügbarkeit, überwachte Lernschritte und Optimierungsvorschläge. Gewichts-/Modelländerungen bleiben Vorschläge; keine automatische Aktivierung, Admin-Prüfung erforderlich.
+- Provenance/Evidence umfasst Herkunftsklassifikation, begrenzte Spielerreferenzen, Metrikbelege, Quellen-URL-/HTTPS-Bewertung, bestätigte Outcome-Zahlen, Score-Verknüpfungen und explizite Evidenzgrenzen. HTTPS oder eine vorhandene URL allein gilt nicht als Quellenverifikation.
+- Task-Ledger: Migration und API/UI für Aufgabenstatus/Fortsetzen sind im Code vorgesehen; persistente Laufzeitfunktion ist ohne getrennte STAGING-Datenbank noch nicht E2E bewiesen.
+- SSE: Fortschrittsereignisse pro Capability, Checkpoint nach jedem Schritt und Fortsetzen unter Beachtung von Owner-Scope/Lease sind implementiert; reale Unterbrechungs-/Resume-E2E-Prüfung steht noch aus.
+
+### Verbindliche nächste Arbeitsschritte — genau in dieser Reihenfolge
+1. Zustand neu verifizieren: Branch-HEAD, letzter Commit, PROJECTSCOUT.md, GitHub-CI-Runs, Render-Staging-Events, aktuelles Deployment und frische Startup-Logs lesen. Keine Änderungen an LIVE.
+2. Staging-Code deployen: aktuellen Commit von feature/messinho-agent-workspace kontrolliert auf myscoutingdatabase-messinho-staging deployen. Danach verifizieren, dass exakt dieser Commit läuft und der Dienst gesund startet.
+3. Provider-Konfiguration prüfen: anhand frischer Logs/Statusflags prüfen, ob OpenAI/Tavily in STAGING vorhanden sind. Falls weiterhin fehlend, den Nutzer gezielt auf die STAGING-Environment-Seite hinweisen. Keine Secrets anfordern oder offenlegen.
+4. Getrennte STAGING-Datenbank schaffen: dediziertes myScoutingDatabase-STAGING-Supabase-Projekt einrichten lassen/identifizieren. Bis dahin keine Task-Ledger-Migration anwenden und keine produktive DB verwenden.
+5. Migration nur auf STAGING anwenden: 20261126_messinho_agent_task_ledger.sql prüfen, dann ausschließlich auf der separaten STAGING-DB anwenden; RLS, Grants und Owner-Isolation kontrollieren.
+6. Authentifizierte Ende-zu-Ende-Tests: Anmeldung/Rollen, natürliche Spracheingabe und automatische Capability-Auswahl, mehrere Ziele/Abhängigkeiten, fehlende Daten, Provenance/Evidence, Admin-Schutz der Lernfunktionen, SSE-Fortschritt, absichtlicher Stream-/Prozessabbruch, gespeicherter Checkpoint, Resume, Task-Owner-Isolation und Fehler-/Lease-Recovery testen.
+7. Capability-Abdeckung ehrlich messen: Contract-Tests und Integrationsnachweise pro Capability-Familie ergänzen; Status nur bei erfüllten Kriterien von partial auf implemented erhöhen.
+8. Release-Entscheidung treffen: erst nach grünen Tests, Security-/Permission-Review, Provider-Ausfalltest, Rollback-Plan und dokumentiertem Owner-Sign-off eine kontrollierte Produktionsfreigabe planen. Bis dahin LIVE unverändert lassen.
+
+### Go-live-Kriterien
+Ein regulärer Produktions-Go-live ist erst vertretbar, wenn der aktuelle freizugebende Commit erfolgreich auf STAGING läuft; notwendige STAGING-Provider und getrennte STAGING-Datenbank nachweislich korrekt konfiguriert sind; Migration, RLS, Grants und Owner-Isolation geprüft sind; authentifizierte Kernpfade einschließlich SSE-Unterbrechung und Resume E2E erfolgreich sind; keine kritischen Fehler in Rollen-/Datenisolation oder Evidence-Validierung offen sind; Lernänderungen nur kontrolliert und nach Admin-Freigabe aktiviert werden; und Rollback sowie Produktionsfreigabe ausdrücklich beschlossen und dokumentiert sind.
+
+### Gesprächsfortsetzung im nächsten Chat
+Der nächste Chat beginnt nicht mit einer Neuentwicklung und fragt den Nutzer nicht erneut nach bereits dokumentierten Projektentscheidungen. Zuerst diesen Abschnitt und den tatsächlichen aktuellen Repository-/Render-Status lesen. Danach direkt mit Schritt 1 „Zustand neu verifizieren“ fortfahren und die Ergebnisse knapp mitteilen. Wenn sich seit diesem Checkpoint etwas geändert hat, den Eintrag anhand tatsächlicher Belege aktualisieren. Keine Produktionsänderung ohne ausdrückliche neue Freigabe.
