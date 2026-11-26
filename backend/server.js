@@ -26,7 +26,7 @@ import { classifyMessinhoProviderFailure, getMessinhoSocialReply, resolveMessinh
 import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
 import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
-import { findMessinhoDomainKnowledge } from './messinho-domain-knowledge.js';
+import { findMessinhoDomainKnowledge, storeMessinhoDomainKnowledge } from './messinho-domain-knowledge.js';
 import { calculateMessinhoMathQuestion } from './messinho-math.js';
 import { startMessinhoBackgroundWorker, MESSINHO_BACKGROUND_READ_ONLY } from './messinho-background-worker.js';
 
@@ -1926,8 +1926,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const sourceItems=(research.sources||[]).map((source,index)=>({id:'general-source-'+index,name:source.title||source.publisher||source.url,kind:'Recherchequelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
       if(research.status==='completed'){
         const learning=await storeMessinhoKnowledge(db,ownerId,interpretedMessage,research);
+        const rightsVerified=(research.sources||[]).length>0&&(research.sources||[]).every(source=>source.rights_status==='verified_permitted'&&source.ai_tdm_allowed===true&&source.commercial_use_allowed===true&&source.derivative_use_allowed===true&&source.license&&source.rights_holder&&source.rights_evidence_url);
+        const durableLearning=rightsVerified?await storeMessinhoDomainKnowledge(db,{question:interpretedMessage,content:research.answer,claims:(research.claims||[]).map(claim=>claim.text),sources:research.sources.map(source=>({title:source.title,url:source.url})),rights:{status:'verified_permitted',license:research.sources[0].license,rights_holder:research.sources[0].rights_holder,evidence_url:research.sources[0].rights_evidence_url,ai_tdm:true,commercial_use:true,derivative_use:true},confidence:0.8}):{persisted:false,reason:'source_rights_not_verified'};
         return respond({reply:research.answer,intent:'general_knowledge_research',items:sourceItems,sources:research.sources,evidence:research.evidence,answer_mode:research.answer_mode,claims:research.claims,researched_at:research.researched_at,
-          learning:{...research.learning,...learning,reused:false,verification_status:learning.persisted?'corroborated':null},quality_control:research.quality_control||{passed:false,iterations:0,score:0}});
+          learning:{...research.learning,...learning,reused:false,verification_status:learning.persisted?'corroborated':null},durable_knowledge:durableLearning,quality_control:research.quality_control||{passed:false,iterations:0,score:0}});
       }
       return respond({reply:research.answer||research.message||'Ich kann diese Frage gerade nicht zuverlässig recherchieren. Bitte versuche es später erneut oder grenze die Frage etwas ein.',intent:'general_knowledge_research_limited',items:sourceItems,sources:research.sources||[],evidence:research.evidence||null,limitations:research.evidence?.limitations||[]});
     }
