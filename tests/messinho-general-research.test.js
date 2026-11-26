@@ -54,3 +54,9 @@ test('rejects generated claims that do not overlap the cited source excerpt',()=
  assert.equal(isMessinhoGeneralClaimSupported('Blue light is scattered more strongly by atmospheric molecules.',sources),true);
  assert.equal(isMessinhoGeneralClaimSupported('The moon is made of cheese and contains many minerals.',sources),false);
 });
+
+
+test('does not start external research for conversational complaints about restarting or premature sending',()=>{
+ assert.equal(isMessinhoGeneralResearchQuestion('Wieso startest du neu und erledigst'),false);
+ assert.equal(isMessinhoGeneralResearchQuestion('Warum hast du meine Nachricht abgeschickt, obwohl ich noch nicht fertig war?'),false);
+});
