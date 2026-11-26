@@ -97,3 +97,19 @@ test('keeps recency requirements disabled for stable knowledge questions',()=>{
  assert.equal(evidence.can_answer,true);
  assert.equal(evidence.freshness.required,false);
 });
+
+
+test('stale results are returned as insufficient evidence before any synthesis attempt',async()=>{
+ let calls=0;
+ const sources=[
+  {url:'https://a.example/current',title:'Old A',content:'A sufficiently detailed but old source excerpt. '.repeat(5),published_date:'2025-01-01'},
+  {url:'https://b.example/current',title:'Old B',content:'Another sufficiently detailed but old source excerpt. '.repeat(5),published_date:'2025-02-01'}
+ ];
+ const result=await researchMessinhoGeneralQuestion('Was ist aktuell der Stand?',{TAVILY_API_KEY:'test',OPENAI_API_KEY:'test'},async()=>{
+  calls++;
+  return {ok:true,json:async()=>({results:sources})};
+ });
+ assert.equal(result.status,'insufficient_evidence');
+ assert.equal(result.evidence.freshness.status,'insufficient_current_sources');
+ assert.equal(calls,1);
+});
