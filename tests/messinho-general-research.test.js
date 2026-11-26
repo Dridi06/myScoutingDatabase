@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {isMessinhoGeneralResearchQuestion,normalizeMessinhoGeneralSources,assessMessinhoGeneralEvidence,isMessinhoGeneralClaimSupported,isMessinhoGeneralClaimCorroborated,researchMessinhoGeneralQuestion} from '../backend/messinho-general-research.js';
+import {isMessinhoGeneralResearchQuestion,normalizeMessinhoGeneralSources,assessMessinhoGeneralEvidence,isMessinhoGeneralClaimSupported,isMessinhoGeneralClaimCorroborated,isMessinhoTimeSensitiveQuestion,researchMessinhoGeneralQuestion} from '../backend/messinho-general-research.js';
 
 test('detects open knowledge questions but leaves greetings and scouting commands alone',()=>{
  assert.equal(isMessinhoGeneralResearchQuestion('Warum ist der Himmel blau?'),true);
@@ -141,4 +141,16 @@ test('rejects a claim if any cited source does not independently support it',()=
   {url:'https://b.example/fact',publisher:'b.example',title:'Unrelated article',snippet:'The moon orbits the Earth and affects ocean tides.'}
  ];
  assert.equal(isMessinhoGeneralClaimCorroborated(claim,sources),false);
+});
+
+
+test('recognizes inherently dynamic football questions even without the word current',()=>{
+ assert.equal(isMessinhoTimeSensitiveQuestion('Wer trainiert Borussia Dortmund?'),true);
+ assert.equal(isMessinhoTimeSensitiveQuestion('Wie ist der aktuelle Tabellenstand?'),true);
+ assert.equal(isMessinhoTimeSensitiveQuestion('Wie wird ein Fußballtrainer ausgebildet?'),false);
+});
+
+test('does not impose current-source rules on explicitly historical questions',()=>{
+ assert.equal(isMessinhoTimeSensitiveQuestion('Wer war 2014 Trainer von Borussia Dortmund?'),false);
+ assert.equal(isMessinhoTimeSensitiveQuestion('Historischer Rückblick auf die Bundesliga-Tabelle 1998'),false);
 });
