@@ -32,7 +32,7 @@ export function buildMessinhoKnowledgeConcept(input={},now=new Date()){
   if(!rights||!verifyMessinhoSourceRights(rights)||source.source_id!==rights.source_id||!isMessinhoRegisteredSourceUrl(rights.source_id,source.url))continue;
   const url=clean(source.url,600),host=(()=>{try{return new URL(url).hostname.replace(/^www\./i,'').toLowerCase();}catch{return '';}})();
   if(!host||sources.some(item=>item.url===url))continue;
-  sources.push({source_id:rights.source_id,title:clean(source.title,220),url,host,section:clean(source.section,180)||null,edition:clean(source.edition||rights.edition,120)||null,license:clean(rights.license,120),license_url:clean(rights.license_url,600),attribution:clean(rights.attribution,500),retrieval_method:clean(source.retrieval_method||rights.retrieval_method,80)||null,retrieval_url:clean(rights.retrieval_url,600)||null,changes_made:true,accessed_at:new Date(now).toISOString()});
+  sources.push({source_id:rights.source_id,title:clean(source.title,220),url,host,section:clean(source.section,180)||null,edition:clean(source.edition||rights.edition,120)||null,license:clean(rights.license,120),license_url:clean(rights.license_url,600),tdm_evidence_url:clean(rights.tdm_evidence_url,600),attribution:clean(rights.attribution,500),reviewed_at:clean(rights.reviewed_at,40)||null,retrieval_method:clean(source.retrieval_method||rights.retrieval_method,80)||null,retrieval_url:clean(rights.retrieval_url,600)||null,changes_made:true,accessed_at:new Date(now).toISOString()});
  }
  const independentHosts=[...new Set(sources.map(source=>source.host))];
  if(sources.length<1||independentHosts.length<1)return {eligible:false,reason:'one_rights_verified_source_required'};
@@ -43,7 +43,7 @@ export function buildMessinhoKnowledgeConcept(input={},now=new Date()){
  const conceptKey=clean(input.concept_key,160)||[domain,slug(topic),slug(title)].filter(Boolean).join('.');
  if(!/^[a-z0-9][a-z0-9._:-]{2,159}$/.test(conceptKey))return {eligible:false,reason:'invalid_concept_key'};
  const nowIso=new Date(now).toISOString();
- const sourceRights=rightsList.map(rights=>({source_id:rights.source_id,status:'verified_permitted',license:clean(rights.license,120),license_url:clean(rights.license_url,600),rights_holder:clean(rights.rights_holder,180),evidence_url:clean(rights.evidence_url,600),attribution:clean(rights.attribution,500),retrieval_method:clean(rights.retrieval_method,80)||null,retrieval_url:clean(rights.retrieval_url,600)||null,ai_tdm:true,commercial_use:true,derivative_use:true,reviewed_at:clean(rights.reviewed_at,40)||nowIso}));
+ const sourceRights=rightsList.map(rights=>({source_id:rights.source_id,status:'verified_permitted',license:clean(rights.license,120),license_url:clean(rights.license_url,600),rights_holder:clean(rights.rights_holder,180),evidence_url:clean(rights.evidence_url,600),tdm_evidence_url:clean(rights.tdm_evidence_url,600),attribution:clean(rights.attribution,500),reviewed_at:clean(rights.reviewed_at,40)||null,retrieval_method:clean(rights.retrieval_method,80)||null,retrieval_url:clean(rights.retrieval_url,600)||null,ai_tdm:true,commercial_use:true,derivative_use:true,reviewed_at:clean(rights.reviewed_at,40)||nowIso}));
  const contentFingerprint=fingerprint([domain,topic,title,definition,input.formula||''].join('|'));
  const record={
   concept_key:conceptKey,domain,topic,title,definition,knowledge_level:level,knowledge_type:type,
