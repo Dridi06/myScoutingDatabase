@@ -1,9 +1,16 @@
--- Trigger-only functions must not be directly callable through PostgREST RPC.
-REVOKE EXECUTE ON FUNCTION public.handle_new_scout_profile() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.prevent_scout_messages_on_resolved_ticket() FROM PUBLIC, anon, authenticated;
+-- Restrict trigger-only and authenticated RPC functions to intended callers.
+do $$
+begin
+  if to_regprocedure('public.handle_new_scout_profile()') is not null then
+    execute 'revoke execute on function public.handle_new_scout_profile() from public, anon, authenticated';
+  end if;
+  if to_regprocedure('public.prevent_scout_messages_on_resolved_ticket()') is not null then
+    execute 'revoke execute on function public.prevent_scout_messages_on_resolved_ticket() from public, anon, authenticated';
+  end if;
+end;
+$$;
 
--- Presence/login RPCs are intentionally called by signed-in clients only.
-REVOKE EXECUTE ON FUNCTION public.scout_heartbeat() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.scout_heartbeat() TO authenticated, service_role;
-REVOKE EXECUTE ON FUNCTION public.scout_mark_login() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.scout_mark_login() TO authenticated, service_role;
+revoke execute on function public.scout_heartbeat() from public, anon;
+grant execute on function public.scout_heartbeat() to authenticated, service_role;
+revoke execute on function public.scout_mark_login() from public, anon;
+grant execute on function public.scout_mark_login() to authenticated, service_role;
