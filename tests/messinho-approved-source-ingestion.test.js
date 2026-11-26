@@ -52,8 +52,8 @@ test('approved LibreTexts and Austin chapter HTML routes return only relevant co
   'understandinglinearalgebra.org':'<html><body><p>Matrix multiplication connects matrix-vector products with linear combinations of the columns of a matrix. The dimensions must agree for the product to be defined.</p></body></html>'
  };
  for(const [sourceId,host,method] of [
-  ['libretexts_kuttler_matrix_multiplication_2022','math.libretexts.org','libretexts_html'],
-  ['austin_matrix_multiplication_2026','understandinglinearalgebra.org','austin_html']
+  ['libretexts_kuttler_matrix_multiplication_2023','math.libretexts.org','libretexts_html'],
+  ['austin_matrix_multiplication_2023','understandinglinearalgebra.org','austin_html']
  ]){
   const result=await fetchMessinhoApprovedSource(sourceId,{topic:'matrix multiplication matrices columns rows product',fetchImpl:async(url,options)=>{
    assert.equal(new URL(url).hostname,host);
