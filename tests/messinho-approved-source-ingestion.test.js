@@ -8,7 +8,7 @@ test('PLOS source retrieval uses the approved JATS endpoint and returns only com
   topic:'VO2max cardiorespiratory fitness',
   fetchImpl:async(url,options)=>{
    requested=url;
-   assert.match(options.headers.accept,/application\\/xml/);
+   assert.equal(options.headers.accept,'application/xml,text/xml;q=0.9');
    return {ok:true,text:async()=>'<article><abstract><p>VO2max is the highest attained oxygen uptake during an incremental exercise test with large muscle groups.</p></abstract><body><p>VO2max is an important parameter to objectively assess cardiorespiratory fitness in healthy people.</p><p>Prediction models require external validation.</p></body></article>'};
   }
  });
@@ -36,7 +36,7 @@ test('PMC source retrieval uses the approved BioC API and keeps section provenan
  });
  assert.equal(result.status,'completed');
  assert.equal(result.retrieval_method,'pmc_bioc_json');
- assert.match(requested,/BioC_json\\/PMC11269081/);
+ assert.ok(requested.includes('/BioC_json/PMC11269081/'));
  assert.ok(result.excerpts.some(x=>x.source_section==='ABSTRACT'));
  assert.equal('full_text' in result,false);
 });
