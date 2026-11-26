@@ -3388,3 +3388,12 @@ Implemented on the feature branch:
 - Preserve the established black/navy and gold premium visual design, responsive mobile layout, clear source presentation, and uncluttered workspace.
 - No unreviewed knowledge activation, no automatic approval, no unsupported claims of permanent knowledge, and no fabricated sources or player metrics.
 - Document every completed change, test, deployment, failure, and next action in this file.
+
+
+### UI deployment confirmation — 2026-11-26 22:20 CET
+- Render deployment `dep-dc4a3nc9v7es73eahqh0` finished with status **LIVE**.
+- Deployed code commit: `cf396444ab831d5c3f41f79aee0e5cab52bb6e0e`.
+- Render build logs confirm **321 tests, 321 passed, 0 failed**, successful Vite production build, application startup, Supabase HTTP 200, and service live.
+- Dedicated MESSINHO staging URL: `https://myscoutingdatabase-messinho-staging.onrender.com`.
+- The new knowledge result layout is now deployed to STAGING. Admin visual retest of the separated source list remains outstanding.
+- Latest documentation checkpoint commit before this confirmation: `07bb8f9022c04e93b16d399f7558f253391de10e`.
