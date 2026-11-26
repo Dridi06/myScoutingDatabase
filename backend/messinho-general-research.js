@@ -8,6 +8,15 @@ const clean=(value,max=1400)=>String(value??'').replace(/[\\u0000-\\u001f\\u007f
 const safeUrl=value=>{try{const url=new URL(value);return url.protocol==='https:'?url.toString():null;}catch{return null;}};
 const normalize=value=>String(value??'').normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[^\\p{L}\\p{N}]+/gu,' ').trim();
 const STOP=new Set(['aber','auch','dass','diese','dieser','einer','eines','eine','einem','einen','oder','wenn','warum','wieso','weshalb','welche','welcher','welches','kannst','bitte','mir','mich','sich','über','unter','the','and','for','with','from','that','this','what','when','where','which','how']);
+export function isMessinhoGeneralClaimSupported(claim,sources=[]){
+ const tokens=normalize(claim).split(' ').filter(token=>token.length>=4&&!STOP.has(token));
+ if(tokens.length<3)return false;
+ return sources.some(source=>{
+  const sourceTokens=new Set(normalize([source.title,source.snippet].join(' ')).split(' ').filter(token=>token.length>=4));
+  const matches=tokens.filter(token=>sourceTokens.has(token)).length;
+  return matches>=3&&matches/tokens.length>=0.35;
+ });
+}
 export function isMessinhoGeneralResearchQuestion(message){
  const text=clean(message,700),n=normalize(text);
  if(n.length<12||n.length>700)return false;
@@ -58,8 +67,8 @@ export async function researchMessinhoGeneralQuestion(question,env=process.env,f
    if(aiResponse.ok){
     const data=await aiResponse.json(),parsed=JSON.parse(data.choices?.[0]?.message?.content||'{}');
     const allowed=new Set(sources.map(source=>source.url));
-    const checked=(Array.isArray(parsed.claims)?parsed.claims:[]).filter(claim=>clean(claim?.text,700)&&Array.isArray(claim.source_urls)&&claim.source_urls.length&&claim.source_urls.every(url=>allowed.has(url)));
-    if(clean(parsed.answer,4000)&&checked.length){answer=clean(parsed.answer,4000);claims=checked.map(claim=>({text:clean(claim.text,700),source_urls:claim.source_urls}));}
+    const checked=(Array.isArray(parsed.claims)?parsed.claims:[]).filter(claim=>clean(claim?.text,700)&&Array.isArray(claim.source_urls)&&claim.source_urls.length&&claim.source_urls.every(url=>allowed.has(url))&&claim.source_urls.some(url=>isMessinhoGeneralClaimSupported(claim.text,sources.filter(source=>source.url===url))));
+    if(clean(parsed.answer,4000)&&checked.length){claims=checked.map(claim=>({text:clean(claim.text,700),source_urls:claim.source_urls}));answer=claims.map(claim=>claim.text).join('\\n');}
    }
   }catch(error){/* Evidence-only fallback below is intentional. */}
  }
