@@ -121,6 +121,7 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
   const age = ageMatch ? Number(ageMatch[1]) : null;
   const footMatch = context.match(/\b(linksf[uü]ßig(?:en|er|e)?|linksf[uü]ssig(?:en|er|e)?|linker fuß|linken fuß|left[- ]footed|beidfüßig|beidfüssig|beidfüßler|right[- ]footed|rechtsfüßig|rechtsfuß)\b/i);
   const preferredFoot = footMatch ? (/^(?:beid|both)/i.test(footMatch[1]) ? 'both' : /^(?:right|rechts)/i.test(footMatch[1]) ? 'right' : 'left') : null;
+  const nationality = /\b(?:am besten|bevorzugt|idealerweise|nationalität|nationalitaet)\s+(?:aus\s+)?deutsch(?:e[nrms]?)?\b/i.test(context) ? 'deutsch' : '';
   const ageGroupMatch = context.match(/\bU[\s-]*([1-2]\d)\b/i);
   const ageGroup = ageGroupMatch ? `U${Number(ageGroupMatch[1])}` : null;
 
@@ -139,9 +140,9 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
   )?.[0];
   if (regionKey) region = regionKey;
 
-  const levelPattern = /\b(2\.?\s*bundesliga|3\.?\s*liga|bundesliga|regionalliga|oberliga|landesliga)\b/i;
-  const levelMatch = context.match(levelPattern);
-  const targetLevel = levelMatch ? levelMatch[0].replace(/\s+/g, ' ').trim() : '';
+  const levelPattern = /\b(2\.?\s*bundesliga|3\.?\s*liga|bundesliga|regionalliga|oberliga|landesliga)\b/gi;
+  const levelMatches = [...context.matchAll(levelPattern)].map(match => match[0].replace(/\s+/g, ' ').trim());
+  const targetLevel = [...new Set(levelMatches)].join(' / ');
   const quantityMatch = context.match(/\b(\d{1,2}|eins|eine|einen|zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn)\s+(?=(?:interessante[nr]?\s+)?(?:u[\s-]*\d{1,2}[- ]?)?(?:spieler|talente|kandidaten|linker|linksverteidiger|left|rechter|rechtsverteidiger|right|innenverteidiger|mittelstürmer|stürmer|torwart|goalkeeper|keeper|flügelspieler|winger|zentraler|defensives|offensives|mittelfeldspieler)\b)/i);
   const numberWords={eins:1,eine:1,einen:1,zwei:2,drei:3,vier:4,fünf:5,sechs:6,sieben:7,acht:8,neun:9,zehn:10};
   const quantity = quantityMatch ? Math.max(1, Math.min(15, Number(quantityMatch[1])||numberWords[quantityMatch[1].toLocaleLowerCase('de-DE')]||10)) : 10;
