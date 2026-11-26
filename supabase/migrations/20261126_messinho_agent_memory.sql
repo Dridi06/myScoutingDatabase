@@ -16,18 +16,18 @@ alter table public.messinho_agent_memory enable row level security;
 drop policy if exists "messinho_agent_memory_select_own" on public.messinho_agent_memory;
 create policy "messinho_agent_memory_select_own"
   on public.messinho_agent_memory for select
-  using (auth.uid() = owner_id);
+  using ((select auth.uid()) = owner_id);
 
 drop policy if exists "messinho_agent_memory_insert_own" on public.messinho_agent_memory;
 create policy "messinho_agent_memory_insert_own"
   on public.messinho_agent_memory for insert
-  with check (auth.uid() = owner_id);
+  with check ((select auth.uid()) = owner_id);
 
 drop policy if exists "messinho_agent_memory_update_own" on public.messinho_agent_memory;
 create policy "messinho_agent_memory_update_own"
   on public.messinho_agent_memory for update
-  using (auth.uid() = owner_id)
-  with check (auth.uid() = owner_id);
+  using ((select auth.uid()) = owner_id)
+  with check ((select auth.uid()) = owner_id);
 
 create table if not exists public.messinho_agent_traces (
   id uuid primary key default gen_random_uuid(),
@@ -48,7 +48,7 @@ alter table public.messinho_agent_traces enable row level security;
 drop policy if exists "messinho_agent_traces_select_own" on public.messinho_agent_traces;
 create policy "messinho_agent_traces_select_own"
   on public.messinho_agent_traces for select
-  using (auth.uid() = owner_id);
+  using ((select auth.uid()) = owner_id);
 
 -- Inserts/updates are performed by the server's service-role client only.
 -- No client-side write policy is granted for execution traces.
