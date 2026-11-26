@@ -136,16 +136,30 @@ for select to authenticated using (
 );
 
 drop policy if exists asi_evidence_admin_write on public.asi_external_evidence;
-create policy asi_evidence_admin_write on public.asi_external_evidence
-for all to authenticated using ((select private.is_admin())) with check ((select private.is_admin()));
+drop policy if exists asi_evidence_admin_insert on public.asi_external_evidence;
+drop policy if exists asi_evidence_admin_update on public.asi_external_evidence;
+drop policy if exists asi_evidence_admin_delete on public.asi_external_evidence;
+create policy asi_evidence_admin_insert on public.asi_external_evidence
+for insert to authenticated with check ((select private.is_admin()));
+create policy asi_evidence_admin_update on public.asi_external_evidence
+for update to authenticated using ((select private.is_admin())) with check ((select private.is_admin()));
+create policy asi_evidence_admin_delete on public.asi_external_evidence
+for delete to authenticated using ((select private.is_admin()));
 
 drop policy if exists asi_contract_read_scoped on public.asi_contract_snapshots;
 create policy asi_contract_read_scoped on public.asi_contract_snapshots
 for select to authenticated using (owner_id = (select auth.uid()) or (select private.is_admin()));
 
 drop policy if exists asi_contract_admin_write on public.asi_contract_snapshots;
-create policy asi_contract_admin_write on public.asi_contract_snapshots
-for all to authenticated using ((select private.is_admin())) with check ((select private.is_admin()));
+drop policy if exists asi_contract_admin_insert on public.asi_contract_snapshots;
+drop policy if exists asi_contract_admin_update on public.asi_contract_snapshots;
+drop policy if exists asi_contract_admin_delete on public.asi_contract_snapshots;
+create policy asi_contract_admin_insert on public.asi_contract_snapshots
+for insert to authenticated with check ((select private.is_admin()));
+create policy asi_contract_admin_update on public.asi_contract_snapshots
+for update to authenticated using ((select private.is_admin())) with check ((select private.is_admin()));
+create policy asi_contract_admin_delete on public.asi_contract_snapshots
+for delete to authenticated using ((select private.is_admin()));
 
 drop policy if exists asi_evidence_reviews_admin_all on public.asi_evidence_reviews;
 create policy asi_evidence_reviews_admin_all on public.asi_evidence_reviews
