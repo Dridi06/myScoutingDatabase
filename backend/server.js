@@ -20,6 +20,7 @@ import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapa
 import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 import { classifyMessinhoProviderFailure, getMessinhoSocialReply, resolveMessinhoLiveQuestion } from './messinho-conversation.js';
 import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
+import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -1695,6 +1696,12 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const reply=(items.length?'Ich habe '+items.length+' interne Treffer gefunden. ':'Ich habe keinen internen Eintrag gefunden. ')+(external.profile?.summary||('Ich habe eine externe Recherche zu '+term+' durchgeführt und '+(external.sources?.length||0)+' Quellen gefunden. '+(external.profile?.missing_data?.length?'Noch offen: '+external.profile.missing_data.join(', '):'Bitte prüfe die Quellen für aktuelle Details.')));
       const sourceItems=(external.sources||[]).map((source,index)=>({id:'source-'+index,name:source.title||source.publisher||source.url,kind:'Externe Quelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
       return respond({reply,intent:'player_research',items:[...items,...sourceItems],player:external.player,profile:external.profile,sources:external.sources||[],provider:external.provider||null,researched_at:external.researched_at||null});
+    }
+    if(isMessinhoGeneralResearchQuestion(interpretedMessage)){
+      const research=await researchMessinhoGeneralQuestion(interpretedMessage);
+      const sourceItems=(research.sources||[]).map((source,index)=>({id:'general-source-'+index,name:source.title||source.publisher||source.url,kind:'Recherchequelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
+      if(research.status==='completed')return respond({reply:research.answer,intent:'general_knowledge_research',items:sourceItems,sources:research.sources,evidence:research.evidence,answer_mode:research.answer_mode,claims:research.claims,researched_at:research.researched_at,learning:research.learning});
+      return respond({reply:research.answer||research.message||'Ich kann diese Frage gerade nicht zuverlässig recherchieren. Bitte versuche es später erneut oder grenze die Frage etwas ein.',intent:'general_knowledge_research_limited',items:sourceItems,sources:research.sources||[],evidence:research.evidence||null,limitations:research.evidence?.limitations||[]});
     }
     const conversationalContext=history.map(item=>({role:item.role,content:item.text})).slice(-10);
     if(process.env.OPENAI_API_KEY){
