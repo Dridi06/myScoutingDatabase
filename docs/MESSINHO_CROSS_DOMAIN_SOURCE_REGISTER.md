@@ -80,16 +80,16 @@ The project is Germany-based and may be used commercially. A statement that a US
 
 ## Current decision
 
-- Approved works: **0**.
+- Approved works: **4 exact CC BY 4.0 works** (College Algebra 2e, Introductory Statistics 2e, University Physics Volume 1, Introductory Business Statistics 2e).
 - Candidate works/resources recorded here: **16** (PMC, OpenStax and MIT OCW are source pools/families; the four OpenStax CC BY 4.0 titles are individually scoped works).
-- Entries permitted in the permanent knowledge allowlist: **0**. OpenIntro and the Grinstead/Snell GNU FDL version remain quarantined pending exact work-level/copy-left review. Four exact OpenStax titles are verified_permitted CC BY 4.0 works; the wider OpenStax library default, Book of Proof and MIT 6.042J remain excluded under their current terms.
+- Entries permitted in the permanent knowledge allowlist: **4 exact works**. OpenIntro and the Grinstead/Snell GNU FDL version remain quarantined pending exact work-level/copy-left review. Four exact OpenStax titles are verified_permitted CC BY 4.0 works; the wider OpenStax library default, Book of Proof and MIT 6.042J remain excluded under their current terms.
 - No source full text, PDF, OCR output, article, or dataset was downloaded or stored by creating this register.
-- No rights are inferred from search snippets alone. Each candidate remains quarantined pending exact work-level review.
-- No changes to the Supabase knowledge table, allowlist code, user data, player data, learning history or active model weights.
+- No rights are inferred from search snippets alone. The four approved works were checked against their exact official edition notices and the CC BY 4.0 terms; all remaining candidates stay quarantined pending exact work-level review.
+- The source allowlist now contains four exact OpenStax work/edition entries. No knowledge rows, user data, player data, learning history or active model weights were changed.
 
 ## Next source-review actions
 
-1. Obtain and inspect the exact official final edition for each candidate.
+1. Continue obtaining and inspecting exact official editions for the remaining quarantined candidates.
 2. Record work-specific notices, authorship, third-party content and version.
 3. Assess international commercial AI/TDM, adaptation and storage rights for the Germany-based product.
 4. If any material right is unclear, retain quarantine and seek written permission or exclude the work.
