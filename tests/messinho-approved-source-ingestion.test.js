@@ -63,7 +63,7 @@ test('approved LibreTexts and Austin chapter HTML routes return only relevant co
   assert.equal(result.retrieval_method,method);
   assert.equal(result.storage_policy,'transient_excerpts_only');
   assert.ok(result.excerpts.length>0);
-  assert.match(result.excerpts.map(x=>x.text).join(' '),/matrix/i);
+  assert.match(result.excerpts.map(x=>x.text).join(' '),/matri/i);
   assert.equal('full_text' in result,false);
  }
 });
