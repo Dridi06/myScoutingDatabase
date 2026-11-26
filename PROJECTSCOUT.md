@@ -2085,3 +2085,15 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - The discovery pipeline now filters out candidates whose left/right/two-footed preference is not explicitly supported by the supplied source evidence.
 - The user should test the original requirement again in STAGING. Exact-age verification still requires a full date of birth; birth-year-only sources are reported with that limitation.
 - STAGING only; auto-deploy disabled. Production/main and PFMS/PFSS untouched. PR #47 remains Draft/open/unmerged.
+
+
+## 2026-11-26 – Scouting preference fidelity: nationality and league alternatives
+
+- Distinguished nationality preference from geographic scouting location. “Am besten deutsch” now records German nationality preference; it no longer silently forces the player's current club to be in Germany. A later explicit “Deutschland” answer remains the location filter.
+- The nationality criterion is passed through the chat-to-discovery request and is enforced after the candidate nationality has been independently supported by source evidence. Missing or contradictory nationality evidence excludes the candidate when a nationality is required.
+- Country/nationality aliases are canonicalized before comparison (e.g. deutsch / German / Deutschland).
+- Multiple league choices are preserved rather than only taking the first regex match. “3. Liga oder Regionalliga” is retained as both alternatives in the requested target-level field and in the research focus.
+- The previously added preferred-foot criterion remains source-evidence gated; it is not inferred from position.
+- Added regression tests for nationality-vs-location separation, alias matching, and multi-league alternatives.
+- An initial build attempt exposed an alias-normalization mismatch in the new nationality helper. The helper was corrected to canonicalize all country aliases before the release retry. The failed attempt did not replace the previously live STAGING deployment.
+- Release gate: latest branch tip must pass the complete Node suite, backend syntax checks and Vite build before the next manual STAGING deploy. Production/main and PFMS/PFSS remain untouched; auto-deploy stays disabled; PR #47 stays Draft/open/unmerged.
