@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadMessinhoCapabilityContext } from '../backend/messinho-data-loader.js';
 
-function fakeDb(fixtures={}){
+function fakeDb(fixtures={},errors={}){
  const calls=[];
  return {
   calls,
@@ -16,7 +16,7 @@ function fakeDb(fixtures={}){
     limit(value){state.limit=value;return this;},
     then(resolve,reject){
       calls.push(state);
-      return Promise.resolve({data:fixtures[table]||[],error:null}).then(resolve,reject);
+      return Promise.resolve({data:fixtures[table]||[],error:errors[table]||null}).then(resolve,reject);
     }
    };
    return builder;
@@ -80,4 +80,18 @@ test('candidate evidence is owner-scoped and remains untrusted until review crit
  assert.ok(call.filters.some(filter=>filter.column==='candidate_id'&&filter.value==='candidate-1'));
  assert.equal(context._trusted_source_bundle,false);
  assert.equal(context.claims.length,0);
+});
+
+test('data loader fails closed when an owner-scoped source query fails',async()=>{
+ const db=fakeDb({}, {asi_player_observations:{message:'permission denied'}});
+ await assert.rejects(
+  loadMessinhoCapabilityContext({
+   db,player:{player_id:42,name:'Test Player'},players:[],
+   plan:{goal:'Analysiere die Entwicklung',steps:['performance_development']},
+   actor:{user:{id:'scout-1'},profile:{role:'scout'}},now:Date.parse('2026-01-01T00:00:00Z')
+  }),
+  /MESSINHO context read failed for asi_player_observations/
+ );
+ assert.ok(db.calls.some(call=>call.table==='asi_player_observations'&&
+  call.filters.some(filter=>filter.column==='owner_id'&&filter.value==='scout-1')));
 });
