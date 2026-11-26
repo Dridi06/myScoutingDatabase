@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseMessinhoScoutingRequest, matchesPosition, sourceSupportsRegion } from '../backend/messinho-validation.js';
+import { parseMessinhoScoutingRequest, matchesPosition, matchesPreferredFoot, sourceSupportsRegion } from '../backend/messinho-validation.js';
 
 test('parses a complete scouting request and caps the requested result count', () => {
   const result = parseMessinhoScoutingRequest('Ich brauche 20 linker Verteidiger Jahrgang 2004 in Deutschland, Regionalliga', [], 2026);
