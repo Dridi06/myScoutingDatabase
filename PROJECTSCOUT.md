@@ -892,3 +892,15 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 6. Only after all gates pass, prepare a production PR from the verified candidate and obtain explicit production-release approval.
 
 **Do not merge PR #47 or deploy production automatically.** The candidate is CI-green and functionally integrated at code level, but staging deployment and E2E acceptance are still pending.
+
+---
+
+## 16. Stale task lease safety hardening — 2026-11-26
+
+- Reviewed the task-resume route and found that an expired `running` lease was not handled. A process crash could leave a task permanently marked as running.
+- Added an owner- and task-scoped conditional update for expired leases. A stale run is moved to `failed`, its lease is cleared, and a review-required error is recorded.
+- Deliberately do **not** replay stale work automatically: a capability may have completed an external side effect immediately before its last persisted checkpoint. Automatic replay could duplicate that side effect.
+- Active, non-expired runs remain protected; concurrent stale recovery is guarded by the conditional `status='running'` and `lease_until <= now` update.
+- This is a safety quarantine, not a full exactly-once execution guarantee. Before enabling automatic recovery, capability-level idempotency keys and side-effect classification must be implemented and tested.
+- Code change commit: `9dc97876532ecced908625afb9750b281ac50638` on `feature/messinho-unified-ai-integration`.
+- CI for this new commit must complete before it is considered verified. Staging deployment, DB migration and all production actions remain unperformed.
