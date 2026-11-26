@@ -823,8 +823,8 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - Corrected capability diagnostics to distinguish dispatch from specialist logic and generic fallback. Specialist handlers are marked `partial`, not fully verified.
 - **Tests added:** lifecycle, clarification, duplicate/missing result validation and budget visibility.
 - **Verification:** GitHub Actions passed on commit `dc3435a416b5b82ed9d6ef545d177c231aa469a1`: both staging validation workflows completed the Node test suite and frontend build successfully. No database integration test is claimed without separate staging credentials. Render staging deployment was not triggered.
-- **Known limitations:** Generic fallback capabilities still need specialist handlers. Durable resumable task ledger, SSE streaming, semantic vector retrieval, complete claim-level provenance, and isolated self-evolving code sandbox remain future work.
-- **Next actions:** configure separate staging-only Supabase credentials when available; perform authenticated staging integration tests; continue the remaining 24 generic fallback handlers, durable resumable task ledger, streaming, provenance and isolated skill evolution.
+- **Known limitations at this checkpoint:** Specialist handler coverage is implemented for all 100 catalogue IDs, but every handler remains labelled `partial` until full contract and end-to-end verification. Durable resumable tasks, SSE streaming, semantic vector retrieval, complete claim-level provenance, and isolated self-evolving code sandbox remain separate workstreams.
+- **Next actions:** apply the new task-ledger migration to staging only; configure staging-only Supabase credentials; perform authenticated staging integration tests; continue streaming, provenance and isolated skill evolution.
 
 
 ### Verification update — 2026-11-26
@@ -834,3 +834,32 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - **Planner correction:** natural German phrases `Erkläre die Bewertung` and `erstelle ein Spielerprofil` now resolve to the relevant skills and their dependencies; the regression test passes.
 - **Render staging:** service `myscoutingdatabase-messinho-staging` remains on `feature/messinho-agent-workspace`, with auto-deploy disabled. No staging deployment was triggered.
 - **LIVE:** production branch/service and production secrets were not changed.
+
+## 17. MESSINHO full capability integration and durable tasks — 2026-11-26
+
+### Capability implementation
+- Extended the specialist runtime from 76 specialist branches to **100 specialist handler branches** across all four catalogue domains.
+- Added evidence-bound learning diagnostics: scout feedback calibration, position/age/league/country cohorts, player development pathways, breakthrough detection, position-change outcome review, availability/outcome comparison, and controlled optimization proposals.
+- Learning outputs are descriptive or proposal-only. They do not automatically activate models or mutate model weights; protected learning remains admin-only.
+- Added structured research handlers for automatic candidate ranking, youth filters, international and cross-league grouping, underdog/hidden-gem detection, club and squad review, player statistics, match reports, club-need fit, and comparable-player distance.
+- Research handlers consume supplied database/ASI records and source bundles. They do not claim to initiate live external searches when no provider pipeline is called; missing metrics and market values are not invented.
+- Runtime diagnostics now report 100 specialist branches and zero generic fallback branches. All are still marked `partial` pending complete contract and end-to-end evidence.
+
+### Automatic agent integration
+- Removed the manual one-function-at-a-time selector from the MESSINHO workspace.
+- Replaced it with a read-only capability status panel. Capability selection is performed by the existing natural-language planner and agent runtime.
+- The chat remains the primary interface; role checks and admin-only learning boundaries remain in force.
+
+### Durable resumable task ledger
+- Added `supabase/migrations/20261126_messinho_agent_task_ledger.sql` for owner-scoped task checkpoints, plan/context snapshots, compact result summaries, pending capability IDs, attempts, 30-day expiry and execution leases.
+- Added authenticated `GET /api/agent/tasks` and `POST /api/agent/tasks/:taskId/resume` endpoints.
+- Incomplete plans with deferred steps now persist a checkpoint. Resumption is owner-scoped, uses the current authenticated role, carries prior capability results as untrusted context, and is protected by an atomic lease with expiry recovery.
+- The chat UI lists saved tasks and provides a **Fortsetzen** action. Tasks waiting for additional user input are not blindly retried.
+- Persisted payloads are bounded; task state is not exposed across users. The database table has RLS with owner-only reads and no client write policy.
+
+### Verification and deployment boundary
+- CI passed on the pre-ledger baseline `a54e12b4f747c0e684374ef4f017d18b470838c8` after the new 100-handler tests were added.
+- Current follow-up commits include task leases, task UI and compact persistence. Their GitHub Actions checks are running; do not treat them as verified until both workflows complete successfully.
+- **Staging migration required:** apply `20261126_messinho_agent_task_ledger.sql` to the separate staging Supabase project. The API reports persistence unavailable if the table is absent.
+- Render staging auto-deploy remains disabled; no deployment was triggered. LIVE branch, service, database and secrets remain untouched.
+- The project has not been declared LIVE from this work. Authenticated staging integration and a controlled staging deployment remain outstanding.
