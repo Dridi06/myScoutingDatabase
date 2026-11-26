@@ -59,8 +59,9 @@ export function messinhoFreshnessWindowDays(question){
 export function assessMessinhoGeneralEvidence(sources=[],question='',now=new Date()){
  const domains=[...new Set(sources.map(source=>source.publisher).filter(Boolean))];
  const substantial=sources.filter(source=>source.snippet.length>=120);
- const maxAgeDays=messinhoFreshnessWindowDays(question);\n const fresh=sources.filter(source=>{
+ const maxAgeDays=messinhoFreshnessWindowDays(question);
  const fresh=sources.filter(source=>{
+  const timestamp=Date.parse(source.published_date||'');
   if(!Number.isFinite(timestamp))return false;
   const age=(new Date(now).getTime()-timestamp)/86400000;
   return age>=0&&age<=maxAgeDays;
@@ -79,7 +80,7 @@ export function assessMessinhoGeneralEvidence(sources=[],question='',now=new Dat
   source_count:sources.length,distinct_domains:domains.length,substantial_source_count:substantial.length,
   freshness:{required:freshnessRequired,status:freshnessStatus,fresh_source_count:fresh.length,fresh_distinct_domains:freshDomains.length,stale_source_count:stale.length,undated_source_count:Math.max(0,sources.length-fresh.length-stale.length),max_age_days:maxAgeDays},
   can_answer:sufficient,
-  limitations:[...(sources.length<2?['Weniger als zwei geeignete Quellen.']:[]),...(domains.length<2?['Keine unabhängigen Domains zum Gegencheck.']:[]),...(substantial.length<2?['Zu wenige ausführliche Quellenauszüge.']:[]),...(freshnessRequired&&!enoughFresh?['Für diese aktuelle Frage fehlen mindestens zwei datierte, innerhalb des zulässigen Aktualitätsfensters datierte Quellen aus unabhängigen Domains.']:[])]};
+  limitations:[...(sources.length<2?['Weniger als zwei geeignete Quellen.']:[]),...(domains.length<2?['Keine unabhängigen Domains zum Gegencheck.']:[]),...(substantial.length<2?['Zu wenige ausführliche Quellenauszüge.']:[]),...(freshnessRequired&&!enoughFresh?['Für diese aktuelle Frage fehlen mindestens zwei datierte Quellen innerhalb des zulässigen Aktualitätsfensters aus unabhängigen Domains.']:[])]};
 }
 function sourceOnlyDigest(sources,assessment){
  if(!assessment.can_answer)return 'Ich habe recherchiert, aber die Quellenlage reicht für eine verlässliche Antwort noch nicht aus. '+assessment.limitations.join(' ');
