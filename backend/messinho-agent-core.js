@@ -41,9 +41,14 @@ export async function executeMessinhoAgentPlan({plan,input={},role='scout',budge
  if(failed.length&&remaining>=500){
    const retry=await runMessinhoCapabilityPlan({...plan,steps:failed,blocked_capabilities:[],deferred_capabilities:[]},input,role,{budgetMs:Math.min(2000,remaining)});
    const replacements=new Map((retry.results||[]).map(item=>[item.capability_id,item]));
-   run={...run,results:run.results.map(item=>replacements.get(item.capability_id)||item),
+   const retried=run.results.map(item=>replacements.get(item.capability_id)||item);
+   const unresolved=retry.results.filter(item=>item.status==='error').map(item=>item.capability_id);
+   run={...run,results:retried,deferred_capabilities:[...new Set([...(run.deferred_capabilities||[]),...unresolved])],
+     status:unresolved.length?'partial':run.status,
      execution_trace:{...run.execution_trace,retry_attempted:true,retried_capabilities:failed,retry_results:(retry.results||[]).map(item=>({capability_id:item.capability_id,status:item.status}))}};
    state.trace=addEvent(state.trace,'bounded_retry',{capabilities:failed,results:(retry.results||[]).map(item=>item.status)});
+ }else if(failed.length){
+   run={...run,status:'partial',deferred_capabilities:[...new Set([...(run.deferred_capabilities||[]),...failed])],replan_recommended:true};
  }
  state={...state,phase:'validating'};
  const validation=validateMessinhoAgentRun(plan,run);
