@@ -3642,3 +3642,6 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Deployment `dep-dc4bh0lg1s2s73dte15g` triggered for STAGING commit `c632d7d`; verify build and LIVE before asking owner to assess presentation.
 - Remaining pilot acceptance: verify second-turn follow-up with real player data, then test Scout role and tenant isolation. Do not yet start the systematic knowledge import.
 - No production changes and no Supabase knowledge records, rights or approval state modified.
+
+
+- Formatting cleanup verification: deployment `dep-dc4bh0lg1s2s73dte15g` completed successfully and is **LIVE** on STAGING at 22:54:31Z. Build log confirms **331 tests passed, 0 failed** and Vite production build completed in 2.46s. This deploy includes the actual-newline reply fix and multiline structured-value formatter.
