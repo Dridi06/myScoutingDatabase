@@ -355,8 +355,6 @@ export function listExecutableMessinhoCapabilities(){
      implementation_status:specialist?'partial':'not_implemented',runtime_version:MESSINHO_CAPABILITY_RUNTIME_VERSION};
  })}));
 }
- return allCatalog.map(group=>({...group,functions:group.functions.map(fn=>({...fn,execution_handler_available:true,runtime_version:MESSINHO_CAPABILITY_RUNTIME_VERSION}))}));
-}
 export function executeMessinhoCapability(id,input={}){
  const meta=catalogById.get(id);
  if(!meta)return {capability_id:id,status:'unknown_capability',error:'Unbekannte MESSINHO-Funktion.'};
