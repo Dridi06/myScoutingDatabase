@@ -1,6 +1,6 @@
 {
   "package_id": "messinho.technical_intelligence.foundation",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "status": "candidate_only_not_imported",
   "branch": "feature/messinho-unified-ai-integration",
   "curriculum_version": "1.0.0",
@@ -8,7 +8,7 @@
   "governance": {
     "knowledge_activation": "blocked_until_exact_source_rights_and_admin_review",
     "source_policy": "Every referenced work must be checked at exact work/edition level. Public availability is not permission. CC BY-SA compatibility, attribution, commercial use, AI/TDM rights and German/EU legal position must be reviewed separately.",
-    "execution_policy": "No code execution, self-modification, production access, deployment permission or changes to guardrails are enabled by this curriculum.",
+    "execution_policy": "No autonomous code execution, self-modification, production access, deployment permission, or changes to guardrails are enabled. Curriculum tasks may teach code analysis, drafting, debugging and test design only; execution and application of changes remain separately permissioned.",
     "assessment_policy": "A concept is not mastered from one correct answer. Require explanation, transfer, error diagnosis and verification evidence."
   },
   "concepts": [
@@ -1783,6 +1783,706 @@
         "Unsicherheit transparent"
       ],
       "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.foundations.problem_decomposition.assessment.diagnose",
+      "concept_key": "computer_science.foundations.problem_decomposition",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Problemanalyse und Zerlegung“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.foundations.problem_decomposition.assessment.verify",
+      "concept_key": "computer_science.foundations.problem_decomposition",
+      "kind": "verify",
+      "prompt": "Entwirf für „Problemanalyse und Zerlegung“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.foundations.data_representation.assessment.diagnose",
+      "concept_key": "computer_science.foundations.data_representation",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Datenrepräsentation“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.foundations.data_representation.assessment.verify",
+      "concept_key": "computer_science.foundations.data_representation",
+      "kind": "verify",
+      "prompt": "Entwirf für „Datenrepräsentation“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.foundations.algorithms.assessment.diagnose",
+      "concept_key": "computer_science.foundations.algorithms",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Algorithmen und Korrektheit“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.foundations.algorithms.assessment.verify",
+      "concept_key": "computer_science.foundations.algorithms",
+      "kind": "verify",
+      "prompt": "Entwirf für „Algorithmen und Korrektheit“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.foundations.complexity.assessment.diagnose",
+      "concept_key": "computer_science.foundations.complexity",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Zeit- und Speicherkomplexität“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.foundations.complexity.assessment.verify",
+      "concept_key": "computer_science.foundations.complexity",
+      "kind": "verify",
+      "prompt": "Entwirf für „Zeit- und Speicherkomplexität“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.programming.types_validation.assessment.diagnose",
+      "concept_key": "computer_science.programming.types_validation",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Datentypen und Eingabevalidierung“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.programming.types_validation.assessment.verify",
+      "concept_key": "computer_science.programming.types_validation",
+      "kind": "verify",
+      "prompt": "Entwirf für „Datentypen und Eingabevalidierung“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.programming.functions_modules.assessment.diagnose",
+      "concept_key": "computer_science.programming.functions_modules",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Funktionen und Module“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.programming.functions_modules.assessment.verify",
+      "concept_key": "computer_science.programming.functions_modules",
+      "kind": "verify",
+      "prompt": "Entwirf für „Funktionen und Module“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.programming.data_structures.assessment.diagnose",
+      "concept_key": "computer_science.programming.data_structures",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Datenstrukturen“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.programming.data_structures.assessment.verify",
+      "concept_key": "computer_science.programming.data_structures",
+      "kind": "verify",
+      "prompt": "Entwirf für „Datenstrukturen“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.programming.errors_async.assessment.diagnose",
+      "concept_key": "computer_science.programming.errors_async",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Fehlerbehandlung und asynchrone Abläufe“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.programming.errors_async.assessment.verify",
+      "concept_key": "computer_science.programming.errors_async",
+      "kind": "verify",
+      "prompt": "Entwirf für „Fehlerbehandlung und asynchrone Abläufe“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.languages.python.assessment.diagnose",
+      "concept_key": "computer_science.languages.python",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Python“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.languages.python.assessment.verify",
+      "concept_key": "computer_science.languages.python",
+      "kind": "verify",
+      "prompt": "Entwirf für „Python“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.languages.javascript_typescript.assessment.diagnose",
+      "concept_key": "computer_science.languages.javascript_typescript",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „JavaScript und TypeScript“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.languages.javascript_typescript.assessment.verify",
+      "concept_key": "computer_science.languages.javascript_typescript",
+      "kind": "verify",
+      "prompt": "Entwirf für „JavaScript und TypeScript“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.databases.relational_model.assessment.diagnose",
+      "concept_key": "computer_science.databases.relational_model",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Relationale Datenmodellierung“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.databases.relational_model.assessment.verify",
+      "concept_key": "computer_science.databases.relational_model",
+      "kind": "verify",
+      "prompt": "Entwirf für „Relationale Datenmodellierung“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.databases.sql_transactions.assessment.diagnose",
+      "concept_key": "computer_science.databases.sql_transactions",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „SQL und Transaktionen“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.databases.sql_transactions.assessment.verify",
+      "concept_key": "computer_science.databases.sql_transactions",
+      "kind": "verify",
+      "prompt": "Entwirf für „SQL und Transaktionen“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.web.http_api_design.assessment.diagnose",
+      "concept_key": "computer_science.web.http_api_design",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „HTTP und API-Verträge“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.web.http_api_design.assessment.verify",
+      "concept_key": "computer_science.web.http_api_design",
+      "kind": "verify",
+      "prompt": "Entwirf für „HTTP und API-Verträge“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.engineering.git_workflows.assessment.diagnose",
+      "concept_key": "computer_science.engineering.git_workflows",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Git und Versionskontrolle“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.engineering.git_workflows.assessment.verify",
+      "concept_key": "computer_science.engineering.git_workflows",
+      "kind": "verify",
+      "prompt": "Entwirf für „Git und Versionskontrolle“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.engineering.architecture.assessment.diagnose",
+      "concept_key": "computer_science.engineering.architecture",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Softwarearchitektur und Verantwortungsgrenzen“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.engineering.architecture.assessment.verify",
+      "concept_key": "computer_science.engineering.architecture",
+      "kind": "verify",
+      "prompt": "Entwirf für „Softwarearchitektur und Verantwortungsgrenzen“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.engineering.testing.assessment.diagnose",
+      "concept_key": "computer_science.engineering.testing",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Teststrategien“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.engineering.testing.assessment.verify",
+      "concept_key": "computer_science.engineering.testing",
+      "kind": "verify",
+      "prompt": "Entwirf für „Teststrategien“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.engineering.debugging.assessment.diagnose",
+      "concept_key": "computer_science.engineering.debugging",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Systematische Fehlerdiagnose“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.engineering.debugging.assessment.verify",
+      "concept_key": "computer_science.engineering.debugging",
+      "kind": "verify",
+      "prompt": "Entwirf für „Systematische Fehlerdiagnose“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.security.identity_access.assessment.diagnose",
+      "concept_key": "computer_science.security.identity_access",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Authentifizierung und Autorisierung“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.security.identity_access.assessment.verify",
+      "concept_key": "computer_science.security.identity_access",
+      "kind": "verify",
+      "prompt": "Entwirf für „Authentifizierung und Autorisierung“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.security.secure_development.assessment.diagnose",
+      "concept_key": "computer_science.security.secure_development",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Secure Software Development“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.security.secure_development.assessment.verify",
+      "concept_key": "computer_science.security.secure_development",
+      "kind": "verify",
+      "prompt": "Entwirf für „Secure Software Development“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.operations.cicd_release.assessment.diagnose",
+      "concept_key": "computer_science.operations.cicd_release",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „CI/CD und kontrollierte Releases“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.operations.cicd_release.assessment.verify",
+      "concept_key": "computer_science.operations.cicd_release",
+      "kind": "verify",
+      "prompt": "Entwirf für „CI/CD und kontrollierte Releases“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.operations.observability.assessment.diagnose",
+      "concept_key": "computer_science.operations.observability",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Logs, Metriken und Traces“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.operations.observability.assessment.verify",
+      "concept_key": "computer_science.operations.observability",
+      "kind": "verify",
+      "prompt": "Entwirf für „Logs, Metriken und Traces“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.ai.machine_learning.assessment.diagnose",
+      "concept_key": "computer_science.ai.machine_learning",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Grundlagen des maschinellen Lernens“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.ai.machine_learning.assessment.verify",
+      "concept_key": "computer_science.ai.machine_learning",
+      "kind": "verify",
+      "prompt": "Entwirf für „Grundlagen des maschinellen Lernens“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.ai.retrieval_rag.assessment.diagnose",
+      "concept_key": "computer_science.ai.retrieval_rag",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Retrieval-Augmented Generation“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.ai.retrieval_rag.assessment.verify",
+      "concept_key": "computer_science.ai.retrieval_rag",
+      "kind": "verify",
+      "prompt": "Entwirf für „Retrieval-Augmented Generation“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.ai.agent_orchestration.assessment.diagnose",
+      "concept_key": "computer_science.ai.agent_orchestration",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Agenten-Orchestrierung und Werkzeugkontrolle“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.ai.agent_orchestration.assessment.verify",
+      "concept_key": "computer_science.ai.agent_orchestration",
+      "kind": "verify",
+      "prompt": "Entwirf für „Agenten-Orchestrierung und Werkzeugkontrolle“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.autonomy.controlled_change.assessment.diagnose",
+      "concept_key": "computer_science.autonomy.controlled_change",
+      "kind": "diagnose",
+      "prompt": "Untersuche einen synthetischen Fehlerfall zu „Kontrollierte technische Selbstverbesserung“. Formuliere mindestens zwei mögliche Ursachen, fordere gezielt fehlende Belege an, grenze die Ursache ein und schlage eine minimale Korrektur vor, ohne ungetestete Änderungen als erfolgreich auszugeben.",
+      "success_criteria": [
+        "Fehlerbild und beobachtete Fakten sauber getrennt",
+        "Hypothesen anhand konkreter Belege geprüft",
+        "Ursache nachvollziehbar eingegrenzt",
+        "minimale Korrektur mit möglichem Regressionseffekt benannt",
+        "keine erfundenen Test- oder Ausführungsergebnisse"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.autonomy.controlled_change.assessment.verify",
+      "concept_key": "computer_science.autonomy.controlled_change",
+      "kind": "verify",
+      "prompt": "Entwirf für „Kontrollierte technische Selbstverbesserung“ einen reproduzierbaren synthetischen Test. Decke Normalfall, Grenzfall und ungültige oder fehlerhafte Eingabe ab; nenne erwartete Ergebnisse und erkläre, wann der Test als fehlgeschlagen gilt.",
+      "success_criteria": [
+        "Testziel und Vorbedingungen eindeutig",
+        "Normalfall und Randfälle abgedeckt",
+        "erwartete Ergebnisse konkret und prüfbar",
+        "Fehler- und Sicherheitsfälle berücksichtigt",
+        "Testresultat wird nicht ohne tatsächliche Ausführung behauptet"
+      ],
+      "mastery_weight": 2
     }
   ],
   "assessment": {
@@ -2028,5 +2728,19 @@
   "sources_rights_review": {
     "pending_count": 17,
     "note": "No source in this package is asserted as cleared. The registry currently contains four other individually reviewed works, none of which is a blanket authorization for these technical sources."
+  },
+  "assessment_model": {
+    "version": "1.1",
+    "dimensions": [
+      "conceptual_accuracy",
+      "transfer_application",
+      "fault_diagnosis",
+      "verification_quality",
+      "security_and_reliability",
+      "explanation_and_uncertainty"
+    ],
+    "mastery_rule": "No concept is mastered from a single answer. Require explain, transfer, diagnose and verify evidence across varied synthetic tasks. Critical security or correctness failures block mastery regardless of aggregate score.",
+    "execution_boundary": "Assessment and code drafting do not grant execution rights. All practical labs are synthetic and isolated; repository edits, tool execution, database writes and deployments remain separately authorized.",
+    "admin_boundary": "Player and registered-scout records remain read/analyze/propose only for MESSINHO. No learning assessment may grant permission to mutate them."
   }
 }
