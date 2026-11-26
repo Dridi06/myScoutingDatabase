@@ -45,6 +45,29 @@ test('PMC source retrieval uses the approved BioC API and keeps section provenan
  assert.equal('full_text' in result,false);
 });
 
+test('approved LibreTexts and Austin chapter HTML routes return only relevant compact paragraphs',async()=>{
+ const fixtures={
+  'math.libretexts.org':'<html><body><p>For matrices A and B, the product AB is defined when the number of columns of A equals the number of rows of B. If A is m by n and B is n by p, then AB is m by p.</p></body></html>',
+  'understandinglinearalgebra.org':'<html><body><p>Matrix multiplication connects matrix-vector products with linear combinations of the columns of a matrix. The dimensions must agree for the product to be defined.</p></body></html>'
+ };
+ for(const [sourceId,host,method] of [
+  ['libretexts_kuttler_matrix_multiplication_2022','math.libretexts.org','libretexts_html'],
+  ['austin_matrix_multiplication_2026','understandinglinearalgebra.org','austin_html']
+ ]){
+  const result=await fetchMessinhoApprovedSource(sourceId,{topic:'matrix multiplication matrices columns rows product',fetchImpl:async(url,options)=>{
+   assert.equal(new URL(url).hostname,host);
+   assert.match(options.headers.accept,/text\\/html/);
+   return {ok:true,text:async()=>fixtures[host]};
+  }});
+  assert.equal(result.status,'completed');
+  assert.equal(result.retrieval_method,method);
+  assert.equal(result.storage_policy,'transient_excerpts_only');
+  assert.ok(result.excerpts.length>0);
+  assert.match(result.excerpts.map(x=>x.text).join(' '),/matrix/i);
+  assert.equal('full_text' in result,false);
+ }
+});
+
 test('unapproved source IDs never trigger network retrieval',async()=>{
  let called=false;
  const result=await fetchMessinhoApprovedSource('unapproved_source',{fetchImpl:async()=>{called=true;}});
