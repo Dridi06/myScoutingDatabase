@@ -34,7 +34,7 @@ function positionMatches(positions,requested){
  const accepted=[target,...aliases.map(norm)];
  return positions.some(position=>{
    const actual=norm(position);
-   return accepted.some(alias=>actual===alias||actual.includes(alias)||alias.includes(actual));
+   return Boolean(actual)&&accepted.some(alias=>actual===alias||actual.includes(alias)||alias.includes(actual));
  });
 }
 const aliases={
