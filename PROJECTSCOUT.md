@@ -1855,3 +1855,15 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 2. Inspect the rendered workspace on desktop and mobile: chat must appear first; help content must be collapsed initially and expand cleanly without overflow.
 3. If checks pass, manually deploy only the dedicated STAGING Render service and verify the exact deployed SHA and health.
 4. Resume the next planned development task: integrate real scout/user feedback into the existing role-scoped, auditable learning flow. Separate general satisfaction feedback from factual corrections; only verified corrections/outcomes may create learning proposals, and model activation remains approval-gated.
+
+
+### Final verification — UX change deployed to STAGING (2026-11-26)
+- Latest feature branch / PR #47 head: `90a9d0532f6c4304f2c95c759fafd4b4b6b1ce42`.
+- GitHub Actions for this exact SHA: `test` **success**, `backend-syntax` **success**.
+- Render manual deployment: `dep-dc44rheq1p3s73cu5rog`, status **live**, finished `2026-11-26T15:19:08.289376Z`.
+- Render build: successful; Vite 7.3.8 transformed 1,636 modules and completed production build successfully.
+- Runtime startup verified: `myScoutingDatabase API listening on 10000`; STAGING Supabase Data API returned HTTP 200.
+- Exact deployed application commit: `90a9d0532f6c4304f2c95c759fafd4b4b6b1ce42`.
+- Render service inspection confirms `autoDeploy=no`, branch `feature/messinho-unified-ai-integration`, URL `https://myscoutingdatabase-messinho-staging.onrender.com`.
+- **The chat-first layout and consolidated help bundle are now deployed on STAGING.** Browser-level visual QA on the owner's device remains outstanding; verify desktop/mobile appearance and accordion behavior before treating visual acceptance as complete.
+- Production `main`, production Render, production Supabase, PFMS and PFSS remain untouched. PR #47 remains Draft/open/unmerged.
