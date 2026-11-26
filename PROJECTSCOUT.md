@@ -958,3 +958,18 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - Authenticated admin-only route checks and a real interactive AI-agent conversation are still pending; no admin access token or login session was available to this automated run. Do not create or reset user credentials as a workaround.
 - Staging remains live. Production untouched; PR #47 remains unmerged.
 
+
+
+## 2026-11-26 – MESSINHO-Chat: Scrollbarkeit langer Verläufe
+- Nutzerfehler: Bei langen Chatverläufen ließ sich der Nachrichtenbereich nicht zuverlässig scrollen.
+- Ursache in der Oberfläche: Der Nachrichtencontainer hatte Höhenbegrenzungen, aber keine explizite eigene vertikale Scroll-Konfiguration; außerdem fehlten Touch-Scrolling- und Overscroll-Regeln.
+- Korrektur in `src/asi/messinho.css`:
+  - Chatkarte als flex-column mit `min-height: 0`.
+  - Nachrichtenbereich als eigener flexibler Scrollcontainer mit `overflow-y: auto`, `overflow-x: hidden`, `min-height: 0`.
+  - Touch-Scrolling für iOS/Android (`-webkit-overflow-scrolling: touch`, `touch-action: pan-y`).
+  - `overscroll-behavior-y: contain`, stabile Scrollbar-Spalte und nicht schrumpfende Nachrichten.
+  - Mobile Maximalhöhe bleibt responsiv bei 58vh.
+- Commit: `0de1b32d1328f3ff208eaea64d65852815ab3c73`
+- Branch: `feature/messinho-unified-ai-integration`
+- Ausschließlich Staging-Kandidat. Production `main` unverändert; PR #47 nicht gemergt.
+- Nächster Schritt: Frontend-Build/CI prüfen, anschließend Staging manuell deployen (Render autoDeploy ist deaktiviert) und Scrollen mit langem Verlauf auf Desktop und iPhone verifizieren.
