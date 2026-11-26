@@ -51,7 +51,7 @@ create or replace function public.asi_create_messinho_myki_ticket(p_ticket jsonb
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v_ticket public.messinho_myki_tickets;
@@ -79,7 +79,7 @@ create or replace function public.asi_admin_delete_messinho_myki_ticket(p_ticket
 returns boolean
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v_ticket public.messinho_myki_tickets;
