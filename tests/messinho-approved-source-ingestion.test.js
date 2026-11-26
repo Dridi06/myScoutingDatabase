@@ -9,7 +9,7 @@ test('PLOS source retrieval uses the approved JATS endpoint and returns only com
   fetchImpl:async(url,options)=>{
    requested=url;
    assert.equal(options.headers.accept,'application/xml,text/xml;q=0.9');
-   assert.equal(options.redirect,'manual');
+   assert.equal(options.redirect,'follow');
    return {ok:true,text:async()=>'<article><abstract><p>VO2max is the highest attained oxygen uptake during an incremental exercise test with large muscle groups.</p></abstract><body><p>VO2max is an important parameter to objectively assess cardiorespiratory fitness in healthy people.</p><p>Prediction models require external validation.</p></body></article>'};
   }
  });
@@ -69,6 +69,36 @@ test('approved LibreTexts and Austin chapter HTML routes return only relevant co
   assert.match(result.excerpts.map(x=>x.text).join(' '),/matri/i);
   assert.equal('full_text' in result,false);
  }
+});
+
+test('PMC BioC parser accepts the official top-level collection array response',async()=>{
+ const result=await fetchMessinhoApprovedSource('pmc_cardiorespiratory_fitness_2022',{
+  topic:'cardiorespiratory fitness oxygen uptake',
+  fetchImpl:async()=>({ok:true,status:200,text:async()=>JSON.stringify([{
+   source:'PMC',documents:[{id:'PMC11269081',passages:[
+    {infons:{section_type:'ABSTRACT'},text:'Cardiorespiratory fitness reflects the integration of ventilation, circulation and metabolism for oxygen delivery and utilization during aerobic physical activity.'},
+    {infons:{section_type:'INTRO'},text:'The gold standard measure of cardiorespiratory fitness is maximal oxygen uptake.'}
+   ]}]
+  }])})
+ });
+ assert.equal(result.status,'completed');
+ assert.ok(result.excerpts.some(item=>/maximal oxygen uptake/i.test(item.text)));
+ assert.ok(result.excerpts.some(item=>item.source_section==='ABSTRACT'));
+});
+
+test('PLOS same-host redirect is followed and final official host is accepted',async()=>{
+ let optionsSeen;
+ const result=await fetchMessinhoApprovedSource('plos_one_vo2max_prediction_2023',{
+  topic:'VO2max oxygen uptake',
+  fetchImpl:async(_url,options)=>{
+   optionsSeen=options;
+   return {ok:true,status:200,url:'https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0280897&type=manuscript&download=1',
+    text:async()=>'<article><abstract><p>VO2max is the highest attained oxygen uptake during an incremental exercise test with large muscle groups and an objective measure of cardiorespiratory fitness.</p></abstract></article>'};
+  }
+ });
+ assert.equal(optionsSeen.redirect,'follow');
+ assert.equal(result.status,'completed');
+ assert.equal(result.source.source_id,'plos_one_vo2max_prediction_2023');
 });
 
 test('unapproved source IDs never trigger network retrieval',async()=>{
