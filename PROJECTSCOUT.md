@@ -1766,3 +1766,17 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - **Not yet implemented:** atomic database claim RPC, durable retry metadata columns, worker polling/lifecycle, capability safety registry, and wiring from the server to the worker. The policy functions are groundwork only; no automatic execution has been enabled.
 - **Deployment:** not deployed. No Render service, Supabase project, production branch, or production data was changed.
 - **Next step:** design and test an atomic STAGING-only task-claim migration, after confirming the task table schema and migration history; then implement a worker that consumes only explicitly opted-in, read-only tasks.
+
+---
+
+## 2026-11-26 — Development checkpoint: atomic task claim on STAGING
+
+- **Database:** applied migration `messinho_atomic_task_claim` to STAGING Supabase project `nwqwnrhupbyhshsprxjt` only.
+- **Schema additions:** `autonomous_resume_enabled BOOLEAN NOT NULL DEFAULT false`, `next_retry_at`, `claimed_by`, and `lease_token`. Existing task count was zero at inspection; no task was opted in.
+- **Concurrency:** added `public.claim_next_messinho_agent_task(text)`, which claims one eligible queued/partial task with `FOR UPDATE SKIP LOCKED`, creates a unique lease token, increments attempts, and sets a two-minute lease. It only considers explicitly opted-in, unexpired tasks with fewer than four attempts and a due retry time.
+- **Security:** SECURITY DEFINER with empty search_path; execution revoked from PUBLIC/anon/authenticated and granted only to service_role. Verified privileges: anon=false, authenticated=false, service_role=true.
+- **Repository migration:** `supabase/migrations/20261126200000_messinho_atomic_task_claim.sql` committed on `feature/messinho-unified-ai-integration`.
+- **CI for commit `b09ddb19422bb1656b618fee1786ffab4efb84bc`:** MESSINHO Node tests passed; backend syntax checks passed; STAGING health smoke test passed. Workflow runs: 45842070880, 45842070806, 45842070932.
+- **Important limitation:** this is the atomic claim primitive only. No background worker, task opt-in UI/API, execution/resume loop, lease renewal, or lease-token guarded finalization has been connected yet. No existing task can be picked up by the new function unless explicitly opted in.
+- **Release:** no Render deployment was triggered. STAGING Render auto-deploy remains disabled. Production, main, production Supabase, PFMS and PFSS remain untouched.
+- **Next:** implement an explicit owner-authorized opt-in path, strict read-only capability allowlist, lease-token guarded worker lifecycle, bounded retry/failure handling and tests; only then enable worker in STAGING behind a dedicated environment flag.
