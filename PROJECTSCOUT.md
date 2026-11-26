@@ -3602,3 +3602,16 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 
 
 - Deployment verification update: `dep-dc4b01bl550s738nhlug` completed successfully at 22:18:17Z and is `LIVE` on the dedicated STAGING service. Runtime startup banner confirms service live. This deployment includes code/test commit `92ff4e8`; documentation-only follow-up is on branch HEAD.
+
+
+### Root cause identified — first-turn VO2max query was null — 2026-11-26 23:47 CET
+- Owner's latest Admin screenshot again showed the guarded canonical knowledge miss.
+- Render runtime log at 22:46:12Z confirms the canonical route returned `miss`. The running service's Supabase startup log identifies the same project host/ref as the project checked read-only in Supabase, ruling out a simple wrong-project URL mismatch.
+- Exact source-level root cause found in `backend/server.js`: `buildMessinhoVo2maxApplicationQuery(previousQuestion, reply, latestAssistantText)` intentionally returns `null` on a first-turn question because there is no prior assistant clarification. The route nevertheless passed that nullable continuation-only value into `findMessinhoKnowledgeConcepts`, even when `currentCanonicalConceptKey` had correctly identified the current VO2max question. Thus the canonical matcher inside the knowledge graph received an empty/null query and never ran its exact-key lookup.
+- Corrected route flow:
+  - Keep `vo2ApplicationContinuationQuery` nullable and use it only to detect a valid second-turn data reply.
+  - Set `knowledgeApplicationQuestion = vo2ApplicationContinuationQuery || interpretedMessage`, so a first-turn canonical question is always searched using its own text.
+  - Preserve strict continuation gating; unrelated messages are not misclassified as VO2max data replies.
+- Fix commit: `4a234660114e8caa23872dd5d135608d0250fdf8`.
+- Manual deployment to dedicated STAGING triggered: `dep-dc4bdtlg1s2s73dt5f50` at 22:47:18Z. Verify build and LIVE status, then check runtime canonical lookup diagnostic. No user retest until deployment is LIVE and runtime evidence is checked.
+- No Supabase data, knowledge approval, source rights, production, main, PFMS or PFSS changes.
