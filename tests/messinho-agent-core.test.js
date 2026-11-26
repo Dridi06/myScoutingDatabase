@@ -45,7 +45,7 @@ test('agent core awaits the checkpoint callback for every executed capability',a
 });
 
 test('agent core exposes a knowledge gap instead of pretending an unknown question was solved',async()=>{
- const cycle=await executeMessinhoAgentPlan({plan:null,role:'scout'});
+ const cycle=await executeMessinhoAgentPlan({plan:null,goal:'Erkläre mir eine neue taktische Pressingvariante',role:'scout'});
  assert.equal(cycle.knowledge_gap.gap,true);
  assert.equal(cycle.knowledge_gap.reason,'no_matching_capability_or_verified_evidence');
  assert.equal(cycle.state.phase,'needs_clarification');
