@@ -367,7 +367,7 @@ function researchHandler(id,input){
    const currentYear=Number(input.current_year)||new Date().getFullYear();
    return items.filter(player=>{
      const birth=finite(player.birth_year??player.year),age=birth===null?null:currentYear-birth;
-     const positions=asArray(player.positions||player.position).map(norm);
+     const positions=(Array.isArray(player.positions)?player.positions:(player.position?[player.position]:[])).map(norm);
      const position=norm(filters.position||'');
      const country=norm(filters.country||filters.region||'');
      const league=norm(filters.league||'');
@@ -393,7 +393,7 @@ function researchHandler(id,input){
    const countries=new Map();
    for(const player of players){const key=String(player.nationality||player.country||'Unbekannt');countries.set(key,(countries.get(key)||0)+1);}
    return result(id,'completed',{player_count:players.length,countries:[...countries].map(([country,count])=>({country,count})).sort((a,b)=>b.count-a.count),
-     source_countries:[...new Set(sources.map(x=>x.country||x.region).filter(Boolean))],source_count:sources.length,
+     source_countries:[...new Set(sources.map(x=>x.country||x.region).filter(Boolean))],source_count:sources.length,eligible_sources:audited.filter(x=>x.assessment.url_valid&&x.assessment.secure_transport).length,
      provider_execution:'Uses only supplied ASI candidates and source bundle; no new external search is started here.'});
  }
  if(id==='cross_league_research'){
@@ -401,7 +401,7 @@ function researchHandler(id,input){
    const leagues=new Map();
    for(const player of players){const key=String(player.league||player.current_league||'Unbekannt');if(!leagues.has(key))leagues.set(key,[]);leagues.get(key).push(player);}
    if(leagues.size<2)return missingResult(id,['players_from_at_least_two_leagues']);
-   return result(id,'completed',{leagues:[...leagues].map(([league,items])=>({league,players:items.length,average_score:round(avg(items.map(p=>scoreMessinhoPlayer(p).score).filter(Number.isFinite)))})),
+   return result(id,'completed',{leagues:[...leagues].map(([league,items])=>{const scores=items.map(p=>scoreMessinhoPlayer(p).score).filter(Number.isFinite);return {league,players:items.length,average_score:scores.length?round(avg(scores)):null};}),
      method:'Liga-Gruppen werden anhand vorhandener Spielerwerte verglichen; keine Ligaqualität wird hinzugedichtet.'});
  }
  if(id==='underdog_detection'||id==='hidden_gem_detection'){
