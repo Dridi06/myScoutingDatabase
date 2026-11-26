@@ -142,7 +142,7 @@ function analysisHandler(id,input){
  }
  if(id==='tactical_behaviour_analysis'||id==='game_phase_analysis'||id==='duel_analysis'||id==='video_event_analysis'||id==='minutes_analysis'||id==='availability_history_analysis'||id==='running_performance_analysis'||id==='speed_analysis'||id==='anomaly_detection'){
    if(!events.length&&!history.length)return missingResult(id,[id==='video_event_analysis'?'licensed_video_events':id==='minutes_analysis'?'appearance_records':id==='availability_history_analysis'?'availability_records':'dated_metrics']);
-   const filtered=id==='video_event_analysis'?(input._trusted_video_bundle===true?events.filter(e=>e.license_status==='licensed'||e.license_status==='owned'):[]):id==='duel_analysis'?events.filter(e=>/duel|zweikampf/i.test(String(e.action||e.type||''))):events;
+   const filtered=id==='video_event_analysis'?(input._trusted_video_bundle===true?events.filter(e=>e.license_status==='licensed'||e.license_status==='owned'):[]):id==='duel_analysis'?events.filter(e=>/duel|zweikampf/i.test(String(e.action||e.type||''))):(events.length?events:history);
    if(id==='video_event_analysis'&&!filtered.length)return missingResult(id,['licensed_video_events'],'Es werden ausschließlich lizenzierte oder eigene vorverarbeitete Ereignisdaten akzeptiert.');
    if(['tactical_behaviour_analysis','game_phase_analysis','duel_analysis','video_event_analysis'].includes(id)){
      const eventAnalysis=analyzeMessinhoMatch(filtered);
