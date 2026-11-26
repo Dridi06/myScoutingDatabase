@@ -442,3 +442,12 @@
  .messinho-workspace .messinho-knowledge-candidate,.messinho-workspace .messinho-knowledge-conflict{padding:9px}
  .messinho-workspace .messinho-knowledge-actions button{flex:1 1 auto;justify-content:center}
 }
+
+
+/* Approved knowledge references are presented separately from player-result metadata. */
+.messinho-workspace .messinho-knowledge-result{align-items:flex-start}
+.messinho-workspace .messinho-knowledge-result .messinho-result-copy{display:flex;flex-direction:column;gap:7px;min-width:0}
+.messinho-workspace .messinho-knowledge-result .messinho-knowledge-meta{display:inline-flex;align-self:flex-start;padding:3px 8px;border:1px solid rgba(169,197,233,.2);border-radius:999px;color:#b9cce5;font-size:10px;letter-spacing:.02em}
+.messinho-workspace .messinho-knowledge-sources{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:3px;padding-top:8px;border-top:1px solid rgba(163,185,211,.13)}
+.messinho-workspace .messinho-knowledge-sources>small{color:#93a9c3;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.messinho-workspace .messinho-knowledge-sources a{display:block;max-width:100%;color:#b9d0ef;font-size:11px;line-height:1.5;overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:3px}
