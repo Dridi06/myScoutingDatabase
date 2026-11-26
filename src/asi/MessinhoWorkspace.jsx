@@ -69,7 +69,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       const {data:{session}}=await supabase.auth.getSession();
       if(!session?.access_token)throw new Error('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
       const response=await fetch('/api/messinho/feedback',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({
-        message_id:message.id,question:previousUser.text,answer:message.text,feedback_type:selectedType,rating,
+        message_id:message.id,question:previousUser.text,answer:message.text,feedback_type:selectedType,rating:selectedType==='quality_rating'?rating:null,
         comment:draft.comment||'',intent:message.intent||null,engine_version:message.engineVersion||null,model_version:message.modelVersion||null,capability_ids:message.capabilityIds||[]
       })});
       const payload=await response.json().catch(()=>({}));
