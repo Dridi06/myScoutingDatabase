@@ -14,6 +14,7 @@ import { normalizeMessinhoFeedback, normalizeMessinhoFeedbackReview } from './me
 import { buildMessinhoQualityIntelligence } from './messinho-quality-intelligence.js';
 import { normalizeMessinhoHypothesisCreate, normalizeMessinhoHypothesisTransition } from './messinho-improvement-governance.js';
 import { normalizeMyKiTicketProposal, createMyKiTicketRecord, buildMyKiCopyPacket } from './messinho-myki-tickets.js';
+import { persistMessinhoMyKiProposal } from './messinho-myki-bridge.js';
 
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
@@ -1846,7 +1847,8 @@ app.post('/api/agent/tasks/:taskId/resume',async(req,res)=>{
     const resumePlan={...(task.plan||{}),goal:task.goal,steps:pending.slice(0,20),deferred_capabilities:pending.slice(20),blocked_capabilities:[]};
     const oldResults=Array.isArray(task.completed_results)?task.completed_results.map(compactMessinhoTaskResult):[];
     const cycle=await executeMessinhoAgentPlan({plan:resumePlan,input:task.context||{},role:actor.profile.role,
-      onStep:checkpoint=>checkpointMessinhoAgentTask(task.id,actor.user.id,checkpoint.completed_results,checkpoint.pending_capabilities,oldResults)});
+      onStep:checkpoint=>checkpointMessinhoAgentTask(task.id,actor.user.id,checkpoint.completed_results,checkpoint.pending_capabilities,oldResults),
+      onEngineeringProposal:proposal=>persistMessinhoMyKiProposal({db,proposal})});
     const newRun=cycle.run;
     const byId=new Map([...oldResults,...(newRun.results||[]).map(compactMessinhoTaskResult)].map(item=>[item.capability_id,item]));
     const mergedResults=[...byId.values()];
@@ -2090,7 +2092,8 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         _messinho_domain_knowledge:(domainKnowledge.items||[]).map(item=>({id:item.id,domain:item.domain,question:item.question,content:item.content,claims:item.claims,sources:item.sources,verified_at:item.verified_at,rights:item.rights,confidence:item.confidence,relevance:item.relevance}))};
       const taskRecord=await createMessinhoAgentTask(ownerId,interpretedMessage,automaticPlan,agentInput,profile.role);
       const agentCycle=await executeMessinhoAgentPlan({plan:automaticPlan,input:agentInput,goal:interpretedMessage,role:profile.role,
-        onStep:checkpoint=>taskRecord?checkpointMessinhoAgentTask(taskRecord.id,ownerId,checkpoint.completed_results,checkpoint.pending_capabilities):undefined});
+        onStep:checkpoint=>taskRecord?checkpointMessinhoAgentTask(taskRecord.id,ownerId,checkpoint.completed_results,checkpoint.pending_capabilities):undefined,
+        onEngineeringProposal:proposal=>persistMessinhoMyKiProposal({db,proposal})});
       const run=agentCycle.run;
       const finalizedTask=taskRecord?await finalizeMessinhoAgentTask(taskRecord.id,ownerId,run):null;
       const nextMemory={...agentMemory,active_player_ids:players.map(p=>p.player_id).filter(Number.isSafeInteger).slice(0,10),
