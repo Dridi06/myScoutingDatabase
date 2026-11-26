@@ -22,7 +22,7 @@ export function classifyMessinhoKnowledgeDomain(text=''){
   ['banking',/\b(bank|banken|kredit|einlage|liquidität|eigenkapital|zentralbank|bonität)\b/],
   ['financial_markets',/\b(börse|börse|aktie|aktien|anleihe|etf|orderbuch|volatilität|derivat|börse|finanzmarkt|börse)\b/],
   ['statistics',/\b(statistik|regression|korrelation|kovarianz|zeitreihe|monte carlo|prognose|prognostiz)\b/],
-  ['sports_science',/\b(sportwissenschaft|biomechanik|trainingslehre|belastung|regeneration|leistungsdiagnostik)\b/],
+  ['sports_science',/\b(sportwissenschaft|biomechanik|trainingslehre|belastung|regeneration|leistungsdiagnostik|vo\s*2\s*max|maximale sauerstoffaufnahme|cardiorespiratory fitness|kardiorespiratorische fitness|aerobe leistungsfähigkeit)\b/],
   ['football',/\b(fußball|fussball|spieler|scouting|transfer|mannschaft|verein)\b/],
   ['computer_science',/\b(informatik|programmierung|algorithmus|datenbank|software|ki|künstliche intelligenz)\b/]
  ];
@@ -51,13 +51,13 @@ export function buildMessinhoDomainKnowledgeRecord(input={},now=new Date()){
 }
 export function rankMessinhoDomainKnowledge(question,records=[],limit=5){
  const q=new Set(tokens(question).filter(t=>!STOP.has(t)));
- if(q.size<2)return [];
+ if(!q.size)return [];
  return (Array.isArray(records)?records:[]).map(record=>{
   const r=new Set(tokens([record.domain,record.question,record.content].join(' ')).filter(t=>!STOP.has(t)));
   const overlap=[...q].filter(t=>r.has(t)).length;
   const score=overlap/Math.max(1,Math.min(q.size,r.size));
   return {record,score,overlap};
- }).filter(x=>x.overlap>=2&&x.score>=0.35&&x.record.knowledge_status==='active')
+ }).filter(x=>x.overlap>=(q.size===1?1:2)&&x.score>=(q.size===1?0.5:0.35)&&x.record.knowledge_status==='active')
   .sort((a,b)=>b.score-a.score).slice(0,Math.max(1,Math.min(10,limit)));
 }
 export async function storeMessinhoDomainKnowledge(db,input,now=new Date()){
