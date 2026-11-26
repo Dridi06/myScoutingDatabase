@@ -1591,16 +1591,19 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         return res.status(500).json({error:'Die zugehörigen Scouting-Daten konnten nicht vollständig und sicher geladen werden. Bitte versuche es erneut.'});
       }
       const researchSubject=player.name||player.player_name||'';
-      if(messinhoNeeds(automaticPlan,MESSINHO_EVIDENCE_CAPABILITIES)&&!capabilityContext.sources.length&&
-        researchSubject&&researchSubject!=='Kader- und Talentpool'){
+      if(messinhoNeeds(automaticPlan,MESSINHO_EVIDENCE_CAPABILITIES)&&!capabilityContext._trusted_source_bundle&&
+        capabilityContext.sources.length<3&&researchSubject&&researchSubject!=='Kader- und Talentpool'){
         try{
           const externalResearch=await researchMessinhoPlayerProfile(researchSubject);
           const discoveredSources=Array.isArray(externalResearch.sources)?externalResearch.sources:[];
-          capabilityContext.sources=discoveredSources.map(source=>({
+          const recoveredSources=discoveredSources.map(source=>({
             title:source.title||null,url:source.url||null,publisher:source.publisher||null,
             content:source.snippet||source.content||'',published_date:source.published_date||null,
             verification_status:'unverified',identity_status:'pending',review_status:'pending'
           })).filter(source=>source.url);
+          const sourceMap=new Map(capabilityContext.sources.map(source=>[source.url,source]));
+          for(const source of recoveredSources)if(!sourceMap.has(source.url))sourceMap.set(source.url,source);
+          capabilityContext.sources=[...sourceMap.values()].slice(0,30);
           capabilityContext._trusted_source_bundle=false;
           capabilityContext.claims=[];
           capabilityContext.external_research_status=externalResearch.status||'unknown';
