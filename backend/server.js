@@ -1130,6 +1130,11 @@ app.post('/api/messinho/development/hypotheses',messinhoDevelopmentLimiter,async
 const agentChatLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:true,legacyHeaders:false,message:{error:'Messinho wurde in kurzer Zeit zu häufig angesprochen. Bitte später erneut versuchen.'}});
 app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
   let activeTaskId=null,activeTaskOwnerId=null;
+  const streamingRequested=req.body?.stream===true;
+  const sendAgentStreamEvent=(event,payload)=>{
+    if(!res.writableEnded&&!res.destroyed&&res.headersSent)
+      res.write('event: '+event+'\\ndata: '+JSON.stringify(payload)+'\\n\\n');
+  };
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
@@ -1265,10 +1270,21 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         user_preferences:agentMemory.user_preferences,
         history:history.slice(-15)
       };
+      if(streamingRequested){
+        res.status(200).set({'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform',
+          'Connection':'keep-alive','X-Accel-Buffering':'no'});
+        res.flushHeaders?.();
+        sendAgentStreamEvent('start',{goal:message,total_steps:(plan.steps||[]).length+(plan.deferred_capabilities||[]).length});
+      }
       const taskRecord=await createMessinhoAgentTask(ownerId,message,plan,input,profile.role);
       activeTaskId=taskRecord?.id||null;activeTaskOwnerId=activeTaskId?ownerId:null;
       const agentCycle=await executeMessinhoAgentPlan({plan,input,role:profile.role,
-        onStep:taskRecord?checkpoint=>checkpointMessinhoAgentTask(taskRecord.id,ownerId,checkpoint.completed_results,checkpoint.pending_capabilities):undefined});
+        onStep:async checkpoint=>{
+          if(taskRecord)await checkpointMessinhoAgentTask(taskRecord.id,ownerId,checkpoint.completed_results,checkpoint.pending_capabilities);
+          if(streamingRequested)sendAgentStreamEvent('progress',{completed_steps:checkpoint.completed_results.length,
+            pending_steps:checkpoint.pending_capabilities.length,capability_id:checkpoint.capability_id,
+            status:checkpoint.result?.status||'unknown'});
+        }});
       const run=agentCycle.run;
       const finalizedTask=taskRecord?await finalizeMessinhoAgentTask(taskRecord.id,ownerId,run):null;
       const taskCheckpoint=taskRecord?{...taskRecord,...(finalizedTask||{}),pending_capabilities:run.deferred_capabilities||[]}:null;
@@ -1292,7 +1308,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       };
       await saveMessinhoAgentMemory(ownerId,nextMemory);
       await saveMessinhoAgentTrace(ownerId,message,plan,run,Date.now()-agentStartedAt);
-      return res.json({
+      const agentResponse={
         reply,intent:'messinho_agent',items:selectedPlayer?[{kind:'Spielerkatalog',id:selectedPlayer.player_id,name:selectedPlayer.name,club:selectedPlayer.club,positions:selectedPlayer.positions||[]}]:[],
         agent:{status:run.status,label:run.label,state:agentCycle.state,validation:agentCycle.validation,next_action:run.next_action,planned_capabilities:plan.steps,discovered_capabilities:plan.discovered_capabilities,
           completed_steps:run.completed_steps,total_steps:run.total_steps,missing_inputs:run.missing_inputs,
@@ -1300,7 +1316,9 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
           replan_recommended:run.replan_recommended,results:run.results,task_checkpoint:taskCheckpoint},
         memory:{active_player_ids:nextMemory.active_player_ids,preferences:nextMemory.user_preferences,persisted:true},
         execution_policy:run.execution_policy
-      });
+      };
+      if(streamingRequested){sendAgentStreamEvent('complete',agentResponse);return res.end();}
+      return res.json(agentResponse);
     }
     if(/^(hallo|hi|hey|guten morgen|guten tag|guten abend|servus)\b/i.test(message)){
       return res.json({reply:'Hallo! Ich bin MESSINHO. Du kannst mir ein Scouting-Ziel nennen – ich zerlege es selbstständig in passende Analyse- und Rechercheaufgaben und zeige dir, wenn Daten fehlen.',intent:'smalltalk',items:[]});
@@ -1308,7 +1326,9 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     return res.json({reply:'Ich habe deine Anfrage noch nicht eindeutig einem vorhandenen Modul zuordnen können. Beschreibe bitte Ziel, Spielerposition, Jahrgang und gewünschtes Leistungsniveau.',intent:'clarify',items:[]});
   }catch(error){
     if(activeTaskId&&activeTaskOwnerId)try{await db.from('messinho_agent_tasks').update({status:'partial',lease_until:null,last_error:'Ausführung wurde unterbrochen; gespeicherte Arbeitsschritte können fortgesetzt werden.',updated_at:new Date().toISOString()}).eq('id',activeTaskId).eq('owner_id',activeTaskOwnerId).eq('status','running');}catch{}
-    console.error('Messinho agent chat failed:',error.message);return res.status(500).json({error:'Messinho konnte die Anfrage gerade nicht bearbeiten.'});
+    console.error('Messinho agent chat failed:',error.message);
+    if(streamingRequested&&res.headersSent){sendAgentStreamEvent('error',{error:'Messinho konnte die Anfrage gerade nicht bearbeiten.'});return res.end();}
+    return res.status(500).json({error:'Messinho konnte die Anfrage gerade nicht bearbeiten.'});
   }
 });
 
