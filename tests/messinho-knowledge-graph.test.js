@@ -99,6 +99,20 @@ test('new knowledge candidates preserve rights review deadlines required for Adm
  }
 });
 
+test('retrieves canonical VO2max knowledge in longer player-specific scouting questions',async()=>{
+ const row={id:'vo2',concept_key:'sports_science.physiology.vo2max',domain:'sports_science',topic:'Kardiorespiratorische Fitness',
+  title:'VO2max maximale Sauerstoffaufnahme',definition:'VO2max beschreibt die maximale Sauerstoffaufnahme des Körpers unter intensiver Belastung und ist ein Maß der kardiorespiratorischen Fitness.',
+  applicability:'Im Fußball-Scouting als Baustein zur Einordnung der aeroben Leistungsfähigkeit und Ausdauerbasis.',
+  limitations:['Geschätzte Werte sind nicht mit direkter CPET-Messung gleichzusetzen.'],
+  knowledge_level:'foundational',knowledge_type:'metric',knowledge_status:'active',version:3,confidence:0.88,sources:[],claims:[]};
+ const query={select(){return this;},eq(){return this;},in(column,values){assert.deepEqual(values,['sports_science','general']);return this;},or(){return this;},order(){return this;},async limit(){return {data:[row],error:null};}};
+ const links={select(){return this;},async or(){return {data:[],error:null};}};
+ const db={from(table){return table==='messinho_knowledge_concepts'?query:links;}};
+ const result=await findMessinhoKnowledgeConcepts(db,'Analysiere VO2max meines Spielers für die aerobe Leistungsfähigkeit');
+ assert.equal(result.status,'hit');
+ assert.equal(result.items[0].concept_key,'sports_science.physiology.vo2max');
+});
+
 test('knowledge graph does not persist or retrieve without a database',async()=>{
   assert.deepEqual(await storeMessinhoKnowledgeConcept(null,draft),{persisted:false,reason:'storage_unavailable'});
   assert.deepEqual(await findMessinhoKnowledgeConcepts(null,'Bayes theorem'),{status:'unavailable',items:[]});
