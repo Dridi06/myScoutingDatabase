@@ -530,17 +530,46 @@ export function listExecutableMessinhoCapabilities(){
      implementation_status:specialist?'partial':'not_implemented',runtime_version:MESSINHO_CAPABILITY_RUNTIME_VERSION};
  })}));
 }
+function buildMessinhoCapabilityProvenance(id,input,output){
+ const player=getPlayer(input),metrics=metricEntries(player);
+ const records=[...(player?.player_id!==undefined?[{type:'player',id:player.player_id}]:[]),
+   ...getPlayers(input).slice(0,100).map(item=>({type:'player',id:item.player_id??item.id??null})).filter(item=>item.id!==null)];
+ const sources=sourceBundle(input).map(source=>{
+   const assessment=assessMessinhoSource(source,{now:input.now||Date.now()});
+   return {title:source.title||null,url:source.url||null,host:assessment.host||null,
+     url_valid:assessment.url_valid,secure_transport:assessment.secure_transport};
+ });
+ const outcomes=verifiedOutcomes(input);
+ const claims=metrics.map(metric=>({kind:'observed_metric',field:metric.key,normalized_value:metric.value,
+   raw_value:metric.raw&&typeof metric.raw==='object'?(metric.raw.score??metric.raw.value??null):metric.raw}));
+ if(output?.result&&typeof output.result==='object'){
+   if(output.result.score!==undefined)claims.push({kind:'derived_score',field:'result.score',
+     value:output.result.score,derived_from:metrics.map(metric=>metric.key)});
+   if(output.result.overall?.score!==undefined)claims.push({kind:'derived_score',field:'result.overall.score',
+     value:output.result.overall.score,derived_from:metrics.map(metric=>metric.key)});
+ }
+ return {schema_version:'1.0',capability_id:id,
+   origin:input._trusted_source_bundle===true?'server_validated_ASI_bundle':records.length?'owner_scoped_database_records':sources.length?'supplied_source_bundle':'supplied_input',
+   record_refs:records,metric_evidence:metrics.map(metric=>({field:metric.key,normalized_value:metric.value})),
+   source_evidence:sources,verified_outcome_count:outcomes.length,
+   claims,limitations:[
+     'Interpretations and calculated scores are derived outputs, not primary evidence.',
+     ...(input._trusted_source_bundle===true?[]:['External source claims are not treated as verified unless a dedicated verifier returns verified.']),
+     ...(metrics.length?[]:['No player performance metrics were supplied for this capability.'])
+   ]};
+}
 export function executeMessinhoCapability(id,input={}){
  const meta=catalogById.get(id);
- if(!meta)return {capability_id:id,status:'unknown_capability',error:'Unbekannte MESSINHO-Funktion.'};
- if(!input||typeof input!=='object'||Array.isArray(input))return {capability_id:id,status:'invalid_input',error:'Eingaben müssen als Objekt übergeben werden.'};
+ if(!meta)return {capability_id:id,status:'unknown_capability',error:'Unbekannte MESSINHO-Funktion.',provenance:buildMessinhoCapabilityProvenance(id,input,{})};
+ if(!input||typeof input!=='object'||Array.isArray(input))return {capability_id:id,status:'invalid_input',error:'Eingaben müssen als Objekt übergeben werden.',provenance:buildMessinhoCapabilityProvenance(id,{}, {})};
  let output;
  if(analysisIds.has(id))output=analysisHandler(id,input);
  else if(evaluationIds.has(id))output=evaluationHandler(id,input);
  else if(learningIds.has(id))output=learningHandler(id,input);
  else if(researchIds.has(id))output=researchHandler(id,input);
  else output=missingResult(id,meta.required_inputs);
- return {...output,name:meta.name,domain:allCatalog.find(g=>g.functions.some(f=>f.id===id))?.id||null,description:meta.description};
+ return {...output,name:meta.name,domain:allCatalog.find(g=>g.functions.some(f=>f.id===id))?.id||null,description:meta.description,
+   provenance:buildMessinhoCapabilityProvenance(id,input,output)};
 }
 export function getMessinhoRuntimeSummary(){
  const dispatched=new Set([...analysisIds,...evaluationIds,...learningIds,...researchIds]);
