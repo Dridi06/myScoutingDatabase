@@ -145,7 +145,7 @@ test('planner exposes missing-input recovery and does not claim unsupported comp
 test('the 29 formerly generic fallback capabilities now have explicit specialist dispatch', () => {
   const ids = [
     'technical_score','tactical_score','athletic_score','mental_score','goalkeeper_score',
-    'supervised_learning','position_specific_learning','weight_optimization','age_group_learning',
+    'supervised_learning','position_specific_learning','scout_feedback_learning','weight_optimization','age_group_learning',
     'league_learning','country_learning','talent_pathway_learning','breakthrough_learning',
     'position_change_learning','availability_outcome_learning','controlled_self_optimization',
     'automated_talent_search','international_research','cross_league_research','youth_talent_discovery',
@@ -195,6 +195,21 @@ test('club need research reports position gaps only from supplied squad and expl
 test('learning proposals remain approval-gated and never train or change active weights', () => {
   const result = executeMessinhoCapability('supervised_learning', { outcomes: [] });
   assert.equal(result.status, 'insufficient_data');
+  assert.equal(result.result.training_performed, false);
+  assert.equal(result.result.model_weights_changed, false);
+});
+
+
+test('scout feedback learning accepts only verified feedback and remains non-mutating', () => {
+  const result = executeMessinhoCapability('scout_feedback_learning', {
+    verified_scout_feedback: [
+      { verified: true, verified_by: 'admin-1', scout_id: 'scout-1', rating: 82, category: 'technical' },
+      { verified: false, verified_by: 'admin-1', scout_id: 'scout-2', rating: 20, category: 'technical' }
+    ]
+  });
+  assert.equal(result.status, 'completed');
+  assert.equal(result.result.verified_feedback_count, 1);
+  assert.equal(result.result.mean_rating, 82);
   assert.equal(result.result.training_performed, false);
   assert.equal(result.result.model_weights_changed, false);
 });
