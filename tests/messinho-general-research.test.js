@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {isMessinhoGeneralResearchQuestion,normalizeMessinhoGeneralSources,assessMessinhoGeneralEvidence,isMessinhoGeneralClaimSupported,researchMessinhoGeneralQuestion} from '../backend/messinho-general-research.js';
+import {isMessinhoGeneralResearchQuestion,normalizeMessinhoGeneralSources,assessMessinhoGeneralEvidence,isMessinhoGeneralClaimSupported,isMessinhoGeneralClaimCorroborated,researchMessinhoGeneralQuestion} from '../backend/messinho-general-research.js';
 
 test('detects open knowledge questions but leaves greetings and scouting commands alone',()=>{
  assert.equal(isMessinhoGeneralResearchQuestion('Warum ist der Himmel blau?'),true);
@@ -112,4 +112,33 @@ test('stale results are returned as insufficient evidence before any synthesis a
  assert.equal(result.status,'insufficient_evidence');
  assert.equal(result.evidence.freshness.status,'insufficient_current_sources');
  assert.equal(calls,1);
+});
+
+
+test('requires every synthesized factual claim to be supported by two independent sources',()=>{
+ const claim={text:'Blue light is scattered more strongly by atmospheric molecules.',source_urls:['https://a.example/fact','https://b.example/fact']};
+ const sources=[
+  {url:'https://a.example/fact',publisher:'a.example',title:'Atmospheric scattering',snippet:'Blue light is scattered more strongly by atmospheric molecules because it has a shorter wavelength.'},
+  {url:'https://b.example/fact',publisher:'b.example',title:'Rayleigh scattering',snippet:'Atmospheric molecules scatter blue light more strongly than red light because blue light has a shorter wavelength.'}
+ ];
+ assert.equal(isMessinhoGeneralClaimCorroborated(claim,sources),true);
+ assert.equal(isMessinhoGeneralClaimCorroborated({...claim,source_urls:['https://a.example/fact']},sources),false);
+});
+
+test('does not count two URLs from the same publisher as independent corroboration',()=>{
+ const claim={text:'Blue light is scattered more strongly by atmospheric molecules.',source_urls:['https://a.example/one','https://a.example/two']};
+ const sources=[
+  {url:'https://a.example/one',publisher:'a.example',title:'Source one',snippet:'Blue light is scattered more strongly by atmospheric molecules because it has a shorter wavelength.'},
+  {url:'https://a.example/two',publisher:'a.example',title:'Source two',snippet:'Atmospheric molecules scatter blue light more strongly than red light because blue light has a shorter wavelength.'}
+ ];
+ assert.equal(isMessinhoGeneralClaimCorroborated(claim,sources),false);
+});
+
+test('rejects a claim if any cited source does not independently support it',()=>{
+ const claim={text:'Blue light is scattered more strongly by atmospheric molecules.',source_urls:['https://a.example/fact','https://b.example/fact']};
+ const sources=[
+  {url:'https://a.example/fact',publisher:'a.example',title:'Atmospheric scattering',snippet:'Blue light is scattered more strongly by atmospheric molecules because it has a shorter wavelength.'},
+  {url:'https://b.example/fact',publisher:'b.example',title:'Unrelated article',snippet:'The moon orbits the Earth and affects ocean tides.'}
+ ];
+ assert.equal(isMessinhoGeneralClaimCorroborated(claim,sources),false);
 });
