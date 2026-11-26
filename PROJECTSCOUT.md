@@ -2410,3 +2410,39 @@ Mathematics; statistics; physics; biology; medicine; sports science; football; c
 4. Populate the foundational curriculum first, then intermediate/advanced/specialist concepts with sources, formulas, limitations and prerequisites.
 5. Verify retrieval through the authenticated chat and real scouting capability execution on STAGING.
 6. Only then manually deploy the verified feature commit to dedicated STAGING. Do not promote production or merge PR #47 without explicit authorization.
+
+
+## 2026-11-26 — Knowledge ingestion transaction, admin review and conflict queue
+
+### Implemented on STAGING feature branch
+- Candidate creation now uses the database transaction `messinho_create_knowledge_candidate`; concept and initial version snapshot commit together or roll back together. The earlier client-side insert/delete compensation was removed because the knowledge graph is deliberately append-only and backend delete privileges are revoked.
+- Added shared backend validator `reviewMessinhoKnowledgeConcept`. Admin approval rechecks:
+  - authenticated approved admin identity;
+  - rights allowlist membership and exact HTTPS source URL scope;
+  - at least two independent source domains;
+  - corroborated claims;
+  - active parent/prerequisite concepts;
+  - absence of unresolved open conflicts.
+- Admin review route `POST /api/messinho/knowledge/:id/review` calls that shared validator and the atomic database review function. Approval, rejection or conflict marking updates the concept, appends a version snapshot and writes an audit record in one transaction.
+- Competing proposals are saved in `messinho_knowledge_conflicts` with compact proposed concept, evidence, and conflict reason; the existing concept is not silently overwritten.
+- Admin-only conflict queue and resolution endpoints added:
+  - `GET /api/messinho/knowledge-conflicts`
+  - `POST /api/messinho/knowledge-conflicts/:id/review`
+  - Decisions: reject the proposed alternative or explicitly keep the existing knowledge. Neither path silently changes the existing concept.
+- The review ledger `messinho_knowledge_reviews` and version ledger are append-only for service_role. Conflict table permits only SELECT/INSERT/UPDATE for service_role; browser roles have no grants.
+- Regression test added for fail-closed admin-review wrapper behavior.
+- Updated source register: OpenIntro Statistics is a quarantined CC BY-SA 3.0 candidate (commercial use permitted subject to attribution/share-alike and file-level exceptions); OpenStax's current CC BY-NC-SA default is excluded for commercial use without written permission. U.S. government/NIST candidates remain quarantined pending international rights and third-party content review.
+- No source has been added to the allowlist. Allowlist remains 0. No knowledge concept, conflict or review rows were seeded.
+
+### STAGING database verification
+- Confirmed `messinho_knowledge_reviews` and `messinho_knowledge_conflicts` exist and have RLS enabled, with zero browser policies (intentional because browser privileges are revoked).
+- Verified service_role has INSERT/SELECT only on review ledger; conflicts have INSERT/SELECT/UPDATE and no DELETE/TRUNCATE.
+- Verified both security-definer RPC functions exist: `messinho_create_knowledge_candidate`, `messinho_review_knowledge_concept`.
+- Counts at verification: concepts 0, links 0, versions 0, conflicts 0, reviews 0.
+- No user, player, scout or model-weight data changed.
+
+### Verification and release boundary
+- CI workflows are running for the latest feature branch changes; inspect the latest HEAD's Node test and backend syntax results before any deployment. A previous commit's success is not sufficient.
+- Render STAGING auto-deploy remains disabled. No new Render deployment was triggered. The current deployed STAGING runtime is not yet proven to contain this knowledge foundation/review endpoint.
+- Authenticated admin/scout E2E and conflict queue UI tests remain outstanding.
+- Production `main`, production Render, production Supabase, PFMS/PFSS and PR merge state remain untouched. PR #47 remains Draft/open/unmerged.
