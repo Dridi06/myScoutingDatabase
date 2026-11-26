@@ -284,3 +284,18 @@ MESSINHO soll:
 - Speichern: kompakte Definitionen, Formeln, Modellannahmen, Verfahrensschritte, Kennzahlen, Grenzen, Quellen-/Lizenznachweise und Review-Daten.
 - Dynamische Kurse, Marktstände und Konjunkturdaten werden nicht als ewiges Wissen behandelt; sie erhalten Zeitstempel und kurze Aktualitätsfenster oder werden bei Bedarf live abgerufen.
 - Kein kostenpflichtiger Marktdatenfeed und kein kostenpflichtiger Dienst ohne vorherige Zustimmung und Kostenprüfung.
+
+
+## Technischer Zwischenstand — erste dauerhafte domänenübergreifende Wissensschicht (2026-11-26)
+
+- Implementiert: `backend/messinho-domain-knowledge.js` mit Domänenklassifizierung, kompaktem Record-Aufbau, stabilen Fingerprints, begrenztem Retrieval, rights-gated Speicherung und fail-closed Verhalten.
+- Unterstützte Domänen: mathematics, physics, biology, medicine, risk_management, banking, financial_markets, statistics, sports_science, football, computer_science und general.
+- Dauerhafte Einträge haben keine reguläre Cache-TTL. Zeitabhängigkeit wird über `knowledge_status` (active/stale/conflicting/superseded/quarantined/removed), Version und Prüfdatum gesteuert. Volltexte und PDFs werden nicht gespeichert.
+- Speicherung verlangt explizit verifizierten Rechte-Status, Lizenz, Rechteinhaber, HTTPS-Lizenzbeleg sowie AI/TDM-, kommerzielle und Bearbeitungsfreigabe. Fehlt auch nur eine Angabe, wird nicht dauerhaft gespeichert.
+- Allgemeine Recherche normalisiert Lizenzmetadaten nur dann, wenn die Quelle diese tatsächlich liefert; HTTPS allein ist kein Lizenzbeleg. Rechte nicht verifiziert = kein dauerhafter Import.
+- MESSINHO-Chat ruft passende dauerhaft gespeicherte Einträge automatisch ab und kann sie mit Quellen-/Rechte-Metadaten als Kontext verwenden.
+- Neue Migration `supabase/migrations/20261126230000_messinho_domain_knowledge.sql` ist in Supabase STAGING angewendet. Verifikation: Tabelle vorhanden, RLS aktiv, service_role SELECT erlaubt, authenticated SELECT verweigert, aktuell 0 Wissenseinträge.
+- Tests/Build auf Render STAGING: 258 bestanden, 0 fehlgeschlagen; Backend-Syntaxprüfungen und Vite-Build erfolgreich.
+- Render STAGING Deployment: `dep-dc474gc9v7es73e2msdg`, live am 2026-11-26 17:54:43 UTC, Commit `5db7f60006eda1c1c02e2254b4af22ae43aa73fc`.
+- Render Auto-Deploy bleibt aus. Produktion/main, PFMS/PFSS und PR-Merge nicht verändert.
+- Noch NICHT abgeschlossen: geprüfter Rechtekatalog/100 Fachwerke, Backup-/Restore-Konfiguration und Restore-Test, breitere automatische Einbindung in spezialisierte Capability-Ausführung/Mathematik-/Physik-Workflows, Konfliktauflösung/Review-Pipeline, Prognosevalidierung und End-to-End-Tests im authentifizierten Chat. Diese Grundlage darf daher nicht als vollständige Realisierung des Gesamtziels ausgegeben werden.
