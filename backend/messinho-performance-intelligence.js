@@ -117,7 +117,7 @@ export function buildMessinhoPerformanceIntelligence(input={}, goal='') {
   }
   if (ballMass && shotSpeed) {
     const massUnit = normalizeKey(ballMass.unit || '');
-    const massKeyHasKg = /_kg$/.test(normalizeKey(ballMass.source_key));
+    const massKeyHasKg = /kg$/.test(normalizeKey(ballMass.source_key));
     const kg = massUnit === 'kg' || (!massUnit && massKeyHasKg) ? ballMass.value : null;
     const speedUnit = normalizeKey(shotSpeed.unit || '');
     const speedMs = speedUnit === 'kmh' ? shotSpeed.value/3.6 : ['ms','mps'].includes(speedUnit) ? shotSpeed.value : null;
