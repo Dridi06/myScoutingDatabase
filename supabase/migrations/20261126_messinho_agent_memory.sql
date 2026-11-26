@@ -52,3 +52,7 @@ create policy "messinho_agent_traces_select_own"
 
 -- Inserts/updates are performed by the server's service-role client only.
 -- No client-side write policy is granted for execution traces.
+
+-- This table is server-managed; direct client writes are not required.
+revoke all on public.messinho_agent_memory, public.messinho_agent_traces from anon, authenticated;
+grant all on public.messinho_agent_memory, public.messinho_agent_traces to service_role;
