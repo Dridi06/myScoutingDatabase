@@ -143,11 +143,12 @@ test('retains the 21-year-old defensive-midfielder search after the location cla
  assert.equal(result.request.targetLevel,'3 Liga / Regionalliga');
 });
 
-test('recognizes German nationality adjective as Germany',()=>{
+test('recognizes German nationality adjective without inventing a country location',()=>{
  const result=parseMessinhoScoutingRequest('Suche einen 21-jährigen Sechser, am besten deutsch',[],2026);
  assert.equal(result.shouldHandle,true);
  assert.equal(result.request.age,21);
- assert.equal(result.request.region,'deutschland');
+ assert.equal(result.request.nationality,'deutsch');
+ assert.equal(result.request.region,'');
 });
 
 
