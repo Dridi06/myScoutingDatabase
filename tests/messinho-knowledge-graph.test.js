@@ -118,10 +118,12 @@ test('canonical VO2max lookup recovers active knowledge when broad lexical ranki
   title:'VO2max maximale Sauerstoffaufnahme',definition:'VO2max beschreibt die maximale Sauerstoffaufnahme des Körpers unter intensiver Belastung und ist ein Maß der kardiorespiratorischen Fitness.',
   knowledge_level:'foundational',knowledge_type:'metric',knowledge_status:'active',version:3,confidence:0.88,sources:[],claims:[]};
  let exactLookup=false;
- const broad={select(){return this;},eq(){return this;},in(){return this;},or(){return this;},order(){return this;},async limit(){return {data:[],error:null};}};
- const exact={select(fields){assert.match(fields,/concept_key/);return this;},eq(column,value){if(column==='concept_key'&&value===row.concept_key)exactLookup=true;return this;},or(){return this;},async limit(){return {data:[row],error:null};}};
+ const query={select(fields){if(exactLookup)assert.match(fields,/concept_key/);return this;},
+  eq(column,value){if(column==='concept_key'&&value===row.concept_key)exactLookup=true;return this;},
+  in(){return this;},or(){return this;},order(){return this;},
+  async limit(){return {data:exactLookup?[row]:[],error:null};}};
  const links={select(){return this;},async or(){return {data:[],error:null};}};
- const db={from(table){if(table==='messinho_knowledge_links')return links;return exactLookup?exact:broad;}};
+ const db={from(table){return table==='messinho_knowledge_links'?links:query;}};
  const result=await findMessinhoKnowledgeConcepts(db,'Was ist VO₂max? Erkläre mir den Wert, seine physiologische Bedeutung und seine Grenzen.');
  assert.equal(exactLookup,true);
  assert.equal(result.status,'hit');
