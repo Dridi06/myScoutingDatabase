@@ -3242,3 +3242,31 @@ GitHub Action run `45888336042` completed successfully on commit `685cbbc82836b5
 - Not yet independently proven in this session: a real authenticated Admin chat response from the deployed browser session. The deployment was validated, but this assistant session does not possess the user's browser login/session token and did not impersonate the Admin.
 - Next live acceptance test: in a fresh Admin chat ask `Was ist VO2max?`; response must identify reuse of stored knowledge and show no external research intent. Then ask `Wie ordne ich die aerobe Leistungsfähigkeit eines Spielers anhand seiner VO2max ein?`; response must use the stored applicability and limitations, request the measured value/test modality if missing, and never invent a player metric. Confirm returned `knowledge_memory.reused=true` / `structured_knowledge_graph_hit` and relevant sources.
 - After the authenticated chat test, run a second question that combines VO2max with a player profile. Only then mark the full end-to-end retrieval-and-application pilot accepted.
+
+
+## Live-chat acceptance failure analysis and corrections — 2026-11-26 21:50 UTC
+
+### Evidence from Admin staging screenshots
+1. A simple VO2max foundation question returned the message that a concept/candidate already existed and asked the Admin to inspect its approval status. This is incorrect for the already-active VO2max v3 concept.
+2. A player-specific VO2max question produced irrelevant Wikipedia navigation links (e.g. unrelated article/navigation material) and described them as independent sources. This is an evidence relevance failure, not valid research.
+
+### Backend root-cause handling
+- Knowledge graph retrieval now has a canonical exact-key fallback for approved VO2max foundation questions. If normal lexical ranking misses the active concept, it performs a second exact active lookup for `sports_science.physiology.vo2max`, still respecting `knowledge_status='active'` and `valid_until`.
+- The fallback is limited to the explicitly recognised VO2max aliases; it does not activate candidates, broaden permissions, or expose unapproved records.
+- General web research now filters retrieved sources for topic relevance before evidence assessment, synthesis, or source-digest presentation. VO2max questions require source content about VO2max, maximal oxygen uptake, or cardiorespiratory fitness; unrelated Wikipedia navigation results are excluded.
+- Added German/English atmospheric-scattering synonym handling to preserve existing generic science-research behaviour, and ignored generic freshness words in relevance matching.
+
+### Regression and CI
+- Added tests for canonical exact-key recovery when broad ranking returns no hit.
+- Added tests proving unrelated Wikipedia pages are filtered and a result set containing only unrelated pages fails closed as `no_sources`.
+- Full test suite at commit `681ed1c8f356b3c200442c632de3357174dd5e0a`: **319 passed, 0 failed**.
+- Backend syntax workflow: success.
+- Staging health smoke test: success.
+- Combined staging CI/build is still running at the time of this checkpoint; do not mark deployment complete until it passes and Render reports the same commit live.
+
+### Remaining acceptance criteria
+- Retest the exact two Admin chat questions after the new staging deployment.
+- First question must return `structured_knowledge_graph_hit` and `knowledge_memory.reused=true` for active VO2max v3.
+- Second question must apply stored applicability and limitations. If no player measurement is provided, ask for the measured value and test modality; do not fabricate values.
+- External research must show only topic-relevant sources. If relevant independent evidence is insufficient, state that clearly instead of showing unrelated links.
+- Production remains untouched. Only `feature/messinho-unified-ai-integration` and the dedicated MESSINHO staging service are in scope.
