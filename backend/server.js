@@ -11,6 +11,7 @@ import { correctMessinhoInput } from './messinho-input-correction.js';
 import { rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFollowUp, extractMessinhoPlayerSearchTerm, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
 import { normalizeMessinhoFeedback, normalizeMessinhoFeedbackReview } from './messinho-feedback.js';
+import { buildMessinhoQualityIntelligence } from './messinho-quality-intelligence.js';
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
 import { getMessinhoCapabilitySummary } from './messinho-capabilities.js';
@@ -1249,6 +1250,21 @@ app.post('/api/messinho/feedback',messinhoFeedbackLimiter,async(req,res)=>{
     if(error){console.error('MESSINHO feedback insert failed:',error.code||error.message);return res.status(500).json({error:'Feedback konnte nicht revisionssicher gespeichert werden. Staging-Migration prüfen.'});}
     return res.status(201).json({ok:true,feedback:data,message:'Danke. Dein Feedback wurde gespeichert und wird getrennt von verifizierten Spielergebnissen ausgewertet.'});
   }catch(error){console.error('MESSINHO feedback submission failed:',error.message);return res.status(500).json({error:'Feedback konnte nicht gespeichert werden.'});}
+});
+const messinhoQualityIntelligenceLimiter=rateLimit({windowMs:60*60*1000,limit:20,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Qualitätsauswertungen. Bitte später erneut versuchen.'}});
+app.get('/api/messinho/quality-intelligence',messinhoQualityIntelligenceLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    if(actor.profile.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen die Qualitätsintelligenz einsehen.'});
+    const {data,error}=await db.from('messinho_feedback')
+      .select('feedback_type,rating,comment,intent,engine_version,model_version,capability_ids,status,created_at')
+      .in('status',['pending','reviewed','verified','rejected','applied'])
+      .order('created_at',{ascending:false}).limit(1000);
+    if(error){console.error('MESSINHO quality intelligence query failed:',error.code||error.message);return res.status(500).json({error:'Qualitätsauswertung konnte nicht geladen werden.'});}
+    const report=buildMessinhoQualityIntelligence(data||{});
+    return res.json({ok:true,report});
+  }catch(error){console.error('MESSINHO quality intelligence failed:',error.message);return res.status(500).json({error:'Qualitätsauswertung konnte nicht erstellt werden.'});}
 });
 app.get('/api/messinho/feedback',async(req,res)=>{
   try{
