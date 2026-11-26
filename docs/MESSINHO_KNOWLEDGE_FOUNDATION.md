@@ -101,8 +101,8 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 - Competing source-backed proposals are retained in `messinho_knowledge_conflicts`; they are never silently overwritten. Admin-only routes list and decide open conflicts:
   - `GET /api/messinho/knowledge-conflicts`
   - `POST /api/messinho/knowledge-conflicts/:id/review`
-- Conflict decisions currently support rejecting the proposed alternative or explicitly retaining the existing knowledge. The existing concept is not overwritten by this conflict-resolution endpoint.
-- The review ledger and version ledger are append-only from the backend role; browser roles have no grants or RLS policies.
+- Conflict decisions are transactional: rejecting the proposed alternative or explicitly retaining the existing knowledge closes the conflict record. If the concept was quarantined as conflicting, its previous state (active or candidate) is restored only after all open conflicts for that concept are closed; the restoration appends a new version snapshot. The proposed concept never overwrites the existing definition.
+- The review ledger and version ledger are append-only from the backend role; browser roles have no grants or RLS policies. Conflict creation/quarantine and conflict resolution/state restoration use service_role-only transactional RPCs.
 
 ## Initial source-rights screening (26 November 2026)
 
