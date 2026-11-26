@@ -26,7 +26,8 @@ function quantity(q,units){
  const m=q.match(new RegExp('(-?\\d+(?:[.,]\\d+)?)\\s*('+unitPattern+')(?![a-z])','i'));
  if(!m)return null;
  const unit=m[2].toLowerCase(),value=Number(m[1].replace(',','.'));
- const entry=units.find(x=>new RegExp('^(?:'+x[0]+')
+ const entry=units.find(x=>new RegExp('^(?:'+x[0]+')$','i').test(unit));
+ if(!entry)return null;
  return {value:value*entry[1],raw:value,unit:entry[2]};
 }
 function naturalPhysics(q){
