@@ -1710,11 +1710,11 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     }
     if(isMessinhoGeneralResearchQuestion(interpretedMessage)){
       const remembered=await findMessinhoKnowledge(db,ownerId,interpretedMessage);
-      if(remembered.status==='hit'){
+      if(remembered.status==='hit'||remembered.status==='similar_hit'){
         const cached=remembered.record;
         const sourceItems=(cached.sources||[]).map((source,index)=>({id:'general-source-'+index,name:source.title||source.publisher||source.url,kind:'Gespeicherte Recherchequelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
         return respond({reply:cached.answer,intent:'general_knowledge_memory_hit',items:sourceItems,sources:cached.sources,evidence:cached.evidence_summary,answer_mode:cached.answer_mode,
-          claims:cached.claims||[],researched_at:cached.last_verified_at,knowledge_memory:{reused:true,verification_status:'corroborated',source_count:cached.source_count,distinct_domains:cached.distinct_domains,expires_at:cached.expires_at}});
+          claims:cached.claims||[],researched_at:cached.last_verified_at,knowledge_memory:{reused:true,match:remembered.match,similarity:remembered.similarity||null,verification_status:'corroborated',source_count:cached.source_count,distinct_domains:cached.distinct_domains,expires_at:cached.expires_at}});
       }
       const research=await researchMessinhoGeneralQuestion(interpretedMessage);
       const sourceItems=(research.sources||[]).map((source,index)=>({id:'general-source-'+index,name:source.title||source.publisher||source.url,kind:'Recherchequelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
