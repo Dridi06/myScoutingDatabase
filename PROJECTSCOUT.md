@@ -3308,3 +3308,31 @@ Re-run the exact question:
 `Was ist VO₂max? Erkläre mir den Wert, seine physiologische Bedeutung und seine Grenzen.`
 Expected response intent: `structured_knowledge_graph_hit`; expected metadata: `knowledge_memory.reused=true`, kind `hierarchical_knowledge_graph`, canonical VO2max domain. The answer must include the active stored foundation content and its limitations.
 Then test a player-specific VO2max application question. If no actual measurement and test protocol are provided, MESSINHO must explain the metric and ask for the missing player measurement instead of inventing a player assessment.
+
+
+## Runtime failure fix: mixed knowledge field types — 2026-11-26 22:05 CET
+
+### User acceptance-test result
+The Admin repeated the canonical VO2max question after the previous routing correction. The UI displayed: "Messinho konnte die Anfrage gerade nicht bearbeiten." Render runtime logs identified the exact exception:
+`Messinho agent chat failed: item.applicability.join is not a function`.
+This confirms the knowledge route was reached, but response rendering crashed because the stored `applicability` field is a string, not an array.
+
+### Fix applied
+- Added `formatMessinhoKnowledgeValue()` in `backend/messinho-knowledge-graph.js` to safely render strings, arrays, numbers, booleans, and structured objects.
+- Replaced unsafe `.join()` calls in the canonical knowledge response for applicability, formula, limitations, and prerequisites with the safe formatter.
+- Added regression tests covering string, array, object, and null field values.
+- No knowledge approval, source-rights, RLS, or production settings were changed.
+
+### Verification
+- Current feature-branch HEAD: `a90c8b55551c1583924ebeb49f9c6918826ff600`.
+- Node tests: **321 passed, 0 failed** (confirmed in Render build logs).
+- Backend syntax: success.
+- Staging CI/build: success.
+- Staging health smoke test: success.
+- Render staging deployment `dep-dc49tegu01pc73fa477g`: **LIVE**, commit matches branch HEAD.
+- Production remains untouched.
+
+### Next acceptance test
+Repeat the exact Admin prompt:
+`Was ist VO₂max? Erkläre mir den Wert, seine physiologische Bedeutung und seine Grenzen.`
+Expected: a substantive response built from the approved active knowledge graph record, with no generic greeting and no chat processing error. Confirm that applicability and limitations render even if their stored values have different JSON types. If the response still fails, inspect new Render runtime logs before making another code change.
