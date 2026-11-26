@@ -2065,3 +2065,14 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Backend syntax validation and Vite production build completed successfully; Vite transformed 1,636 modules and reported “built”.
 - This is a STAGING release only. Render auto-deploy remains disabled. Production/main and production Supabase remain untouched. PFMS/PFSS remain untouched. PR #47 remains Draft/open/unmerged.
 - Remaining validation: owner should test the exact multi-turn scouting flow in the live STAGING UI. External candidate discovery quality still needs separate source-relevance and identity verification work; this release does not claim that candidate research is fully reliable.
+
+
+### Additional scouting requirement — preferred foot — 2026-11-26
+- Extended natural-language scouting parsing to recognize left-footed, right-footed and two-footed player requirements, including German adjective inflections such as “linksfüßigen”.
+- “6er” / “Sechser” remains a specific defensive-midfielder requirement even when the user also says “Mittelfeldspieler”.
+- The preferred-foot criterion is forwarded into the discovery request and search focus.
+- The research model is instructed to return a preferred foot only when the supplied sources explicitly support it. The deterministic evidence gate rejects candidates whose requested foot is missing or contradictory; an unsupported foot is never inferred from a player's position or nationality.
+- The candidate analysis now retains the evidence-backed preferred-foot value for downstream display and audit.
+- Added regression coverage for parsing and evidence matching of left/right/two-footed descriptions.
+- No schema migration is required; the value is retained in the existing candidate analysis JSON.
+- Full build/test gate and manual STAGING deployment are pending for this addition. Production remains untouched; auto-deploy remains disabled.
