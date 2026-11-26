@@ -47,7 +47,7 @@
   border-color:rgba(143,174,218,.25);color:#f4f7fc
 }
 .messinho-workspace .messinho-bubble>small{color:#a9c5e9;font-size:9px;letter-spacing:.14em}
-.messinho-workspace .messinho-bubble p{font-size:13px;line-height:1.72;color:inherit;overflow-wrap:anywhere}
+.messinho-workspace .messinho-bubble p{font-size:13px;line-height:1.72;color:inherit;overflow-wrap:anywhere;white-space:pre-line}
 .messinho-workspace .messinho-suggestions{gap:8px}
 .messinho-workspace .messinho-suggestions button{
   min-height:36px;padding:8px 13px;border-radius:11px;
