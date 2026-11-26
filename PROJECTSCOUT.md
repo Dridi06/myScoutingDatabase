@@ -2006,3 +2006,22 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Live database catalog confirms the updated RPC contains the explicit `factual_correction_must_be_verified_before_apply` gate. RPC execution remains service_role-only (anon=false, authenticated=false, service_role=true).
 - This is a database-only hardening migration; no runtime code change or redeploy was required. Runtime remains live on `76d39c4ed34fc16e8cc3700f09bd19d4c096f9a7`.
 - STAGING currently contains no generated feedback records. No synthetic rows were added.
+
+## 2026-11-26 – MESSINHO Improvement Hypothesis Governance
+
+- Added persistent lifecycle for quality-intelligence hypotheses in staging:
+  - proposed → accepted → test_created → validated
+  - alternative terminal paths: rejected and rolled_back
+- New tables: messinho_improvement_hypotheses and append-only messinho_improvement_hypothesis_events.
+- New RPC: asi_transition_messinho_hypothesis; every transition independently verifies an approved admin profile and writes the state change plus audit event in one transaction.
+- API:
+  - GET /api/messinho/improvement-hypotheses
+  - POST /api/messinho/improvement-hypotheses
+  - POST /api/messinho/improvement-hypotheses/:hypothesisId/transition
+- Validation requires a concrete test plan before test_created, and HTTPS evidence plus passed=true and a meaningful evaluation summary before validated.
+- Rejected/rolled-back proposals cannot be reopened through the transition API. Runtime prompts, capabilities, knowledge memory and model weights are not changed by this lifecycle.
+- Admin quality panel supports taking a proposal into review, accepting/rejecting it, recording a test plan, validating a test report, and rolling back.
+- Added unit tests for payload validation, lifecycle transitions, test-plan requirements and validation evidence.
+- Staging migration applied; table access and RPC grants verified: anon/authenticated denied, service_role allowed.
+- Supabase advisors show no new RLS finding for the two governance tables. Existing unrelated findings remain: messinho_diagnostic_runs without an RLS policy, admin_set_scout_approval executable by authenticated as SECURITY DEFINER, and leaked-password protection disabled. These were not modified in this milestone.
+- Runtime deployment is pending workspace confirmation; Render auto-deploy remains disabled.
