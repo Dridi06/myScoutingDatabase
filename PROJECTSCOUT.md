@@ -2376,6 +2376,7 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 ### Implemented on feature/messinho-unified-ai-integration
 - Added STAGING migration source supabase/migrations/20261126182955_messinho_knowledge_hierarchy.sql and applied it to STAGING Supabase project nwqwnrhupbyhshsprxjt (recorded migration version 20261126182955, name messinho_knowledge_hierarchy).
 - Added 20261126183401_messinho_knowledge_version_append_only.sql and 20261126183459_messinho_knowledge_version_fk_index.sql. Verified privileges: service_role has SELECT/INSERT/UPDATE on concepts and links, SELECT/INSERT only on versions; no DELETE/TRUNCATE rights remain for the permanent knowledge graph.
+- Added 20261126183831_messinho_knowledge_review_governance.sql (atomic candidate creation and approved-admin review RPCs), 20261126183838_messinho_knowledge_conflict_review.sql (conflict evidence queue), 20261126183939_messinho_knowledge_review_history_append_only.sql, and 20261126184132_messinho_knowledge_review_fk_indexes.sql. The review ledger is service_role SELECT/INSERT only; conflicts are service_role SELECT/INSERT/UPDATE with DELETE/TRUNCATE revoked.
 - New tables:
   - messinho_knowledge_concepts: domain/topic/title/definition, four learning levels, concept type, parent/prerequisites, formulas and variables, applicability, limitations, claims, source rights, evidence grade, confidence, candidate/active/conflict/stale/superseded status, version and review dates.
   - messinho_knowledge_links: prerequisite, related, extends, contradicts, applies_to and derived_from relations.
@@ -2388,13 +2389,14 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Integrated graph retrieval into POST /api/agent/chat. Retrieved approved concepts are passed to the existing scouting agent input and conversational reasoning context; general questions can use the graph before the older flat knowledge and answer-cache paths.
 - Updated backend/messinho-capability-runtime.js to combine active graph concepts with legacy rights-verified knowledge for relevant capability explanations. Scoring/model-weight functions remain isolated from reference knowledge so it cannot silently change numerical ratings or weights.
 - Added tests/messinho-knowledge-graph.test.js for learning-level/link contracts, rights refusal, prerequisite validation and fail-closed persistence/retrieval.
+- Candidate creation uses the atomic service_role-only RPC so the concept and its first immutable version snapshot are committed together. The approved-admin review RPC records each decision and increments the version. The admin review queue rechecks current source rights, independent source domains and active prerequisites before approval.
+- Competing proposals are retained in messinho_knowledge_conflicts for explicit review; no existing concept is silently overwritten. The review ledger is append-only.
 - Added docs/MESSINHO_KNOWLEDGE_FOUNDATION.md with the agreed domain coverage map and data/learning/governance design.
 
 ### Domain coverage map
 Mathematics; statistics; physics; biology; medicine; sports science; football; computer science/AI; risk management; banking; financial markets; general cross-domain reasoning. Every domain follows foundational → intermediate → advanced → specialist, with explicit prerequisites and cross-domain links. The detailed curriculum map is in docs/MESSINHO_KNOWLEDGE_FOUNDATION.md.
 
 
-- Added STAGING migration 20261126183401_messinho_knowledge_version_append_only.sql (applied as messinho_knowledge_version_append_only). Verified privileges: service_role has SELECT/INSERT/UPDATE on concepts and links, SELECT/INSERT only on versions; no DELETE/TRUNCATE rights remain for the permanent knowledge graph. Browser roles have no grants.
 
 ### Verification / release status
 - STAGING migration applied; table existence and RLS state verified by read-only SQL.
