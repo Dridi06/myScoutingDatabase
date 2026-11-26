@@ -173,6 +173,21 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       <div><ShieldCheck size={18}/><span><strong>Arbeitsmodus</strong><small>Nur lesende Datenbankabfragen</small></span></div>
     </section>}
 
+    <section className="messinho-chat-card">
+      <div className="messinho-chat-heading"><div><span>SCOUTING CONVERSATION</span><h2>Sprich mit Messinho</h2></div></div>
+      <div className="messinho-messages" ref={messagesRef} aria-live="polite">
+        {messages.map(message=><article key={message.id} className={'messinho-message '+message.role}><div className="messinho-avatar">{message.role==='assistant'?<BrainCircuit size={17}/>:<MessageCircle size={16}/>}</div><div className="messinho-bubble"><small>{message.role==='assistant'?'MESSINHO':'DU'}</small><p>{message.text}</p>{message.correction?.corrected&&<small className="messinho-correction-note">Sprachlich verstanden als: „{message.correction.corrected}“</small>}{message.metrics&&<div className="messinho-metrics"><span>{message.metrics.players} Spieler im Katalog</span><span>{message.metrics.candidates} eigene Kandidaten</span></div>}{renderItems(message.items)}</div></article>)}
+        {busy&&<div className="messinho-thinking"><LoaderCircle className="messinho-spin" size={17}/> Messinho verarbeitet deine Anfrage …</div>}
+      </div>
+      {error&&<p className="messinho-error" role="alert">{error}</p>}
+      <form className="messinho-composer" onSubmit={e=>{e.preventDefault();send();}}>
+        <input value={draft} onChange={e=>setDraft(e.target.value)} placeholder="Schreibe deine Nachricht an Messinho …" maxLength={1200} aria-label="Nachricht an Messinho"/>
+        <button type="submit" className="messinho-send" disabled={busy||!draft.trim()} aria-label="Nachricht senden"><Send size={18}/></button>
+      </form>
+    </section>
+    <details className="messinho-help-bundle">
+      <summary><span><strong>Hilfe, Erklärungen & Agentenfunktionen</strong><small>Gebündelte Informationen, Lernwerkzeuge, Entwicklungszyklus und Status</small></span><span className="messinho-help-chevron">⌄</span></summary>
+      <div className="messinho-help-content">
     <section className="messinho-learning-panel">
       <div className="messinho-learning-summary"><strong>MESSINHO · Lern- und Kalibrierungssystem</strong><small>{learningData?.calibration_count??'–'} Kalibrierungen · {learningData?.active_model?.version?(learningData.active_model.trained?'Gelerntes Modell ':'Deterministisches Basisprofil ')+learningData.active_model.version:'Positions-Basisprofil aktiv'}</small><small>Nur administrativ verifizierte Ergebnisse fließen in neue Modellversionen ein.</small></div>
       <div className="messinho-calibration-entry">
@@ -232,18 +247,8 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     <section className="messinho-capability-panel messinho-agent-mode">
       <div className="messinho-learning-summary"><strong>MESSINHO · Autonomer Arbeitsmodus</strong><small>Du musst keine Einzelfunktion mehr auswählen. Beschreibe dein Ziel direkt im Chat.</small><small>Die Integration der 100 Scouting-Fähigkeiten wird so aufgebaut, dass MESSINHO passende Schritte selbst auswählt, kombiniert, überprüft und verständlich erklärt. Nicht vollständig integrierte Fähigkeiten werden nicht als fertig ausgegeben.</small></div>
     </section>
-    <section className="messinho-chat-card">
-      <div className="messinho-chat-heading"><div><span>SCOUTING CONVERSATION</span><h2>Sprich mit Messinho</h2></div></div>
-      <div className="messinho-messages" ref={messagesRef} aria-live="polite">
-        {messages.map(message=><article key={message.id} className={'messinho-message '+message.role}><div className="messinho-avatar">{message.role==='assistant'?<BrainCircuit size={17}/>:<MessageCircle size={16}/>}</div><div className="messinho-bubble"><small>{message.role==='assistant'?'MESSINHO':'DU'}</small><p>{message.text}</p>{message.correction?.corrected&&<small className="messinho-correction-note">Sprachlich verstanden als: „{message.correction.corrected}“</small>}{message.metrics&&<div className="messinho-metrics"><span>{message.metrics.players} Spieler im Katalog</span><span>{message.metrics.candidates} eigene Kandidaten</span></div>}{renderItems(message.items)}</div></article>)}
-        {busy&&<div className="messinho-thinking"><LoaderCircle className="messinho-spin" size={17}/> Messinho verarbeitet deine Anfrage …</div>}
-      </div>
-      {error&&<p className="messinho-error" role="alert">{error}</p>}
-      <form className="messinho-composer" onSubmit={e=>{e.preventDefault();send();}}>
-        <input value={draft} onChange={e=>setDraft(e.target.value)} placeholder="Schreibe deine Nachricht an Messinho …" maxLength={1200} aria-label="Nachricht an Messinho"/>
-        <button type="submit" className="messinho-send" disabled={busy||!draft.trim()} aria-label="Nachricht senden"><Send size={18}/></button>
-      </form>
-    </section>
     {!compact&&<aside className="messinho-roadmap"><strong>Ausbaustufen</strong><span><b>Jetzt:</b> Datenbankabfragen und Chatoberfläche</span><span><b>Als Nächstes:</b> eigene Rechercheplanung und rechtlich freigegebene Quellen</span><span><b>Aktiv:</b> Scout-Feedback, Modell-Evaluation und Admin-Freigabe vor Aktivierung</span></aside>}
+      </div>
+    </details>
   </div>;
 }
