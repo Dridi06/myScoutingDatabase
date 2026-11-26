@@ -68,6 +68,17 @@ export function matchesPosition(requested, positions) {
   });
 }
 
+export function matchesNationality(requested, observed) {
+  if (!requested) return true;
+  const aliases = COUNTRY_ALIASES[normalize(requested)] || [requested];
+  const value = normalize(observed);
+  if (!value) return false;
+  return aliases.some(alias => {
+    const normalizedAlias = normalize(alias);
+    return value === normalizedAlias || (' ' + value + ' ').includes(' ' + normalizedAlias + ' ');
+  });
+}
+
 export function matchesPreferredFoot(requested, observed) {
   if (!requested) return true;
   const value = String(observed ?? '').normalize('NFKC').toLocaleLowerCase('de-DE');
@@ -120,7 +131,7 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
 
   const countryNames = Object.keys(COUNTRY_ALIASES).sort((a, b) => b.length - a.length);
   const countryPattern = new RegExp('\\b(?:in\\s+)?(' + countryNames.map(name => name.replace(/[.*+?^{}()|[\]\\]/g, '\\$&')).join('|') +
-    '|deutsch|germany|german|england|english|spain|spanish|italy|italian|france|french|netherlands|dutch|belgium|belgian|austria|austrian|switzerland|swiss|turkey|turkish|denmark|danish|sweden|swedish|norway|norwegian|poland|polish|croatia|croatian|serbia|serbian|usa|brazil|brazilian|argentina|argentinian)\\b', 'i');
+    '|germany|german|england|english|spain|spanish|italy|italian|france|french|netherlands|dutch|belgium|belgian|austria|austrian|switzerland|swiss|turkey|turkish|denmark|danish|sweden|swedish|norway|norwegian|poland|polish|croatia|croatian|serbia|serbian|usa|brazil|brazilian|argentina|argentinian)\\b', 'i');
   const regionMatch = context.match(countryPattern);
   let region = regionMatch ? regionMatch[1].replace(/^in\s+/i, '').trim() : '';
   const regionKey = Object.entries(COUNTRY_ALIASES).find(([key, aliases]) =>
@@ -149,6 +160,6 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
   const needsTargetLevel = false;
   return {
     shouldHandle, missing, needsTargetLevel,
-    request: { quantity, yearFrom, yearTo, ageGroup, ...(age ? { age } : {}), ...(preferredFoot ? { preferredFoot } : {}), position, region, targetLevel }
+    request: { quantity, yearFrom, yearTo, ageGroup, ...(age ? { age } : {}), ...(preferredFoot ? { preferredFoot } : {}), ...(nationality ? { nationality } : {}), position, region, targetLevel }
   };
 }
