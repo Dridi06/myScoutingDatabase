@@ -37,6 +37,10 @@ The project is Germany-based and may be used commercially. A statement that a US
 | `candidate_openintro_statistics` | OpenIntro Statistics (exact current edition and per-file licence must be confirmed) | Statistics / probability | OpenIntro's official licence page says most Statistics textbooks are CC BY-SA 3.0, allowing commercial reuse subject to attribution and ShareAlike; it warns that some files have different licences and third-party images/material. | Verify exact edition, file-level licence, every third-party figure/table, attribution requirements, and whether the intended AI/TDM workflow and retained compact adaptations comply with CC BY-SA 3.0 in the Germany-based product. | `quarantined` |
 | `candidate_openstax_textbook_library` | OpenStax textbook library (source family only) | Mathematics / physics / biology | OpenStax confirms current textbooks are CC BY-NC-SA 4.0 and prohibits commercial use; it provides a separate reuse request process for commercial and AI projects. | Not eligible under current default terms. Could only be reconsidered after written permission explicitly covering commercial AI/agent knowledge-base use and derivative processing. | `rejected_under_current_default_terms` |
 
+| `candidate_grinstead_snell_probability` | Grinstead & Snell, *Introduction to Probability* (Dartmouth/CHANCE GNU version; exact GNU FDL edition) | Probability, statistics, Markov chains | The authors' official Dartmouth/CHANCE page states the GNU version is freely redistributable under GNU FDL; the published GNU PDF notice identifies GNU FDL with no Invariant Sections, Front-Cover Texts or Back-Cover Texts. GNU FDL 1.3 explicitly permits commercial copying and modification but applies copyleft to modified versions. | Candidate for a carefully isolated, compact, independently worded probability curriculum. Legal review must determine whether stored concept records constitute modified/adapted portions and, if so, what GNU FDL share-alike obligations apply. Preserve attribution and exact version provenance. | `quarantined` |
+| `excluded_book_of_proof` | Richard Hammack, *Book of Proof* (official author edition) | Mathematics / proof foundations | The author's official page states the licence forbids commercial use and altering content except for personal use; a mirrored PDF identifies CC BY-NC-ND 4.0. | Excluded under current default terms: non-commercial and no-derivatives are incompatible with the intended commercial, transformed knowledge pipeline. | `rejected_under_current_terms` |
+| `excluded_mit_6042j` | MIT OpenCourseWare 6.042J *Mathematics for Computer Science* (Spring 2019 course) | Mathematics / discrete math / probability | MIT's official course page states CC BY-NC-SA, which limits use to non-commercial purposes. | Excluded under current default terms for the commercial platform. Do not ingest unless written permission changes those terms. | `rejected_under_current_terms` |
+
 ## Primary evidence links
 
 - NIST SP 800-30 Rev. 1: https://csrc.nist.gov/pubs/sp/800/30/r1/final
@@ -52,12 +56,16 @@ The project is Germany-based and may be used commercially. A statement that a US
 - OpenIntro official resource licence: https://openintro.org/license/
 - OpenStax official licensing and commercial-use restriction: https://help.openstax.org/s/article/Licensing-information-of-OpenStax-textbooks
 - OpenStax commercial / AI project reuse request: https://riceuniversity.tfaforms.net/52
+- Dartmouth/CHANCE GNU FDL edition of Introduction to Probability: https://chance.dartmouth.edu/Doob/probability_book/book.html
+- Official GNU FDL 1.3 text (commercial reuse and copyleft conditions): https://www.gnu.org/licenses/fdl-1.3.html
+- Richard Hammack official Book of Proof licensing notice: https://richardhammack.github.io/BookOfProof/index.html
+- MIT OCW 6.042J official licence notice: https://openlearninglibrary.mit.edu/courses/course-v1:OCW+6.042J+2T2019/about
 
 ## Current decision
 
 - Approved works: **0**.
-- Candidate works/resources recorded here: **7** (PMC and the OpenStax library are source pools/families, not individual works).
-- Entries permitted in the permanent knowledge allowlist: **0**. OpenIntro remains quarantined pending exact work-level review; OpenStax is excluded under its default non-commercial terms.
+- Candidate works/resources recorded here: **10** (PMC, OpenStax and MIT OCW are source pools/families, not individual works).
+- Entries permitted in the permanent knowledge allowlist: **0**. OpenIntro and the Grinstead/Snell GNU FDL version remain quarantined pending exact work-level/copy-left review; OpenStax, Book of Proof and MIT 6.042J are excluded under their current default terms.
 - No source full text, PDF, OCR output, article, or dataset was downloaded or stored by creating this register.
 - No rights are inferred from search snippets alone. Each candidate remains quarantined pending exact work-level review.
 - No changes to the Supabase knowledge table, allowlist code, user data, player data, learning history or active model weights.
