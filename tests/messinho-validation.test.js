@@ -115,3 +115,15 @@ test('U19 age group is sufficient without an exact birth year and league level i
   assert.equal(result.request.ageGroup, 'U19');
   assert.equal(result.needsTargetLevel, false);
 });
+
+test('recognizes U19, U-19 and U 19 as the same age group', () => {
+  for (const phrase of ['U19-Mittelfeldspieler', 'U-19-Mittelfeldspieler', 'U 19-Mittelfeldspieler']) {
+    const result = parseMessinhoScoutingRequest('Suche drei ' + phrase + ' aus Deutschland', [], 2026);
+    assert.equal(result.shouldHandle, true, phrase);
+    assert.deepEqual(result.missing, [], phrase);
+    assert.equal(result.request.ageGroup, 'U19', phrase);
+    assert.equal(result.request.position, 'Mittelfeldspieler', phrase);
+    assert.equal(result.request.region, 'deutschland', phrase);
+    assert.equal(result.request.quantity, 3, phrase);
+  }
+});
