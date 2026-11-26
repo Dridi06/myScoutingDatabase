@@ -3,25 +3,27 @@ import {
   verifyMessinhoSourceRights
 } from './messinho-rights-registry.js';
 
-const clean=value=>String(value??'').replace(/[\\u0000-\\u001f\\u007f]/g,' ').replace(/\\s+/g,' ').trim();
+const clean=value=>String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim();
 const decodeXml=value=>String(value??'')
   .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
   .replace(/&quot;/g,'"').replace(/&apos;/g,"'")
-  .replace(/&#(\\d+);/g,(_,n)=>String.fromCodePoint(Number(n)))
+  .replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n)))
   .replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16)));
 
 function stripMarkup(value){
- return decodeXml(String(value??'').replace(/<[^>]*>/g,' ')).replace(/\\s+/g,' ').trim();
+ return decodeXml(String(value??'').replace(/<[^>]*>/g,' ')).replace(/\s+/g,' ').trim();
 }
 function queryTerms(topic){
- return [...new Set(clean(topic).toLocaleLowerCase('de-DE').split(/[^\\p{L}\\p{N}]+/u).filter(x=>x.length>2))];
+ return [...new Set(clean(topic).toLocaleLowerCase('de-DE').split(/[^\p{L}\p{N}]+/u).filter(x=>x.length>2))];
 }
 function selectRelevantExcerpts(paragraphs,topic,maxChars=7000){
  const terms=queryTerms(topic);
- const ranked=paragraphs.map((text,index)=>{
+ const ranked=paragraphs.map((item,index)=>{
+  const row=typeof item==='string'?{text:item,section:'article_text'}:item;
+  const text=clean(row?.text);
   const normalized=text.toLocaleLowerCase('de-DE');
   const hits=terms.filter(term=>normalized.includes(term)).length;
-  return {text,index,hits};
+  return {text,section:clean(row?.section)||'article_text',index,hits};
  }).filter(x=>x.text.length>=80)
    .sort((a,b)=>b.hits-a.hits||a.index-b.index);
  const chosen=ranked.filter(x=>!terms.length||x.hits>0).slice(0,8);
@@ -30,17 +32,17 @@ function selectRelevantExcerpts(paragraphs,topic,maxChars=7000){
  for(const item of fallback){
   const remaining=maxChars-used;if(remaining<180)break;
   const text=item.text.slice(0,Math.min(1800,remaining));
-  excerpts.push({text,relevance_hits:item.hits,source_section:'article_text'});
+  excerpts.push({text,relevance_hits:item.hits,source_section:item.section});
   used+=text.length;
  }
  return excerpts;
 }
 function extractPlosParagraphs(xml){
  const paragraphs=[];
- const abstract=[...String(xml).matchAll(/<abstract\\b[^>]*>([\\s\\S]*?)<\\/abstract>/gi)];
- for(const match of abstract){const text=stripMarkup(match[1]);if(text)paragraphs.push(text);}
- for(const match of String(xml).matchAll(/<p\\b[^>]*>([\\s\\S]*?)<\\/p>/gi)){
-  const text=stripMarkup(match[1]);if(text)paragraphs.push(text);
+ const abstract=[...String(xml).matchAll(/<abstract\b[^>]*>([\s\S]*?)<\/abstract>/gi)];
+ for(const match of abstract){const text=stripMarkup(match[1]);if(text)paragraphs.push({text,section:'abstract'});}
+ for(const match of String(xml).matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)){
+  const text=stripMarkup(match[1]);if(text)paragraphs.push({text,section:'article_body'});
  }
  return paragraphs;
 }
@@ -49,8 +51,7 @@ function extractBioCParagraphs(payload){
   Array.isArray(payload?.collection?.documents)?payload.collection.documents:[];
  return docs.flatMap(doc=>(Array.isArray(doc?.passages)?doc.passages:[])
   .map(p=>({text:clean(p?.text),section:clean(p?.infons?.section_type||p?.infons?.section||'article_text')}))
-  .filter(p=>p.text.length>=80))
-  .map(p=>({text:p.text,section:p.section}));
+  .filter(p=>p.text.length>=80));
 }
 
 export async function fetchMessinhoApprovedSource(sourceId,{topic='',fetchImpl=globalThis.fetch,maxChars=7000}={}){
