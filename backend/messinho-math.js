@@ -19,8 +19,33 @@ function evaluate(s){
  function add(){let v=mul();while(peek()==='+'||peek()==='-'){const op=take(),r=mul();v=op==='+'?v+r:v-r;}return v;}
  const v=add();if(i!==t.length||!Number.isFinite(v))throw Error('Der Ausdruck ist ungültig oder das Ergebnis nicht endlich.');return v;
 }
-const out=(kind,title,value,formula,steps,extra={})=>({status:'completed',kind,title,value:round(value),formatted:fmt(value),formula,steps,assumptions:[],...extra});
+const out=(kind,title,value,formula,steps,extra={})=>{if(!Number.isFinite(value))throw Error('Das Ergebnis ist nicht endlich. Bitte prüfe die Eingabewerte und Einheiten.');return {status:'completed',kind,title,value:round(value),formatted:fmt(value),formula,steps,assumptions:[],...extra};};
 function params(q){const p={};for(const m of q.matchAll(/\b(population|successes|draws|mu|sigma|n|p|k|lambda|λ|a|b|c|m|v|v0|v1|t|s|g|h|energie|volumen|kraft|flaeche|r|x|u|i|f|frequenz|wellenlaenge|wellenlänge)\s*[:=]\s*(-?\d+(?:[.,]\d+)?)/giu)){p[m[1].toLowerCase().replace('λ','lambda')]=Number(m[2].replace(',','.'));}return p;}
+function quantity(q,units){
+ const unitPattern=units.map(x=>x[0]).join('|');
+ const m=q.match(new RegExp('(-?\\d+(?:[.,]\\d+)?)\\s*('+unitPattern+')(?![a-z])','i'));
+ if(!m)return null;
+ const unit=m[2].toLowerCase(),value=Number(m[1].replace(',','.'));
+ const entry=units.find(x=>x[0]===unit);
+ return {value:value*entry[1],raw:value,unit:entry[2]};
+}
+function naturalPhysics(q){
+ const distance=quantity(q,[['kilometer|kilometer|km',1000,'km'],['meter|meter|metern|meter',1,'m'],['zentimeter|zentimeter|cm',0.01,'cm'],['millimeter|millimeter|mm',0.001,'mm']]);
+ const time=quantity(q,[['stunden|stunde|stunden|h',3600,'h'],['minuten|minute|min',60,'min'],['sekunden|sekunde|sek|s',1,'s']]);
+ if(distance&&time&&time.value>0&&distance.value>=0&&/(geschwindigkeit|tempo|schnell|läuft|laeuft|fährt|faehrt|zurücklegt|zuruecklegt|legt zurück|legt zurueck)/i.test(q)){
+  const speed=distance.value/time.value;
+  return out('physics','Durchschnittsgeschwindigkeit',speed,'v = s / t',
+   ['Strecke: '+distance.raw+' '+distance.unit+' = '+fmt(distance.value)+' m','Zeit: '+time.raw+' '+time.unit+' = '+fmt(time.value)+' s','v = '+fmt(distance.value)+' m ÷ '+fmt(time.value)+' s'],
+   {unit:'m/s',converted:{km_h:round(speed*3.6),formatted_km_h:fmt(speed*3.6)+' km/h'},known_values:{distance_m:distance.value,time_s:time.value},unknown:'Durchschnittsgeschwindigkeit',assumptions:['Gleichmäßig gemittelte Geschwindigkeit über die gesamte Strecke.']});
+ }
+ if(distance&&time&&time.value>0&&distance.value>=0&&/\\bin\\s+\\d+(?:[.,]\\d+)?\\s*(?:sekunden|sekunde|minuten|minute|stunden|stunde)/i.test(q)){
+  const speed=distance.value/time.value;
+  return out('physics','Durchschnittsgeschwindigkeit',speed,'v = s / t',
+   ['Strecke: '+fmt(distance.value)+' m','Zeit: '+fmt(time.value)+' s'],
+   {unit:'m/s',converted:{km_h:round(speed*3.6),formatted_km_h:fmt(speed*3.6)+' km/h'},known_values:{distance_m:distance.value,time_s:time.value},unknown:'Durchschnittsgeschwindigkeit'});
+ }
+ return null;
+}
 function probability(q){
  const p=params(q),n=p.n,k=p.k,prob=p.p;
  if(/binomial|binomialverteilung|scouting.*wahrscheinlichkeit|wahrscheinlichkeit.*scouting/i.test(q)&&Number.isInteger(n)&&n>=0&&n<=1000&&prob>=0&&prob<=1&&Number.isInteger(k)&&k>=0&&k<=n){
@@ -57,6 +82,7 @@ function probability(q){
  return null;
 }
 function physics(q){
+ const interpreted=naturalPhysics(q);if(interpreted)return interpreted;
  const p=params(q),has=(...k)=>k.every(x=>Number.isFinite(p[x]));
  if(/newton|kraft berechnen/i.test(q)&&has('m','a'))return out('physics','Kraft nach Newton',p.m*p.a,'F = m · a',['m = '+p.m+' kg','a = '+p.a+' m/s²'],{unit:'N'});
  if(/geschwindigkeit|tempo berechnen/i.test(q)&&has('s','t')&&p.t!==0)return out('physics','Durchschnittsgeschwindigkeit',p.s/p.t,'v = s / t',['s = '+p.s+' m','t = '+p.t+' s'],{unit:'m/s'});
@@ -69,7 +95,8 @@ function physics(q){
  if(/impuls/i.test(q)&&has('m','v'))return out('physics','Impuls',p.m*p.v,'p = m · v',['m = '+p.m+' kg','v = '+p.v+' m/s'],{unit:'kg·m/s'});
  if(/arbeit/i.test(q)&&has('kraft','s'))return out('physics','Mechanische Arbeit',p.kraft*p.s,'W = F · s',['F = '+p.kraft+' N','s = '+p.s+' m'],{unit:'J'});
  if(/hooke|federkraft/i.test(q)&&has('k','x'))return out('physics','Federkraft nach Hooke',p.k*p.x,'F = k · x',['k = '+p.k+' N/m','x = '+p.x+' m'],{unit:'N'});
- if(/ohm|spannung/i.test(q)&&has('u','i'))return out('physics','Elektrischer Widerstand',p.u/p.i,'R = U / I',['U = '+p.u+' V','I = '+p.i+' A'],{unit:'Ω'});
+ if(/ohm|spannung/i.test(q)&&has('u','i')&&p.i!==0)return out('physics','Elektrischer Widerstand',p.u/p.i,'R = U / I',['U = '+p.u+' V','I = '+p.i+' A'],{unit:'Ω'});
+ if(/ohm|widerstand/i.test(q)&&has('u','i')&&p.i===0)return {status:'invalid_input',kind:'physics',message:'Der Strom I darf bei R = U / I nicht null sein.'};
  if(/elektrische leistung/i.test(q)&&has('u','i'))return out('physics','Elektrische Leistung',p.u*p.i,'P = U · I',['U = '+p.u+' V','I = '+p.i+' A'],{unit:'W'});
  if(/wellengeschwindigkeit/i.test(q)&&has('frequenz','wellenlaenge'))return out('physics','Wellengeschwindigkeit',p.frequenz*p.wellenlaenge,'v = f · λ',['f = '+p.frequenz+' Hz','λ = '+p.wellenlaenge+' m'],{unit:'m/s'});
  if(/kreisumfang/i.test(q)&&has('r'))return out('physics','Kreisumfang',2*Math.PI*p.r,'U = 2πr',['r = '+p.r+' m'],{unit:'m'});
