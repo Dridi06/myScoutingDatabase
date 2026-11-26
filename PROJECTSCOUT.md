@@ -2711,3 +2711,30 @@ Im nächsten Chat direkt mit Punkt 1 und 2 fortfahren: aktuellen Feature-HEAD un
 - No authenticated Admin or Scout browser session was available to this execution. Therefore the real authenticated chat, Admin queue approve/reject, Scout 403/tenant-isolation and post-approval retrieval tests have **not** been run. No credentials or session tokens were requested, read, generated or stored; no replacement accounts were created.
 - Next action is to run those exact E2E steps using the owner's already-approved STAGING Admin and Scout sessions. Until then, the VO₂max learning code is CI-verified and deployed to STAGING, but its first real candidate creation and approval lifecycle are not yet E2E-verified.
 - PR #47 remains open, Draft and unmerged. No merge, rebase, production deployment or production database change was performed.
+
+
+## 2026-11-26 — Admin knowledge review interface deployed to STAGING
+
+### Implemented
+- Added `src/asi/MessinhoKnowledgeReviewPanel.jsx`, mounted only for approved Admin profiles inside the existing collapsed help/agent-functions bundle. Scout accounts do not render this panel.
+- The panel loads candidate concepts from the existing admin-only `GET /api/messinho/knowledge-concepts?status=candidate` endpoint and open conflicts from `GET /api/messinho/knowledge-conflicts?status=open`.
+- Candidate cards show the compact definition, domain/learning level, confidence/evidence grade, prerequisites, claims, source URLs, licence, rights holder, TDM evidence and retrieval method. No article excerpts/full text are exposed.
+- Admin can approve or reject a candidate with an auditable reason. The backend independently rechecks exact source rights, two independent domains, claim corroboration, prerequisites and open conflicts; the UI cannot bypass those gates.
+- Conflict cards allow the Admin to confirm the existing concept or reject the competing proposal. The previous concept is restored only after all open conflicts in that episode are resolved.
+- The panel is collapsible and responsive; no new standalone navigation section was added, keeping the workspace grouped and uncluttered.
+
+### Verification / deployment
+- Latest deployed feature commit: `4155705ba7d52942e7455df6bb644c7040808a7d`.
+- GitHub Node tests and backend syntax workflows: **success**.
+- Render build: **299 tests passed, 0 failed**; Vite transformed 1,636 modules and built successfully.
+- Dedicated STAGING deployment: `dep-dc4877p7lnhs73fm6oag`, status **live**, finished `2026-11-26T19:08:55Z`.
+- Runtime logs confirm server start, API listening on port 10000 and Supabase Data API HTTP 200.
+- The candidate queue and review interface are deployed, but authenticated Admin/Scout UI and API end-to-end tests have not yet been executed. The knowledge tables still contain 0 concepts, 0 conflicts, 0 versions and 0 reviews until the first authenticated learning request.
+
+### Next steps
+1. Sign in to the dedicated STAGING app with an approved Admin account and ask MESSINHO `Was ist VO2max?`.
+2. Confirm one candidate appears in the Admin knowledge-review panel with exactly two source records and no full-text/excerpt fields.
+3. Confirm a Scout account receives 403 from candidate/conflict/review endpoints and cannot see the Admin panel.
+4. Approve the candidate as Admin; confirm the version and audit row are appended and active retrieval works in a subsequent chat. Also test rejection and a deliberately conflicting candidate.
+5. Expand the same approved-source retrieval pattern to mathematics, statistics, physics, biology, medicine, computer science/AI, risk management, banking and financial markets only when exact rights-cleared works exist.
+6. Production/main, production Supabase, player/scout data, model weights, PFMS/PFSS and PR merge state remain untouched. PR #47 remains Draft/open/unmerged.
