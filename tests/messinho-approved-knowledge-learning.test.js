@@ -68,6 +68,6 @@ test('foundation learning does not write if two sources fail to corroborate the 
    :{ok:true,json:async()=>({collection:{documents:[{passages:[{infons:{section_type:'ABSTRACT'},text:'Fitness was recorded as one background characteristic in a survey about marine ecology and coastal fieldwork, without any physiological measurements or oxygen uptake analysis.'}]}]}})};
   }
  });
- assert.equal(result.status,'insufficient_corroboration');
+ assert.equal(result.status,'insufficient_approved_sources');
  assert.equal(db.saved.name,undefined);
 });
