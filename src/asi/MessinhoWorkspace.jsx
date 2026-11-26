@@ -80,8 +80,8 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
         const reader=response.body.getReader(),decoder=new TextDecoder();
         let buffer='';
         const handleEvent=block=>{
-          const event=block.split('\\n').find(line=>line.startsWith('event:'))?.slice(6).trim();
-          const dataText=block.split('\\n').filter(line=>line.startsWith('data:')).map(line=>line.slice(5).trim()).join('\\n');
+          const event=block.split('\n').find(line=>line.startsWith('event:'))?.slice(6).trim();
+          const dataText=block.split('\n').filter(line=>line.startsWith('data:')).map(line=>line.slice(5).trim()).join('\n');
           if(!dataText)return;
           const data=JSON.parse(dataText);
           if(event==='start')setStreamProgress('Aufgabenplan erstellt · '+(data.total_steps||0)+' Arbeitsschritte');
@@ -97,7 +97,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
           if(done)break;
           buffer+=decoder.decode(chunk,{stream:true});
           let boundary;
-          while((boundary=buffer.indexOf('\\n\\n'))>=0){
+          while((boundary=buffer.indexOf('\n\n'))>=0){
             const block=buffer.slice(0,boundary);buffer=buffer.slice(boundary+2);
             if(block.trim())handleEvent(block);
           }
