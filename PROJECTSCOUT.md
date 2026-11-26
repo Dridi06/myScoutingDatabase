@@ -973,3 +973,22 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - Branch: `feature/messinho-unified-ai-integration`
 - Ausschließlich Staging-Kandidat. Production `main` unverändert; PR #47 nicht gemergt.
 - Nächster Schritt: Frontend-Build/CI prüfen, anschließend Staging manuell deployen (Render autoDeploy ist deaktiviert) und Scrollen mit langem Verlauf auf Desktop und iPhone verifizieren.
+
+---
+
+## 2026-11-26 — U19 scouting clarification regression
+
+- **User-observed defect:** MESSINHO asked for birth year and position after receiving a complete request for three U19 midfielders from Germany.
+- **Root cause confirmed in code:** `parseMessinhoScoutingRequest` only recognized explicit four-digit birth years and narrow midfield position labels; it did not interpret U-age groups or the generic position group “Mittelfeldspieler”. The request parser also treated target league as mandatory even when the user described a broad performance level.
+- **Changes on staging candidate branch:**
+  - Recognize U-age groups (e.g. U19) as sufficient age criteria without demanding an exact birth year.
+  - Recognize “Mittelfeldspieler” / “Mittelfeld” / “Midfielder” as a broad position group and match central, defensive, and attacking midfield roles.
+  - Parse German number words (including “drei”) for requested candidate counts.
+  - Treat target league as optional context; do not block broad scouting tasks with an unnecessary level question.
+  - Map U19 to the current scouting search age band (16–18) when no exact birth year is supplied.
+  - Add regression tests for the exact user prompt, broad midfield matching, and U19 without birth year.
+- **Files changed:** `backend/messinho-validation.js`, `backend/server.js`, `tests/messinho-validation.test.js`.
+- **Commits so far:** parser `4a763cb78bd71f7179b075d102aebba7d092093c`; server `82e901006972b05d74dc93ee23e3b3bbc0a80e11`; regression tests `a74c5d7de54af046812a408b32f0f18b79224c7b`; parser regex correction `3c8f1e1333d11321a97e642cd8265d85a637894f`.
+- **Validation:** first CI attempt exposed two failing new regression tests caused by over-escaped regex literals and an unchanged narrow position/quantity regex. Those were corrected in the latest parser commit. A fresh full test run is still required; do not report this fix as verified until it passes.
+- **Release boundary:** staging candidate branch only. Production branch, production Render, and production Supabase untouched. Do not deploy until tests pass.
+- **Next:** run full MESSINHO tests and build, inspect all results, then deploy only to the designated staging Render service and verify the exact deployment SHA and health.
