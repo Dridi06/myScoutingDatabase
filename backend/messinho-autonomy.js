@@ -10,7 +10,7 @@ import { planMessinhoCapabilities } from './messinho-orchestrator.js';
 export const MESSINHO_AUTONOMY_VERSION = '2.0.0';
 export const MAX_AUTONOMOUS_GOAL_LENGTH = 1200;
 export const MAX_CHECKPOINT_BYTES = 24000;
-const PROTECTED_ACTION = /\\b(delete|loesche|lösche|send|sende|kontaktier|ueberweise|überweise|kaufe|buche|aktiviere|veroeffentliche|veröffentliche|passwort|zugang|konto|modellgewicht|scoringmodell|)\\b/i;
+const PROTECTED_ACTION = /\b(?:loesche|lösche|delete|entferne|sende?\s+(?:eine?\s+)?(?:e-?mail|nachricht|anfrage|kontakt)|kontaktier(?:e|en)?\s+(?:den|die|das|einen|eine)|ueberweise|überweise|kaufe|buche\s+(?:einen|eine|das|den)|aktiviere\s+(?:das|den|die)|veroeffentliche|veröffentliche|aendere?\s+(?:modellgewicht|scoringmodell)|ändere\s+(?:modellgewicht|scoringmodell))\b/i;
 const SUCCESS = new Set(['completed','verified','proposal_ready']);
 const FAILURE = new Set(['error','denied','invalid_input','unknown_capability','unverified','needs_review','no_reliable_improvement']);
 
