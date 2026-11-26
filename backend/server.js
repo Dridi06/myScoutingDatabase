@@ -1549,11 +1549,11 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const wantsSummary=/\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\b/.test(normalized);
     if(dialog.shouldHandle){
       if(dialog.missing.length)return respond({reply:'Damit ich die Suche sauber eingrenzen kann, brauche ich noch: '+dialog.missing.join(', ')+'.',intent:'scouting_clarification',items:[],pending:true});
-      const {quantity,yearFrom,yearTo,position,region,targetLevel}=dialog.request;
-      if(dialog.needsTargetLevel)return respond({reply:'Verstanden. Ich suche '+quantity+' Spieler, Jahrgang '+yearFrom+(yearTo!==yearFrom?' bis '+yearTo:'')+', Position '+position+', Standort '+region+'. Welches Zielniveau soll ich berücksichtigen: Bundesliga, 2. Bundesliga, 3. Liga, Regionalliga oder Oberliga?',intent:'scouting_clarification',items:[],pending:true,request:{quantity,yearFrom,yearTo,position,region}});
+      const {quantity,yearFrom,yearTo,ageGroup,position,region,targetLevel}=dialog.request;
       const modelYear=new Date().getFullYear();
-      const ageMin=Math.max(16,Math.min(30,modelYear-yearTo));
-      const ageMax=Math.max(ageMin,Math.min(30,modelYear-yearFrom));
+      const ageGroupNumber=ageGroup?Number(String(ageGroup).replace(/\\D/g,'')):null;
+      const ageMin=yearFrom?Math.max(16,Math.min(30,modelYear-yearTo)):ageGroupNumber?Math.max(14,ageGroupNumber-3):16;
+      const ageMax=yearFrom?Math.max(ageMin,Math.min(30,modelYear-yearFrom)):ageGroupNumber?Math.max(ageMin,ageGroupNumber-1):30;
       const origin=req.protocol+'://'+req.get('host');
       const research=await fetch(origin+'/api/asi/player-search',{method:'POST',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({mode:'discover',filters:{ageMin,ageMax,birthYearFrom:yearFrom,birthYearTo:yearTo,position,region,targetLevel,limit:quantity}})});
       const payload=await research.json().catch(()=>({}));
@@ -1561,8 +1561,8 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const candidates=Array.isArray(payload.candidates)?payload.candidates:[]; 
       const activeModel=await getActiveMessinhoModel();
       const ranked=rankMessinhoPlayers(candidates,activeModel?.configuration?.profiles||null).slice(0,quantity);
-      const reply='Die Recherche wurde über die vorhandene ASI-Quellenpipeline ausgeführt und anschließend durch MESSINHOs eigene positionsgewichtete Bewertungslogik sortiert. Ich habe '+candidates.length+' belegte Kandidaten erhalten und zeige '+ranked.length+' davon. Zielniveau: '+targetLevel+'. '+(payload.underfilled?'Die gewünschte Anzahl konnte mit der verfügbaren Quellenlage nicht vollständig belegt werden.':'Nicht belegte Leistungswerte wurden nicht geschätzt.');
-      return respond({reply,intent:'scouting_results',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null,requested:{quantity,yearFrom,yearTo,position,region,targetLevel},sources:payload.sources||[],source_count:payload.source_count||0,saved_count:payload.saved_count||0,duplicate_count:payload.duplicate_count||0,underfilled:!!payload.underfilled,provider:payload.provider||null,limitations:payload.limitations||[]});
+      const reply='Die Recherche wurde über die vorhandene ASI-Quellenpipeline ausgeführt und anschließend durch MESSINHOs eigene positionsgewichtete Bewertungslogik sortiert. Ich habe '+candidates.length+' belegte Kandidaten erhalten und zeige '+ranked.length+' davon. Altersfilter: '+(ageGroup||('Jahrgang '+yearFrom+(yearTo!==yearFrom?' bis '+yearTo:'')))+'. '+(payload.underfilled?'Die gewünschte Anzahl konnte mit der verfügbaren Quellenlage nicht vollständig belegt werden.':'Nicht belegte Leistungswerte wurden nicht geschätzt.');
+      return respond({reply,intent:'scouting_results',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null,requested:{quantity,yearFrom,yearTo,ageGroup,position,region,targetLevel},sources:payload.sources||[],source_count:payload.source_count||0,saved_count:payload.saved_count||0,duplicate_count:payload.duplicate_count||0,underfilled:!!payload.underfilled,provider:payload.provider||null,limitations:payload.limitations||[]});
     }
     if(isPlayerFollowUp){
       const rememberedPlayer=resolveMessinhoPlayerFollowUp(interpretedMessage,history);
