@@ -148,3 +148,15 @@ test('VO2max follow-up helper ignores unrelated knowledge concepts', async () =>
     conceptKey: 'mathematics.probability.bayes'
   }), null);
 });
+
+
+test('birth year alone is not treated as an exact player age', async () => {
+  const { buildMessinhoKnowledgeApplicationFollowUp } = await import('../backend/messinho-conversation.js');
+  const result = buildMessinhoKnowledgeApplicationFollowUp(
+    'Wie bewerte ich die VO2max eines Spielers?',
+    { conceptKey: 'sports_science.physiology.vo2max', player: { birth_year: 2007, positions: ['Mittelfeld'] } }
+  );
+  assert.ok(result);
+  assert.ok(result.follow_up.required_inputs.includes('player_age'));
+  assert.equal(result.follow_up.player_context.age_available, false);
+});
