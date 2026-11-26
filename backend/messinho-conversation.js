@@ -116,8 +116,8 @@ export function resolveMessinhoLiveQuestion(message, { now = new Date(), timeZon
   const text = normalizeSocialText(message);
   if (!text || text.length > 220) return null;
 
-  const asksTime = /\\b(wie spaet ist es|wieviel uhr ist es|wie viel uhr ist es|wie spaet|aktuelle uhrzeit|uhrzeit|wie viel uhr)\\b/.test(text);
-  const asksDate = /\\b(welches datum haben wir|welcher tag ist heute|was fuer ein datum|wie ist das datum|heutiges datum|welcher wochentag ist heute)\\b/.test(text);
+  const asksTime = /\b(wie spaet ist es|wieviel uhr ist es|wie viel uhr ist es|wie spaet|aktuelle uhrzeit|uhrzeit|wie viel uhr)\b/.test(text);
+  const asksDate = /\b(welches datum haben wir|welcher tag ist heute|was fuer ein datum|wie ist das datum|heutiges datum|welcher wochentag ist heute)\b/.test(text);
   if (!asksTime && !asksDate) return null;
 
   const time = new Intl.DateTimeFormat('de-DE', {
