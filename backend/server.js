@@ -1256,7 +1256,7 @@ app.get('/api/messinho/quality-intelligence',messinhoQualityIntelligenceLimiter,
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
-    if(actor.profile.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen die Qualitätsintelligenz einsehen.'});
+    if(actor.profile.role!=='admin'||!actor.profile.approved||actor.profile.approval_status!=='approved')return res.status(403).json({error:'Nur freigeschaltete Administratoren dürfen die Qualitätsintelligenz einsehen.'});
     const {data,error}=await db.from('messinho_feedback')
       .select('feedback_type,rating,comment,intent,engine_version,model_version,capability_ids,status,created_at')
       .in('status',['pending','reviewed','verified','rejected','applied'])
