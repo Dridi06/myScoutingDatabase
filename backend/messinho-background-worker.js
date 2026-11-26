@@ -42,7 +42,7 @@ export function isMessinhoBackgroundWorkerEnabled(env = process.env) {
 }
 export function validateMessinhoBackgroundTask(task, now = Date.now()) {
   const safety = Object.fromEntries((task?.pending_capabilities || []).map(id => [id, SAFE.has(id) ? 'read_only' : 'protected']));
-  const gate = evaluateMessinhoTaskResume(task, { now, capabilitySafety: safety });
+  const gate = evaluateMessinhoTaskResume({ ...task, status: task?.status === 'running' && task?.lease_token ? 'partial' : task?.status }, { now, capabilitySafety: safety });
   if (!gate.allowed) return gate;
   const role = task?.plan?.role || 'scout';
   if (!['scout','trainer','coach','admin','manager','president'].includes(role))
