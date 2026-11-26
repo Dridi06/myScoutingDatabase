@@ -55,9 +55,6 @@ drop policy if exists profiles_update_own_presence on public.profiles;
 create policy profiles_update_own_presence on public.profiles for update to authenticated
 using (id=(select auth.uid())) with check (id=(select auth.uid()));
 
-drop policy if exists profiles_admin_update on public.profiles;
-create policy profiles_admin_update on public.profiles for update to authenticated
-using ((select private.is_admin())) with check ((select private.is_admin()));
 
 drop policy if exists players_read_tenant on public.players;
 create policy players_read_tenant on public.players for select to authenticated
