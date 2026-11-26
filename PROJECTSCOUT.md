@@ -2360,3 +2360,45 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Kein Render-Deploy; PR #47 bleibt Draft/offen/unmerged. Produktion/`main`, PFMS/PFSS bleiben unangetastet.
 - Nächste Schritte: CI-Ausführung nachweisen; danach den dedizierten Render-STAGING-Service und Supabase-STAGING-Zugang verifizieren; dann die 100 individuellen Quellenrechte und die 100 Handlerverträge/E2E-Nachweise systematisch vervollständigen.
 
+
+
+## 2026-11-26 — MESSINHO hierarchical knowledge foundation (STAGING)
+
+**Owner correction and fixed requirement:** The knowledge foundation was already an agreed project task. Do not restart with generic proposals. MESSINHO must first have reliable fundamentals across the agreed domains, then build intermediate, advanced and specialist knowledge on top of those prerequisites. New learning must be retained, cross-linked and reused automatically. No complete books/PDFs/full-text archives; compact, independently worded facts and concepts only. Sources must be free and legally reusable for AI/TDM, adaptation and commercial use; public readability alone is insufficient.
+
+### Baseline audit
+- Existing backend already had a flat canonical table/module (messinho_domain_knowledge), an owner-scoped answer cache (messinho_knowledge_memory), and a separate source-rights allowlist.
+- These are different responsibilities. The answer cache is not a structured knowledge base and is not neural model training.
+- STAGING table counts before this change: messinho_domain_knowledge = 0; messinho_knowledge_memory = 0.
+- backend/messinho-rights-registry.js has 0 approved source entries. Existing source register has 5 candidate/source-pool entries, 0 approved works.
+- No books, PDFs, source full texts or knowledge records were imported. No model weights, player data or scoring rules were changed.
+
+### Implemented on feature/messinho-unified-ai-integration
+- Added STAGING migration source supabase/migrations/20261126233000_messinho_knowledge_hierarchy.sql and applied it to STAGING Supabase project nwqwnrhupbyhshsprxjt (recorded migration version 20261126182955, name messinho_knowledge_hierarchy).
+- New tables:
+  - messinho_knowledge_concepts: domain/topic/title/definition, four learning levels, concept type, parent/prerequisites, formulas and variables, applicability, limitations, claims, source rights, evidence grade, confidence, candidate/active/conflict/stale/superseded status, version and review dates.
+  - messinho_knowledge_links: prerequisite, related, extends, contradicts, applies_to and derived_from relations.
+  - messinho_knowledge_versions: append-only version snapshots with reason and actor.
+- All three tables have RLS enabled, no browser roles/policies/grants, and service_role-only backend access. STAGING catalog verification confirmed all three tables and RLS; policy_count is 0 by design because browser access is revoked.
+- Added backend/messinho-knowledge-graph.js. It validates level/type, requires a parent or prerequisites for non-foundational concepts, verifies each source against the independently reviewed rights allowlist, requires at least two independent source domains and corroborated claims, stores compact concept candidates, records an initial version snapshot, refuses silent overwrites and retrieves only active concepts.
+- Integrated graph retrieval into POST /api/agent/chat. Retrieved approved concepts are passed to the existing scouting agent input and conversational reasoning context; general questions can use the graph before the older flat knowledge and answer-cache paths.
+- Added tests/messinho-knowledge-graph.test.js for learning-level/link contracts, rights refusal, prerequisite validation and fail-closed persistence/retrieval.
+- Added docs/MESSINHO_KNOWLEDGE_FOUNDATION.md with the agreed domain coverage map and data/learning/governance design.
+
+### Domain coverage map
+Mathematics; statistics; physics; biology; medicine; sports science; football; computer science/AI; risk management; banking; financial markets; general cross-domain reasoning. Every domain follows foundational → intermediate → advanced → specialist, with explicit prerequisites and cross-domain links. The detailed curriculum map is in docs/MESSINHO_KNOWLEDGE_FOUNDATION.md.
+
+### Verification / release status
+- STAGING migration applied; table existence and RLS state verified by read-only SQL.
+- GitHub Actions Node tests and backend syntax workflows were triggered by feature-branch pushes. The latest run must be checked for completion before deployment; a successful earlier commit is not proof that the latest HEAD passed.
+- Render STAGING auto-deploy remains disabled. No manual deployment was triggered in this pass.
+- Authenticated chat E2E with the owner's existing STAGING session remains outstanding.
+- Production main, production Render, production Supabase, PFMS/PFSS and PR merge state remain untouched. PR #47 remains Draft/open/unmerged.
+
+### Remaining steps
+1. Finish CI for the latest feature commit and correct any failures.
+2. Add a governed admin approval/promotion flow and explicit contradiction review; candidate knowledge must never become trusted automatically.
+3. Review individual candidate works across all domains and Germany-based commercial AI/TDM rights. Keep the allowlist empty until work-level rights are proven.
+4. Populate the foundational curriculum first, then intermediate/advanced/specialist concepts with sources, formulas, limitations and prerequisites.
+5. Verify retrieval through the authenticated chat and real scouting capability execution on STAGING.
+6. Only then manually deploy the verified feature commit to dedicated STAGING. Do not promote production or merge PR #47 without explicit authorization.
