@@ -334,10 +334,10 @@ For each meaningful feature, record:
 2. Before the next runtime change, inspect current `main` and run the existing system/MESSINHO diagnostics with authorized access.
 3. Audit `backend/messinho-capability-runtime.js` and `backend/messinho-capabilities.js`; correct capability status/coverage reporting.
 4. Build tests around truthful handler availability, missing data, invalid input, authorization, and owner isolation.
-5. Expand the orchestrator from first-match phrase rules to multi-intent goal composition with bounded execution and permission-aware capability selection.
-6. Improve natural-language interpretation, follow-up context, response quality, and deterministic fallback behavior without making OpenAI mandatory.
+5. Expand the current six-area deterministic multi-intent planner into contract-driven goal decomposition across all 100 internal capabilities.
+6. Run the committed Node test suite in CI or another test runner, then improve natural-language interpretation, follow-up context, response quality, and deterministic fallback behavior without making OpenAI mandatory.
 7. Audit and integrate all 100 catalogue capabilities as internal agent skills; clearly distinguish implemented, partial, data-blocked, policy-blocked, and missing behavior.
-8. Review the remaining direct capability API routes and retire or restrict manual execution so the agent, not the user, controls skill selection.
+8. Keep the direct single-capability execution route disabled; audit and correct truthful runtime coverage/status reporting.
 9. Update this file with implementation details and next actions after each meaningful change; append a LIVE release record after every feature deployment.
 7. MESSINHO's 100 capabilities are internal agent skills, not user-selectable tools. The user describes a goal in the existing chat; the agent chooses and combines skills automatically. Do not reintroduce a manual per-capability selector in the normal workspace.
 
@@ -429,3 +429,71 @@ The 100 MESSINHO capabilities must no longer be presented as 100 individual func
 | Date | Request / decision | Status | Notes |
 |---|---|---|---|
 | 2026-11-26 | All 100 MESSINHO capabilities become internal skills of the autonomous agent, not individual user-selectable functions. The chat should improve in language use, conversation behavior, and answer quality. | Binding target; implementation in progress | First LIVE slice removed the manual selector from the workspace. Full autonomous orchestration and language improvements remain roadmap work. |
+
+
+### Second implementation slice — multi-intent planning and conversational results — 2026-11-26
+
+- **Planner commit:** `65c3bb1fb3987f451d48e2bd1a435e509c88b05e`
+- **Planner deployment:** `dep-dc3nvuoae00c73cncma0` — **live**
+- **Test commit:** `df44fb6e47c82b7ff3d58c96088d18133a1349ae`
+- **Test deployment:** `dep-dc3o014o3iic73c8hql0` — **live**
+- **Changed files:** `backend/messinho-orchestrator.js`, `tests/messinho-orchestrator.test.js`
+- **Completed:** The planner now collects all matching supported goal areas instead of stopping at the first matching phrase. Duplicate skills are removed, execution is bounded to 16 steps, and unexecuted steps are explicitly reported as deferred.
+- **Completed:** Mixed requests can combine analysis, potential/development, comparison, data-quality/source checks, transfer risk, and controlled learning intents.
+- **Completed:** Protected learning work is separated from permitted work. A scout can receive an allowed player analysis while admin-only learning tasks remain blocked; a learning-only request remains denied for non-admins.
+- **Completed:** Capability output is more user-oriented: it describes work areas and missing information in ordinary German instead of exposing internal input keys.
+- **Tests added:** Multi-intent composition, deduplication, execution limits, admin boundaries, partial permission handling, and user-facing output language.
+- **Test execution limitation:** The tests were added and committed, but the Render build does not execute `npm test`; no test-run result is claimed. They still need to be run in a proper Node test environment/CI.
+- **Scope limitation:** This is a first deterministic multi-intent planner, not yet a complete autonomous goal decomposition engine and not yet a complete integration of all 100 capabilities. The currently mapped automatic intents are still a subset.
+
+### Third implementation slice — disable manual single-capability execution — 2026-11-26
+
+- **LIVE commit:** `76467a52f798609a65366fd32565f35d94b91f0c`
+- **Render deployment:** `dep-dc3o0k8jo6nc73am8s5g` — **live**
+- **Changed file:** `backend/server.js`
+- **Completed:** The direct `POST /api/messinho/capabilities/:capabilityId/execute` route now returns HTTP 410 and directs users to the MESSINHO chat. It no longer executes an individually supplied capability ID.
+- **Completed:** The capability catalogue endpoint is restricted to administrators and explicitly described as an internal diagnostic overview, not a user tool selector.
+- **Consumer check:** The frontend source tree was searched; no remaining frontend caller of the manual capability endpoint was found after the workspace selector was removed.
+- **Verification:** Render deployment reached `live`; application startup logs confirmed the API was listening and the Supabase Data API returned HTTP 200.
+- **Data/schema impact:** None.
+- **Known limitation:** The runtime registry still contains 100 catalogue IDs and the orchestrator currently maps only a subset of goal areas. The next work is to audit actual handler behavior and connect the full capability set to the autonomous agent's internal planner.
+
+### Updated autonomous capability status
+
+| Area | Status | Next action |
+|---|---|---|
+| User-facing per-capability selector | Removed and live | Keep it removed. |
+| Direct single-capability execution API | Disabled with HTTP 410 and live | Keep execution internal to Agent Core. |
+| Admin capability catalogue | Admin-only diagnostic endpoint | Correct implementation coverage reporting before relying on counts. |
+| Multi-intent planning | Implemented for six supported goal areas and live | Expand to a contract-driven planner across the full catalogue. |
+| Natural-language result formatting | Improved for automatic capability runs | Extend to all chat branches and provider-independent conversational fallback. |
+| Tests | New orchestrator tests committed | Execute `npm test` in CI or a test runner; fix any failures before further expansion. |
+| Full 100-capability integration | In progress, not complete | Audit each capability and wire relevant skills into goal decomposition and execution. |
+
+### New LIVE release records — 2026-11-26
+
+#### Goal-composed MESSINHO planning
+- **Status:** live
+- **Production commit:** `65c3bb1fb3987f451d48e2bd1a435e509c88b05e`
+- **Render deployment ID:** `dep-dc3nvuoae00c73cncma0`
+- **What changed:** Automatic planning now composes multiple matching supported goal areas instead of selecting only the first match; protected learning work is separated from allowed work; results use more natural German.
+- **Files/modules:** `backend/messinho-orchestrator.js`
+- **Tests:** New tests committed separately; not executed by Render's build.
+- **Live verification:** Render status `live`.
+- **Known limitations:** Fixed intent patterns and a subset of the capability catalogue; not yet a fully autonomous planner.
+- **Next steps:** Execute tests, expand capability mapping and goal decomposition.
+
+#### Retire direct capability execution
+- **Status:** live
+- **Production commit:** `76467a52f798609a65366fd32565f35d94b91f0c`
+- **Render deployment ID:** `dep-dc3o0k8jo6nc73am8s5g`
+- **What changed:** Per-capability execution endpoint disabled with HTTP 410; admin catalogue restricted to internal diagnostic use.
+- **Files/modules:** `backend/server.js`
+- **Tests:** Render build and app startup verified; no endpoint integration test executed.
+- **Live verification:** Render status `live`; API startup and Supabase connectivity logged successfully.
+- **Data or schema impact:** None.
+- **Next steps:** Implement internal goal-driven capability selection across all 100 entries.
+
+### New owner decision — autonomous chat behavior
+
+The owner wants the entire chat experience improved as part of the same agent integration: language understanding, spelling/name interpretation, natural conversation, context retention, clarification behavior, explanation quality, and final answers. These improvements must be consistent across all chat branches, not only the capability-run response formatter. OpenAI remains optional; the deterministic MESSINHO path must remain useful without it.
