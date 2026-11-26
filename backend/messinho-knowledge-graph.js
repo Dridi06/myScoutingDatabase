@@ -121,7 +121,7 @@ export async function findMessinhoKnowledgeConcepts(db,question,{limit=6}={}){
  const domain=classifyMessinhoKnowledgeDomain(question);
  try{
   const {data,error}=await db.from('messinho_knowledge_concepts')
-   .select('id,concept_key,domain,topic,title,definition,knowledge_level,knowledge_type,parent_concept_key,prerequisites,formula,formula_variables,applicability,limitations,claims,sources,rights,evidence_grade,confidence,version,valid_from,valid_until,review_due_at')
+   .select('id,concept_key,domain,topic,title,definition,knowledge_level,knowledge_status,knowledge_type,parent_concept_key,prerequisites,formula,formula_variables,applicability,limitations,claims,sources,rights,evidence_grade,confidence,version,valid_from,valid_until,review_due_at')
    .eq('knowledge_status','active').in('domain',[domain,'general']).or('valid_until.is.null,valid_until.gt.'+new Date().toISOString())
    .order('confidence',{ascending:false}).limit(150);
   if(error)throw error;
@@ -132,7 +132,7 @@ export async function findMessinhoKnowledgeConcepts(db,question,{limit=6}={}){
   const canonical=CANONICAL_CONCEPT_MATCHERS.find(item=>item.pattern.test(String(question||'')));
   if(canonical){
    const {data:exact,error:exactError}=await db.from('messinho_knowledge_concepts')
-    .select('id,concept_key,domain,topic,title,definition,knowledge_level,knowledge_type,parent_concept_key,prerequisites,formula,formula_variables,applicability,limitations,claims,sources,rights,evidence_grade,confidence,version,valid_from,valid_until,review_due_at')
+    .select('id,concept_key,domain,topic,title,definition,knowledge_level,knowledge_status,knowledge_type,parent_concept_key,prerequisites,formula,formula_variables,applicability,limitations,claims,sources,rights,evidence_grade,confidence,version,valid_from,valid_until,review_due_at')
     .eq('knowledge_status','active').eq('concept_key',canonical.key).limit(1);
    if(exactError){
     console.warn('MESSINHO canonical exact lookup query failed:',exactError.code||'unknown');
