@@ -43,8 +43,12 @@ export async function executeMessinhoAgentPlan({plan,input={},role='scout',budge
    const replacements=new Map((retry.results||[]).map(item=>[item.capability_id,item]));
    const retried=run.results.map(item=>replacements.get(item.capability_id)||item);
    const unresolved=retry.results.filter(item=>item.status==='error').map(item=>item.capability_id);
-   run={...run,results:retried,deferred_capabilities:[...new Set([...(run.deferred_capabilities||[]),...unresolved])],
-     status:unresolved.length?'partial':run.status,
+   const deferred=[...new Set([...(run.deferred_capabilities||[]),...unresolved])];
+   const useful= retried.filter(item=>['completed','verified','proposal_ready'].includes(item.status)).length;
+   const incompleteResults=retried.filter(item=>['insufficient_data','error','denied','invalid_input','unknown_capability','unverified','needs_review','no_reliable_improvement'].includes(item.status));
+   const nextStatus=deferred.length||run.blocked_capabilities?.length?'partial':useful===0&&incompleteResults.length?'insufficient_data':incompleteResults.length?'partial':'completed';
+   run={...run,results:retried,deferred_capabilities:deferred,status:nextStatus,
+     replan_recommended:unresolved.length>0||incompleteResults.some(item=>['insufficient_data','error'].includes(item.status)),
      execution_trace:{...run.execution_trace,retry_attempted:true,retried_capabilities:failed,retry_results:(retry.results||[]).map(item=>({capability_id:item.capability_id,status:item.status}))}};
    state.trace=addEvent(state.trace,'bounded_retry',{capabilities:failed,results:(retry.results||[]).map(item=>item.status)});
  }else if(failed.length){
