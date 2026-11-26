@@ -2547,3 +2547,93 @@ Mathematics; statistics; physics; biology; medicine; sports science; football; c
 - The temporary four-work allowlist commit failed CI: two tests exposed a stale graph expectation and a rights test that assumed a source was approved. The tests were updated to the current one-source quarantined-candidate rule and to require an empty allowlist.
 - CI for the latest branch HEAD must be rechecked after the rights retraction and test corrections. No deployment of the temporary four-work allowlist was triggered; the currently deployed STAGING runtime remains the previously verified commit `8e06b553d34b51ca324db8bdd4d85b7f60611d5f`.
 - The only acceptable next step for an OpenStax source is written permission explicitly covering commercial AI/TDM, ingestion into MESSINHO, and storage/use of compact derived knowledge records. Otherwise it remains excluded/quarantined.
+
+
+---
+
+## 2026-11-26 — Verbindlicher Projektcheckpoint: MESSINHO-Wissensgrundlage und nächste Umsetzung
+
+> Dieser Abschnitt ist der aktuelle Übergabestand und hat bei abweichenden älteren Angaben Vorrang. Im nächsten Chat zuerst diesen Abschnitt und anschließend die jeweils genannten Quell-Dateien lesen. Keine bereits erledigte Arbeit wiederholen und nicht neu beginnen.
+
+### 1. Verbindliche Arbeitsrichtlinien des Auftraggebers
+
+- Ausschließlich das Projekt **myScoutingDatabase** und darin das KI-Modul **MESSINHO** bearbeiten. PFMS/PFSS sind ausdrücklich ausgeschlossen.
+- Ausschließlich auf dem Feature-Branch `feature/messinho-unified-ai-integration` und dem dedizierten Render-STAGING arbeiten. **Keine Änderungen an `main`, Produktions-Render, Produktions-Supabase, produktiven Scout-/Spielerdaten oder aktiven Produktionsmodellen.**
+- PR #47 bleibt Draft/offen und ungemergt. Keine Promotion oder Zusammenführung ohne ausdrückliche Freigabe.
+- `PROJECTSCOUT.md` ist das verbindliche, fortlaufend zu pflegende Übergabe- und Projekttagebuch. Nach jedem abgeschlossenen sinnvollen Arbeitsschritt sowie vor Unterbrechungen Änderungen, Tests, Deployments, offene Punkte und den nächsten konkreten Schritt eintragen.
+- Vor jeder Fortsetzung zuerst den aktuellen Branch-HEAD, dieses Dokument, CI, Render-STAGING und den betroffenen Code-/Migrationsstand prüfen. Nicht aus älteren Chat-Angaben auf den aktuellen Zustand schließen.
+- Keine Behauptung „fertig“, „live“ oder „getestet“, wenn sie nicht durch aktuelle technische Nachweise gedeckt ist. Build/Serverstart ist kein Ersatz für authentifizierte End-to-End-Tests.
+- MESSINHO soll eine eigenständige, dauerhaft lernende Wissens- und Scouting-Intelligenz sein. OpenAI darf höchstens ein optionaler Zwischendienst sein; der eigene Wissensspeicher, die Regeln, Retrieval- und Lernprozesse dürfen nicht davon abhängig sein.
+- **Keine vollständigen Bücher, PDFs, Artikel, OCR-Dumps oder Bulk-Korpora speichern.** Nur kompaktes, eigenständig formuliertes, atomisiertes Wissen mit Herkunftsnachweis, Definition, Aussagen, Formeln, Grenzen und Beziehungen speichern. Speicher- und Kostenaufwand niedrig halten.
+- Nur kostenlose und rechtlich tatsächlich zulässige Quellen verwenden. Öffentliche Abrufbarkeit oder ein CC-Badge allein sind keine ausreichende Rechteprüfung. Für jede Quelle müssen das konkrete Werk/die konkrete Ausgabe, Rechteinhaber, Lizenz, KI-/TDM-Nutzung, kommerzielle Nutzung, Bearbeitung/abgeleitete Zusammenfassungen, Quellenpfad, Attribution und Drittmaterial geprüft werden. Bei Unsicherheit bleibt die Quelle gesperrt.
+- Wissen darf nicht verloren gehen: dauerhafte Speicherung, nachvollziehbare Versionen, Historie, Konfliktbehandlung, Sicherung und nachgewiesene Wiederherstellbarkeit sind Pflicht. Niemals still überschreiben.
+- Neues Wissen muss auf vorhandenen Grundlagen aufbauen. Fachgebiete werden hierarchisch gegliedert: Grundlagen → Aufbauwissen → fortgeschrittenes Wissen → Spezialwissen. Konzepte, Regeln, Formeln, Methoden, Voraussetzungen und fachübergreifende Beziehungen werden miteinander verknüpft.
+- MESSINHO soll Wissenslücken selbst erkennen, recherchieren, Quellen unabhängig prüfen, Aussagen abgleichen, Widersprüche erkennen, verständliche Erklärungen liefern, rechnen, bewerten und begründete Prognosen erstellen. Neue Kandidaten werden nicht automatisch als vertrauenswürdiges Wissen aktiviert.
+- Neue Wissensinhalte dürfen nicht stillschweigend numerische Scouting-Ratings, Modellgewichte oder Produktionsentscheidungen verändern. Dafür gelten getrennte Prüf- und Freigabeschritte.
+
+### 2. Bereits erledigt — Wissensarchitektur und Governance
+
+- Hierarchisches Wissensgraph-Schema in STAGING angelegt: Konzepte, Beziehungen/Links, Versionshistorie, Konflikt- und Review-Datensätze.
+- Zwölf Wissensbereiche sind im Projekt vorgesehen: Mathematik, Statistik/Wahrscheinlichkeit, Physik, Biologie, Medizin, Sportwissenschaft, Fußballwissenschaft/Scouting, Informatik/KI, Risikomanagement, Bankenwesen, Finanzmärkte/Börse sowie allgemeines/fachübergreifendes Wissen.
+- Wissensstufen und Konzepttypen werden validiert; nicht-grundlegende Konzepte benötigen passende Voraussetzungen bzw. Elternkonzepte.
+- Kompakte Konzepte enthalten u. a. Definition, Domain, Topic, Level, Typ, Claims, Quellen, Rechte, Konfidenz/Evidenz, Anwendbarkeit, Grenzen und ggf. Formeln.
+- Retrieval verwendet aktive Konzepte; Kandidaten sind nicht automatisch für normale Wissensantworten freigegeben.
+- Kandidat und erste unveränderbare Versionsaufnahme werden über eine transaktionale Datenbankfunktion atomar angelegt.
+- Freigabe/Ablehnung/Konfliktentscheidung erfolgt über Admin-Prüfung. Authentifizierter, freigegebener Admin, Rechte, genaue Quellen-URLs, unabhängige Quellen-Domains, Claim-Korroboration, aktive Voraussetzungen und offene Konflikte werden erneut geprüft.
+- Versions- und Review-Historie sind gegen Änderungen/Löschung durch den Backend-Service abgesichert; Browserrollen besitzen keine direkten Tabellenrechte bzw. keine Browser-RLS-Policies.
+- Widersprüchliche Vorschläge werden als Konflikt mit Belegen archiviert. Aktives Wissen wird bei einem offenen Widerspruch atomar quarantänisiert. Mehrere Konflikte derselben Konfliktepisode bewahren den ursprünglichen Zustand. Erst nach Abschluss aller offenen Konflikte wird der vorherige aktive/Kandidatenzustand mit einer neuen Version wiederhergestellt.
+- Admin-Routen für Kandidaten- und Konfliktprüfung sind implementiert. Die authentifizierten E2E-Tests dieser geschützten Abläufe stehen noch aus.
+- Capability-Runtime wurde so erweitert, dass aktives Graphwissen als Erklärungs-/Referenzkontext für relevante Fähigkeiten verfügbar ist. Es darf nicht ungeprüft Ratings oder Modellgewichte verändern.
+- Bestehende Antwort-/Frage-Erinnerung und der neue fachliche Wissensgraph sind unterschiedliche Speicherarten; nicht als Ersatz füreinander behandeln.
+
+### 3. Quellenrechte — aktueller korrigierter Stand
+
+- Die frühere vorläufige OpenStax-Freigabe wurde nach Prüfung der konkreten Vorworte zurückgenommen. Alle vier geprüften OpenStax-Werke bleiben ausgeschlossen/quarantänisiert, solange keine schriftliche Erlaubnis für KI-/LLM-Ingestion in das kommerzielle Produkt vorliegt. CC-Badge oder ältere PDF-Lizenzzeile hebt ausdrückliche AI-Ingestion-Beschränkungen nicht auf.
+- OpenIntro, Dartmouth/Grinstead-Snell GNU FDL, NIST-Kandidaten und weitere Ressourcen bleiben entsprechend ihrer konkreten Rechte-/Copyleft-/Drittmaterialprüfung gesperrt oder in Quarantäne.
+- Neu geprüft und in `backend/messinho-rights-registry.js` exakt zugelassen sind derzeit **zwei einzelne CC BY 4.0 Artikel**:
+  1. PLOS ONE: Wiecha et al. (2023), VO₂max prediction models, DOI 10.1371/journal.pone.0280897.
+  2. PMC/BioC: Cardiorespiratory-fitness-Arbeit (2022), Quelle PMC11269081.
+- Die Freigabe ist werk- und URL-genau; es gibt keine pauschale Freigabe ganzer Portale. Drittmaterial, Attribution und Änderungen müssen beachtet werden. Der Abruf nutzt die zulässigen Artikel-/BioC-Wege. Kein Volltext/PDF wird in MESSINHO gespeichert.
+- Das Quellenregister umfasst zuletzt 18 beschriebene Kandidaten/Werke/Ressourcen; davon sind 2 einzelne Artikel für die eng begrenzte Verarbeitung zugelassen. Die übrigen bleiben gesperrt/quarantänisiert. Der Rechtebestand ist vor jeder weiteren Freigabe erneut gegen die aktuelle Registry und die exakten Werkhinweise zu prüfen.
+
+### 4. Neuester Lernschritt im Feature-Branch
+
+- Neu hinzugefügt: `backend/messinho-approved-knowledge-learning.js`.
+- Erste eng begrenzte Foundation-Lernstrecke: VO₂max / maximale Sauerstoffaufnahme / kardiorespiratorische Fitness.
+- Bei passender Frage ruft der Ablauf die beiden exakt freigegebenen Quellen ab, prüft die unabhängige Korroboration und baut daraus ein kompaktes, eigenständig formuliertes Grundlagenkonzept.
+- Das Konzept enthält Anwendungsbezug für Fußball-Scouting und klare Grenzen: Schätzwert ist keine direkte Spiroergometrie, Gleichungen unterscheiden sich nach Population/Test, VO₂max allein bildet Fußballleistung nicht ab und erlaubt keine medizinische Diagnose.
+- Speicherung erfolgt nur als **inaktiver Kandidat**. Admin-Freigabe bleibt zwingend. Bei fehlenden Quellen oder nicht ausreichender Korroboration wird nicht gespeichert.
+- Der neue Lernpfad ist ein erster begrenzter Prototyp für diesen Themenbereich, **noch kein vollständiger autonomer Importer für alle zwölf Wissensbereiche**.
+- Im letzten dokumentierten Datenbankcheckpoint waren Konzepte, Links, Versionen, Konflikte und Reviews jeweils 0. Der neue Commit fügt nur den Lernpfad hinzu; es ist kein erfolgreicher Import eines Wissenskonzepts dokumentiert. Vor Aussagen über aktuelle Zeilenzahlen den STAGING-Status erneut nur lesend prüfen.
+
+### 5. Aktueller GitHub-/CI-/Render-Stand
+
+- Repository: `Dridi06/myScoutingDatabase`.
+- Branch: `feature/messinho-unified-ai-integration`.
+- Aktueller zuletzt gelesener Branch-HEAD: `a26f23dbbafba4a5f335827da606cfe35f3d37a7` — Commit „Add first corroborated sports-science foundation learning flow“.
+- GitHub Checks für diesen HEAD: `backend-syntax` erfolgreich; `test` erfolgreich.
+- PR #47: weiterhin offen, Draft, nicht gemergt.
+- Render-STAGING: `myscoutingdatabase-messinho-staging`, Service-ID `srv-dc3chlqjnfac73acd6ig`, URL https://myscoutingdatabase-messinho-staging.onrender.com, Auto-Deploy deaktiviert.
+- Zuletzt nachweislich live ist Deployment `dep-dc47t5vvdc3s73be8km0`, Commit `8e06b553d34b51ca324db8bdd4d85b7f60611d5f`. Dieses Deployment enthält noch **nicht** den neuesten VO₂max-Lernpfad-Commit `a26f23d...`.
+- Für das ältere Live-Deployment wurden Render-Build mit 274 bestandenen Tests/0 Fehlern, Vite-Build, Serverstart und Supabase Data API HTTP 200 nachgewiesen. Das ist kein Nachweis, dass der neueste Branch-HEAD bereits live ist.
+- Nächster Deploy darf erst nach erneuter HEAD-/CI-Prüfung erfolgen und ausschließlich auf den dedizierten STAGING-Service. Nach Deploy Live-Commit und Startlogs verifizieren.
+
+### 6. Offene Aufgaben — verbindliche Reihenfolge
+
+1. **Checkpoint und Status zuerst:** Branch-HEAD, CI, PR, STAGING-Deployment und aktuelle STAGING-Schemaversionen prüfen. Nicht mit dem alten Live-Commit verwechseln.
+2. **Neuen Lernpfad testen:** Unit-/Integrationstests für VO₂max-Topic-Erkennung, Abruf beider Quellen, Ausfall eines Providers, fehlende Korroboration, falsche/abgelaufene Quelle, kompakte Ausgabe, Kandidatenstatus und keine automatische Aktivierung.
+3. **STAGING deployen:** Nur wenn der aktuelle HEAD vollständig grün ist. Danach Render-Deployment muss exakt den geprüften Commit enthalten.
+4. **Authentifizierte E2E-Tests:** Admin-Queue, Kandidatenfreigabe/-ablehnung, Konfliktentscheidung/Wiederherstellung und Rollenabgrenzung mit echten STAGING-Admin-/Scout-Sitzungen prüfen. Zusätzlich MESSINHO-Chat mit echter Anmeldung testen.
+5. **Erste Kandidatenprüfung:** VO₂max-Kandidat nur durch Admin prüfen; keine manuelle Datenbankmanipulation, um den Freigabeprozess zu umgehen.
+6. **Curriculum schrittweise erweitern:** Erst die Grundlagen der Mathematik und Statistik, danach Physik, Biologie, Medizin, Sportwissenschaft und Fußballwissenschaft; anschließend Risikomanagement, Bankenwesen und Finanzmärkte sowie Informatik/KI. Die Reihenfolge darf durch echte fachliche Voraussetzungen angepasst werden. Für jede neue Fachstrecke: genaue Quellenrechte, atomare Konzepte, Claims, Formeln, Grenzen, Abhängigkeiten, unabhängige Korroboration, Tests und Admin-Freigabe.
+7. **Autonome Wissenslückenschleife vervollständigen:** Lücken erkennen → Rückfrage stellen, wenn nötig → erlaubte Quellen recherchieren → Belege unabhängig vergleichen → kompakte Konzepte extrahieren → mit bestehendem Graph abgleichen → Konflikte quarantänisieren → Kandidaten versioniert speichern → Admin-Freigabe → aktives Wissen automatisch abrufen und anwenden.
+8. **Dauerhaftigkeit nachweisen:** Backup-/Restore-Test der Konzepte, Beziehungen, Versionen, Konflikte und Review-Historie auf STAGING durchführen; nach Restore Zählwerte und Verknüpfungen vergleichen. Erst danach „Wissen kann wiederhergestellt werden“ als nachgewiesen bezeichnen.
+9. **Wirkung und Prognosequalität:** Testfälle mit bekannten Ergebnissen, historischen Daten und zeitlich sauberer Trennung aufsetzen. Prognosen müssen Unsicherheit, Datenlücken, Annahmen, Kalibrierung und Grenzen benennen. Risikomanagement-Methoden nicht als unbelegte Gewissheit darstellen.
+10. **Alle zwölf Fachbereiche integrieren:** Die Fähigkeiten sollen das Wissen automatisch nutzen, nicht als manuell aktivierbare Einzelfunktionen erscheinen. Die numerische Bewertung bleibt durch nachvollziehbare Regeln und getrennte Freigaben geschützt.
+11. **Quellenbasis verbreitern:** Ziel ist ein qualitativ geprüfter Bestand aus 100 einzeln geprüften Werken, nicht 100 bloße Links. Keine Quelle freigeben, um eine Quote zu erfüllen. Keine Volltext-/PDF-Speicherung.
+12. **Produktionsreife separat beurteilen:** erst nach bestandenen E2E-, Sicherheits-, Rechte-, Backup-/Restore- und Prognoseprüfungen. Keine Produktionsfreigabe oder PR-Merge ohne ausdrückliche Anweisung.
+
+### 7. Nächster konkreter Arbeitsschritt
+
+Im nächsten Chat direkt mit Punkt 1 und 2 fortfahren: aktuellen Feature-HEAD und CI erneut verifizieren, dann den neuen VO₂max-Lernpfad einschließlich Fehlerfällen testen. Bei grünem Ergebnis nur den geprüften Branch-HEAD nach STAGING deployen und den Admin-/Scout-E2E-Test vorbereiten. Keine neue Wissensarchitektur entwerfen und keine bereits erledigten Tabellen, RPCs oder Konfliktmechanismen erneut bauen.
+
