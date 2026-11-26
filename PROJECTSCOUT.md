@@ -2637,3 +2637,36 @@ Mathematics; statistics; physics; biology; medicine; sports science; football; c
 
 Im nächsten Chat direkt mit Punkt 1 und 2 fortfahren: aktuellen Feature-HEAD und CI erneut verifizieren, dann den neuen VO₂max-Lernpfad einschließlich Fehlerfällen testen. Bei grünem Ergebnis nur den geprüften Branch-HEAD nach STAGING deployen und den Admin-/Scout-E2E-Test vorbereiten. Keine neue Wissensarchitektur entwerfen und keine bereits erledigten Tabellen, RPCs oder Konfliktmechanismen erneut bauen.
 
+
+
+## 2026-11-26 — First approved scientific sources and foundation learning path
+
+### Exact work-level source approvals
+- Added two individually scoped scientific works to `backend/messinho-rights-registry.js`:
+  1. Wiecha et al. (2023), *External validation of VO2max prediction models based on recreational and elite endurance athletes*, PLOS ONE 18(1): e0280897, DOI `10.1371/journal.pone.0280897`, CC BY 4.0. PLOS policy confirms author-retained copyright, CC BY 4.0, commercial adaptation with attribution, and explicit TDM permission for any purpose.
+  2. LaMonte (2022), *Cardiorespiratory Fitness in the Prevention and Management of Cardiovascular Disease*, PMCID `PMC11269081`, CC BY 4.0. Automated retrieval is constrained to PMC's designated services; the implementation uses the PMC BioC API for the Open Access subset.
+- The registry now contains exactly **2** approved source works. Each source URL is exact-work scoped; PLOS DOI query parameters are checked, and the PMC article identity is exact. OpenStax remains excluded/quarantined, and OpenIntro/NIST/Grinstead-Snell remain quarantined.
+- Source register: **18** works/resources, **2** approved exact works. No bulk corpus, PDF, figure, table or full article text is stored.
+
+### New permitted retrieval and learning code
+- Added `backend/messinho-approved-source-ingestion.js`:
+  - PLOS retrieval only through the exact article JATS XML endpoint.
+  - PMC retrieval only through the approved BioC JSON endpoint.
+  - Extracts short relevant text excerpts in memory, caps output, preserves section and source provenance, and returns `transient_excerpts_only`.
+  - It does not expose or persist a full-text field.
+- Added `backend/messinho-approved-knowledge-learning.js` as the first domain curriculum adapter. For VO2max/cardiorespiratory-fitness questions, it fetches the two approved works, verifies that both independent domains support the same claim, then creates a compact foundational candidate in `sports_science`.
+- The candidate includes a definition, applicability to football scouting, limitations, evidence grade, confidence, two source references, licence/attribution metadata and a stable concept key. It is stored as `candidate`, never auto-activated. Admin approval and all graph governance gates remain mandatory.
+- Connected the new learning path to `POST /api/agent/chat`: matching questions first use the approved work-level sources. If the source pair corroborates the concept and the database write is confirmed, MESSINHO explains the result and states that the knowledge remains pending admin approval. Other questions continue through the existing research flow.
+- Added tests for exact URL scope, permitted PLOS/PMC retrieval routes, no-network behavior for unapproved sources, excerpt-only output, two-source corroboration and candidate-only persistence.
+
+### Verification and release status
+- Feature-branch CI is running for the latest commits; check the final HEAD's Node test and backend syntax outcomes before deployment. An earlier test failure was a too-short negative PMC fixture; the fixture was lengthened. Do not treat a prior commit's result as proof for the latest HEAD.
+- The new retrieval/learning path has **not** been deployed to Render STAGING yet, and authenticated chat end-to-end has not been run. No knowledge candidate has been seeded in Supabase by this change; database counts remain 0 until the deployed, authenticated chat path is exercised.
+- Dedicated Render STAGING remains the only deployment target; auto-deploy disabled. Production/main, production Supabase, player/scout data, model weights, PFMS/PFSS and PR merge state remain untouched. PR #47 remains Draft/open/unmerged.
+
+### Next steps
+1. Fix any CI failures on the latest feature HEAD and rerun both workflows.
+2. Deploy only the verified feature commit to the dedicated STAGING Render service.
+3. Use an authenticated STAGING admin session to ask a VO2max foundation question; confirm the two permitted endpoints are used, one compact candidate and version snapshot are stored, and no full-text payload is persisted.
+4. Test that the candidate is absent from trusted chat retrieval until explicit admin approval, then approve it and verify active retrieval.
+5. Extend the same pattern domain by domain only when exact, independently corroborated works with compatible commercial AI/TDM rights are found.
