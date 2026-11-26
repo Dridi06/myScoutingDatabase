@@ -12,6 +12,7 @@ import { rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFoll
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
+import { buildMessinhoCapabilityContext } from './messinho-data-context.js';
 import { getMessinhoCapabilitySummary } from './messinho-capabilities.js';
 import { executeMessinhoCapability, listExecutableMessinhoCapabilities, getMessinhoRuntimeSummary } from './messinho-capability-runtime.js';
 import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainableAssessment, generateMessinhoHypotheses } from './messinho-development.js';
@@ -1409,102 +1410,30 @@ async function loadMessinhoCapabilityContext({player,players,plan,actor}){
   }
   const entries=await Promise.all(Object.entries(tasks).map(async([key,promise])=>[key,await promise]));
   const loaded=Object.fromEntries(entries);
-  const observations=loaded.observations||[];
-  if(observations.length){
-    const history=observations.map(row=>{
-      const snapshot={...player,ratings:row.ratings||{}};
-      const score=scoreMessinhoPlayer(snapshot).score;
-      return {...row,score,overall_score:score};
-    });
-    context.history=history;
-    context.time_series=history;
-    context.seasonal_metrics=history.map(row=>({...row,season:String(row.observed_on||'').slice(0,4)})).filter(row=>/^\\d{4}$/.test(row.season));
-  }
-  context.events=(loaded.events||[]).filter(row=>row.verification_status==='verified').map(row=>({
-    ...row,type:row.event_type,action:row.event_type,date:row.match_date
-  }));
-  const rawEvidence=[...(loaded.evidence||[]),...(loaded.candidateEvidence||[])];
-  const now=Date.now();
-  const trustedEvidence=rawEvidence.filter(row=>{
-    const confirmed=['confirmed','corroborated'].includes(row.verification_status);
-    const identityMatched=['matched','confirmed'].includes(row.identity_status);
-    const legalApproved=row.legal_review_status==='approved'||row.legal_review_status==='not_required';
-    const ordinary=row.data_classification==='ordinary';
-    return confirmed&&row.review_status==='approved'&&row.reviewed_by&&identityMatched&&
-      legalApproved&&ordinary&&row.source_url&&/^https:\/\//i.test(row.source_url)&&
-      (!row.valid_until||Date.parse(row.valid_until)>now);
-  });
-  const evidenceForUse=trustedEvidence.length?trustedEvidence:rawEvidence.filter(row=>row.source_url);
-  context.sources=evidenceForUse.map(row=>({
-    title:row.claim_title||row.source_name||row.publisher||'Scouting-Quelle',
-    url:row.source_url,publisher:row.publisher||row.provider||row.source_name||null,
-    content:row.evidence_excerpt||row.claim_text||'',
-    published_date:row.published_at||null,verification_status:['confirmed','corroborated'].includes(row.verification_status)?'verified':(row.verification_status||'pending'),
-    identity_status:row.identity_status||'unknown',fact_confidence:row.fact_confidence??null,
-    review_status:row.review_status||'pending',legal_review_status:row.legal_review_status||'pending',
-    license_id:row.license_id||null,metadata:row.metadata||{}
-  }));
-  if(!context.sources.length&&Array.isArray(player?.sources)){
-    context.sources=player.sources.filter(source=>source&&typeof source==='object').slice(0,100).map(source=>({
-      title:source.title||source.name||null,url:source.url||source.source_url||null,
-      publisher:source.publisher||source.domain||null,content:source.snippet||source.content||'',
-      verification_status:'unverified',identity_status:'unknown',review_status:'pending'
-    })).filter(source=>source.url);
-  }
-  context.claims=trustedEvidence.map(row=>({
-    claim:row.claim_text||row.claim_title||null,source_url:row.source_url,
-    verified:true,verification_status:'verified',verified_by:row.reviewed_by,
-    identity_status:row.identity_status,claim_type:row.claim_type
-  }));
-  context._trusted_source_bundle=trustedEvidence.length>0;
-  context.contract_records=loaded.contracts||[];
-  const playerDirectory=new Map((loaded.playerDirectory||[]).map(row=>[String(row.player_id),row]));
-  const calibrations=(loaded.calibration||[]).filter(row=>row.verification_status==='verified'&&row.verified_by&&row.verified_outcome!==null).map(row=>{
-    const profile=playerDirectory.get(String(row.player_id))||{};
-    const birthYear=Number(profile.year);
-    const age=Number.isInteger(birthYear)&&birthYear>1900?new Date().getFullYear()-birthYear:null;
-    return {...row,age,age_group:age===null?null:Math.floor(age/5)*5+'-'+(Math.floor(age/5)*5+4),country:profile.national_team_country||null};
-  });
   const predictionRecords=loaded.predictions||[];
   const predictionIds=predictionRecords.map(row=>row.id);
   let predictionOutcomes=[];
   if(predictionIds.length){
     let q=db.from('asi_prediction_outcomes').select('id,prediction_id,player_id,observed_metric,observed_value,observed_on,outcome_source,verification_status,verification_source_url,verified_by,verified_at,verification_reason').in('prediction_id',predictionIds);
     q=scopeMessinhoOwner(q,actor);
-    const {data,error}=await q.limit(500);
+    const {data,error}=await q.limit(2000);
     if(error)throw new Error('MESSINHO prediction outcome read failed: '+error.message);
     predictionOutcomes=data||[];
   }
-  context.outcomes=[
-    ...calibrations.map(row=>({
-      player_id:row.player_id,position_group:row.messinho_position_group,age:row.age,age_group:row.age_group,country:row.country,
-      target_score:row.verified_outcome,verified_outcome:row.verified_outcome,
-      verification_status:'verified',verified_by:row.verified_by,
-      dimension_scores:row.messinho_dimension_scores||{},outcome_metric:row.outcome_metric,
-      scout_id:row.scout_id,outcome_observed_on:row.outcome_observed_on
-    })),
-    ...predictionOutcomes.filter(row=>row.verification_status==='verified'&&row.verified_by).map(row=>({
-      player_id:row.player_id,target_score:row.observed_value,verified_outcome:row.observed_value,
-      verification_status:'verified',verified_by:row.verified_by,observed_on:row.observed_on,
-      outcome_metric:row.observed_metric,source_url:row.verification_source_url
-    }))
-  ];
-  context.predictions=predictionRecords.map(prediction=>{
-    const outcome=predictionOutcomes.find(row=>row.prediction_id===prediction.id);
-    return {player_id:prediction.player_id,predicted_score:prediction.predicted_value,
-      actual_score:outcome?.observed_value??null,verification_status:outcome?.verification_status||'pending',
-      verified_by:outcome?.verified_by||null,model_version:prediction.model_version,
-      target_metric:prediction.target_metric,created_at:prediction.created_at};
+  const evidenceRows=[...(loaded.evidence||[]),...(loaded.candidateEvidence||[])];
+  const sourceIds=[...new Set(evidenceRows.map(row=>row.source_id).filter(Boolean))];
+  let sourceRegistry=[];
+  if(sourceIds.length){
+    const {data,error}=await db.from('asi_external_sources').select('id,license_status,permitted_purposes,source_type,source_name,metadata').in('id',sourceIds).limit(200);
+    if(error)throw new Error('MESSINHO source registry read failed: '+error.message);
+    sourceRegistry=data||[];
+  }
+  return buildMessinhoCapabilityContext({
+    player,players:Array.isArray(players)?players:[],observations:loaded.observations||[],
+    events:loaded.events||[],evidence:loaded.evidence||[],candidateEvidence:loaded.candidateEvidence||[],
+    contracts:loaded.contracts||[],calibration:loaded.calibration||[],playerDirectory:loaded.playerDirectory||[],
+    predictions:predictionRecords,predictionOutcomes,sourceRegistry,now:Date.now()
   });
-  context.verified_scout_feedback=calibrations.map(row=>({
-    verified:true,verified_by:row.verified_by,scout_id:row.scout_id,
-    rating:row.scout_rating,category:row.outcome_metric
-  }));
-  context.data_context={observations:observations.length,verified_events:context.events.length,
-    evidence_records:rawEvidence.length,trusted_evidence:trustedEvidence.length,
-    contract_records:context.contract_records.length,verified_outcomes:context.outcomes.length,
-    prediction_records:predictionRecords.length,context_loaded_at:new Date().toISOString()};
-  return context;
 }
 
 const agentChatLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:true,legacyHeaders:false,message:{error:'Messinho wurde in kurzer Zeit zu häufig angesprochen. Bitte später erneut versuchen.'}});
