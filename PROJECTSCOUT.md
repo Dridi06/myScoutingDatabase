@@ -3201,3 +3201,44 @@ GitHub Action run `45888336042` completed successfully on commit `685cbbc82836b5
 2. Admin refreshes STAGING, opens MESSINHO · Wissensprüfung and approves VO2max with a reason.
 3. Verify DB status `active`, review history row and active knowledge retrieval in a fresh chat.
 4. Do not approve on behalf of the Admin; do not begin bulk knowledge import until the pilot is proven end-to-end.
+
+
+## VO2max retrieval and scouting-application verification — 2026-11-26 20:40 UTC
+
+### Existing approved knowledge verified in STAGING
+- Supabase candidate `sports_science.physiology.vo2max` is now `active`, version 3.
+- Two registered source records and two source-rights snapshots remain attached.
+- Rights flags confirmed: `verified_permitted`, `ai_tdm=true`, `commercial_use=true`, `derivative_use=true`.
+- Stored content includes the definition, football-scouting applicability, limitations, claims and source provenance.
+- Admin review audit is version 3 and remains append-only.
+
+### Retrieval-path review
+- General knowledge chat calls `findMessinhoKnowledgeConcepts()` before external general research.
+- A matching active concept returns `structured_knowledge_graph_hit` and returns immediately; this path does not call Tavily or the approved-source learning/research path again.
+- Player-specific automatic orchestration also queries active structured concepts and passes them into the capability runtime as `_messinho_knowledge_concepts`.
+- Capability runtime accepts the knowledge only when its rights flags are verified and source provenance exists; knowledge is passed as reference context for explanations, not as an automatic score or model-weight adjustment.
+
+### Retrieval gap found and fixed
+- The old lexical ranking required two overlapping words for longer requests. A longer player-specific request that explicitly named VO2max could fail retrieval even though the active canonical concept existed.
+- Ranking now includes canonical `concept_key`, applicability and limitations; a precise concept-key anchor (e.g. `vo2max`) receives a bounded relevance boost and can retrieve the matching concept inside longer scouting requests.
+- Sports-science capability relevance filter now recognises VO2max, maximal oxygen uptake, aerobic capacity, endurance and cardiorespiratory fitness.
+
+### Regression tests added
+- Canonical VO2max retrieval for longer player-specific requests.
+- Approved VO2max concept reaches the relevant holistic scouting explanation.
+- The knowledge context is explicitly explanation-only; scoring/model weights are unchanged.
+- CPET / estimated-measurement limitations remain available in the explanation context.
+- Full automated suite: **316 passed, 0 failed**.
+- Backend syntax, Vite production build and CI staging health smoke all succeeded.
+
+### STAGING deployment
+- Commit: `1f24d95576579eda0c9e843083a5529d19fb879f`.
+- Render deploy: `dep-dc49ht6i0phs739hra40`.
+- Dedicated service `myscoutingdatabase-messinho-staging` reached `live` at `2026-11-26T20:39:50Z`.
+- No production, main, PFMS or PFSS changes.
+
+### What this proves / what still requires a live authenticated chat
+- Proven: active DB record is queryable under the production retrieval filters; ranking regression is covered; application context is passed through the runtime under verified-rights gates; model scores are not modified; automated tests pass.
+- Not yet independently proven in this session: a real authenticated Admin chat response from the deployed browser session. The deployment was validated, but this assistant session does not possess the user's browser login/session token and did not impersonate the Admin.
+- Next live acceptance test: in a fresh Admin chat ask `Was ist VO2max?`; response must identify reuse of stored knowledge and show no external research intent. Then ask `Wie ordne ich die aerobe Leistungsfähigkeit eines Spielers anhand seiner VO2max ein?`; response must use the stored applicability and limitations, request the measured value/test modality if missing, and never invent a player metric. Confirm returned `knowledge_memory.reused=true` / `structured_knowledge_graph_hit` and relevant sources.
+- After the authenticated chat test, run a second question that combines VO2max with a player profile. Only then mark the full end-to-end retrieval-and-application pilot accepted.
