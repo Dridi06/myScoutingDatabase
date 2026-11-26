@@ -76,8 +76,10 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 - The general-research path now creates a foundational concept candidate only when the question is a foundation-style query, source claims are corroborated, and each source URL resolves through the reviewed rights allowlist. Provider-supplied license flags are ignored. The current empty allowlist intentionally prevents all candidate persistence.
 - Source URL permission matching enforces exact HTTPS origin and path boundaries, preventing lookalike hosts or prefix confusion.
 - The capability runtime merges active graph concepts with legacy verified knowledge for relevant explanations. Scoring/model-weight functions remain isolated so reference knowledge cannot silently alter numerical ratings or weights.
-- Updated the capability runtime to merge active graph concepts with the legacy rights-verified knowledge context for relevant explanations across the capability handlers. Scoring/model-weight functions remain protected: reference knowledge cannot alter numerical scores or weights.
 - Added tests/messinho-knowledge-graph.test.js for level/link contracts, invalid rights, prerequisite validation and fail-closed storage behavior.
+- Added an atomic service_role-only candidate creation RPC that writes the candidate and version snapshot in one transaction, plus a SECURITY DEFINER review RPC restricted to service_role and approved admins.
+- Added an admin-only review queue/API, an append-only review ledger, and a conflict table that retains competing source-backed proposals instead of silently discarding them. Conflicts require explicit review.
+- Added append-only privileges for the review ledger and indexed its foreign keys.
 - The graph remains empty until rights-cleared source material is reviewed. No books/PDFs were imported and no model weights or scoring rules were changed.
 
 ## Verification still required
