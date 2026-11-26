@@ -282,7 +282,7 @@ export function runMessinhoCapabilityPlan(plan,input={},role='scout',options={})
   const completed=results.filter(item=>isUsefulStatus(item.status)).length;
   const incomplete=results.filter(item=>isIncompleteStatus(item.status));
   const replanRecommended=incomplete.some(item=>item.status==='insufficient_data'||item.status==='error');
-  const status=completed===0?(incomplete.length?'insufficient_data':'completed'):
+  const status=budgetExceeded?'partial':completed===0?(incomplete.length?'insufficient_data':'completed'):
     incomplete.length||plan.blocked_capabilities?.length||plan.deferred_capabilities?.length?'partial':'completed';
   const missingInputs=unique(results.flatMap(item=>item.missing_inputs||[]));
   return {
