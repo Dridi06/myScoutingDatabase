@@ -79,14 +79,19 @@ export function sourceSupportsRegion(region, sourceText, currentClub) {
 }
 
 export function parseMessinhoScoutingRequest(message, history = [], currentYear = new Date().getFullYear()) {
-  const safeHistory = Array.isArray(history) ? history.slice(-10) : [];
+  const safeHistory = Array.isArray(history) ? history.slice(-20) : [];
   const userContext = safeHistory.filter(item => item?.role === 'user')
     .map(item => typeof item.text === 'string' ? item.text : '').join(' ');
   const lastAssistant = [...safeHistory].reverse().find(item => item?.role === 'assistant');
   const latest = normalize(message);
   const startsNewRequest = /\b(benötige|brauche|suche|such|finde|scoute|recherchiere)\b/i.test(latest);
   const pending = !startsNewRequest && /(?:welches spielerlevel|welche spielklasse|leistungsniveau|welches land|welcher standort|welche position|welcher jahrgang|geburtsjahrgang)/i.test(String(lastAssistant?.text || ''));
-  const context = (pending ? userContext + ' ' : '') + String(message || '');
+  const recentConversation = safeHistory.slice(-8).map(item => String(item?.text || '')).join(' ');
+  const discussedBirthYears = /\b(jahrgang|geburtsjahr|geburtsjahrgang|geboren|geburtsdatum|altersklasse)\b/i.test(recentConversation);
+  const terseYearFollowUp = /^(?:19|20)\d{2}(?:\s*[-–—]\s*(?:19|20)\d{2})?$/u.test(latest);
+  const contextualYearFollowUp = !startsNewRequest && discussedBirthYears && terseYearFollowUp;
+  const carryYearContextIntoSearch = startsNewRequest && discussedBirthYears && /\b(spieler|talent|kandidat|scouting)\b/i.test(latest);
+  const context = (pending || contextualYearFollowUp || carryYearContextIntoSearch ? userContext + ' ' : '') + String(message || '');
   const yearMatches = [...context.matchAll(/\b(19\d{2}|20\d{2})\b/g)]
     .map(match => Number(match[1])).filter(year => year >= 1990 && year <= currentYear);
   const yearFrom = yearMatches.length ? Math.min(...yearMatches) : null;
