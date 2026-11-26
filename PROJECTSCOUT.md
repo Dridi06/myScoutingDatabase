@@ -1754,3 +1754,15 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - The application commit includes the autonomy supervisor, core integration, server chat-path integration, persisted goal criteria in the existing task ledger, and the new regression suite.
 - The following are **not yet implemented or enabled by this release**: autonomous background worker/scheduler, general-purpose semantic planning beyond the reviewed capability catalogue, multi-round root-cause re-planning beyond bounded retries, and a fully integrated automatic improvement/test/release pipeline. Existing task resumption remains explicit; consequential changes remain approval-gated.
 - STAGING auto-deploy remains disabled. Production `main`, production Render, production Supabase, PFMS and PFSS remain untouched.
+
+---
+
+## 2026-11-26 — Development checkpoint: safe task-resume policy
+
+- **Scope:** myScoutingDatabase / MESSINHO, feature branch only.
+- **Implemented:** `backend/messinho-task-policy.js` now provides a conservative resume gate, explicit per-task opt-in enforcement, capability read-only classification enforcement, expiry and attempt-limit checks, retry-backoff checks, and capped exponential retry-delay calculation.
+- **Tests:** `tests/messinho-task-policy.test.js` expanded from 4 to 7 tests. Isolated Node test run: 7 passed, 0 failed.
+- **Safety decisions:** tasks are not background-resumable unless `autonomous_resume_enabled === true`; only queued/partial tasks can pass the policy; each pending capability must be explicitly classified `read_only`; running/expired leases are not reclaimed by this policy; max attempts defaults to 4.
+- **Not yet implemented:** atomic database claim RPC, durable retry metadata columns, worker polling/lifecycle, capability safety registry, and wiring from the server to the worker. The policy functions are groundwork only; no automatic execution has been enabled.
+- **Deployment:** not deployed. No Render service, Supabase project, production branch, or production data was changed.
+- **Next step:** design and test an atomic STAGING-only task-claim migration, after confirming the task table schema and migration history; then implement a worker that consumes only explicitly opted-in, read-only tasks.
