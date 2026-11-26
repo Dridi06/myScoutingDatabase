@@ -34,6 +34,9 @@ The project is Germany-based and may be used commercially. A statement that a US
 | `candidate_sec_investor_intro` | Investor.gov — *Introduction to Investing* (web educational resource) | Banking / financial markets / risk literacy | SEC FAQ says government-created content on sec.gov and EDGAR public filing content are free to access and reuse. | Confirm this exact page is government-created; exclude third-party graphics/material; record page version/date and permitted extraction/storage. It is a web resource, not a book and must not be counted as a specialist work unless the source policy allows it. | `quarantined` |
 | `candidate_pmc_oa_article_pool` | PubMed Central Open Access Subset (discovery pool only; not an individual work) | Medicine / biology / sports science | PMC states licence terms vary by article; only the designated PMC Cloud, OAI-PMH, E-Utilities and BioC routes may be used for automated retrieval. | Select each article individually; verify its own licence, copyright holder, commercial/derivative rights, AI/TDM basis and third-party figure/table rights. Never treat the whole subset as one blanket licence. | `discovery_only` |
 
+| `candidate_openintro_statistics` | OpenIntro Statistics (exact current edition and per-file licence must be confirmed) | Statistics / probability | OpenIntro's official licence page says most Statistics textbooks are CC BY-SA 3.0, allowing commercial reuse subject to attribution and ShareAlike; it warns that some files have different licences and third-party images/material. | Verify exact edition, file-level licence, every third-party figure/table, attribution requirements, and whether the intended AI/TDM workflow and retained compact adaptations comply with CC BY-SA 3.0 in the Germany-based product. | `quarantined` |
+| `candidate_openstax_textbook_library` | OpenStax textbook library (source family only) | Mathematics / physics / biology | OpenStax confirms current textbooks are CC BY-NC-SA 4.0 and prohibits commercial use; it provides a separate reuse request process for commercial and AI projects. | Not eligible under current default terms. Could only be reconsidered after written permission explicitly covering commercial AI/agent knowledge-base use and derivative processing. | `rejected_under_current_default_terms` |
+
 ## Primary evidence links
 
 - NIST SP 800-30 Rev. 1: https://csrc.nist.gov/pubs/sp/800/30/r1/final
@@ -46,12 +49,15 @@ The project is Germany-based and may be used commercially. A statement that a US
 - PMC Article Datasets / permitted automated retrieval and article-level licence terms: https://pmc.ncbi.nlm.nih.gov/tools/textmining/
 - PMC Open Access Subset: https://pmc.ncbi.nlm.nih.gov/tools/openftlist/
 - GovInfo public-domain/copyright notice and third-party-material warning: https://www.govinfo.gov/about/policies
+- OpenIntro official resource licence: https://openintro.org/license/
+- OpenStax official licensing and commercial-use restriction: https://help.openstax.org/s/article/Licensing-information-of-OpenStax-textbooks
+- OpenStax commercial / AI project reuse request: https://riceuniversity.tfaforms.net/52
 
 ## Current decision
 
 - Approved works: **0**.
-- Candidate works/resources recorded here: **5** (the PMC entry is a discovery pool, not a work).
-- Entries permitted in the permanent knowledge allowlist: **0**.
+- Candidate works/resources recorded here: **7** (PMC and the OpenStax library are source pools/families, not individual works).
+- Entries permitted in the permanent knowledge allowlist: **0**. OpenIntro remains quarantined pending exact work-level review; OpenStax is excluded under its default non-commercial terms.
 - No source full text, PDF, OCR output, article, or dataset was downloaded or stored by creating this register.
 - No rights are inferred from search snippets alone. Each candidate remains quarantined pending exact work-level review.
 - No changes to the Supabase knowledge table, allowlist code, user data, player data, learning history or active model weights.
