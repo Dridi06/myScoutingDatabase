@@ -3683,3 +3683,6 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Initial STAGING build for the technical curriculum failed at 332/333 tests: the new domain-routing test exposed an existing German compound-word gap (`Fußballspieler` was not classified as `football`). The technical-language routing test passed.
 - Corrected the football classifier to recognize German compounds (Fußballspieler, Spielerprofile, Transfermarkt, Mannschafts- etc.) and added a regression case for Innenverteidiger/Fußball-Scouting. No production or database changes. Follow-up STAGING build required before declaring this implementation deployed.
 - Follow-up code commits: `264e96677db7467e79f97b886ec78560547a16ff` (compound-word classifier), `03a5ff480e560ab98aa44a46e6448f55231ae880` (regression test).
+
+
+- Follow-up STAGING verification: corrected German compound-word routing passed; final build ran **333 tests, 333 passed, 0 failed**; Vite production build succeeded (2.31s); API process started and Supabase Data API returned HTTP 200. Deployment `dep-dc4bn67f3r2c73asr6e0` is **LIVE** at 23:07:41Z. The earlier failed deployment `dep-dc4bmnjl550s738pm710` was superseded; it is not the live version.
