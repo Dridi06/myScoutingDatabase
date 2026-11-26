@@ -1332,7 +1332,7 @@ const MESSINHO_PLAYER_CAPABILITIES=new Set([
  'match_report_research','player_data_refresh','comparable_player_research'
 ]);
 const MESSINHO_ROSTER_CAPABILITIES=new Set([
- 'squad_research','club_need_research','automated_talent_search','hidden_gem_detection',
+ 'squad_research','club_need_research','club_research','automated_talent_search','hidden_gem_detection',
  'underdog_detection','comparable_player_research','cross_league_research'
 ]);
 const MESSINHO_HISTORY_CAPABILITIES=new Set([
@@ -1615,6 +1615,12 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
           console.error('MESSINHO autonomous source recovery failed:',error.message);
           capabilityContext.external_research_status='failed';
         }
+      }
+      if(automaticPlan.steps.includes('club_research')){
+        const clubNames=[...new Set(players.map(item=>item.club||item.current_club).filter(Boolean))];
+        const requestedClub=planSearchTerm?clubNames.find(name=>String(name).toLocaleLowerCase('de-DE').includes(planSearchTerm.toLocaleLowerCase('de-DE'))):null;
+        const club=player.club||player.current_club||requestedClub||(clubNames.length===1?clubNames[0]:null);
+        if(club)capabilityContext.club_profile={name:club};
       }
       capabilityContext.model_profiles=activeModel?.configuration?.profiles||null;
       capabilityContext.squad=players.filter(item=>item.player_id);
