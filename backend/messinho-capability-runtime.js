@@ -490,7 +490,10 @@ export function executeMessinhoCapability(id,input={}){
  else if(researchIds.has(id))output=researchHandler(id,input);
  else output=missingResult(id,meta.required_inputs);
  const specialist=specialistCapabilityIds.has(id);
- const knowledge=asArray(input._messinho_domain_knowledge).filter(item=>item&&typeof item==='object'&&item.rights?.status==='verified_permitted'&&item.rights?.ai_tdm===true&&item.rights?.commercial_use===true&&item.rights?.derivative_use===true&&Array.isArray(item.sources)&&item.sources.length);
+ const rightsVerified=item=>item&&typeof item==='object'&&item.rights?.status==='verified_permitted'&&item.rights?.ai_tdm===true&&item.rights?.commercial_use===true&&item.rights?.derivative_use===true&&Array.isArray(item.sources)&&item.sources.length;
+ const legacyKnowledge=asArray(input._messinho_domain_knowledge).filter(rightsVerified);
+ const structuredKnowledge=asArray(input._messinho_knowledge_concepts).filter(rightsVerified).map(item=>({domain:item.domain,question:item.title,content:item.definition,claims:item.claims,sources:item.sources,rights:item.rights,verified_at:item.valid_from||item.verified_at,confidence:item.confidence,knowledge_level:item.knowledge_level,knowledge_type:item.knowledge_type,formula:item.formula,limitations:item.limitations}));
+ const knowledge=[...legacyKnowledge,...structuredKnowledge];
  const scoreCapability=/^(?:overall_score|position_score|potential_score|talent_score|technical_score|tactical_score|athletic_score|mental_score|goalkeeper_score|risk_score|development_score|consistency_score|league_fit_score|system_fit_score|coach_fit_score|club_fit_score|value_for_money|transfer_priority|weight_optimization|supervised_learning|controlled_self_optimization)$/.test(id);
  const knowledgeContext=scoreCapability?[]:knowledge.filter(item=>{
    const domain=String(item.domain||'');
@@ -509,7 +512,7 @@ export function executeMessinhoCapability(id,input={}){
    return false;
  }).slice(0,3);
  return {...output,name:meta.name,domain:allCatalog.find(g=>g.functions.some(f=>f.id===id))?.id||null,description:meta.description,implementation_level:specialist?'specialist_logic':'generic_fallback',specialist_logic_available:specialist,completion_verified:false,
-  ...(knowledgeContext.length?{knowledge_context:{mode:'verified_reference_context',applied_to_explanation_only:true,score_or_model_weights_changed:false,entries:knowledgeContext.map(item=>({domain:item.domain,question:item.question,knowledge:item.content,claims:item.claims,sources:item.sources,verified_at:item.verified_at,confidence:item.confidence}))}}:{})};
+  ...(knowledgeContext.length?{knowledge_context:{mode:'verified_reference_context',applied_to_explanation_only:true,score_or_model_weights_changed:false,entries:knowledgeContext.map(item=>({domain:item.domain,question:item.question,knowledge:item.content,claims:item.claims,sources:item.sources,verified_at:item.verified_at,confidence:item.confidence,knowledge_level:item.knowledge_level||null,knowledge_type:item.knowledge_type||null,formula:item.formula||null,limitations:item.limitations||[]}))}}:{})};
 }
 export function getMessinhoRuntimeSummary(){
  const ids=[...analysisIds,...evaluationIds,...learningIds,...researchIds];
