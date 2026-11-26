@@ -70,7 +70,8 @@ export function matchesPosition(requested, positions) {
 
 export function matchesNationality(requested, observed) {
   if (!requested) return true;
-  const aliases = COUNTRY_ALIASES[normalize(requested)] || [requested];
+  const normalizedRequest = normalize(requested);
+  const aliases = Object.entries(COUNTRY_ALIASES).find(([key, values]) => normalize(key) === normalizedRequest || values.some(alias => normalize(alias) === normalizedRequest))?.[1] || [requested];
   const value = normalize(observed);
   if (!value) return false;
   return aliases.some(alias => {
