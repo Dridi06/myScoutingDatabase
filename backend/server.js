@@ -21,6 +21,7 @@ import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 import { classifyMessinhoProviderFailure, getMessinhoSocialReply, resolveMessinhoLiveQuestion } from './messinho-conversation.js';
 import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
 import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
+import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -1698,9 +1699,20 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       return respond({reply,intent:'player_research',items:[...items,...sourceItems],player:external.player,profile:external.profile,sources:external.sources||[],provider:external.provider||null,researched_at:external.researched_at||null});
     }
     if(isMessinhoGeneralResearchQuestion(interpretedMessage)){
+      const remembered=await findMessinhoKnowledge(db,ownerId,interpretedMessage);
+      if(remembered.status==='hit'){
+        const cached=remembered.record;
+        const sourceItems=(cached.sources||[]).map((source,index)=>({id:'general-source-'+index,name:source.title||source.publisher||source.url,kind:'Gespeicherte Recherchequelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
+        return respond({reply:cached.answer,intent:'general_knowledge_memory_hit',items:sourceItems,sources:cached.sources,evidence:cached.evidence_summary,answer_mode:cached.answer_mode,
+          claims:cached.claims||[],researched_at:cached.last_verified_at,knowledge_memory:{reused:true,verification_status:'corroborated',source_count:cached.source_count,distinct_domains:cached.distinct_domains,expires_at:cached.expires_at}});
+      }
       const research=await researchMessinhoGeneralQuestion(interpretedMessage);
       const sourceItems=(research.sources||[]).map((source,index)=>({id:'general-source-'+index,name:source.title||source.publisher||source.url,kind:'Recherchequelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
-      if(research.status==='completed')return respond({reply:research.answer,intent:'general_knowledge_research',items:sourceItems,sources:research.sources,evidence:research.evidence,answer_mode:research.answer_mode,claims:research.claims,researched_at:research.researched_at,learning:research.learning});
+      if(research.status==='completed'){
+        const learning=await storeMessinhoKnowledge(db,ownerId,interpretedMessage,research);
+        return respond({reply:research.answer,intent:'general_knowledge_research',items:sourceItems,sources:research.sources,evidence:research.evidence,answer_mode:research.answer_mode,claims:research.claims,researched_at:research.researched_at,
+          learning:{...research.learning,...learning,reused:false,verification_status:learning.persisted?'corroborated':null}});
+      }
       return respond({reply:research.answer||research.message||'Ich kann diese Frage gerade nicht zuverlässig recherchieren. Bitte versuche es später erneut oder grenze die Frage etwas ein.',intent:'general_knowledge_research_limited',items:sourceItems,sources:research.sources||[],evidence:research.evidence||null,limitations:research.evidence?.limitations||[]});
     }
     const conversationalContext=history.map(item=>({role:item.role,content:item.text})).slice(-10);
