@@ -55,7 +55,7 @@ test('foundation learning fails closed if one approved source cannot be retrieve
  const result=await learnMessinhoApprovedFoundationConcept(mockDb(),'Was bedeutet VO2max?',{
   fetchImpl:async(url)=>{calls++;return url.includes('journals.plos.org')?{ok:true,text:async()=>plosXml}:{ok:false,status:503};}
  });
- assert.equal(result.status,'insufficient_approved_sources');
+ assert.equal(result.status,'insufficient_corroboration');
  assert.equal(calls,2);
 });
 
