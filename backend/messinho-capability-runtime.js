@@ -168,17 +168,6 @@ function analysisHandler(id,input){
  return missingResult(id,['capability_specific_inputs']);
 }
 function evaluationHandler(id,input){
- const p=getPlayer(input);
- const dimensionByCapability={technical_score:'technical',tactical_score:'tactical',athletic_score:'athletic',mental_score:'mental',goalkeeper_score:'goalkeeping'};
- if(dimensionByCapability[id]){
-   const dimensionName=dimensionByCapability[id],entries=metricEntries(p),score=dimension(entries,dimensionName);
-   if(score===null)return missingResult(id,[dimensionName+'_metrics']);
-   const matching=entries.filter(entry=>(aliases[dimensionName]||[]).some(alias=>norm(entry.key).includes(norm(alias))));
-   return result(id,'completed',{score:round(score),dimension:dimensionName,metric_count:matching.length,
-     evidence_coverage:Math.min(100,Math.round(matching.length/Math.max(1,entries.length)*100)),
-     calculation:'Mittelwert der vorhandenen, normalisierten Kennzahlen dieser Dimension',
-     limitations:['Nur gespeicherte numerische Werte wurden berücksichtigt.','Fehlende Werte wurden nicht imputiert.']});
- }
  const p=getPlayer(input),entries=metricEntries(p),dims=metricsByDimension(entries);
  if(!p||!Object.keys(p).length)return missingResult(id,['player']);
  if(id==='overall_score'||id==='position_score'||id==='explainable_rating'){
