@@ -8,8 +8,6 @@ on:
   push:
     branches:
       - feature/messinho-unified-ai-integration
-    paths:
-      - '.github/workflows/staging-health-smoke.yml'
 
 jobs:
   health:
