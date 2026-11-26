@@ -1,0 +1,56 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { fetchMessinhoApprovedSource } from '../backend/messinho-approved-source-ingestion.js';
+
+test('PLOS source retrieval uses the approved JATS endpoint and returns only compact excerpts',async()=>{
+ let requested='';
+ const result=await fetchMessinhoApprovedSource('plos_one_vo2max_prediction_2023',{
+  topic:'VO2max cardiorespiratory fitness',
+  fetchImpl:async(url,options)=>{
+   requested=url;
+   assert.match(options.headers.accept,/application\\/xml/);
+   return {ok:true,text:async()=>'<article><abstract><p>VO2max is the highest attained oxygen uptake during an incremental exercise test with large muscle groups.</p></abstract><body><p>VO2max is an important parameter to objectively assess cardiorespiratory fitness in healthy people.</p><p>Prediction models require external validation.</p></body></article>'};
+  }
+ });
+ assert.equal(result.status,'completed');
+ assert.equal(result.retrieval_method,'plos_jats_xml');
+ assert.equal(result.storage_policy,'transient_excerpts_only');
+ assert.match(requested,/type=manuscript/);
+ assert.ok(result.excerpts.length>=1);
+ assert.match(result.excerpts.map(x=>x.text).join(' '),/VO2max/);
+ assert.equal('full_text' in result,false);
+});
+
+test('PMC source retrieval uses the approved BioC API and keeps section provenance',async()=>{
+ let requested='';
+ const result=await fetchMessinhoApprovedSource('pmc_cardiorespiratory_fitness_2022',{
+  topic:'cardiorespiratory fitness oxygen uptake',
+  fetchImpl:async(url,options)=>{
+   requested=url;
+   assert.equal(options.headers.accept,'application/json');
+   return {ok:true,json:async()=>({collection:{documents:[{passages:[
+    {infons:{section_type:'ABSTRACT'},text:'Cardiorespiratory fitness reflects the integration of ventilation, circulation and metabolism for oxygen delivery and utilization during aerobic activity.'},
+    {infons:{section_type:'INTRO'},text:'The gold standard measure of cardiorespiratory fitness is maximal oxygen uptake.'}
+   ]}]}})};
+  }
+ });
+ assert.equal(result.status,'completed');
+ assert.equal(result.retrieval_method,'pmc_bioc_json');
+ assert.match(requested,/BioC_json\\/PMC11269081/);
+ assert.ok(result.excerpts.some(x=>x.source_section==='ABSTRACT'));
+ assert.equal('full_text' in result,false);
+});
+
+test('unapproved source IDs never trigger network retrieval',async()=>{
+ let called=false;
+ const result=await fetchMessinhoApprovedSource('unapproved_source',{fetchImpl:async()=>{called=true;}});
+ assert.equal(result.status,'source_not_approved');
+ assert.equal(called,false);
+});
+
+test('source retrieval rejects HTTP failures and oversized PLOS payloads',async()=>{
+ const failed=await fetchMessinhoApprovedSource('plos_one_vo2max_prediction_2023',{fetchImpl:async()=>({ok:false,status:503})});
+ assert.equal(failed.status,'source_fetch_failed');
+ const oversized=await fetchMessinhoApprovedSource('plos_one_vo2max_prediction_2023',{fetchImpl:async()=>({ok:true,text:async()=>'x'.repeat(2_000_001)})});
+ assert.equal(oversized.status,'source_payload_rejected');
+});
