@@ -2308,3 +2308,13 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 4. Danach Import-/Extraktionspipeline, Versions-/Konfliktmanagement und Backup/Restore-Tests aufbauen.
 
 - Nachträgliche Härtung im selben Umsetzungsschritt: registrierte Rechte werden zusätzlich an erlaubte HTTPS-Quell-URL-Präfixe gebunden. Eine registrierte Lizenz-ID kann damit nicht für beliebige fremde URLs wiederverwendet werden. Diese URL-Scope-Prüfung ist ebenfalls fail-closed; mangels freigegebener Werke bleibt der Allowlist-Zähler 0.
+
+
+## 2026-11-26 — Umsetzungsschritt 3a: Rechteprüfung auf Quellen-URL-Bereich begrenzt — STAGING live
+
+- Rechte-Allowlist wurde zusätzlich um erlaubte HTTPS-URL-Präfixe erweitert. Ein Eintrag kann nicht mehr für beliebige externe URLs missbraucht werden; jede gespeicherte Quellenreferenz muss zur registrierten `source_id` und zum erlaubten URL-Bereich gehören.
+- Neuer Regressionstest für URL-Scope: unbekannte Quelle und nicht-HTTPS-URL werden abgewiesen.
+- Render STAGING Deployment: `dep-dc47bte7bikc738cd860`, Status **live**, Commit `c25c73f778bf7d4dcb8b5c782fa054ade93f8529`, abgeschlossen `2026-11-26T18:10:31.871497Z`.
+- Build: **262 Tests bestanden, 0 fehlgeschlagen**; Vite-Build erfolgreich (`built in 2.38s`); Render meldet `Build successful`.
+- Weiterhin keine Quellen freigegeben und keine Wissenseinträge importiert. Rechte-Allowlist: 0. Wissensbestand: 0.
+- Alle Betriebsgrenzen eingehalten: nur STAGING und Feature-Branch; Produktion/main/PFMS/PFSS unberührt; PR #47 unverändert; Auto-Deploy aus.
