@@ -13,6 +13,7 @@ const VERIFIED_SOURCE_RIGHTS = Object.freeze([
     evidence_url:'https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0280897',
     tdm_evidence_url:'https://api.plos.org/text-and-data-mining.html',
     reviewed_at:'2026-11-26',
+    review_due_at:'2027-11-26',
     ai_tdm:true,commercial_use:true,derivative_use:true,
     attribution:'Wiecha et al. (2023), External validation of VO2max prediction models based on recreational and elite endurance athletes, PLOS ONE 18(1): e0280897, DOI 10.1371/journal.pone.0280897, CC BY 4.0. MESSINHO created an independently worded summary; changes are indicated.',
     source_url_exact:true,
@@ -32,6 +33,7 @@ const VERIFIED_SOURCE_RIGHTS = Object.freeze([
     tdm_evidence_url:'https://creativecommons.org/licenses/by/4.0/',
     ai_tdm:true,commercial_use:true,derivative_use:true,
     reviewed_at:'2026-11-26',
+    review_due_at:'2027-11-26',
     attribution:'Ken Kuttler (Lyryx), A First Course in Linear Algebra, §2.2 Multiplication of Matrices, CC BY 4.0. MESSINHO creates an independently worded compact summary; changes are indicated.',
     source_url_exact:true,
     source_url_prefixes:['https://math.libretexts.org/Bookshelves/Linear_Algebra/A_First_Course_in_Linear_Algebra_%28Kuttler%29/02%3A_Matrices/2.02%3A_Multiplication_of_Matrices'],
@@ -50,6 +52,7 @@ const VERIFIED_SOURCE_RIGHTS = Object.freeze([
     tdm_evidence_url:'https://creativecommons.org/licenses/by/4.0/',
     ai_tdm:true,commercial_use:true,derivative_use:true,
     reviewed_at:'2026-11-26',
+    review_due_at:'2027-11-26',
     attribution:'David Austin, Understanding Linear Algebra, §2.2 Matrix multiplication and linear combinations, CC BY 4.0. MESSINHO creates an independently worded compact summary; changes are indicated.',
     source_url_exact:true,
     source_url_prefixes:['https://understandinglinearalgebra.org/sec-matrices-lin-combs.html'],
@@ -67,6 +70,7 @@ const VERIFIED_SOURCE_RIGHTS = Object.freeze([
     evidence_url:'https://pmc.ncbi.nlm.nih.gov/articles/PMC11269081/',
     tdm_evidence_url:'https://www.ncbi.nlm.nih.gov/research/bionlp/APIs/BioC-PMC/',
     reviewed_at:'2026-11-26',
+    review_due_at:'2027-11-26',
     ai_tdm:true,commercial_use:true,derivative_use:true,
     attribution:'LaMonte MJ (2022), Cardiorespiratory Fitness in the Prevention and Management of Cardiovascular Disease, PMCID PMC11269081, CC BY 4.0. MESSINHO created an independently worded summary; changes are indicated.',
     source_url_exact:true,
@@ -78,11 +82,14 @@ const VERIFIED_SOURCE_RIGHTS = Object.freeze([
   }
 ]);
 
-export function verifyMessinhoSourceRights(rights = {}) {
+export function verifyMessinhoSourceRights(rights = {}, now = new Date()) {
   if (!rights || typeof rights !== 'object' || !rights.source_id) return false;
   const entry = VERIFIED_SOURCE_RIGHTS.find(item => item.source_id === rights.source_id);
   if (!entry || entry.status !== 'verified_permitted') return false;
-  for (const key of ['license', 'license_url', 'rights_holder', 'evidence_url', 'tdm_evidence_url', 'attribution', 'retrieval_method', 'retrieval_url']) {
+  if (!(now instanceof Date) || Number.isNaN(now.getTime()) || !/^\d{4}-\d{2}-\d{2}$/.test(entry.review_due_at || '')) return false;
+  const reviewDeadline = new Date(`${entry.review_due_at}T23:59:59.999Z`);
+  if (Number.isNaN(reviewDeadline.getTime()) || reviewDeadline.toISOString().slice(0,10) !== entry.review_due_at || now.getTime() > reviewDeadline.getTime()) return false;
+  for (const key of ['license', 'license_url', 'rights_holder', 'evidence_url', 'tdm_evidence_url', 'attribution', 'retrieval_method', 'retrieval_url', 'reviewed_at', 'review_due_at']) {
     if (!entry[key] || entry[key] !== rights[key]) return false;
   }
   if (!/^https:\/\//i.test(entry.evidence_url)||!/^https:\/\//i.test(entry.license_url)||!/^https:\/\//i.test(entry.tdm_evidence_url)||!/^https:\/\//i.test(entry.retrieval_url)) return false;
