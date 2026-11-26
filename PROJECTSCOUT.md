@@ -778,6 +778,8 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - Added migration `supabase/migrations/20261126_messinho_agent_memory.sql` for owner-scoped memory and trace tables with RLS. This migration is a file only; it has **not** been applied to any Supabase project.
 
 ### Commits
+- Latest staging CI workflow commit: `39bce88a6a6d24281abab58849931d38c5708e2a`
+- Session checkpoint commit: `95aa645bbf9961d168caa1b8b9dc6d4493ac41a6`
 - Planner module: `e7bc056990dd1b0646f6b8b53f6a36c1ef78231b`
 - Memory/trace migration: `2ec2349118893d1598ef76520d9b240272dce375`
 - Orchestrator tests: `907a124e692ad1cea45b500377679aaf94484281`
@@ -785,6 +787,7 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - Explicit player-context precedence fix: `69fa8cdc1e5cd257b72a70cd0366c751308cefbe`
 
 ### Verification and limitations
+- Added `.github/workflows/messinho-staging-validation.yml` to run `npm install`, `npm test`, and `npm run build` on pushes/pull requests to the staging branch. The workflow was added in commit `39bce88a6a6d24281abab58849931d38c5708e2a`; the first completed CI result has not yet been observed.
 - The code changes were committed to the staging branch only. No production code or deployment was changed.
 - No staging Supabase credentials are available, so database-backed memory and trace persistence cannot yet be exercised.
 - The SQL migration has not been applied.
