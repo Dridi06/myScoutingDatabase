@@ -878,7 +878,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
         model,temperature:0.1,response_format:{type:'json_object'},
         messages:[
           {role:'system',content:discoveryPrompt},
-          {role:'user',content:JSON.stringify({requested:{ageMin,ageMax,birthYearFrom,birthYearTo,position,nationality,region,targetLevel,limit:filters.limit||15},sources:discoverySources.map(({title,url,publisher,published_date,content})=>({title,url,publisher,published_date,content}))})}
+          {role:'user',content:JSON.stringify({requested:{ageMin,ageMax,birthYearFrom,birthYearTo,position,preferredFoot,nationality,region,targetLevel,limit:filters.limit||15},sources:discoverySources.map(({title,url,publisher,published_date,content})=>({title,url,publisher,published_date,content}))})}
         ]
       })});
       if(!aiResponse.ok){const providerPayload=await aiResponse.json().catch(()=>({}));const failure=classifyMessinhoProviderFailure(aiResponse.status,providerPayload);console.error('OpenAI discovery analysis failed:',aiResponse.status,failure.code,providerPayload?.error?.code||providerPayload?.error?.type||'');return res.status(failure.status).json({error:failure.userMessage,code:failure.code,retryable:failure.code!=='provider_authentication_failed'});}
