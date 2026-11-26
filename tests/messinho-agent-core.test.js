@@ -11,7 +11,7 @@ test('agent core records plan, execution and validation lifecycle',async()=>{
  assert.equal(cycle.run.model_weights_changed,false);
 });
 test('agent core does not invent a plan for ordinary conversation',async()=>{
- const cycle=await executeMessinhoAgentPlan({plan:null,role:'scout'});
+ const cycle=await executeMessinhoAgentPlan({plan:null,goal:'Warum ist der Himmel blau?',role:'scout'});
  assert.equal(cycle.state.phase,'needs_clarification');
  assert.equal(cycle.run.status,'needs_clarification');
 });
