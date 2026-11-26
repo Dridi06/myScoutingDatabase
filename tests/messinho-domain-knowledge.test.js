@@ -23,3 +23,14 @@ test('unreviewed sources never resolve to verified rights',()=>{
  assert.equal(getMessinhoVerifiedSourceRightsForUrl('https://example.org/book/chapter'),null);
 });
 test('source provenance URL must be inside the reviewed rights scope',()=>{assert.equal(isMessinhoRegisteredSourceUrl('unknown-source','https://example.org/book/chapter'),false);assert.equal(isMessinhoRegisteredSourceUrl('unknown-source','http://example.org/book'),false);});
+
+test('classifies VO2max as sports science even in a short general question',()=>{
+ assert.equal(classifyMessinhoKnowledgeDomain('Was ist VO2max?'),'sports_science');
+ assert.equal(classifyMessinhoKnowledgeDomain('maximale Sauerstoffaufnahme'),'sports_science');
+});
+test('retrieves an active VO2max record from a one-term question',()=>{
+ const rows=[{id:'vo2',domain:'sports_science',question:'Was ist VO2max?',content:'VO2max beschreibt die maximale Sauerstoffaufnahme und kardiorespiratorische Fitness.',knowledge_status:'active'}];
+ const ranked=rankMessinhoDomainKnowledge('Was ist VO2max?',rows);
+ assert.equal(ranked.length,1);
+ assert.equal(ranked[0].record.id,'vo2');
+});
