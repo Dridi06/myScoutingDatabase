@@ -3792,3 +3792,15 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - The proposal-only engineering gate remains intentionally disconnected from the live capability dispatcher. This prevents an unreviewed model output from becoming a code-writing or code-execution capability.
 - No Render deployment was performed. Staging CI/build validation does not mean the new module is running in staging.
 - Next: finish route/background-worker adversarial audit, add explicit MESSINHO actor/capability boundary tests for protected player and scout CRUD, and only then consider a tightly isolated, resource-limited code sandbox. No production deployment or database migration is authorized by this checkpoint.
+
+
+### Accepted requirement — Admin myKI engineering ticket inbox — 2026-11-27
+- Owner requested a dedicated **myKI** area inside the Admin workspace. MESSINHO may submit a ticket only when it has developed a concrete improvement proposal; no routine/status/empty tickets.
+- Each ticket must have a server-generated unique KI Ticket ID and explain in simple German what changed, why it is better, and what impact it has. It must also carry a sanitized technical review packet: changed files/diff reference, proposal fingerprint, benchmark baseline/candidate IDs, tests actually run, security/tenant-isolation results, risks, limitations and rollback plan.
+- Admin ticket actions: **Kopieren** (complete sanitized packet for independent review by another AI), **Integrieren** (start controlled staging-only integration) and **Löschen** (remove from active inbox while retaining a minimal immutable audit tombstone).
+- Status lifecycle and error/success reporting are specified in `docs/MESSINHO_ADMIN_MYKI_TICKETS.md`. Integration cannot be marked successful until exact staging commit, required tests, deployment and health checks are verified. CI-only success must be reported as “CI erfolgreich — noch nicht integriert”.
+- Security: separate from Scout support tickets and player/scout records; server-side approved-Admin authorization; trusted MESSINHO-only ticket submission; duplicate prevention; sanitized copy; append-only event history. No secrets or private player/scout data in tickets.
+- Integrate must remain blocked until a no-network-by-default, resource-limited sandbox and protected-data boundaries are proven. No self-authorized patch execution, no production deployment, no permissions/guardrail/schema changes.
+- Specification committed on the staging feature branch: `9dbe8e1ff9186a93620e0ba210b2c96d5c059afe`.
+- **Implementation status:** specification recorded; UI, backend endpoints, persistence and integration executor are not yet implemented. No Supabase migration/write, Render deployment, production change or code execution occurred.
+- Next: inspect current Admin navigation and auth patterns on this feature branch; implement dedicated ticket domain + authorization/tests first, then UI; connect proposal gate to ticket submission; keep Integrate disabled until isolated staging execution passes security review.
