@@ -3512,3 +3512,19 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Live authenticated Admin/Scout acceptance and cross-tenant UI verification: **still outstanding**.
 - VO2max pilot: **not yet fully accepted**.
 - Systematic knowledge import: **still blocked pending the acceptance checks above**.
+
+
+### VO2max continuation routing regression fix — 2026-11-26 22:38 CET
+- Re-audited the current canonical knowledge route and the existing follow-up continuation implementation rather than repeating the prior pilot work.
+- Found a real second-turn routing defect: the route correctly combined the original VO2max question with the user's newly supplied measurements, but the canonical knowledge lookup still received only the latest short answer (for example, 56 ml/kg/min). That could cause the active VO2max concept not to be found and prevent the promised continuation.
+- Fixed the route so the canonical knowledge lookup uses the combined original question plus the new data.
+- Added the pure helper buildMessinhoVo2maxApplicationQuery to validate the pending assistant prompt, preserve the prior question and accept only a plausible VO2max data reply. The route uses this helper; unrelated messages are not treated as continuation data.
+- Added regression coverage for preserving the original question and rejecting unrelated replies.
+- One CI run exposed an invalid regex escape in the new test; corrected it. The following run exposed an unresolved cross-module helper reference; removed that unnecessary dependency because the server route already selects the prior question by canonical VO2max concept. These were fixed before the final green run.
+- Latest code commit: 7a86c60ee582ce749f5a1ff571e2f849952280eb.
+- Final CI for that code commit: all four checks success (combined regression/syntax/build, dedicated backend syntax, test, health). Node test suite: 329 passed, 0 failed. Backend syntax passed.
+- This fixes the continuation lookup path, but it does not constitute live authenticated Admin/Scout acceptance. Do not infer that the VO2max pilot is accepted solely from CI.
+- Current dedicated Render STAGING deployment remains dep-dc4ab6t6e07s73ekq74g / commit fd742a27352d88e9de9b666227761de297c0071e; it does not yet contain code commit 7a86c60. Manual deployment of the tested feature-branch head is required after this documentation commit's checks pass.
+- Supabase staging audit was read-only. It confirmed player owner/Admin RLS gates and service-mediated access for knowledge-review tables. The Admin knowledge review endpoints enforce approved Admin role checks. Remaining advisor notices (legacy Admin SECURITY DEFINER RPC callable by authenticated but guarded internally; leaked-password protection disabled) remain recorded for separate hardening; no database grants, schema, or data were changed in this task.
+- Next: wait for this documentation commit's CI, manually deploy the tested branch head to the dedicated Render STAGING service only, verify the deployed SHA and LIVE status, then complete live Admin/Scout continuation and tenant-isolation acceptance. Keep the VO2max pilot and systematic knowledge import gated until those acceptance checks pass.
+- Production, main, PFMS and PFSS remain untouched; no merge or production release is authorised.
