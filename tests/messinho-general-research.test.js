@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {isMessinhoGeneralResearchQuestion,normalizeMessinhoGeneralSources,assessMessinhoGeneralEvidence,isMessinhoGeneralClaimSupported,isMessinhoGeneralClaimCorroborated,isMessinhoTimeSensitiveQuestion,researchMessinhoGeneralQuestion} from '../backend/messinho-general-research.js';
+import {isMessinhoGeneralResearchQuestion,normalizeMessinhoGeneralSources,assessMessinhoGeneralEvidence,isMessinhoGeneralClaimSupported,isMessinhoGeneralClaimCorroborated,isMessinhoTimeSensitiveQuestion,messinhoFreshnessWindowDays,researchMessinhoGeneralQuestion} from '../backend/messinho-general-research.js';
 
 test('detects open knowledge questions but leaves greetings and scouting commands alone',()=>{
  assert.equal(isMessinhoGeneralResearchQuestion('Warum ist der Himmel blau?'),true);
@@ -66,7 +66,7 @@ test('requires two recent independent sources for time-sensitive questions',()=>
  const now=new Date('2026-11-26T12:00:00Z');
  const fresh=[
   {publisher:'a.example',snippet:'x'.repeat(150),published_date:'2026-11-01'},
-  {publisher:'b.example',snippet:'y'.repeat(150),published_date:'2026-10-15'}
+  {publisher:'b.example',snippet:'y'.repeat(150),published_date:'2026-11-10'}
  ];
  const evidence=assessMessinhoGeneralEvidence(fresh,'Wer ist aktuell Trainer?',now);
  assert.equal(evidence.can_answer,true);
@@ -84,7 +84,7 @@ test('does not present old or undated results as current facts',()=>{
  assert.equal(evidence.can_answer,false);
  assert.equal(evidence.status,'stale');
  assert.equal(evidence.freshness.stale_source_count,2);
- assert.match(evidence.limitations.join(' '),/höchstens 90 Tage/);
+ assert.match(evidence.limitations.join(' '),/Aktualitätsfenster/);
 });
 
 test('keeps recency requirements disabled for stable knowledge questions',()=>{
