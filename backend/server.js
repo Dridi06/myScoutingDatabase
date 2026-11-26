@@ -28,6 +28,7 @@ import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } fr
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
 import { findMessinhoDomainKnowledge } from './messinho-domain-knowledge.js';
 import { findMessinhoKnowledgeConcepts, storeMessinhoKnowledgeConcept } from './messinho-knowledge-graph.js';
+import { verifyMessinhoSourceRights, isMessinhoRegisteredSourceUrl } from './messinho-rights-registry.js';
 import { calculateMessinhoMathQuestion } from './messinho-math.js';
 import { startMessinhoBackgroundWorker, MESSINHO_BACKGROUND_READ_ONLY } from './messinho-background-worker.js';
 
@@ -1277,6 +1278,36 @@ app.get('/api/messinho/quality-intelligence',messinhoQualityIntelligenceLimiter,
     const report=buildMessinhoQualityIntelligence(data||{});
     return res.json({ok:true,report});
   }catch(error){console.error('MESSINHO quality intelligence failed:',error.message);return res.status(500).json({error:'Qualitätsauswertung konnte nicht erstellt werden.'});}
+});
+const messinhoKnowledgeReviewLimiter=rateLimit({windowMs:60*60*1000,limit:20,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Wissensfreigaben. Bitte später erneut versuchen.'}});
+app.post('/api/messinho/knowledge/:id/review',messinhoKnowledgeReviewLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    if(actor.profile.role!=='admin'||!actor.profile.approved||actor.profile.approval_status!=='approved')return res.status(403).json({error:'Nur freigeschaltete Administratoren dürfen Fachwissen prüfen.'});
+    const decision=String(req.body?.decision||'');
+    const reason=typeof req.body?.reason==='string'?req.body.reason.trim():'';
+    if(!['approve','reject','mark_conflicting'].includes(decision)||reason.length<10||reason.length>500)return res.status(400).json({error:'Entscheidung oder Begründung ist ungültig.'});
+    const {data:concept,error:readError}=await db.from('messinho_knowledge_concepts')
+      .select('id,knowledge_status,sources,rights').eq('id',req.params.id).maybeSingle();
+    if(readError)return res.status(500).json({error:'Wissenseintrag konnte nicht geladen werden.'});
+    if(!concept)return res.status(404).json({error:'Wissenseintrag nicht gefunden.'});
+    if(decision==='approve'){
+      const sourceRights=Array.isArray(concept.rights?.source_rights)?concept.rights.source_rights:[];
+      const sources=Array.isArray(concept.sources)?concept.sources:[];
+      const verified=sources.filter(source=>{
+        const rights=sourceRights.find(item=>item.source_id===source.source_id);
+        return rights&&verifyMessinhoSourceRights(rights)&&isMessinhoRegisteredSourceUrl(rights.source_id,source.url);
+      });
+      const domains=[...new Set(verified.map(source=>{try{return new URL(source.url).hostname.replace(/^www\\./i,'').toLowerCase();}catch{return '';}}).filter(Boolean))];
+      if(verified.length<2||domains.length<2)return res.status(409).json({error:'Freigabe blockiert: Für mindestens zwei unabhängige Quellen fehlen aktuell bestätigte Nutzungsrechte.'});
+    }
+    const {data,error}=await db.rpc('messinho_review_knowledge_concept',{
+      p_concept_id:req.params.id,p_decision:decision,p_reason:reason,p_reviewer_id:actor.profile.id
+    });
+    if(error){console.error('MESSINHO knowledge review failed:',error.code||error.message);return res.status(409).json({error:'Die Wissensprüfung konnte nicht abgeschlossen werden. Status und Rechteprüfung kontrollieren.'});}
+    return res.json({ok:true,review:Array.isArray(data)?data[0]:data,message:decision==='approve'?'Fachwissen wurde nach Prüfung freigegeben.':'Prüfentscheidung wurde revisionssicher gespeichert.'});
+  }catch(error){console.error('MESSINHO knowledge review failed:',error.message);return res.status(500).json({error:'Wissensprüfung aktuell nicht möglich.'});}
 });
 const messinhoHypothesisLimiter=rateLimit({windowMs:60*60*1000,limit:40,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Änderungen am Verbesserungsprozess. Bitte später erneut versuchen.'}});
 async function requireApprovedMessinhoAdmin(req,res){
