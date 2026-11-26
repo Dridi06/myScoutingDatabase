@@ -18,7 +18,7 @@ export function verifyMessinhoSourceRights(rights = {}) {
   return rights.status === 'verified_permitted' && rights.ai_tdm === true && rights.commercial_use === true && rights.derivative_use === true;
 }
 
-function isWithinRegisteredSourceScope(url, prefix) {
+export function isMessinhoSourceUrlWithinPrefix(url, prefix) {
   try {
     const candidate = new URL(url), base = new URL(prefix);
     if (candidate.protocol !== 'https:' || base.protocol !== 'https:' || candidate.origin !== base.origin) return false;
@@ -31,7 +31,7 @@ export function isMessinhoRegisteredSourceUrl(sourceId, url) {
   if (typeof url !== 'string' || !/^https:\/\//i.test(url)) return false;
   const entry = VERIFIED_SOURCE_RIGHTS.find(item => item.source_id === sourceId && item.status === 'verified_permitted');
   if (!entry || !Array.isArray(entry.source_url_prefixes) || !entry.source_url_prefixes.length) return false;
-  return entry.source_url_prefixes.some(prefix => typeof prefix === 'string' && isWithinRegisteredSourceScope(url,prefix));
+  return entry.source_url_prefixes.some(prefix => typeof prefix === 'string' && isMessinhoSourceUrlWithinPrefix(url,prefix));
 }
 
 export function getMessinhoVerifiedSourceRightsForUrl(url) {
