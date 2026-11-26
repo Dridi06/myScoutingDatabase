@@ -62,7 +62,7 @@ const KEYWORDS = {
   market_value_assessment:['marktwert','transferwert','marktwertspanne'],
   value_for_money:['preis leistung','preis leistungs verhältnis','transferkosten nutzen'],
   risk_score:['risiko score','transfer risiko','risikobewertung'],
-  development_projection:['entwicklungsprognose','prognose','zukunftsprognose'],
+  development_projection:['entwicklungsprognose','zukunftsprognose','prognose erstellen'],
   competition_comparison:['konkurrenzvergleich','direkte konkurrenz','wettbewerbsvergleich'],
   transfer_priority:['transferpriorität','transfer priorisieren','transfer shortlist priorisieren'],
   scout_rating_agreement:['scout bewertungen','scout abweichung','bewertungsunterschiede'],
