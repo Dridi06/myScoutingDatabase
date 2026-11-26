@@ -64,13 +64,15 @@ export function buildMessinhoKnowledgeConcept(input={},now=new Date()){
 
 function rank(question,rows,limit){
  const query=new Set(tokens(question).filter(token=>!STOP.has(token)));
- if(query.size<2)return [];
+ if(!query.size)return [];
  return rows.map(record=>{
   const words=new Set(tokens([record.domain,record.topic,record.title,record.definition,record.formula||''].join(' ')).filter(token=>!STOP.has(token)));
   const overlap=[...query].filter(token=>words.has(token)).length;
   const score=overlap/Math.max(1,Math.min(query.size,words.size));
-  return {record,score,overlap};
- }).filter(item=>item.record.knowledge_status==='active'&&item.overlap>=2&&item.score>=0.28)
+  const minimumOverlap=query.size===1?1:2;
+  const minimumScore=query.size===1?0.5:0.28;
+  return {record,score,overlap,minimumOverlap,minimumScore};
+ }).filter(item=>item.record.knowledge_status==='active'&&item.overlap>=item.minimumOverlap&&item.score>=item.minimumScore)
    .sort((a,b)=>b.score-a.score).slice(0,Math.max(1,Math.min(12,limit)));
 }
 
