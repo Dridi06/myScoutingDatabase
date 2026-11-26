@@ -16,7 +16,7 @@ export function inspectMessinhoAnswerLinks(answer,sources=[]){
 export async function reviewMessinhoDraft({question,draft,sources=[],claims=[],env=process.env,fetchImpl=fetch}={}){
  const allowed=new Set(sources.map(s=>s.url));
  const invalidClaims=claims.filter(c=>!Array.isArray(c.source_urls)||!c.source_urls.length||c.source_urls.some(url=>!allowed.has(url)));
- const unsupportedClaims=claims.filter(claim=>!sources.some(source=>claim.source_urls?.includes(source.url)&&(()=>{const tokens=String(claim.text||'').toLocaleLowerCase('de-DE').split(/\\s+/).filter(token=>token.length>=4);const sourceText=(String(source.title||'')+' '+String(source.snippet||'')).toLocaleLowerCase('de-DE');const matches=tokens.filter(token=>sourceText.includes(token)).length;return tokens.length>=3&&matches>=3&&matches/tokens.length>=.35;})()));
+ const unsupportedClaims=claims.filter(claim=>!sources.some(source=>claim.source_urls?.includes(source.url)&&(()=>{const tokens=String(claim.text||'').toLocaleLowerCase('de-DE').split(/\s+/).filter(token=>token.length>=4);const sourceText=(String(source.title||'')+' '+String(source.snippet||'')).toLocaleLowerCase('de-DE');const matches=tokens.filter(token=>sourceText.includes(token)).length;return tokens.length>=3&&matches>=3&&matches/tokens.length>=.35;})()));
  const links=inspectMessinhoAnswerLinks(draft,sources);
  const deterministic={passed:invalidClaims.length===0&&unsupportedClaims.length===0&&links.valid,invalid_claims:invalidClaims.length,unsupported_claims:unsupportedClaims.length,links};
  if(!env.OPENAI_API_KEY)return {passed:false,score:0,feedback:'Unabhängige Kritikerprüfung ist nicht verfügbar.',deterministic,review_available:false};
