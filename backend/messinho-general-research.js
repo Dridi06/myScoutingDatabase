@@ -40,7 +40,7 @@ export function normalizeMessinhoGeneralSources(results=[]){
   if(!host||/(^|\.)fussball\.de$/i.test(host))continue;
   const title=clean(item.title,220),snippet=clean(item.content||item.snippet,1400);
   if(!title||snippet.length<50)continue;
-  seen.add(url);rows.push({title,url,publisher:host,published_date:clean(item.published_date||item.publishedDate,40)||null,snippet});
+  seen.add(url);rows.push({title,url,publisher:host,published_date:clean(item.published_date||item.publishedDate,40)||null,snippet,license:clean(item.license,120)||null,rights_holder:clean(item.rights_holder||item.rightsHolder,180)||null,rights_status:clean(item.rights_status||item.rightsStatus,40)||null,ai_tdm_allowed:item.ai_tdm_allowed===true||item.aiTdmAllowed===true,commercial_use_allowed:item.commercial_use_allowed===true||item.commercialUseAllowed===true,derivative_use_allowed:item.derivative_use_allowed===true||item.derivativeUseAllowed===true,rights_evidence_url:safeUrl(item.rights_evidence_url||item.rightsEvidenceUrl)});
  }
  return rows.slice(0,8);
 }
