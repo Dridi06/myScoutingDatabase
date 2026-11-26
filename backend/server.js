@@ -1484,6 +1484,19 @@ app.post('/api/agent/tasks/:taskId/resume',async(req,res)=>{
     if(loadError){if(loadError.code==='42P01')return res.status(503).json({error:'Die Aufgabenablage ist noch nicht eingerichtet. Bitte zuerst die Staging-Migration ausführen.'});throw loadError;}
     if(!task)return res.status(404).json({error:'Diese Aufgabe wurde nicht gefunden.'});
     if(Date.parse(task.expires_at)<=Date.now())return res.status(410).json({error:'Diese gespeicherte Aufgabe ist abgelaufen.'});
+    if(task.status==='running'){
+      const leaseTime=Date.parse(task.lease_until||'');
+      if(Number.isFinite(leaseTime)&&leaseTime<=Date.now()){
+        // A stale run may have completed a side effect immediately before its last checkpoint.
+        // Never replay it automatically: quarantine it for explicit review instead.
+        const {data:stale,error:staleError}=await db.from('messinho_agent_tasks').update({
+          status:'failed',lease_until:null,last_error:'Laufunterbrechung erkannt. Vor einer Wiederholung müssen die letzten Arbeitsschritte geprüft werden.',updated_at:new Date().toISOString()
+        }).eq('id',task.id).eq('owner_id',actor.user.id).eq('status','running').lte('lease_until',new Date().toISOString()).select('id').maybeSingle();
+        if(staleError)throw staleError;
+        if(stale)return res.status(409).json({error:'Die Aufgabe war unterbrochen. Sie wurde aus Sicherheitsgründen angehalten und wird nicht automatisch erneut ausgeführt. Bitte zuerst den letzten Ausführungsstand prüfen.'});
+      }
+      return res.status(409).json({error:'Diese Aufgabe wird noch ausgeführt. Bitte warte, bis der aktuelle Lauf abgeschlossen ist.'});
+    }
     if(task.status==='waiting_for_input')return res.status(409).json({error:'Für diese Aufgabe fehlen Eingabedaten. Ergänze sie bitte zuerst im Chat.'});
     if(task.status!=='partial'||!Array.isArray(task.pending_capabilities)||!task.pending_capabilities.length)
       return res.status(409).json({error:'Diese Aufgabe enthält keine fortsetzbaren Arbeitsschritte.'});
