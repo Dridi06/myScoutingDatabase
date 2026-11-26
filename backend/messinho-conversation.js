@@ -143,3 +143,63 @@ export function resolveMessinhoLiveQuestion(message, { now = new Date(), timeZon
     verified_at: now.toISOString(), time_zone: timeZone
   };
 }
+
+
+/**
+ * Build a deterministic, evidence-safe follow-up when approved VO2max
+ * knowledge is requested for player-specific application.
+ * This helper never estimates a value or creates a player rating.
+ */
+export function buildMessinhoKnowledgeApplicationFollowUp(question, { conceptKey = null, player = null, now = new Date() } = {}) {
+  if (conceptKey !== 'sports_science.physiology.vo2max') return null;
+  const text = normalizeSocialText(question);
+  if (!text || text.length > 1200) return null;
+  const asksApplication = /\\b(nutzen|anwenden|anwend|einordnen|interpretieren|leistungsbewertung|bewerten|beurteilen|einschaetzen|einschätzen|ausdauerleistungsfaehigkeit|ausdauerleistungsfähigkeit|welche informationen|welche daten|was benoetigst|was benötigst|was brauche ich|zusaetzlich|zusätzlich)\\b/.test(text);
+  if (!asksApplication) return null;
+
+  const raw = String(question || '');
+  const hasValue = /\\b\\d{1,2}(?:[.,]\\d+)?\\s*(?:ml\\s*[·.]?\\s*kg\\s*(?:\\/|\\*|·)\\s*min(?:\\s*[-−]?\\s*1)?|ml\\/kg\\/min)\\b/i.test(raw)
+    || /\\bvo\\s*[₂2]?\\s*max\\s*[:=]?\\s*\\d{1,2}(?:[.,]\\d+)?\\b/i.test(raw);
+  const directMethod = /spiroergometrie|\\bcpet\\b|direkt gemessen|direktmessung/i.test(raw);
+  const estimatedMethod = /geschaetzt|geschätzt|schaetzung|schätzung|feldtest|lauftest|yo.?yo|beep.?test|indirekt bestimmt|vorhersage|prediction/i.test(raw);
+  const hasMethod = directMethod || estimatedMethod;
+  const hasDate = /\\b(?:20\\d{2}-\\d{2}-\\d{2}|\\d{1,2}\\.\\d{1,2}\\.\\d{2,4})\\b/.test(raw);
+
+  const playerAge = Number.isFinite(Number(player?.age)) && player?.age !== null ? Number(player.age) : null;
+  const birthYear = Number.isFinite(Number(player?.birth_year ?? player?.year)) && (player?.birth_year ?? player?.year) != null ? Number(player?.birth_year ?? player?.year) : null;
+  const derivedAge = playerAge ?? (birthYear ? new Date(now).getFullYear() - birthYear : null);
+  const hasAge = derivedAge !== null || /\\b\\d{2}\\s*(?:jahre|j\\.?)\\b/i.test(raw);
+  const playerPositions = Array.isArray(player?.positions) ? player.positions.filter(Boolean) : player?.position ? [player.position] : [];
+  const hasPosition = playerPositions.length > 0 || /\\b(torwart|innenverteidiger|aussenverteidiger|außenverteidiger|verteidiger|mittelfeld|stuermer|stürmer|fluegel|flügel|position)\\b/i.test(raw);
+  const hasTrainingContext = Boolean(player?.training_status || player?.training_level || /\\b(trainingsstatus|trainingsumfang|trainingsniveau|leistungssportler|amateur|profi|semiprofi)\\b/i.test(raw));
+
+  const missing = [];
+  if (!hasValue) missing.push({ key: 'vo2max_value', label: 'VO₂max-Messwert mit Einheit (üblicherweise ml/kg/min)' });
+  if (!hasMethod) missing.push({ key: 'test_method', label: 'Testverfahren: direkte Spiroergometrie/CPET oder Schätzung/Feldtest' });
+  if (!hasDate) missing.push({ key: 'test_date', label: 'Datum der Messung' });
+  if (!hasAge) missing.push({ key: 'player_age', label: 'Alter des Spielers' });
+  if (!hasPosition) missing.push({ key: 'playing_position', label: 'Spielposition' });
+  if (!hasTrainingContext) missing.push({ key: 'training_context', label: 'Trainingsstatus bzw. Trainingsniveau' });
+
+  const methodNote = directMethod
+    ? 'Das Verfahren ist als direkte CPET-/Spiroergometrie-Messung angegeben.'
+    : estimatedMethod
+      ? 'Der Wert wird als Schätzung bzw. Feldtestwert behandelt und nicht als direkte CPET-Messung.'
+      : 'Ohne Testverfahren kann ich direkte Messwerte und Schätzwerte nicht gleichsetzen.';
+  const missingText = missing.length
+    ? 'Bitte ergänze noch: ' + missing.map(item => item.label).join('; ') + '.'
+    : 'Die wichtigsten Angaben sind vorhanden. Ich kann die Einordnung anschließend mit Messmethode, Kontext und Datenqualität vornehmen.';
+  return {
+    reply: 'Für eine konkrete Einordnung eines Spielers brauche ich die folgenden Angaben. ' + methodNote + ' ' + missingText
+      + ' Ein absoluter Wert in L/min müsste zusätzlich mit der Körpermasse in Beziehung gesetzt werden. Aus der VO₂max allein erstelle ich keinen Gesamt-, Positions- oder Talent-Score.',
+    follow_up: {
+      kind: 'vo2max_player_application',
+      required_inputs: missing.map(item => item.key),
+      missing_inputs: missing.map(item => item.label),
+      method_classification: directMethod ? 'direct_cpet' : estimatedMethod ? 'estimated_or_field_test' : 'not_provided',
+      player_context: { age_available: hasAge, position_available: hasPosition, training_context_available: hasTrainingContext },
+      score_created: false,
+      estimated_value_created: false
+    }
+  };
+}
