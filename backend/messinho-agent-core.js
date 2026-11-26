@@ -23,9 +23,9 @@ export function validateMessinhoAgentRun(plan,run) {
    missing_inputs:[...new Set(results.flatMap(item=>Array.isArray(item?.missing_inputs)?item.missing_inputs:[]))],
    evidence_policy:'Only supplied database facts and server-validated research bundles are accepted; generated prose is not evidence.'};
 }
-export async function executeMessinhoAgentPlan({plan,input={},role='scout',budgetMs=MAX_AGENT_EXECUTION_BUDGET_MS,onStep}={}) {
+export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scout',budgetMs=MAX_AGENT_EXECUTION_BUDGET_MS,onStep}={}) {
  const started=Date.now(),budget=Math.max(250,Math.min(MAX_AGENT_EXECUTION_BUDGET_MS,Number(budgetMs)||MAX_AGENT_EXECUTION_BUDGET_MS));
- let state={phase:'planning',goal:plan?.goal||'',trace:[]};
+ let state={phase:'planning',goal:goal||plan?.goal||'',trace:[]};
  state.trace=addEvent(state.trace,'plan_accepted',{steps:plan?.steps?.length||0,role});
  if(!plan||plan.denied||!Array.isArray(plan.steps)||!plan.steps.length){
    const phase=plan?.denied?'blocked':'needs_clarification';
