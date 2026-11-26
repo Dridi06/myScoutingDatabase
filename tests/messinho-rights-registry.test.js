@@ -53,9 +53,11 @@ test('rights verification rejects incomplete attribution and licence evidence',(
 
 test('only exact work-level CC BY 4.0 sources are allowlisted for commercial TDM',()=>{
   assert.equal(getMessinhoVerifiedSourceRightsCount(),4);
-  assert.equal(verifyMessinhoSourceRights(collegeAlgebra),true);
+  const registered=getMessinhoVerifiedSourceRightsForUrl(collegeAlgebra.evidence_url);
+  assert.ok(registered);
+  assert.equal(verifyMessinhoSourceRights(registered),true);
   assert.equal(isMessinhoRegisteredSourceUrl(collegeAlgebra.source_id,collegeAlgebra.evidence_url),true);
-  assert.equal(getMessinhoVerifiedSourceRightsForUrl(collegeAlgebra.evidence_url)?.source_id,collegeAlgebra.source_id);
+  assert.equal(registered.source_id,collegeAlgebra.source_id);
 });
 
 test('source allowlist rejects URL scope escalation and non-HTTPS locations',()=>{
