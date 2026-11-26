@@ -1780,3 +1780,13 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - **Important limitation:** this is the atomic claim primitive only. No background worker, task opt-in UI/API, execution/resume loop, lease renewal, or lease-token guarded finalization has been connected yet. No existing task can be picked up by the new function unless explicitly opted in.
 - **Release:** no Render deployment was triggered. STAGING Render auto-deploy remains disabled. Production, main, production Supabase, PFMS and PFSS remain untouched.
 - **Next:** implement an explicit owner-authorized opt-in path, strict read-only capability allowlist, lease-token guarded worker lifecycle, bounded retry/failure handling and tests; only then enable worker in STAGING behind a dedicated environment flag.
+## 2026-11-26 — MESSINHO worker implementation checkpoint
+
+- Added `backend/messinho-background-worker.js`: explicitly gated to Render, the exact configured staging service ID, an explicit enable flag, and Supabase service credentials. Production service IDs cannot pass the staging equality check.
+- Atomic RPC claim is used; only tasks with `autonomous_resume_enabled=true` are claimable. Execution is restricted to a small, explicit read-only capability allowlist.
+- Task completion, retry and rejection writes are owner-scoped and additionally require the exact worker claim and lease token. Retry uses capped exponential backoff and four-attempt ceiling. User-input gaps move to `waiting_for_input`.
+- Added authenticated owner-only endpoint `POST /api/messinho/tasks/:taskId/autonomous-resume`; it rejects unsafe capabilities, expired tasks, invalid states and exhausted attempts before explicit opt-in.
+- Worker is started at server boot but remains disabled unless all staging env gates are set. SIGTERM/SIGINT stop it.
+- Added `tests/messinho-background-worker.test.js` covering staging gate, explicit opt-in, read-only allowlist, lease-token completion and unsafe-task rejection.
+- Commits: worker `02dfff83d923cac8225e45a8ad6ae71bfa733243`; tests `3aadc41e7847b9209eb4123e63960d2ece98d601`; server integration `f67648f274c945227dca606080767b2780350fcb`.
+- **Not yet live:** no Render environment flag has been enabled and no deployment has been triggered. Keep auto-deploy disabled. Next: run CI/build, configure only STAGING `MESSINHO_AUTONOMY_WORKER_ENABLED=true` and `MESSINHO_STAGING_RENDER_SERVICE_ID=srv-dc3chlqjnfac73acd6ig`, manually deploy STAGING, verify health and worker startup. Production and all PFMS/PFSS systems untouched.
