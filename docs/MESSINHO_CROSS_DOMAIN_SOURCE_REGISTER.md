@@ -24,9 +24,9 @@ The project is Germany-based and may be used commercially. A statement that a US
 - Reviewer, review date, expiry/review date, decision rationale and status.
 - Status values: `candidate`, `quarantined`, `verified_permitted`, `rejected`, `expired`, `revoked`.
 
-## Initial candidate register — not approved for ingestion
+## Source register — quarantined candidates and individually approved works
 
-| Candidate ID | Work / source | Domain | Evidence currently located | Open rights checks | Status |
+| Source ID | Work / source | Domain | Evidence currently located | Open rights checks / permitted processing | Status |
 |---|---|---|---|---|---|
 | `candidate_nist_sp800_30r1` | NIST SP 800-30 Rev. 1 — *Guide for Conducting Risk Assessments* (2012) | Risk management | NIST identifies the final work, authoring group, date and DOI. NIST states its own publications are public domain and not subject to US copyright. | Confirm international rights position for commercial use from Germany; verify no third-party material in the exact edition; record exact download/processing conditions and attribution. | `quarantined` |
 | `candidate_nist_sp800_37r2` | NIST SP 800-37 Rev. 2 — *Risk Management Framework for Information Systems and Organizations* (2018) | Risk management / governance | NIST identifies the final work, authoring group, date and DOI. NIST's general copyright statement applies to NIST-authored publications, subject to work-specific notices. | Confirm international rights position; inspect exact final PDF for third-party material and notices; document commercial AI/TDM and adaptation assessment. | `quarantined` |
