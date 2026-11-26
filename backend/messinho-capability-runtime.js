@@ -482,7 +482,7 @@ function researchHandler(id,input){
    if(value===null||value===undefined)return missingResult(id,[field]);
    const text=String(Array.isArray(value)?value.join(' '):value);
    const supported=input._trusted_source_bundle===true&&messinhoValueSupported(text,evidenceUrls(input),sources,claims);
-   return result(id,supported?'verified':'unverified',{field,value,supported,source_count:sources.length,source_origin:input._trusted_source_bundle===true?'server_retrieved_ASI':'untrusted_request_payload',rule:'Verification requires a matching claim in server-retrieved HTTPS source text.'});
+   return result(id,supported?'verified':'unverified',{field,value,supported,source_count:sources.length,source_origin:safeInput._trusted_source_bundle===true?'server_retrieved_ASI':'untrusted_request_payload',rule:'Verification requires a matching claim in server-retrieved HTTPS source text.'});
  }
  if(id==='video_source_research'){
    const licensed=sources.filter(s=>s.license_status==='licensed'||s.license_status==='owned'||s.usage_rights==='confirmed');
@@ -531,15 +531,16 @@ export function listExecutableMessinhoCapabilities(){
  })}));
 }
 function buildMessinhoCapabilityProvenance(id,input,output){
- const player=getPlayer(input),metrics=metricEntries(player);
+ const safeInput=input&&typeof input==='object'&&!Array.isArray(input)?input:{};
+ const player=getPlayer(safeInput),metrics=metricEntries(player);
  const records=[...(player?.player_id!==undefined?[{type:'player',id:player.player_id}]:[]),
-   ...getPlayers(input).slice(0,100).map(item=>({type:'player',id:item.player_id??item.id??null})).filter(item=>item.id!==null)];
- const sources=sourceBundle(input).map(source=>{
-   const assessment=assessMessinhoSource(source,{now:input.now||Date.now()});
+   ...getPlayers(safeInput).slice(0,100).map(item=>({type:'player',id:item.player_id??item.id??null})).filter(item=>item.id!==null)];
+ const sources=sourceBundle(safeInput).map(source=>{
+   const assessment=assessMessinhoSource(source,{now:safeInput.now||Date.now()});
    return {title:source.title||null,url:source.url||null,host:assessment.host||null,
      url_valid:assessment.url_valid,secure_transport:assessment.secure_transport};
  });
- const outcomes=verifiedOutcomes(input);
+ const outcomes=verifiedOutcomes(safeInput);
  const claims=metrics.map(metric=>({kind:'observed_metric',field:metric.key,normalized_value:metric.value,
    raw_value:metric.raw&&typeof metric.raw==='object'?(metric.raw.score??metric.raw.value??null):metric.raw}));
  if(output?.result&&typeof output.result==='object'){
@@ -554,7 +555,7 @@ function buildMessinhoCapabilityProvenance(id,input,output){
    source_evidence:sources,verified_outcome_count:outcomes.length,
    claims,limitations:[
      'Interpretations and calculated scores are derived outputs, not primary evidence.',
-     ...(input._trusted_source_bundle===true?[]:['External source claims are not treated as verified unless a dedicated verifier returns verified.']),
+     ...(safeInput._trusted_source_bundle===true?[]:['External source claims are not treated as verified unless a dedicated verifier returns verified.']),
      ...(metrics.length?[]:['No player performance metrics were supplied for this capability.'])
    ]};
 }
