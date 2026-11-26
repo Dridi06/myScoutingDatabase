@@ -102,6 +102,9 @@ export async function storeMessinhoKnowledgeConcept(db,input,now=new Date()){
  }catch(error){console.warn('MESSINHO knowledge concept persistence unavailable:',error.code||error.message||'unknown');return {persisted:false,reason:'storage_unavailable'};}
 }
 
+const CANONICAL_CONCEPT_MATCHERS=[
+ {key:'sports_science.physiology.vo2max',pattern:/\\b(vo\\s*[₂2]\\s*max|vo2max|vo₂max|maximale sauerstoffaufnahme|kardiorespiratorische fitness|cardiorespiratory fitness)\\b/i}
+];
 export async function findMessinhoKnowledgeConcepts(db,question,{limit=6}={}){
  if(!db)return {status:'unavailable',items:[]};
  const domain=classifyMessinhoKnowledgeDomain(question);
@@ -111,7 +114,20 @@ export async function findMessinhoKnowledgeConcepts(db,question,{limit=6}={}){
    .eq('knowledge_status','active').in('domain',[domain,'general']).or('valid_until.is.null,valid_until.gt.'+new Date().toISOString())
    .order('confidence',{ascending:false}).limit(150);
   if(error)throw error;
-  const items=rank(question,data||[],limit).map(item=>({...item.record,relevance:Number(item.score.toFixed(3))}));
+  const ranked=rank(question,data||[],limit);
+  // Canonical, approved foundations must be retrievable even when a natural
+  // language question contains several explanatory words and only one exact
+  // technical concept anchor. Do not let lexical dilution hide active memory.
+  const canonical=CANONICAL_CONCEPT_MATCHERS.find(item=>item.pattern.test(String(question||'')));
+  if(canonical&&!ranked.some(item=>item.record.concept_key===canonical.key)){
+   const {data:exact,error:exactError}=await db.from('messinho_knowledge_concepts')
+    .select('id,concept_key,domain,topic,title,definition,knowledge_level,knowledge_type,parent_concept_key,prerequisites,formula,formula_variables,applicability,limitations,claims,sources,rights,evidence_grade,confidence,version,valid_from,valid_until,review_due_at')
+    .eq('knowledge_status','active').eq('concept_key',canonical.key)
+    .or('valid_until.is.null,valid_until.gt.'+new Date().toISOString()).limit(1);
+   if(exactError)throw exactError;
+   if(Array.isArray(exact)&&exact[0])ranked.unshift({record:exact[0],score:1});
+  }
+  const items=ranked.map(item=>({...item.record,relevance:Number(item.score.toFixed(3))})).slice(0,Math.max(1,Math.min(12,limit)));
   if(!items.length)return {status:'miss',items:[]};
   const ids=items.map(item=>item.id);
   const links=await db.from('messinho_knowledge_links').select('from_concept_id,to_concept_id,relation_type,rationale').or('from_concept_id.in.('+ids.join(',')+'),to_concept_id.in.('+ids.join(',')+')');
