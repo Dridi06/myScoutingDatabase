@@ -18,6 +18,13 @@ export function verifyMessinhoSourceRights(rights = {}) {
   return rights.status === 'verified_permitted' && rights.ai_tdm === true && rights.commercial_use === true && rights.derivative_use === true;
 }
 
+export function isMessinhoRegisteredSourceUrl(sourceId, url) {
+  if (typeof url !== 'string' || !/^https:\/\//i.test(url)) return false;
+  const entry = VERIFIED_SOURCE_RIGHTS.find(item => item.source_id === sourceId && item.status === 'verified_permitted');
+  if (!entry || !Array.isArray(entry.source_url_prefixes) || !entry.source_url_prefixes.length) return false;
+  return entry.source_url_prefixes.some(prefix => typeof prefix === 'string' && /^https:\/\//i.test(prefix) && url.startsWith(prefix));
+}
+
 export function getMessinhoVerifiedSourceRightsCount() {
   return VERIFIED_SOURCE_RIGHTS.filter(item => item.status === 'verified_permitted').length;
 }
