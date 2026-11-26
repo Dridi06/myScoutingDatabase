@@ -32,7 +32,7 @@ export function buildMessinhoKnowledgeConcept(input={},now=new Date()){
   if(!rights||!verifyMessinhoSourceRights(rights)||source.source_id!==rights.source_id||!isMessinhoRegisteredSourceUrl(rights.source_id,source.url))continue;
   const url=clean(source.url,600),host=(()=>{try{return new URL(url).hostname.replace(/^www\./i,'').toLowerCase();}catch{return '';}})();
   if(!host||sources.some(item=>item.url===url))continue;
-  sources.push({source_id:rights.source_id,title:clean(source.title,220),url,host,section:clean(source.section,180)||null,edition:clean(source.edition||rights.edition,120)||null,license:clean(rights.license,120),license_url:clean(rights.license_url,600),tdm_evidence_url:clean(rights.tdm_evidence_url,600),attribution:clean(rights.attribution,500),reviewed_at:clean(rights.reviewed_at,40)||null,retrieval_method:clean(source.retrieval_method||rights.retrieval_method,80)||null,retrieval_url:clean(rights.retrieval_url,600)||null,changes_made:true,accessed_at:new Date(now).toISOString()});
+  sources.push({source_id:rights.source_id,title:clean(source.title,220),url,host,section:clean(source.section,180)||null,edition:clean(source.edition||rights.edition,120)||null,license:clean(rights.license,120),license_url:clean(rights.license_url,600),tdm_evidence_url:clean(rights.tdm_evidence_url,600),attribution:clean(rights.attribution,500),retrieval_method:clean(source.retrieval_method||rights.retrieval_method,80)||null,retrieval_url:clean(rights.retrieval_url,600)||null,changes_made:true,accessed_at:new Date(now).toISOString()});
  }
  const independentHosts=[...new Set(sources.map(source=>source.host))];
  if(sources.length<1||independentHosts.length<1)return {eligible:false,reason:'one_rights_verified_source_required'};
