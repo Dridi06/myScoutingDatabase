@@ -243,7 +243,46 @@ function isIncompleteStatus(status) {
   return ['insufficient_data','error','denied','invalid_input','unknown_capability','unverified','needs_review','no_reliable_improvement'].includes(status);
 }
 
-export async function runMessinhoCapabilityPlan(plan,input={},role='scout',options={}) {
+export function runMessinhoCapabilityPlan(plan,input={},role='scout') {
+  if (!plan || plan.denied) return {
+    status:'denied',results:[],blocked_capabilities:plan?.blocked_capabilities||[],
+    model_weights_changed:false,provider_independent:true,replan_recommended:false
+  };
+  const results=[];
+  const baseInput={...(input&&typeof input==='object'&&!Array.isArray(input)?input:{})};
+  let chainedInput={...baseInput};
+  const steps=(plan.steps||[]).slice(0,MAX_CAPABILITY_STEPS);
+  for (const id of steps) {
+    if (ADMIN_ONLY.has(id)&&role!=='admin') {
+      results.push({capability_id:id,status:'denied',missing_permissions:['admin']});
+      continue;
+    }
+    try {
+      const output=executeMessinhoCapability(id,chainedInput);
+      results.push(output);
+      chainedInput={...baseInput,_previous_capability_results:results.slice(-MAX_CAPABILITY_STEPS),
+        _previous_capability_result:output,_capability_execution_index:results.length};
+    } catch (error) {
+      results.push({capability_id:id,status:'error',error:'Der Arbeitsschritt konnte nicht abgeschlossen werden.',
+        error_code:error?.code||'CAPABILITY_EXECUTION_ERROR'});
+    }
+  }
+  const completed=results.filter(item=>isUsefulStatus(item.status)).length;
+  const incomplete=results.filter(item=>isIncompleteStatus(item.status));
+  const replanRecommended=incomplete.some(item=>item.status==='insufficient_data'||item.status==='error');
+  const status=completed===0?(incomplete.length?'insufficient_data':'completed'):
+    incomplete.length||plan.blocked_capabilities?.length||plan.deferred_capabilities?.length?'partial':'completed';
+  return {status,label:plan.label,goal:plan.goal,matched_intents:plan.matched_intents||[],
+    discovered_capabilities:plan.discovered_capabilities||plan.steps||[],results,
+    completed_steps:completed,total_steps:results.length,blocked_capabilities:plan.blocked_capabilities||[],
+    deferred_capabilities:plan.deferred_capabilities||[],
+    missing_inputs:unique(results.flatMap(item=>item.missing_inputs||[])),
+    replan_recommended:replanRecommended,provider_independent:true,model_weights_changed:false,
+    execution_policy:{max_steps:MAX_CAPABILITY_STEPS,admin_guard_enforced:true,source_data_mutated:false,
+      model_weights_mutated:false,previous_results_used_as_untrusted_context:true}};
+}
+
+export async function runMessinhoCapabilityPlanAsync(plan,input={},role='scout',options={}) {
   const started=Date.now();
   const budgetMs=Math.max(250,Math.min(8000,Number(options.budgetMs)||8000));
   if (!plan || plan.denied) return {
