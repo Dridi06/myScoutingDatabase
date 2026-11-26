@@ -13,11 +13,52 @@ function trustedEvidenceRow(row,now){
     (!row.valid_until||Date.parse(row.valid_until)>now));
 }
 
+
+export function extractMessinhoGoalFilters(goal,now=Date.now()){
+  const text=String(goal||'').normalize('NFKC').toLocaleLowerCase('de-DE');
+  const filters={};
+  const positionRules=[
+    {pattern:/\\b(stürmer|sturm|striker|forward|centre forward|center forward)\\b/,value:'Stürmer'},
+    {pattern:/\\b(torwart|torhüter|keeper|goalkeeper)\\b/,value:'Torwart'},
+    {pattern:/\\b(innenverteidiger|innenverteidigung|centre back|center back)\\b/,value:'Innenverteidiger'},
+    {pattern:/\\b(außenverteidiger|aussenverteidiger|full back|fullback)\\b/,value:'Außenverteidiger'},
+    {pattern:/\\b(mittelfeld|mittelfeldspieler|midfielder)\\b/,value:'Mittelfeld'},
+    {pattern:/\\b(flügelspieler|fluegelspieler|winger)\\b/,value:'Flügelspieler'}
+  ];
+  const position=positionRules.find(rule=>rule.pattern.test(text));
+  if(position)filters.position=position.value;
+  const between=text.match(/\\bzwischen\\s+(\\d{1,2})\\s+(?:und|bis)\\s+(\\d{1,2})\\s*(?:jahre?n? alt)?\\b/);
+  if(between){
+    filters.min_age=Math.min(Number(between[1]),Number(between[2]));
+    filters.max_age=Math.max(Number(between[1]),Number(between[2]));
+  }else{
+    const under=text.match(/\\b(?:unter|jünger als)\\s+(\\d{1,2})\\b/);
+    const max=text.match(/\\b(?:bis|maximal|höchstens|u)\\s*(\\d{1,2})\\b/);
+    const min=text.match(/\\b(?:ab|mindestens)\\s+(\\d{1,2})\\b/);
+    if(under)filters.max_age=Math.max(0,Number(under[1])-1);
+    else if(max)filters.max_age=Number(max[1]);
+    if(min)filters.min_age=Number(min[1]);
+  }
+  const years=text.match(/\\bjahrgang\\s+(\\d{4})\\s*(?:bis|[-–])\\s*(\\d{4})\\b/);
+  if(years){
+    filters.birth_year_from=Math.min(Number(years[1]),Number(years[2]));
+    filters.birth_year_to=Math.max(Number(years[1]),Number(years[2]));
+  }
+  if(filters.min_age!==undefined&&filters.max_age!==undefined&&filters.min_age>filters.max_age){
+    const swap=filters.min_age;filters.min_age=filters.max_age;filters.max_age=swap;
+  }
+  if(filters.max_age===undefined&&/\\bu ?21\\b/.test(text))filters.max_age=21;
+  return filters;
+}
+
 export function buildMessinhoCapabilityContext({
   player,players=[],observations=[],events=[],evidence=[],candidateEvidence=[],contracts=[],
-  calibration=[],playerDirectory=[],predictions=[],predictionOutcomes=[],sourceRegistry=[],now=Date.now()
+  calibration=[],playerDirectory=[],predictions=[],predictionOutcomes=[],sourceRegistry=[],goal='',now=Date.now()
 }){
   const context={player,players:asArray(players),candidates:asArray(players)};
+  context.filters=extractMessinhoGoalFilters(goal,now);
+  if(context.filters.max_age!==undefined)context.max_age=context.filters.max_age;
+  if(context.filters.min_age!==undefined)context.min_age=context.filters.min_age;
   const history=asArray(observations).map(row=>{
     const ratings=row.ratings&&typeof row.ratings==='object'?row.ratings:{};
     const score=scoreMessinhoPlayer({...player,ratings}).score;
