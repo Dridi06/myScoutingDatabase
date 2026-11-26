@@ -75,10 +75,12 @@ test('verified domain knowledge is passed as explanatory context but never chang
  const score=executeMessinhoCapability('overall_score',{player:{name:'Test',positions:['Stürmer'],ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4}},goal:'medizinische Bewertung',_messinho_domain_knowledge:[knowledge]});
  assert.equal(score.status,'completed');
  assert.equal(score.knowledge_context,undefined,'medical reference knowledge must not affect talent scoring');
- const report=executeMessinhoCapability('holistic_player_analysis',{player:{name:'Test',positions:['Stürmer'],ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4}},goal:'sportmedizinische Einordnung',_messinho_domain_knowledge:[knowledge]});
+ const concept={domain:'medicine',title:'Verletzungsprävention',definition:'Eine evidenzbasierte Prävention verbindet Belastungssteuerung, individuelle Vorgeschichte und geeignete Präventionsmaßnahmen.',knowledge_level:'specialist',knowledge_type:'principle',formula:null,limitations:['Keine Diagnose oder medizinische Freigabe.'],claims:['Prävention benötigt eine individuelle Belastungssteuerung.'],sources:[{title:'Permitted source A',url:'https://example.org/a'},{title:'Permitted source B',url:'https://example.net/b'}],rights:{status:'verified_permitted',ai_tdm:true,commercial_use:true,derivative_use:true},valid_from:'2026-11-26T00:00:00.000Z',confidence:0.96};
+ const report=executeMessinhoCapability('holistic_player_analysis',{player:{name:'Test',positions:['Stürmer'],ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4}},goal:'sportmedizinische Einordnung',_messinho_domain_knowledge:[knowledge],_messinho_knowledge_concepts:[concept]});
  assert.equal(report.knowledge_context.mode,'verified_reference_context');
  assert.equal(report.knowledge_context.applied_to_explanation_only,true);
  assert.equal(report.knowledge_context.score_or_model_weights_changed,false);
+ assert.ok(report.knowledge_context.entries.some(item=>item.knowledge_level==='specialist'&&item.formula===null));
 });
 test('unverified or incomplete knowledge records are never passed into capability results',()=>{
  const bad={domain:'medicine',question:'Medical',content:'Unverified text',sources:[{title:'Source',url:'https://example.org'}],rights:{status:'unknown',ai_tdm:false}};
