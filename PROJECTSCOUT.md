@@ -1009,3 +1009,14 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - **Commits:** helper `0724f2a7f3de4cbcb359882e3f6b216dc8c22def`; server integration `1653bcf6dba39a33ddebee9f1258e8f8e62c8947`; tests `1e79947be49b548fbd151cd1bafffbf2d5530cba`.
 - **Release boundary:** candidate branch only. No deployment yet. Production untouched.
 - **Next:** run full tests, backend syntax and frontend build; inspect failures; deploy only to Staging when all gates pass. After deployment test “Hallo”, “Wie geht's?” and the quota-error message. General everyday Q&A still relies on the existing provider conversation path; the new deterministic local layer covers common social exchanges.
+
+### Deployment result — 2026-11-26 04:12 UTC
+
+- Corrected Unicode/punctuation normalization in `backend/messinho-conversation.js`; regression tests now pass.
+- Latest checks on commit `e8c50cd73df80eded041b1b8d85764618a13a80d`:
+  - MESSINHO backend syntax — success (run 45753592808)
+  - MESSINHO Node tests — success (run 45753592864)
+  - ASI quality checks / frontend build — success (run 45753592776)
+- Render Staging deploy `dep-dc3r306c6qcc73blp3a0` reached status `live` at 2026-11-26 04:12:17 UTC on exact commit `e8c50cd`.
+- Production untouched. Open PR #47 remains draft/unmerged.
+- Remaining validation: authenticated UI test “Hallo” → greeting; “Wie geht’s?” → natural reply; quota-exhausted discovery → clear user-facing explanation. Full autonomous scouting remains blocked until OpenAI API quota is replenished.
