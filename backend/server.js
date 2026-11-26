@@ -27,7 +27,7 @@ import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMe
 import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
 import { findMessinhoDomainKnowledge } from './messinho-domain-knowledge.js';
-import { findMessinhoKnowledgeConcepts, storeMessinhoKnowledgeConcept } from './messinho-knowledge-graph.js';
+import { findMessinhoKnowledgeConcepts, storeMessinhoKnowledgeConcept, reviewMessinhoKnowledgeConcept } from './messinho-knowledge-graph.js';
 import { verifyMessinhoSourceRights, isMessinhoRegisteredSourceUrl } from './messinho-rights-registry.js';
 import { calculateMessinhoMathQuestion } from './messinho-math.js';
 import { startMessinhoBackgroundWorker, MESSINHO_BACKGROUND_READ_ONLY } from './messinho-background-worker.js';
@@ -1753,6 +1753,41 @@ app.post('/api/agent/tasks/:taskId/resume',async(req,res)=>{
 });
 // The capability catalogue endpoint is already registered above. Do not register it twice.
 
+const knowledgeReviewLimiter=rateLimit({windowMs:60*60*1000,limit:30,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Wissensprüfungen in kurzer Zeit. Bitte später erneut versuchen.'}});
+async function requireKnowledgeAdmin(req,res){
+ if(!db){res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});return null;}
+ const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+ if(!token){res.status(401).json({error:'Anmeldung erforderlich.'});return null;}
+ const {data:authData,error:authError}=await db.auth.getUser(token);
+ if(authError||!authData?.user){res.status(401).json({error:'Sitzung ungültig oder abgelaufen.'});return null;}
+ const {data:profile,error}=await db.from('profiles').select('id,role,approved,approval_status').eq('id',authData.user.id).maybeSingle();
+ if(error||!profile||profile.role!=='admin'||profile.approved!==true||profile.approval_status!=='approved'){
+  res.status(403).json({error:'Nur freigegebene Administratoren dürfen Fachwissen prüfen.'});return null;
+ }
+ return {user:authData.user,profile};
+}
+app.get('/api/admin/messinho/knowledge/review-queue',knowledgeReviewLimiter,async(req,res)=>{
+ try{
+  const admin=await requireKnowledgeAdmin(req,res);if(!admin)return;
+  const [candidates,conflicts]=await Promise.all([
+   db.from('messinho_knowledge_concepts').select('id,concept_key,domain,topic,title,definition,knowledge_level,knowledge_type,parent_concept_key,prerequisites,formula,claims,sources,rights,evidence_grade,confidence,knowledge_status,version,created_at').in('knowledge_status',['candidate','conflicting']).order('created_at',{ascending:false}).limit(100),
+   db.from('messinho_knowledge_conflicts').select('id,concept_id,proposed_concept,evidence,conflict_reason,status,created_at').eq('status','open').order('created_at',{ascending:false}).limit(100)
+  ]);
+  if(candidates.error||conflicts.error)return res.status(500).json({error:'Die Wissensprüfliste konnte nicht geladen werden.'});
+  return res.json({candidates:candidates.data||[],conflicts:conflicts.data||[]});
+ }catch(error){console.error('MESSINHO knowledge review queue failed:',error.message);return res.status(500).json({error:'Die Wissensprüfliste ist vorübergehend nicht verfügbar.'});}
+});
+app.post('/api/admin/messinho/knowledge/:id/review',knowledgeReviewLimiter,async(req,res)=>{
+ try{
+  const admin=await requireKnowledgeAdmin(req,res);if(!admin)return;
+  const result=await reviewMessinhoKnowledgeConcept(db,{concept_id:req.params.id,decision:req.body?.decision,reason:req.body?.reason,reviewer_id:admin.user.id});
+  if(!result.reviewed){
+   const status=result.reason==='concept_not_found'?404:result.reason==='review_storage_unavailable'?500:409;
+   return res.status(status).json({error:'Die Wissensfreigabe wurde nicht durchgeführt.',reason:result.reason});
+  }
+  return res.json({success:true,review:result});
+ }catch(error){console.error('MESSINHO knowledge review failed:',error.message);return res.status(500).json({error:'Die Wissensfreigabe ist fehlgeschlagen.'});}
+});
 const agentChatLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:true,legacyHeaders:false,message:{error:'Messinho wurde in kurzer Zeit zu häufig angesprochen. Bitte später erneut versuchen.'}});
 app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
   try{
