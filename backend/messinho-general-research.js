@@ -21,7 +21,7 @@ export function isMessinhoGeneralClaimSupported(claim,sources=[]){
 export function isMessinhoGeneralResearchQuestion(message){
  const text=clean(message,700),n=normalize(text);
  if(n.length<12||n.length>700)return false;
- if(/\\b(wieso|warum)\\s+(startest|fängst|faengst|beginnst)\\s+du\\b|\\bdu\\s+(hast|machst|erledigst|beginnst|startest)\\b|\\b(nicht\\s+fertig|noch\\s+nicht\\s+fertig|abgeschickt|abgesendet|unterbrochen|neu\\s+angefangen)\\b/i.test(text))return false;
+ if(/\b(wieso|warum)\s+(startest|fängst|faengst|beginnst)\s+du\b|\bdu\s+(hast|machst|erledigst|beginnst|startest)\b|\b(nicht\s+fertig|noch\s+nicht\s+fertig|abgeschickt|abgesendet|unterbrochen|neu\s+angefangen)\b/i.test(text))return false;
  if(/\b(hallo|hi|hey|moin|guten morgen|guten tag|guten abend|danke|tsch[uü]ss|ciao|wer bist du|wie geht es dir)\b/i.test(text))return false;
  if(/\b(suche|such|scoute|recherchiere|analysiere|vergleiche|bewerte|erstelle|kandidat|shortlist|spieler|talent|transfer|marktwert|datenbank|position|jahrgang|u\s?\d{1,2})\b/i.test(text))return false;
  return /[?]$/.test(text)||/^(wer|was|wie|warum|wieso|weshalb|wann|wo|wodurch|woraus|erkl[aä]re|beschreibe|nenn|nenne|gib mir|ist |sind |kann |k[oö]nnen )/i.test(text);
