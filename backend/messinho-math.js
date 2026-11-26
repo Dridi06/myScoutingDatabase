@@ -36,6 +36,20 @@ function probability(q){
  if(/bayes|bedingte wahrscheinlichkeit/i.test(q)&&[p.a,p.b,p.c].every(x=>Number.isFinite(x)&&x>=0&&x<=1)){
   const v=p.b*p.a/(p.b*p.a+p.c*(1-p.a));return out('probability','Bayes-Update',v*100,'P(A|B)=P(B|A)P(A)/[P(B|A)P(A)+P(B|¬A)P(¬A)]',['Prior = '+p.a,'Sensitivität = '+p.b,'Falsch-Positiv-Rate = '+p.c],{unit:'%',probability:v});
  }
+ if(/hypergeometr/i.test(q)&&Number.isInteger(p.population)&&Number.isInteger(p.successes)&&Number.isInteger(p.draws)&&Number.isInteger(p.k)&&p.population>0&&p.successes>=0&&p.successes<=p.population&&p.draws>=0&&p.draws<=p.population&&p.k>=0&&p.k<=p.draws){
+  const N=p.population,K=p.successes,n=p.draws,k=p.k,mode=/mindestens/.test(q)?'at_least':/höchstens|hoechstens/.test(q)?'at_most':'exact';let sum=0;
+  for(let j=0;j<=n;j++)if((mode==='exact'&&j===k)||(mode==='at_least'&&j>=k)||(mode==='at_most'&&j<=k))sum+=choose(K,j)*choose(N-K,n-j)/choose(N,n);
+  return out('probability','Hypergeometrische Wahrscheinlichkeit',sum*100,'P(X=k)=C(K,k)·C(N−K,n−k)/C(N,n)',['Population N = '+N,'Davon Erfolge K = '+K,'Stichprobe n = '+n,'Gesucht: '+mode+' '+k+' Treffer'],{unit:'%',probability:sum,assumptions:['Ziehen ohne Zurücklegen aus einer endlichen Population.']});
+ }
+ if(/normalverteilung|normal distribution/i.test(q)&&Number.isFinite(p.mu)&&Number.isFinite(p.sigma)&&p.sigma>0&&Number.isFinite(p.x)){
+  const z=(p.x-p.mu)/p.sigma,v=normalCdf(z);return out('probability','Kumulative Normalverteilung',v*100,'P(X ≤ x)=Φ((x−μ)/σ)',['Mittelwert μ = '+p.mu,'Standardabweichung σ = '+p.sigma,'Grenzwert x = '+p.x,'z = '+z.toFixed(4)],{unit:'%',probability:v,distribution:{z_score:z,mean:p.mu,standard_deviation:p.sigma}});
+ }
+ if(/z.?score|standardwert/i.test(q)&&Number.isFinite(p.mu)&&Number.isFinite(p.sigma)&&p.sigma>0&&Number.isFinite(p.x)){
+  const z=(p.x-p.mu)/p.sigma;return out('statistics','z-Wert',z,'z = (x−μ)/σ',['x = '+p.x,'μ = '+p.mu,'σ = '+p.sigma]);
+ }
+ if(/kombination|binomialkoeffizient|n\s+über\s+k/i.test(q)&&Number.isInteger(p.n)&&Number.isInteger(p.k)&&p.n>=0&&p.k>=0&&p.k<=p.n){
+  const v=choose(p.n,p.k);return out('arithmetic','Kombination ohne Reihenfolge',v,'C(n,k)=n!/[k!(n−k)!]',['n = '+p.n,'k = '+p.k]);
+ }
  if(/wilson|konfidenzintervall|trefferquote.*intervall/i.test(q)&&Number.isInteger(p.n)&&Number.isInteger(p.k)&&p.n>0&&p.k>=0&&p.k<=p.n){
   const z=1.96,phat=p.k/p.n,z2=z*z,den=1+z2/p.n,center=(phat+z2/(2*p.n))/den,margin=z*Math.sqrt((phat*(1-phat)+z2/(4*p.n))/p.n)/den;
   return out('probability','95-%-Konfidenzintervall (Wilson)',phat*100,'Wilson-Intervall: (p̂ + z²/2n ± z·√(p̂(1−p̂)/n + z²/4n²)) / (1+z²/n)',['Erfolge = '+p.k+' von '+p.n+' Versuchen','Beobachtete Quote = '+(phat*100).toFixed(2)+' %','95-%-Intervall = '+(Math.max(0,center-margin)*100).toFixed(2)+' % bis '+(Math.min(1,center+margin)*100).toFixed(2)+' %'],{unit:'%',probability:phat,confidence_interval:{level:0.95,lower:Math.max(0,center-margin),upper:Math.min(1,center+margin)},scouting_interpretation:'Beschreibt statistische Unsicherheit der beobachteten Quote; keine individuelle Spielerprognose.'});
