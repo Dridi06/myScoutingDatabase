@@ -19,7 +19,7 @@ export function classifyMessinhoProviderFailure(status, payload = {}) {
 
 export function getMessinhoSmallTalkReply(message) {
   const text = String(message || '').normalize('NFKC').toLocaleLowerCase('de-DE')
-    .replace(/[’']/g, '').replace(/[^\\p{L}\\p{N}\\s]/gu, ' ').replace(/\\s+/g, ' ').trim();
+    .replace(/[’']/g, '').replace(/ü/g, 'u').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
   if (/^(hallo|hi|hey|guten morgen|guten tag|guten abend|moin|servus)( messinho)?$/.test(text)) {
     return 'Hallo! Schön, dass du da bist. Wie geht es dir?';
   }
