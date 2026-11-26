@@ -2474,3 +2474,35 @@ Mathematics; statistics; physics; biology; medicine; sports science; football; c
 - Exact official PDFs for *College Algebra 2e* (2021), *Introductory Statistics 2e* (2023), *University Physics Volume 1* (2021 PDF) and *Introductory Business Statistics 2e* state CC BY 4.0. These specific works have therefore been added as quarantined candidates, not approved works.
 - CC BY 4.0 permits commercial adaptation with attribution, but third-party content, required attribution/change notices and the intended AI/TDM processing must still be checked for each work. No source allowlist entries have been added.
 - Source register now contains 14 entries/resources; 0 approved works.
+
+
+## 2026-11-26 — Conflict-episode restoration hardening and source-rights audit
+
+### Conflict lifecycle correction
+- Code review found a multi-conflict edge case: if a second competing proposal arrived while a concept was already quarantined as `conflicting`, the second record could incorrectly save `conflicting` as the prior state. Closing the final conflict could then fail to restore the original `active` or `candidate` state.
+- Added migration source `supabase/migrations/20261126184821_messinho_knowledge_conflict_episode_state.sql` and applied it to STAGING (migration version `20261126184821`, name `messinho_knowledge_conflict_episode_state`).
+- The conflict RPC now carries forward the original pre-conflict state from the earliest still-open conflict in the same episode. It still locks the concept row, stores the competing proposal atomically and quarantines active knowledge until every open conflict is resolved.
+- Ran a STAGING SQL integration test inside a transaction and rolled it back: two simultaneous conflicts against an active concept both retained `previous_concept_status='active'`; resolving the first left the concept `conflicting`; resolving the final conflict restored `active`. No test records remained after rollback.
+- Post-test counts: concepts 0, conflicts 0, versions 0, reviews 0. Migration source filename now matches the applied STAGING migration version.
+
+### Rights research — source register
+- The source register now contains **16** individually described candidate works/resources; approved works remain **0** and the permanent rights allowlist remains **0**.
+- PLOS provides an unusually explicit TDM policy: its articles may be mined, reused and shared by anyone, anywhere, for any purpose. PLOS articles normally use CC BY or a comparable permissive licence. PLOS is recorded only as a discovery pool; every article still needs its own exact licence, rights-holder, third-party figure/supplement, DOI and correction/retraction checks. No bulk corpus download is permitted for this project.
+- OpenStax *Statistics* (Illowsky & Dean, 2020) is a work-level exception with CC BY 4.0 text, but the exact preface explicitly prohibits LLM training or ingestion into generative-AI offerings without prior written permission. It remains quarantined; a Creative Commons badge alone is not enough.
+- OpenIntro's CC BY-SA terms do not settle the separate current website automated AI/ML access clause. It remains quarantined pending legal review. The Dartmouth/CHANCE GNU FDL probability work remains quarantined pending copyleft/derivative-scope review.
+- Four other exact OpenStax works (College Algebra 2e, Introductory Statistics 2e, University Physics Vol. 1, Introductory Business Statistics 2e) have exact CC BY 4.0 notices but remain quarantined until their AI/TDM processing and third-party material are individually cleared.
+- No PDF, book, full text, OCR dump, article or bulk corpus was downloaded or stored. No source was added to the rights allowlist.
+
+### STAGING security and verification
+- Supabase security advisor findings: seven RLS-enabled MESSINHO/diagnostic tables intentionally have no browser policies because `anon`/`authenticated` grants are revoked; this is consistent with the server-only service-role access design.
+- Advisor also reported an unrelated pre-existing `admin_set_scout_approval(uuid,boolean)` SECURITY DEFINER function callable by `authenticated`, and leaked-password protection disabled. These were recorded for a separate security review and were not changed as part of this knowledge task.
+- Performance advisor reports unused indexes, including newly created knowledge indexes before any knowledge records exist; none were removed.
+- Dedicated Render STAGING service remains `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`), auto-deploy disabled. Latest confirmed live runtime at this checkpoint is deployment `dep-dc47t5vvdc3s73be8km0`, commit `8e06b553d34b51ca324db8bdd4d85b7f60611d5f`. Server startup and Supabase Data API HTTP 200 were confirmed. Subsequent commits in this checkpoint change documentation/migration source alignment only; latest feature-branch CI must be checked before any further deployment.
+- Production `main`, production Render/Supabase, player/scout data, active model weights, PFMS/PFSS and PR merge state remain untouched. PR #47 remains Draft/open/unmerged.
+
+### Next steps
+1. Verify Node tests and backend syntax for the latest branch HEAD after the migration filename alignment and source register count correction.
+2. Continue exact work-level legal review; do not enable the allowlist until the Germany-based commercial AI/TDM and adaptation rights are documented for each source.
+3. Begin the foundational curriculum only after approved works are available; populate atomic concepts with independent corroboration, formulas, limitations, prerequisite links and version provenance.
+4. Complete authenticated admin conflict-review and candidate-approval E2E tests, then authenticated chat retrieval and real scouting-capability tests on STAGING.
+5. Keep model-weight changes, scoring changes and production promotion behind their existing explicit approval gates.
