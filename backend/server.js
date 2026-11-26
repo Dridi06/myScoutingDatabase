@@ -1297,7 +1297,7 @@ app.post('/api/messinho/calibration/:recordId/review',messinhoFeedbackLimiter,as
     if(decision==='verify'){
       outcome=Number(body.verified_outcome);observedOn=String(body.observed_on||'');
       try{const url=new URL(String(body.source_url||''));if(url.protocol!=='https:'||url.username||url.password)throw new Error('invalid');sourceUrl=url.toString();}catch{return res.status(400).json({error:'Eine gültige HTTPS-Quelle ist erforderlich.'});}
-      if(!Number.isFinite(outcome)||outcome<0||outcome>100||!/^\\d{4}-\\d{2}-\\d{2}$/.test(observedOn)||observedOn>new Date().toISOString().slice(0,10))return res.status(400).json({error:'Ergebniswert oder Beobachtungsdatum ist ungültig.'});
+      if(!Number.isFinite(outcome)||outcome<0||outcome>100||!/^\d{4}-\d{2}-\d{2}$/.test(observedOn)||observedOn>new Date().toISOString().slice(0,10))return res.status(400).json({error:'Ergebniswert oder Beobachtungsdatum ist ungültig.'});
     }
     const {data,error}=await db.rpc('asi_review_scout_calibration',{
       p_record_id:req.params.recordId,p_decision:decision,p_reason:reason,
