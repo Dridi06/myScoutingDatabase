@@ -4,6 +4,7 @@
  */
 import { runMessinhoCapabilityPlanAsync } from './messinho-orchestrator.js';
 import { detectMessinhoKnowledgeGap } from './messinho-evolution.js';
+import { buildMessinhoPerformanceIntelligence } from './messinho-performance-intelligence.js';
 export const MESSINHO_AGENT_CORE_VERSION='1.0.0';
 export const MAX_AGENT_EXECUTION_BUDGET_MS=8000;
 const VALID_STATUSES=new Set(['completed','verified','proposal_ready','insufficient_data','error','denied','invalid_input','unknown_capability','unverified','needs_review','no_reliable_improvement']);
@@ -35,13 +36,15 @@ export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scou
      blocked_capabilities:plan?.blocked_capabilities||[],missing_inputs:[],replan_recommended:false,provider_independent:true,model_weights_changed:false},
      state,knowledge_gap:state.knowledge_gap||detectMessinhoKnowledgeGap(state.goal),validation:{valid:true,expected_steps:0,returned_steps:0}};
  }
- state={...state,phase:'executing',trace:addEvent(state.trace,'execution_started',{budget_ms:budget,max_steps:plan.steps.length})};
- let run=await runMessinhoCapabilityPlanAsync(plan,input,role,{budgetMs,onStep});
+ const performanceIntelligence=buildMessinhoPerformanceIntelligence(input,goal||plan.goal);
+ const agentInput={...input,_messinho_autonomous_performance_intelligence:performanceIntelligence};
+ state={...state,phase:'executing',trace:addEvent(state.trace,'execution_started',{budget_ms:budget,max_steps:plan.steps.length,performance_intelligence:'automatic'})};
+ let run=await runMessinhoCapabilityPlanAsync(plan,agentInput,role,{budgetMs,onStep});
  state.trace=addEvent(state.trace,'execution_finished',{status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,elapsed_ms:run.execution_trace?.elapsed_ms||Date.now()-started});
  const failed=(run.results||[]).filter(item=>item.status==='error').map(item=>item.capability_id);
  const remaining=budget-(Date.now()-started);
  if(failed.length&&remaining>=500){
-   const retry=await runMessinhoCapabilityPlanAsync({...plan,steps:failed,blocked_capabilities:[],deferred_capabilities:[]},input,role,{budgetMs:Math.min(2000,remaining)});
+   const retry=await runMessinhoCapabilityPlanAsync({...plan,steps:failed,blocked_capabilities:[],deferred_capabilities:[]},agentInput,role,{budgetMs:Math.min(2000,remaining)});
    const replacements=new Map((retry.results||[]).map(item=>[item.capability_id,item]));
    const retried=run.results.map(item=>replacements.get(item.capability_id)||item);
    const unresolved=retry.results.filter(item=>item.status==='error').map(item=>item.capability_id);
@@ -64,6 +67,6 @@ export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scou
  const phase=!validation.valid?'failed':hasInputs?'waiting_for_input':incomplete?'partial':'completed';
  state={...state,phase,completed_at:new Date().toISOString(),elapsed_ms:Date.now()-started};
  state.trace=addEvent(state.trace,'agent_cycle_closed',{phase,elapsed_ms:state.elapsed_ms});
- return {plan,run:{...run,agent_core_version:MESSINHO_AGENT_CORE_VERSION,validation,
+ return {plan,run:{...run,performance_intelligence:performanceIntelligence,agent_core_version:MESSINHO_AGENT_CORE_VERSION,validation,
    next_action:hasInputs?'ask_user_for_missing_inputs':hasErrors?'diagnose_and_replan':run.deferred_capabilities?.length?'resume_deferred_steps':'report_result'},state,validation};
 }
