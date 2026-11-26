@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildMessinhoCapabilityContext } from '../backend/messinho-data-context.js';
+import { buildMessinhoCapabilityContext, extractMessinhoGoalFilters } from '../backend/messinho-data-context.js';
 
 const now=Date.parse('2026-01-01T00:00:00.000Z');
 
@@ -91,4 +91,21 @@ test('prediction outcomes are paired without upgrading pending outcomes to verif
  assert.equal(context.predictions[1].actual_score,55);
  assert.equal(context.predictions[1].verification_status,'pending');
  assert.equal(context.outcomes.length,1);
+});
+
+
+test('natural-language scouting goals produce explicit position, age and birth-year filters',()=>{
+ const filters=extractMessinhoGoalFilters('Finde Stürmer zwischen 18 und 21 Jahren, Jahrgang 2005 bis 2008',now);
+ assert.equal(filters.position,'Stürmer');
+ assert.equal(filters.min_age,18);
+ assert.equal(filters.max_age,21);
+ assert.equal(filters.birth_year_from,2005);
+ assert.equal(filters.birth_year_to,2008);
+});
+
+test('age limits and goalkeeper intent are parsed without inventing missing filters',()=>{
+ const filters=extractMessinhoGoalFilters('Suche einen Torwart unter 20 Jahren',now);
+ assert.equal(filters.position,'Torwart');
+ assert.equal(filters.max_age,19);
+ assert.equal(filters.min_age,undefined);
 });
