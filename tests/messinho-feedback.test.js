@@ -19,8 +19,11 @@ test('rejects malformed ratings and missing answer context',()=>{
 
 test('requires explanatory text for factual corrections, bugs and feature requests',()=>{
  assert.equal(normalizeMessinhoFeedback({...base,feedback_type:'factual_correction',rating:1,comment:'Falsch'}).ok,false);
- const result=normalizeMessinhoFeedback({...base,feedback_type:'factual_correction',rating:1,comment:'Die Position stimmt nicht; er spielt zentral.'});
+ const invalid=normalizeMessinhoFeedback({...base,feedback_type:'factual_correction',rating:1,comment:'Die Position stimmt nicht; er spielt zentral.'});
+ assert.equal(invalid.ok,false);
+ const result=normalizeMessinhoFeedback({...base,feedback_type:'factual_correction',rating:null,comment:'Die Position stimmt nicht; er spielt zentral.'});
  assert.equal(result.ok,true);
+ assert.equal(result.value.rating,null);
  assert.equal(result.value.feedback_type,'factual_correction');
 });
 
@@ -39,6 +42,6 @@ test('requires HTTPS evidence to verify a correction',()=>{
 
 test('does not treat non-outcome feedback as model-training data',()=>{
  assert.equal(isMessinhoFeedbackEligibleForQualityMetrics({feedback_type:'quality_rating',rating:5}),true);
- assert.equal(isMessinhoFeedbackEligibleForQualityMetrics({feedback_type:'factual_correction',rating:1}),true);
+ assert.equal(isMessinhoFeedbackEligibleForQualityMetrics({feedback_type:'factual_correction',rating:1}),false);
  assert.equal(isMessinhoFeedbackEligibleForQualityMetrics({feedback_type:'factual_correction',rating:null}),false);
 });
