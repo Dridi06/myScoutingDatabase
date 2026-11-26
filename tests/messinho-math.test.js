@@ -16,3 +16,5 @@ test('additional physics formulas',()=>{assert.equal(calculateMessinhoMathQuesti
 test('normal distribution cumulative probability',()=>{const r=calculateMessinhoMathQuestion('Normalverteilung mu=0 sigma=1 x=1.96');assert.ok(Math.abs(r.value-97.5)<0.02);});
 test('hypergeometric probability without replacement',()=>{const r=calculateMessinhoMathQuestion('Hypergeometrische Wahrscheinlichkeit population=10 successes=4 draws=3 k=2');assert.ok(Math.abs(r.value-30)<1e-8);});
 test('combinations count',()=>{assert.equal(calculateMessinhoMathQuestion('Kombination n=5 k=2').value,10);});
+
+test('bare year ranges are not treated as arithmetic',()=>{assert.equal(calculateMessinhoMathQuestion('2004-2006'),null);assert.equal(calculateMessinhoMathQuestion('2004 – 2006'),null);assert.equal(calculateMessinhoMathQuestion('Berechne 2004-2006').value,-2);});
