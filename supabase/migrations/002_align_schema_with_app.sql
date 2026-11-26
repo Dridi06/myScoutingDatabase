@@ -51,6 +51,10 @@ for each row execute function public.touch_updated_at();
 drop policy if exists profiles_read_self_or_admin on public.profiles;
 create policy profiles_read_self_or_admin on public.profiles for select to authenticated
 using (id=(select auth.uid()) or (select private.is_admin()));
+drop policy if exists profiles_update_own_presence on public.profiles;
+create policy profiles_update_own_presence on public.profiles for update to authenticated
+using (id=(select auth.uid())) with check (id=(select auth.uid()));
+
 drop policy if exists profiles_admin_update on public.profiles;
 create policy profiles_admin_update on public.profiles for update to authenticated
 using ((select private.is_admin())) with check ((select private.is_admin()));
@@ -74,7 +78,9 @@ create policy player_deletion_logs_admin_read on public.player_deletion_logs for
 using ((select private.is_admin()));
 
 grant usage on schema public, private to authenticated, service_role;
-grant select, update on public.profiles to authenticated;
+grant select on public.profiles to authenticated;
+revoke update on public.profiles from authenticated;
+grant update (last_login_at,last_seen_at) on public.profiles to authenticated;
 grant select, insert, update, delete on public.players to authenticated;
 grant select, delete on public.player_deletion_logs to authenticated;
 grant all on public.profiles, public.players, public.player_deletion_logs to service_role;
