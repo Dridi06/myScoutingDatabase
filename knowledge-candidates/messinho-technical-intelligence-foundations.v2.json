@@ -1,0 +1,2032 @@
+{
+  "package_id": "messinho.technical_intelligence.foundation",
+  "version": "2.0.0",
+  "status": "candidate_only_not_imported",
+  "branch": "feature/messinho-unified-ai-integration",
+  "curriculum_version": "1.0.0",
+  "created_at": "2026-11-27",
+  "governance": {
+    "knowledge_activation": "blocked_until_exact_source_rights_and_admin_review",
+    "source_policy": "Every referenced work must be checked at exact work/edition level. Public availability is not permission. CC BY-SA compatibility, attribution, commercial use, AI/TDM rights and German/EU legal position must be reviewed separately.",
+    "execution_policy": "No code execution, self-modification, production access, deployment permission or changes to guardrails are enabled by this curriculum.",
+    "assessment_policy": "A concept is not mastered from one correct answer. Require explanation, transfer, error diagnosis and verification evidence."
+  },
+  "concepts": [
+    {
+      "concept_key": "computer_science.foundations.problem_decomposition",
+      "domain": "computer_science",
+      "topic": "Grundlagen",
+      "title": "Problemanalyse und Zerlegung",
+      "definition": "Ein Problem wird in Ziel, Eingaben, Ausgaben, Regeln, Randbedingungen und Teilprobleme zerlegt. Jede Teilaufgabe erhält überprüfbare Erfolgskriterien.",
+      "knowledge_level": "foundational",
+      "knowledge_type": "concept",
+      "prerequisites": [],
+      "applicability": "Eine Scout-Anfrage in Filter, Datenbedarf, Quellen, Berechnung, Berechtigung und Ausgabe zerlegen.",
+      "limitations": [
+        "Abstraktion darf keine fachlich relevanten Randbedingungen verlieren."
+      ],
+      "claims": [
+        {
+          "text": "Ein Problem wird in Ziel, Eingaben, Ausgaben, Regeln, Randbedingungen und Teilprobleme zerlegt. Jede Teilaufgabe erhält überprüfbare Erfolgskriterien.",
+          "source_urls": [
+            "https://docs.python.org/3/tutorial/"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://docs.python.org/3/tutorial/",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.foundations.data_representation",
+      "domain": "computer_science",
+      "topic": "Grundlagen",
+      "title": "Datenrepräsentation",
+      "definition": "Informationen werden in festgelegten Formaten codiert. Zahlen, Zeichen, Zeitpunkte und Einheiten benötigen eindeutige Repräsentationen und Interpretationsregeln.",
+      "knowledge_level": "foundational",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.foundations.problem_decomposition"
+      ],
+      "applicability": "Einheiten, Datumswerte, IDs und Textkodierung vor Verarbeitung normalisieren.",
+      "limitations": [
+        "Gleitkommazahlen sind Näherungen; lokale Zeitzonen und Einheiten dürfen nicht stillschweigend angenommen werden."
+      ],
+      "claims": [
+        {
+          "text": "Informationen werden in festgelegten Formaten codiert. Zahlen, Zeichen, Zeitpunkte und Einheiten benötigen eindeutige Repräsentationen und Interpretationsregeln.",
+          "source_urls": [
+            "https://docs.python.org/3/tutorial/",
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://docs.python.org/3/tutorial/",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.foundations.algorithms",
+      "domain": "computer_science",
+      "topic": "Grundlagen",
+      "title": "Algorithmen und Korrektheit",
+      "definition": "Ein Algorithmus ist eine endliche, präzise Schrittfolge für definierte Eingaben und Ergebnisse. Korrektheit wird über Invarianten, Vorbedingungen, Nachbedingungen und Randfälle begründet.",
+      "knowledge_level": "foundational",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.foundations.problem_decomposition"
+      ],
+      "applicability": "Such-, Sortier-, Validierungs- und Berechnungslogik entwickeln und mit Beispielen prüfen.",
+      "limitations": [
+        "Korrektheit hängt vom Eingabebereich und den expliziten Randbedingungen ab."
+      ],
+      "claims": [
+        {
+          "text": "Ein Algorithmus ist eine endliche, präzise Schrittfolge für definierte Eingaben und Ergebnisse. Korrektheit wird über Invarianten, Vorbedingungen, Nachbedingungen und Randfälle begründet.",
+          "source_urls": [
+            "https://docs.python.org/3/tutorial/"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://docs.python.org/3/tutorial/",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.foundations.complexity",
+      "domain": "computer_science",
+      "topic": "Grundlagen",
+      "title": "Zeit- und Speicherkomplexität",
+      "definition": "Komplexitätsanalyse beschreibt, wie Zeit- und Speicherbedarf eines Verfahrens mit der Eingabegröße wachsen. Big-O ist eine asymptotische Beschreibung, keine Laufzeitmessung.",
+      "knowledge_level": "foundational",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.foundations.algorithms"
+      ],
+      "applicability": "Skalierbarkeit von Suche, Ranking, Datenbankabfragen und Batch-Verarbeitung beurteilen.",
+      "limitations": [
+        "Konstanten, Hardware, Cache und Datenverteilung beeinflussen reale Laufzeiten."
+      ],
+      "claims": [
+        {
+          "text": "Komplexitätsanalyse beschreibt, wie Zeit- und Speicherbedarf eines Verfahrens mit der Eingabegröße wachsen. Big-O ist eine asymptotische Beschreibung, keine Laufzeitmessung.",
+          "source_urls": [
+            "https://docs.python.org/3/tutorial/"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://docs.python.org/3/tutorial/",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.programming.types_validation",
+      "domain": "computer_science",
+      "topic": "Programmierung",
+      "title": "Datentypen und Eingabevalidierung",
+      "definition": "Datentypen beschreiben zulässige Werte und Operationen. Validierung prüft tatsächliche Daten an Vertrauensgrenzen gegen Syntax, Typ, Bereich und fachliche Regeln.",
+      "knowledge_level": "intermediate",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.foundations.data_representation"
+      ],
+      "applicability": "API-Eingaben, Spielerprofile und Messwerte validieren, bevor sie verarbeitet oder gespeichert werden.",
+      "limitations": [
+        "Statische Typen ersetzen keine Laufzeitvalidierung und keine Autorisierungsprüfung."
+      ],
+      "claims": [
+        {
+          "text": "Datentypen beschreiben zulässige Werte und Operationen. Validierung prüft tatsächliche Daten an Vertrauensgrenzen gegen Syntax, Typ, Bereich und fachliche Regeln.",
+          "source_urls": [
+            "https://www.typescriptlang.org/docs/handbook/intro.html",
+            "https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Attrib_copyright_license"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://www.typescriptlang.org/docs/handbook/intro.html",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Attrib_copyright_license",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.programming.functions_modules",
+      "domain": "computer_science",
+      "topic": "Programmierung",
+      "title": "Funktionen und Module",
+      "definition": "Funktionen kapseln klar abgegrenzte Aufgaben hinter Eingabe-/Ausgabeverträgen. Module bündeln kohärente Verantwortlichkeiten und begrenzen Abhängigkeiten.",
+      "knowledge_level": "intermediate",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.programming.types_validation"
+      ],
+      "applicability": "Backend-Routen, Validierung, Retrieval und Berechnungen modular aufbauen.",
+      "limitations": [
+        "Zu starke Zerlegung erzeugt unnötige Abstraktionen; zu große Module erschweren Wartung."
+      ],
+      "claims": [
+        {
+          "text": "Funktionen kapseln klar abgegrenzte Aufgaben hinter Eingabe-/Ausgabeverträgen. Module bündeln kohärente Verantwortlichkeiten und begrenzen Abhängigkeiten.",
+          "source_urls": [
+            "https://docs.python.org/3/tutorial/",
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://docs.python.org/3/tutorial/",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.programming.data_structures",
+      "domain": "computer_science",
+      "topic": "Programmierung",
+      "title": "Datenstrukturen",
+      "definition": "Listen, Maps, Sets, Stacks, Queues, Bäume und Graphen organisieren Daten für unterschiedliche Zugriffs- und Änderungsmuster.",
+      "knowledge_level": "intermediate",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.foundations.algorithms"
+      ],
+      "applicability": "Spieler, Quellen, Aufgaben und Wissensbeziehungen passend repräsentieren.",
+      "limitations": [
+        "Datenstrukturwahl beeinflusst Laufzeit, Speicher, Reihenfolge und Duplikatverhalten."
+      ],
+      "claims": [
+        {
+          "text": "Listen, Maps, Sets, Stacks, Queues, Bäume und Graphen organisieren Daten für unterschiedliche Zugriffs- und Änderungsmuster.",
+          "source_urls": [
+            "https://docs.python.org/3/tutorial/datastructures.html"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://docs.python.org/3/tutorial/datastructures.html",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.programming.errors_async",
+      "domain": "computer_science",
+      "topic": "Programmierung",
+      "title": "Fehlerbehandlung und asynchrone Abläufe",
+      "definition": "Fehlerbehandlung unterscheidet erwartbare Fehler von unerwarteten Ausfällen. Asynchrone Abläufe benötigen klare Zustands-, Timeout-, Abbruch- und Wiederholungsregeln.",
+      "knowledge_level": "intermediate",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.programming.functions_modules"
+      ],
+      "applicability": "API- und Agentenabläufe mit sicheren Fehlerantworten und kontrollierten Retries gestalten.",
+      "limitations": [
+        "Retries können doppelte Nebenwirkungen verursachen; Idempotenz und begrenzte Wiederholung sind erforderlich."
+      ],
+      "claims": [
+        {
+          "text": "Fehlerbehandlung unterscheidet erwartbare Fehler von unerwarteten Ausfällen. Asynchrone Abläufe benötigen klare Zustands-, Timeout-, Abbruch- und Wiederholungsregeln.",
+          "source_urls": [
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+            "https://nodejs.org/en/learn"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://nodejs.org/en/learn",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.languages.python",
+      "domain": "computer_science",
+      "topic": "Programmiersprachen",
+      "title": "Python",
+      "definition": "Python ist eine dynamisch typisierte Programmiersprache mit Standardbibliotheken für Datenstrukturen, Ein-/Ausgabe, Tests und Automatisierung.",
+      "knowledge_level": "intermediate",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.programming.types_validation",
+        "computer_science.programming.functions_modules"
+      ],
+      "applicability": "Datenaufbereitung, Analyse, Tests und Prototypen schreiben.",
+      "limitations": [
+        "Laufzeitfehler und Abhängigkeitskonflikte müssen durch Tests, Umgebungen und Versionskontrolle begrenzt werden."
+      ],
+      "claims": [
+        {
+          "text": "Python ist eine dynamisch typisierte Programmiersprache mit Standardbibliotheken für Datenstrukturen, Ein-/Ausgabe, Tests und Automatisierung.",
+          "source_urls": [
+            "https://docs.python.org/3/tutorial/",
+            "https://docs.python.org/3/license.html"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://docs.python.org/3/tutorial/",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://docs.python.org/3/license.html",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.languages.javascript_typescript",
+      "domain": "computer_science",
+      "topic": "Programmiersprachen",
+      "title": "JavaScript und TypeScript",
+      "definition": "JavaScript ist eine dynamische Sprache für Browser und Node.js. TypeScript ergänzt sie um statische Typprüfung, ohne Laufzeitvalidierung externer Daten zu ersetzen.",
+      "knowledge_level": "intermediate",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.programming.types_validation",
+        "computer_science.programming.functions_modules"
+      ],
+      "applicability": "Bestehendes Frontend und Backend sicher erweitern; Promises und async/await korrekt verwenden.",
+      "limitations": [
+        "Asynchrone Abläufe können Race Conditions erzeugen; Typdeklarationen garantieren keine vertrauenswürdigen Daten."
+      ],
+      "claims": [
+        {
+          "text": "JavaScript ist eine dynamische Sprache für Browser und Node.js. TypeScript ergänzt sie um statische Typprüfung, ohne Laufzeitvalidierung externer Daten zu ersetzen.",
+          "source_urls": [
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+            "https://www.typescriptlang.org/docs/handbook/intro.html"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://www.typescriptlang.org/docs/handbook/intro.html",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.databases.relational_model",
+      "domain": "computer_science",
+      "topic": "Datenbanken",
+      "title": "Relationale Datenmodellierung",
+      "definition": "Relationale Daten organisieren Informationen in Tabellen mit Primärschlüsseln, Fremdschlüsseln, Constraints und definierten Beziehungen.",
+      "knowledge_level": "intermediate",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.programming.data_structures"
+      ],
+      "applicability": "Spieler-, Team-, Organisations- und Wissensdaten konsistent modellieren.",
+      "limitations": [
+        "Ein gutes Schema verhindert nicht automatisch unberechtigte Zugriffe oder fehlerhafte fachliche Abläufe."
+      ],
+      "claims": [
+        {
+          "text": "Relationale Daten organisieren Informationen in Tabellen mit Primärschlüsseln, Fremdschlüsseln, Constraints und definierten Beziehungen.",
+          "source_urls": [
+            "https://www.postgresql.org/docs/current/tutorial.html",
+            "https://www.postgresql.org/about/licence/"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://www.postgresql.org/docs/current/tutorial.html",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://www.postgresql.org/about/licence/",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.databases.sql_transactions",
+      "domain": "computer_science",
+      "topic": "Datenbanken",
+      "title": "SQL und Transaktionen",
+      "definition": "SQL fragt und verändert relationale Daten. Transaktionen bündeln Operationen und sichern atomare, konsistente Zustandsänderungen.",
+      "knowledge_level": "intermediate",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.databases.relational_model"
+      ],
+      "applicability": "Abfragen, Joins, Indizes, Migrationen und atomare Wissensspeicherung planen.",
+      "limitations": [
+        "Unparametrisierte Eingaben können Injection ermöglichen; Transaktionsgrenzen müssen fachlich korrekt sein."
+      ],
+      "claims": [
+        {
+          "text": "SQL fragt und verändert relationale Daten. Transaktionen bündeln Operationen und sichern atomare, konsistente Zustandsänderungen.",
+          "source_urls": [
+            "https://www.postgresql.org/docs/current/tutorial.html",
+            "https://www.postgresql.org/about/licence/"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://www.postgresql.org/docs/current/tutorial.html",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://www.postgresql.org/about/licence/",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.web.http_api_design",
+      "domain": "computer_science",
+      "topic": "Webentwicklung",
+      "title": "HTTP und API-Verträge",
+      "definition": "HTTP definiert Request/Response-Kommunikation. Ein API-Vertrag beschreibt Methoden, Statuscodes, Eingaben, Ausgaben, Fehler, Authentifizierung und Autorisierung.",
+      "knowledge_level": "intermediate",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.programming.errors_async"
+      ],
+      "applicability": "Frontend, Backend und externe Recherchequellen zuverlässig verbinden.",
+      "limitations": [
+        "HTTPS schützt den Transport, ersetzt aber keine Zugriffsprüfung und Eingabevalidierung."
+      ],
+      "claims": [
+        {
+          "text": "HTTP definiert Request/Response-Kommunikation. Ein API-Vertrag beschreibt Methoden, Statuscodes, Eingaben, Ausgaben, Fehler, Authentifizierung und Autorisierung.",
+          "source_urls": [
+            "https://developer.mozilla.org/en-US/docs/Web/HTTP",
+            "https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Attrib_copyright_license"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Attrib_copyright_license",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.engineering.git_workflows",
+      "domain": "computer_science",
+      "topic": "Software Engineering",
+      "title": "Git und Versionskontrolle",
+      "definition": "Git speichert Änderungen als nachvollziehbare Historie. Branches isolieren Arbeit; Commits, Diffs, Reviews und Reverts kontrollieren Änderungen.",
+      "knowledge_level": "advanced",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.programming.functions_modules"
+      ],
+      "applicability": "Staging-Entwicklung und überprüfbare Projektstände organisieren.",
+      "limitations": [
+        "Ein Commit beweist weder erfolgreiche Tests noch korrektes Deployment."
+      ],
+      "claims": [
+        {
+          "text": "Git speichert Änderungen als nachvollziehbare Historie. Branches isolieren Arbeit; Commits, Diffs, Reviews und Reverts kontrollieren Änderungen.",
+          "source_urls": [
+            "https://git-scm.com/book/en/v2"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://git-scm.com/book/en/v2",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.engineering.architecture",
+      "domain": "computer_science",
+      "topic": "Software Engineering",
+      "title": "Softwarearchitektur und Verantwortungsgrenzen",
+      "definition": "Architektur ordnet Komponenten, Abhängigkeiten, Datenflüsse und Vertrauensgrenzen. Gute Modularität hält Verantwortlichkeiten kohärent und Kopplung beherrschbar.",
+      "knowledge_level": "advanced",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.programming.functions_modules",
+        "computer_science.web.http_api_design"
+      ],
+      "applicability": "Agent Core, Fähigkeiten, Retrieval, Datenzugriff und Policy voneinander abgrenzen.",
+      "limitations": [
+        "Abstraktionen sind nur sinnvoll, wenn sie reale Änderungs- oder Sicherheitsrisiken reduzieren."
+      ],
+      "claims": [
+        {
+          "text": "Architektur ordnet Komponenten, Abhängigkeiten, Datenflüsse und Vertrauensgrenzen. Gute Modularität hält Verantwortlichkeiten kohärent und Kopplung beherrschbar.",
+          "source_urls": [
+            "https://nodejs.org/en/learn",
+            "https://react.dev/learn"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://nodejs.org/en/learn",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://react.dev/learn",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.engineering.testing",
+      "domain": "computer_science",
+      "topic": "Software Engineering",
+      "title": "Teststrategien",
+      "definition": "Unit-, Integrations-, Vertrags-, End-to-End- und Regressionstests prüfen unterschiedliche Ebenen eines Systems unter kontrollierten Bedingungen.",
+      "knowledge_level": "advanced",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.engineering.architecture",
+        "computer_science.programming.errors_async"
+      ],
+      "applicability": "Änderungen an Wissensabruf, Rollen, Mandantenisolation und Agentenabläufen absichern.",
+      "limitations": [
+        "Grüne Tests beweisen nur das Verhalten der tatsächlich abgedeckten Fälle."
+      ],
+      "claims": [
+        {
+          "text": "Unit-, Integrations-, Vertrags-, End-to-End- und Regressionstests prüfen unterschiedliche Ebenen eines Systems unter kontrollierten Bedingungen.",
+          "source_urls": [
+            "https://nodejs.org/en/learn"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://nodejs.org/en/learn",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.engineering.debugging",
+      "domain": "computer_science",
+      "topic": "Software Engineering",
+      "title": "Systematische Fehlerdiagnose",
+      "definition": "Debugging reproduziert einen Fehler, grenzt Ursachen ein, prüft Hypothesen mit Beobachtungen und ergänzt einen Test gegen Wiederholung.",
+      "knowledge_level": "advanced",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.engineering.testing",
+        "computer_science.foundations.algorithms"
+      ],
+      "applicability": "Fehler in Retrieval, Follow-ups, Datenbankzugriffen und Deployments systematisch beheben.",
+      "limitations": [
+        "Symptomkorrekturen ohne Ursachenanalyse können neue Regressionen erzeugen."
+      ],
+      "claims": [
+        {
+          "text": "Debugging reproduziert einen Fehler, grenzt Ursachen ein, prüft Hypothesen mit Beobachtungen und ergänzt einen Test gegen Wiederholung.",
+          "source_urls": [
+            "https://nodejs.org/en/learn"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://nodejs.org/en/learn",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.security.identity_access",
+      "domain": "computer_science",
+      "topic": "Sicherheit",
+      "title": "Authentifizierung und Autorisierung",
+      "definition": "Authentifizierung stellt Identität fest; Autorisierung entscheidet anhand Rolle, Ressource und Kontext, welche Aktion erlaubt ist.",
+      "knowledge_level": "advanced",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.databases.relational_model",
+        "computer_science.web.http_api_design"
+      ],
+      "applicability": "Admin-/Scout-Rollen und Organisationszugriffe getrennt und serverseitig prüfen.",
+      "limitations": [
+        "UI-Ausblendung ist keine Zugriffskontrolle; jeder geschützte Endpunkt braucht eine serverseitige Prüfung."
+      ],
+      "claims": [
+        {
+          "text": "Authentifizierung stellt Identität fest; Autorisierung entscheidet anhand Rolle, Ressource und Kontext, welche Aktion erlaubt ist.",
+          "source_urls": [
+            "https://owasp.org/www-project-application-security-verification-standard/",
+            "https://owasp.org/projects/ASVS"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://owasp.org/www-project-application-security-verification-standard/",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://owasp.org/projects/ASVS",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.security.secure_development",
+      "domain": "computer_science",
+      "topic": "Sicherheit",
+      "title": "Secure Software Development",
+      "definition": "Sichere Entwicklung integriert Bedrohungsmodellierung, Least Privilege, sichere Defaults, Geheimnisschutz, Validierung und Abhängigkeitskontrollen in den Lebenszyklus.",
+      "knowledge_level": "advanced",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.security.identity_access",
+        "computer_science.engineering.architecture"
+      ],
+      "applicability": "Datenbank, APIs, Agentenwerkzeuge und Deployments gegen Missbrauch absichern.",
+      "limitations": [
+        "Kein einzelner Scanner oder Test kann Sicherheit vollständig beweisen."
+      ],
+      "claims": [
+        {
+          "text": "Sichere Entwicklung integriert Bedrohungsmodellierung, Least Privilege, sichere Defaults, Geheimnisschutz, Validierung und Abhängigkeitskontrollen in den Lebenszyklus.",
+          "source_urls": [
+            "https://csrc.nist.gov/pubs/sp/800/218/final",
+            "https://www.nist.gov/copyrights-disclaimers"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://csrc.nist.gov/pubs/sp/800/218/final",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://www.nist.gov/copyrights-disclaimers",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.operations.cicd_release",
+      "domain": "computer_science",
+      "topic": "Betrieb",
+      "title": "CI/CD und kontrollierte Releases",
+      "definition": "CI/CD automatisiert Prüfungen und reproduzierbare Builds. Releases fördern getestete Artefakte über getrennte Umgebungen mit Freigabe und Rollback.",
+      "knowledge_level": "advanced",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.engineering.testing",
+        "computer_science.engineering.git_workflows",
+        "computer_science.security.secure_development"
+      ],
+      "applicability": "Staging-only-Deployments mit Build-, Test-, Health- und Rollback-Nachweisen betreiben.",
+      "limitations": [
+        "Ein erfolgreicher Build bedeutet nicht, dass Laufzeit, Authentifizierung und fachliche Abläufe korrekt sind."
+      ],
+      "claims": [
+        {
+          "text": "CI/CD automatisiert Prüfungen und reproduzierbare Builds. Releases fördern getestete Artefakte über getrennte Umgebungen mit Freigabe und Rollback.",
+          "source_urls": [
+            "https://csrc.nist.gov/pubs/sp/800/218/final"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://csrc.nist.gov/pubs/sp/800/218/final",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.operations.observability",
+      "domain": "computer_science",
+      "topic": "Betrieb",
+      "title": "Logs, Metriken und Traces",
+      "definition": "Observability nutzt strukturierte Logs, Metriken und Traces, um interne Zustände und Fehlerpfade eines Systems nachvollziehbar zu machen.",
+      "knowledge_level": "advanced",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.operations.cicd_release",
+        "computer_science.engineering.architecture"
+      ],
+      "applicability": "Agentenläufe, Quellenabruf, Datenbankzugriffe und Deployments diagnostizieren.",
+      "limitations": [
+        "Logs dürfen keine Passwörter, Tokens oder unnötigen personenbezogenen Daten enthalten."
+      ],
+      "claims": [
+        {
+          "text": "Observability nutzt strukturierte Logs, Metriken und Traces, um interne Zustände und Fehlerpfade eines Systems nachvollziehbar zu machen.",
+          "source_urls": [
+            "https://csrc.nist.gov/pubs/sp/800/218/final"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://csrc.nist.gov/pubs/sp/800/218/final",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.ai.machine_learning",
+      "domain": "computer_science",
+      "topic": "KI-Systeme",
+      "title": "Grundlagen des maschinellen Lernens",
+      "definition": "Maschinelles Lernen schätzt Muster aus Daten. Training, Validierung und Test müssen getrennt sein; Datenleckage, Overfitting und Kalibrierung sind zentrale Risiken.",
+      "knowledge_level": "specialist",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.foundations.data_representation",
+        "computer_science.foundations.complexity"
+      ],
+      "applicability": "Modelle für Prognosen und Klassifikationen evaluieren, ohne Trainings- und Testdaten zu vermischen.",
+      "limitations": [
+        "Korrelation ist keine Kausalität; Leistungswerte sind nur im jeweiligen Datensatz und Einsatzkontext aussagekräftig."
+      ],
+      "claims": [
+        {
+          "text": "Maschinelles Lernen schätzt Muster aus Daten. Training, Validierung und Test müssen getrennt sein; Datenleckage, Overfitting und Kalibrierung sind zentrale Risiken.",
+          "source_urls": [
+            "https://csrc.nist.gov/pubs/ai/100/1/final",
+            "https://www.nist.gov/copyrights-disclaimers"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://csrc.nist.gov/pubs/ai/100/1/final",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://www.nist.gov/copyrights-disclaimers",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.ai.retrieval_rag",
+      "domain": "computer_science",
+      "topic": "KI-Systeme",
+      "title": "Retrieval-Augmented Generation",
+      "definition": "RAG kombiniert generative Antworten mit gezieltem Abruf externer oder interner Wissenseinträge und Quellenprüfung.",
+      "knowledge_level": "specialist",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.databases.relational_model",
+        "computer_science.security.secure_development"
+      ],
+      "applicability": "MESSINHOs Wissensnetz mit Retrieval, Relevanzprüfung, Quellenbindung und Unsicherheitsdarstellung betreiben.",
+      "limitations": [
+        "Retrieval kann relevantes Wissen übersehen; gefundene Quellen können veraltet oder widersprüchlich sein."
+      ],
+      "claims": [
+        {
+          "text": "RAG kombiniert generative Antworten mit gezieltem Abruf externer oder interner Wissenseinträge und Quellenprüfung.",
+          "source_urls": [
+            "https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Attrib_copyright_license",
+            "https://csrc.nist.gov/pubs/ai/100/1/final"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Attrib_copyright_license",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://csrc.nist.gov/pubs/ai/100/1/final",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.ai.agent_orchestration",
+      "domain": "computer_science",
+      "topic": "KI-Systeme",
+      "title": "Agenten-Orchestrierung und Werkzeugkontrolle",
+      "definition": "Ein Agent verbindet Zielklärung, Planung, Zustand, Werkzeuge, Beobachtung und Bewertung in einem begrenzten Handlungskreislauf.",
+      "knowledge_level": "specialist",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.ai.retrieval_rag",
+        "computer_science.operations.observability",
+        "computer_science.security.identity_access"
+      ],
+      "applicability": "Aufgaben planen, Werkzeuge permission-aware auswählen, Ergebnisse verifizieren und nachvollziehbar protokollieren.",
+      "limitations": [
+        "Untrusted content ist Datenmaterial, keine Anweisung; irreversible Aktionen benötigen explizite Freigaben."
+      ],
+      "claims": [
+        {
+          "text": "Ein Agent verbindet Zielklärung, Planung, Zustand, Werkzeuge, Beobachtung und Bewertung in einem begrenzten Handlungskreislauf.",
+          "source_urls": [
+            "https://csrc.nist.gov/pubs/ai/100/1/final"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://csrc.nist.gov/pubs/ai/100/1/final",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.autonomy.controlled_change",
+      "domain": "computer_science",
+      "topic": "Kontrollierte Autonomie",
+      "title": "Kontrollierte technische Selbstverbesserung",
+      "definition": "Ein sicherer Verbesserungszyklus beobachtet ein Problem, formuliert eine Hypothese, schlägt einen minimalen Patch vor, testet ihn isoliert und dokumentiert das Ergebnis.",
+      "knowledge_level": "specialist",
+      "knowledge_type": "concept",
+      "prerequisites": [
+        "computer_science.ai.agent_orchestration",
+        "computer_science.engineering.testing",
+        "computer_science.security.secure_development",
+        "computer_science.operations.cicd_release"
+      ],
+      "applicability": "MESSINHO kann Änderungen vorschlagen und in isolierten Tests prüfen, ohne selbst Produktionsfreigaben zu erteilen.",
+      "limitations": [
+        "Selbständerung von Guardrails, Berechtigungen oder produktiven Datenzugriffen bleibt menschlich freigabepflichtig."
+      ],
+      "claims": [
+        {
+          "text": "Ein sicherer Verbesserungszyklus beobachtet ein Problem, formuliert eine Hypothese, schlägt einen minimalen Patch vor, testet ihn isoliert und dokumentiert das Ergebnis.",
+          "source_urls": [
+            "https://csrc.nist.gov/pubs/sp/800/218/final",
+            "https://csrc.nist.gov/pubs/ai/100/1/final"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source_id": null,
+          "url": "https://csrc.nist.gov/pubs/sp/800/218/final",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        },
+        {
+          "source_id": null,
+          "url": "https://csrc.nist.gov/pubs/ai/100/1/final",
+          "title": "Official reference — exact edition and rights review required",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "not_applicable",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    }
+  ],
+  "learning_tasks": [
+    {
+      "task_id": "computer_science.foundations.problem_decomposition.assessment.explain",
+      "concept_key": "computer_science.foundations.problem_decomposition",
+      "kind": "explain",
+      "prompt": "Erkläre Problemanalyse und Zerlegung in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.foundations.problem_decomposition.assessment.apply",
+      "concept_key": "computer_science.foundations.problem_decomposition",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Problemanalyse und Zerlegung im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.foundations.data_representation.assessment.explain",
+      "concept_key": "computer_science.foundations.data_representation",
+      "kind": "explain",
+      "prompt": "Erkläre Datenrepräsentation in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.foundations.data_representation.assessment.apply",
+      "concept_key": "computer_science.foundations.data_representation",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Datenrepräsentation im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.foundations.algorithms.assessment.explain",
+      "concept_key": "computer_science.foundations.algorithms",
+      "kind": "explain",
+      "prompt": "Erkläre Algorithmen und Korrektheit in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.foundations.algorithms.assessment.apply",
+      "concept_key": "computer_science.foundations.algorithms",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Algorithmen und Korrektheit im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.foundations.complexity.assessment.explain",
+      "concept_key": "computer_science.foundations.complexity",
+      "kind": "explain",
+      "prompt": "Erkläre Zeit- und Speicherkomplexität in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.foundations.complexity.assessment.apply",
+      "concept_key": "computer_science.foundations.complexity",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Zeit- und Speicherkomplexität im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.programming.types_validation.assessment.explain",
+      "concept_key": "computer_science.programming.types_validation",
+      "kind": "explain",
+      "prompt": "Erkläre Datentypen und Eingabevalidierung in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.programming.types_validation.assessment.apply",
+      "concept_key": "computer_science.programming.types_validation",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Datentypen und Eingabevalidierung im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.programming.functions_modules.assessment.explain",
+      "concept_key": "computer_science.programming.functions_modules",
+      "kind": "explain",
+      "prompt": "Erkläre Funktionen und Module in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.programming.functions_modules.assessment.apply",
+      "concept_key": "computer_science.programming.functions_modules",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Funktionen und Module im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.programming.data_structures.assessment.explain",
+      "concept_key": "computer_science.programming.data_structures",
+      "kind": "explain",
+      "prompt": "Erkläre Datenstrukturen in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.programming.data_structures.assessment.apply",
+      "concept_key": "computer_science.programming.data_structures",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Datenstrukturen im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.programming.errors_async.assessment.explain",
+      "concept_key": "computer_science.programming.errors_async",
+      "kind": "explain",
+      "prompt": "Erkläre Fehlerbehandlung und asynchrone Abläufe in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.programming.errors_async.assessment.apply",
+      "concept_key": "computer_science.programming.errors_async",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Fehlerbehandlung und asynchrone Abläufe im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.languages.python.assessment.explain",
+      "concept_key": "computer_science.languages.python",
+      "kind": "explain",
+      "prompt": "Erkläre Python in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.languages.python.assessment.apply",
+      "concept_key": "computer_science.languages.python",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Python im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.languages.javascript_typescript.assessment.explain",
+      "concept_key": "computer_science.languages.javascript_typescript",
+      "kind": "explain",
+      "prompt": "Erkläre JavaScript und TypeScript in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.languages.javascript_typescript.assessment.apply",
+      "concept_key": "computer_science.languages.javascript_typescript",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu JavaScript und TypeScript im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.databases.relational_model.assessment.explain",
+      "concept_key": "computer_science.databases.relational_model",
+      "kind": "explain",
+      "prompt": "Erkläre Relationale Datenmodellierung in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.databases.relational_model.assessment.apply",
+      "concept_key": "computer_science.databases.relational_model",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Relationale Datenmodellierung im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.databases.sql_transactions.assessment.explain",
+      "concept_key": "computer_science.databases.sql_transactions",
+      "kind": "explain",
+      "prompt": "Erkläre SQL und Transaktionen in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.databases.sql_transactions.assessment.apply",
+      "concept_key": "computer_science.databases.sql_transactions",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu SQL und Transaktionen im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.web.http_api_design.assessment.explain",
+      "concept_key": "computer_science.web.http_api_design",
+      "kind": "explain",
+      "prompt": "Erkläre HTTP und API-Verträge in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.web.http_api_design.assessment.apply",
+      "concept_key": "computer_science.web.http_api_design",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu HTTP und API-Verträge im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.engineering.git_workflows.assessment.explain",
+      "concept_key": "computer_science.engineering.git_workflows",
+      "kind": "explain",
+      "prompt": "Erkläre Git und Versionskontrolle in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.engineering.git_workflows.assessment.apply",
+      "concept_key": "computer_science.engineering.git_workflows",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Git und Versionskontrolle im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.engineering.architecture.assessment.explain",
+      "concept_key": "computer_science.engineering.architecture",
+      "kind": "explain",
+      "prompt": "Erkläre Softwarearchitektur und Verantwortungsgrenzen in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.engineering.architecture.assessment.apply",
+      "concept_key": "computer_science.engineering.architecture",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Softwarearchitektur und Verantwortungsgrenzen im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.engineering.testing.assessment.explain",
+      "concept_key": "computer_science.engineering.testing",
+      "kind": "explain",
+      "prompt": "Erkläre Teststrategien in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.engineering.testing.assessment.apply",
+      "concept_key": "computer_science.engineering.testing",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Teststrategien im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.engineering.debugging.assessment.explain",
+      "concept_key": "computer_science.engineering.debugging",
+      "kind": "explain",
+      "prompt": "Erkläre Systematische Fehlerdiagnose in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.engineering.debugging.assessment.apply",
+      "concept_key": "computer_science.engineering.debugging",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Systematische Fehlerdiagnose im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.security.identity_access.assessment.explain",
+      "concept_key": "computer_science.security.identity_access",
+      "kind": "explain",
+      "prompt": "Erkläre Authentifizierung und Autorisierung in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.security.identity_access.assessment.apply",
+      "concept_key": "computer_science.security.identity_access",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Authentifizierung und Autorisierung im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.security.secure_development.assessment.explain",
+      "concept_key": "computer_science.security.secure_development",
+      "kind": "explain",
+      "prompt": "Erkläre Secure Software Development in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.security.secure_development.assessment.apply",
+      "concept_key": "computer_science.security.secure_development",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Secure Software Development im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.operations.cicd_release.assessment.explain",
+      "concept_key": "computer_science.operations.cicd_release",
+      "kind": "explain",
+      "prompt": "Erkläre CI/CD und kontrollierte Releases in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.operations.cicd_release.assessment.apply",
+      "concept_key": "computer_science.operations.cicd_release",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu CI/CD und kontrollierte Releases im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.operations.observability.assessment.explain",
+      "concept_key": "computer_science.operations.observability",
+      "kind": "explain",
+      "prompt": "Erkläre Logs, Metriken und Traces in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.operations.observability.assessment.apply",
+      "concept_key": "computer_science.operations.observability",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Logs, Metriken und Traces im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.ai.machine_learning.assessment.explain",
+      "concept_key": "computer_science.ai.machine_learning",
+      "kind": "explain",
+      "prompt": "Erkläre Grundlagen des maschinellen Lernens in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.ai.machine_learning.assessment.apply",
+      "concept_key": "computer_science.ai.machine_learning",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Grundlagen des maschinellen Lernens im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.ai.retrieval_rag.assessment.explain",
+      "concept_key": "computer_science.ai.retrieval_rag",
+      "kind": "explain",
+      "prompt": "Erkläre Retrieval-Augmented Generation in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.ai.retrieval_rag.assessment.apply",
+      "concept_key": "computer_science.ai.retrieval_rag",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Retrieval-Augmented Generation im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.ai.agent_orchestration.assessment.explain",
+      "concept_key": "computer_science.ai.agent_orchestration",
+      "kind": "explain",
+      "prompt": "Erkläre Agenten-Orchestrierung und Werkzeugkontrolle in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.ai.agent_orchestration.assessment.apply",
+      "concept_key": "computer_science.ai.agent_orchestration",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Agenten-Orchestrierung und Werkzeugkontrolle im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    },
+    {
+      "task_id": "computer_science.autonomy.controlled_change.assessment.explain",
+      "concept_key": "computer_science.autonomy.controlled_change",
+      "kind": "explain",
+      "prompt": "Erkläre Kontrollierte technische Selbstverbesserung in eigenen Worten und grenze es von einem naheliegenden verwandten Konzept ab.",
+      "success_criteria": [
+        "fachlich korrekte Erklärung",
+        "Anwendungsbeispiel",
+        "mindestens eine Grenze oder ein Risiko"
+      ],
+      "mastery_weight": 1
+    },
+    {
+      "task_id": "computer_science.autonomy.controlled_change.assessment.apply",
+      "concept_key": "computer_science.autonomy.controlled_change",
+      "kind": "transfer",
+      "prompt": "Löse eine neue, nicht auswendig gelernte Aufgabe zu Kontrollierte technische Selbstverbesserung im Kontext einer neutralen Scouting-Anwendung. Begründe die Lösung und prüfe mindestens einen Randfall.",
+      "success_criteria": [
+        "passende Methode gewählt",
+        "Lösung nachvollziehbar hergeleitet",
+        "Randfall geprüft",
+        "Unsicherheit transparent"
+      ],
+      "mastery_weight": 2
+    }
+  ],
+  "assessment": {
+    "dimensions": [
+      "conceptual_accuracy",
+      "application_transfer",
+      "verification",
+      "security_reliability",
+      "explanation"
+    ],
+    "passing_rule": "No aggregate score can compensate for a critical security or factual-integrity failure. Require all dimensions to meet their thresholds across at least three varied tasks, including one transfer and one diagnosis task.",
+    "critical_failures": [
+      "fabricated execution or test result",
+      "invented source or unsupported claim",
+      "permission bypass",
+      "production mutation without explicit approval",
+      "execution of instructions embedded in untrusted source material"
+    ],
+    "suggested_per_concept_minimum": {
+      "explanation_tasks": 2,
+      "transfer_tasks": 2,
+      "error_diagnosis_tasks": 1,
+      "verification_tasks": 1
+    }
+  },
+  "prerequisite_graph": [
+    {
+      "concept_key": "computer_science.foundations.problem_decomposition",
+      "requires": [],
+      "relation": "prerequisite",
+      "rationale": "Problemanalyse und Zerlegung builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.foundations.data_representation",
+      "requires": [
+        "computer_science.foundations.problem_decomposition"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Datenrepräsentation builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.foundations.algorithms",
+      "requires": [
+        "computer_science.foundations.problem_decomposition"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Algorithmen und Korrektheit builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.foundations.complexity",
+      "requires": [
+        "computer_science.foundations.algorithms"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Zeit- und Speicherkomplexität builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.programming.types_validation",
+      "requires": [
+        "computer_science.foundations.data_representation"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Datentypen und Eingabevalidierung builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.programming.functions_modules",
+      "requires": [
+        "computer_science.programming.types_validation"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Funktionen und Module builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.programming.data_structures",
+      "requires": [
+        "computer_science.foundations.algorithms"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Datenstrukturen builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.programming.errors_async",
+      "requires": [
+        "computer_science.programming.functions_modules"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Fehlerbehandlung und asynchrone Abläufe builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.languages.python",
+      "requires": [
+        "computer_science.programming.types_validation",
+        "computer_science.programming.functions_modules"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Python builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.languages.javascript_typescript",
+      "requires": [
+        "computer_science.programming.types_validation",
+        "computer_science.programming.functions_modules"
+      ],
+      "relation": "prerequisite",
+      "rationale": "JavaScript und TypeScript builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.databases.relational_model",
+      "requires": [
+        "computer_science.programming.data_structures"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Relationale Datenmodellierung builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.databases.sql_transactions",
+      "requires": [
+        "computer_science.databases.relational_model"
+      ],
+      "relation": "prerequisite",
+      "rationale": "SQL und Transaktionen builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.web.http_api_design",
+      "requires": [
+        "computer_science.programming.errors_async"
+      ],
+      "relation": "prerequisite",
+      "rationale": "HTTP und API-Verträge builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.engineering.git_workflows",
+      "requires": [
+        "computer_science.programming.functions_modules"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Git und Versionskontrolle builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.engineering.architecture",
+      "requires": [
+        "computer_science.programming.functions_modules",
+        "computer_science.web.http_api_design"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Softwarearchitektur und Verantwortungsgrenzen builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.engineering.testing",
+      "requires": [
+        "computer_science.engineering.architecture",
+        "computer_science.programming.errors_async"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Teststrategien builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.engineering.debugging",
+      "requires": [
+        "computer_science.engineering.testing",
+        "computer_science.foundations.algorithms"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Systematische Fehlerdiagnose builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.security.identity_access",
+      "requires": [
+        "computer_science.databases.relational_model",
+        "computer_science.web.http_api_design"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Authentifizierung und Autorisierung builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.security.secure_development",
+      "requires": [
+        "computer_science.security.identity_access",
+        "computer_science.engineering.architecture"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Secure Software Development builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.operations.cicd_release",
+      "requires": [
+        "computer_science.engineering.testing",
+        "computer_science.engineering.git_workflows",
+        "computer_science.security.secure_development"
+      ],
+      "relation": "prerequisite",
+      "rationale": "CI/CD und kontrollierte Releases builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.operations.observability",
+      "requires": [
+        "computer_science.operations.cicd_release",
+        "computer_science.engineering.architecture"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Logs, Metriken und Traces builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.ai.machine_learning",
+      "requires": [
+        "computer_science.foundations.data_representation",
+        "computer_science.foundations.complexity"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Grundlagen des maschinellen Lernens builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.ai.retrieval_rag",
+      "requires": [
+        "computer_science.databases.relational_model",
+        "computer_science.security.secure_development"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Retrieval-Augmented Generation builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.ai.agent_orchestration",
+      "requires": [
+        "computer_science.ai.retrieval_rag",
+        "computer_science.operations.observability",
+        "computer_science.security.identity_access"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Agenten-Orchestrierung und Werkzeugkontrolle builds on the listed prerequisite concepts."
+    },
+    {
+      "concept_key": "computer_science.autonomy.controlled_change",
+      "requires": [
+        "computer_science.ai.agent_orchestration",
+        "computer_science.engineering.testing",
+        "computer_science.security.secure_development",
+        "computer_science.operations.cicd_release"
+      ],
+      "relation": "prerequisite",
+      "rationale": "Kontrollierte technische Selbstverbesserung builds on the listed prerequisite concepts."
+    }
+  ],
+  "sources_rights_review": {
+    "pending_count": 17,
+    "note": "No source in this package is asserted as cleared. The registry currently contains four other individually reviewed works, none of which is a blanket authorization for these technical sources."
+  }
+}
