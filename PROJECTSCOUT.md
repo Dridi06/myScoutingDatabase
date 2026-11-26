@@ -1368,7 +1368,7 @@ Before the next staging deployment, the general research path was hardened:
 - Chat response metadata distinguishes exact reuse from high-confidence lexical reuse.
 - Added regression tests for positive paraphrase matching and superficially similar but different/contrasting questions.
 
-**Current source head before this project-record update:** `20a99429f82fa0964e1bb557776163118dce90e4` (CI workflow update; math and memory code commits precede it).
+**Source head deployed to STAGING:** `76d18326cdef8a1eb23dbac3ab88aee387967bcd`.
 
 **Verification and release status:**
 - Test cases have been added, but the complete repository Node test suite has **not yet been executed** on this branch.
@@ -1386,3 +1386,16 @@ Before the next staging deployment, the general research path was hardened:
 
 
 **Checkpoint update:** CI workflow definition is now committed on the feature branch. Latest code is still pending validation and staging deployment; no production change was made.
+
+
+### MESSINHO mathematics and knowledge retrieval — STAGING deployment verification (2026-11-26)
+
+- STAGING service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`), branch `feature/messinho-unified-ai-integration`, auto-deploy disabled.
+- Deployed commit: `76d18326cdef8a1eb23dbac3ab88aee387967bcd`.
+- Render deployment: `dep-dc3saftg1s2s73cj6i4g`, status **live**, finished `2026-11-26T05:36:36.801Z`.
+- Build command now gates deployment on `npm test`, backend JavaScript syntax checks, and `vite build`.
+- Full Node suite: **166 passed, 0 failed**. New math tests cover arithmetic/parentheses, percentages, fractions, rule of three, binomial, Poisson, Bayes, Wilson intervals, and physics formula families.
+- Backend syntax check completed successfully; Vite build succeeded with 1,636 modules transformed.
+- Runtime logs confirm `node backend/server.js` started, API listening on port 10000, Supabase Data API HTTP 200, and configured Tavily/OpenAI presence (no secret values logged).
+- The deterministic math module and conservative paraphrase retrieval are therefore **deployed to STAGING**. They have not yet been verified through an authenticated human chat session; no Scout/Admin test credentials were used or created.
+- Production Render service, production Supabase, and `main` were not modified. PR #47 remains Draft, open, and unmerged.
