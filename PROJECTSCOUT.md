@@ -3164,3 +3164,40 @@ GitHub Action run `45888336042` completed successfully on commit `685cbbc82836b5
 - Open `MESSINHO · Wissensprüfung`; confirm VO₂max appears with status `candidate` and two sources.
 - Admin must independently review and explicitly approve or reject it. Do not auto-approve.
 - After approval, verify status `active` and test knowledge retrieval in a fresh chat.
+
+
+## VO2max approval blocked — root cause fixed — 2026-11-26
+
+### User report
+- Admin could see the VO2max candidate but approval was rejected.
+- API review handler returned `candidate_rights_or_corroboration_incomplete`.
+
+### Proven cause
+- `verifyMessinhoSourceRights()` requires the canonical registry field `review_due_at` to be present and exactly match the registry entry.
+- `buildMessinhoKnowledgeConcept()` copied `reviewed_at`, but omitted `review_due_at` when creating `rights.source_rights[]`.
+- Candidate row therefore contained otherwise valid PLOS ONE + PMC source rights but lacked the deadline field; the approval validator correctly failed closed.
+- No source rights were relaxed and no automatic approval was introduced.
+
+### Code fix
+- Commit `1a89c309295db69d510197148a54139e04eb990c`: preserve `review_due_at` in every persisted source-rights snapshot.
+- Commit `14d09ed8a4fc3bc3e02fc936fb518d84f0c0e971`: regression test verifies both VO2max source-rights snapshots retain their canonical deadline and still pass `verifyMessinhoSourceRights()`.
+- GitHub Node regression suite: **314 passed, 0 failed**; backend syntax and STAGING health smoke succeeded.
+
+### Existing STAGING candidate repaired with version history
+- Candidate ID `bad81917-fbf7-490d-9bde-ecf227dc6ae7` remains status `candidate` (not approved).
+- Added canonical `review_due_at = 2027-11-26` to the two existing source-rights entries, only for the two registered source IDs (PLOS ONE and PMC).
+- Created immutable version 2 history entry with reason: missing canonical source-rights review deadline metadata repaired; knowledge content and rights status unchanged.
+- SQL result confirmed: version 2, both source-rights entries have review deadline, audit version 2.
+- No knowledge content, evidence, or rights status was changed.
+
+### STAGING deployment
+- Render service: dedicated MESSINHO STAGING only.
+- Deploy ID: `dep-dc49cddg1s2s73dnc0ig`, commit `14d09ed8...`.
+- Build and test logs show 314/314 Node tests and successful Vite build. App process started at 20:28:07 UTC. Confirm final Render status/health before calling deployment fully live.
+- Production, main, PFMS and PFSS remain untouched.
+
+### Next
+1. Confirm Render deploy status is `live` and health endpoint returns 200.
+2. Admin refreshes STAGING, opens MESSINHO · Wissensprüfung and approves VO2max with a reason.
+3. Verify DB status `active`, review history row and active knowledge retrieval in a fresh chat.
+4. Do not approve on behalf of the Admin; do not begin bulk knowledge import until the pilot is proven end-to-end.
