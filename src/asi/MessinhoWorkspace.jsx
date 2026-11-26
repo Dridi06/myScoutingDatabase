@@ -31,6 +31,9 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   const [feedbackQueueBusy,setFeedbackQueueBusy]=useState(false);
   const [feedbackQueueError,setFeedbackQueueError]=useState('');
   const [feedbackReviewDrafts,setFeedbackReviewDrafts]=useState({});
+  const [qualityIntelligence,setQualityIntelligence]=useState(null);
+  const [qualityIntelligenceBusy,setQualityIntelligenceBusy]=useState(false);
+  const [qualityIntelligenceError,setQualityIntelligenceError]=useState('');
   const messagesRef=useRef(null);
   useEffect(()=>{const container=messagesRef.current;if(!container)return;container.scrollTop=container.scrollHeight;},[messages,busy]);
   async function send(text=draft){
@@ -95,6 +98,14 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     try{const payload=await learningRequest('/api/messinho/feedback?status=pending');setFeedbackQueue(payload.feedback||[]);}
     catch(error){setFeedbackQueueError(error.message||'Feedback-Prüfliste konnte nicht geladen werden.');}
     finally{setFeedbackQueueBusy(false);}
+  }
+  async function loadQualityIntelligence(){
+    setQualityIntelligenceBusy(true);setQualityIntelligenceError('');
+    try{
+      const payload=await learningRequest('/api/messinho/quality-intelligence');
+      setQualityIntelligence(payload.report||null);
+    }catch(error){setQualityIntelligenceError(error.message||'Qualitätsauswertung konnte nicht geladen werden.');}
+    finally{setQualityIntelligenceBusy(false);}
   }
   function setFeedbackReviewDraft(id,key,value){setFeedbackReviewDrafts(prev=>({...prev,[id]:{...(prev[id]||{}),[key]:value}}));}
   async function reviewFeedback(id,decision){
@@ -246,6 +257,42 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       {!feedbackQueue.length&&!feedbackQueueBusy&&<small>Keine offenen Feedback-Einträge vorhanden.</small>}
       {feedbackQueue.map(item=>{const draft=feedbackReviewDrafts[item.id]||{};return <article key={item.id} className="messinho-feedback-review"><div><b>{({quality_rating:'Antwortqualität',factual_correction:'Fachliche Korrektur',bug_report:'Fehlermeldung',feature_request:'Verbesserungsvorschlag'})[item.feedback_type]||item.feedback_type} · {item.owner_username}</b><small>{item.rating?('Bewertung '+item.rating+'/5 · '):''}{new Date(item.created_at).toLocaleString('de-DE')} · {item.submitted_role}</small></div><small>Frage</small><p>{item.question}</p><small>MESSINHO-Antwort</small><p>{item.answer}</p>{item.comment&&<div className="messinho-feedback-comment"><small>Rückmeldung</small><p>{item.comment}</p></div>}<div className="messinho-feedback-review-fields"><label>Prüfgrund<input value={draft.reason||''} maxLength={1200} onChange={e=>setFeedbackReviewDraft(item.id,'reason',e.target.value)} placeholder="Fachlich geprüft …"/></label>{item.feedback_type==='factual_correction'&&<label>HTTPS-Beleg zur Verifizierung<input type="url" value={draft.evidence_url||''} onChange={e=>setFeedbackReviewDraft(item.id,'evidence_url',e.target.value)} placeholder="https://…"/></label>}</div><div className="messinho-feedback-review-actions"><button type="button" disabled={feedbackQueueBusy} onClick={()=>reviewFeedback(item.id,'reviewed')}>Als geprüft markieren</button>{item.feedback_type==='factual_correction'&&<button type="button" disabled={feedbackQueueBusy||!String(draft.evidence_url||'').startsWith('https://')} onClick={()=>reviewFeedback(item.id,'verified')}>Korrektur verifizieren</button>}<button type="button" className="secondary" disabled={feedbackQueueBusy} onClick={()=>reviewFeedback(item.id,'rejected')}>Ablehnen</button></div></article>;})}
       <small>Auch verifiziertes Feedback verändert keine Modellgewichte automatisch. Nur geprüfte Spieler-Outcomes gehören in die bestehende Trainingspipeline.</small>
+    </section>}
+    {profile?.role==='admin'&&<section className="messinho-quality-intelligence">
+      <div className="messinho-quality-heading">
+        <div className="messinho-learning-summary"><strong>MESSINHO · Qualitätsintelligenz</strong><small>Geprüfte Rückmeldungen werden zu messbaren Mustern verdichtet. Keine automatische Änderung am Agenten.</small></div>
+        <button type="button" className="secondary" disabled={qualityIntelligenceBusy} onClick={loadQualityIntelligence}>{qualityIntelligenceBusy?'Analysiert …':'Qualität analysieren'}</button>
+      </div>
+      {qualityIntelligenceError&&<p role="alert" className="messinho-error">{qualityIntelligenceError}</p>}
+      {!qualityIntelligence&&!qualityIntelligenceBusy&&<small className="messinho-quality-muted">Noch keine Auswertung geladen. Die Analyse verwendet nur administrativ geprüfte Feedbacksignale.</small>}
+      {qualityIntelligence&&<>
+        <div className="messinho-quality-metrics">
+          <article><small>Geprüfte Bewertungen</small><strong>{qualityIntelligence.ratings.count}</strong><span>{qualityIntelligence.ratings.average===null?'Noch keine Messung':qualityIntelligence.ratings.average+'/5 Durchschnitt'}</span></article>
+          <article><small>Niedrige Bewertungen</small><strong>{qualityIntelligence.ratings.low_rating_count}</strong><span>{qualityIntelligence.ratings.low_rating_rate===null?'Keine Daten':qualityIntelligence.ratings.low_rating_rate+' % mit 1–2 Sternen'}</span></article>
+          <article><small>Verifizierte Korrekturen</small><strong>{qualityIntelligence.coverage.verified_corrections}</strong><span>Nur Admin-verifiziert</span></article>
+          <article><small>Geprüfte Fehler / Wünsche</small><strong>{qualityIntelligence.coverage.reviewed_bug_reports+qualityIntelligence.coverage.reviewed_feature_requests}</strong><span>{qualityIntelligence.coverage.reviewed_bug_reports} Fehler · {qualityIntelligence.coverage.reviewed_feature_requests} Wünsche</span></article>
+        </div>
+        <div className="messinho-quality-meta">
+          <span>Stichprobe: {qualityIntelligence.coverage.records_loaded} Datensätze</span>
+          <span>Messsicherheit: {({insufficient_sample:'Noch zu wenige Daten',directional:'Erste Tendenz',stable:'Belastbarere Stichprobe'})[qualityIntelligence.ratings.confidence]}</span>
+          <span>Letzte 30 Tage: {qualityIntelligence.trend.current_average===null?'–':qualityIntelligence.trend.current_average+'/5'} · vorherige 30 Tage: {qualityIntelligence.trend.previous_average===null?'–':qualityIntelligence.trend.previous_average+'/5'}</span>
+        </div>
+        <div className="messinho-quality-distribution">
+          <strong>Bewertungsverteilung</strong>
+          <div>{[1,2,3,4,5].map(value=><span key={value}>{value} ★ <b>{qualityIntelligence.ratings.distribution[value]||0}</b></span>)}</div>
+        </div>
+        {!!qualityIntelligence.by_capability.length&&<div className="messinho-quality-groups">
+          <strong>Qualität nach Capability</strong>
+          {qualityIntelligence.by_capability.map(item=><div key={item.key}><span>{item.key}</span><b>{item.average===null?'–':item.average+'/5'}</b><small>{item.count} geprüfte Bewertungen · {item.confidence==='stable'?'stabil':item.confidence==='directional'?'Tendenz':'kleine Stichprobe'}</small></div>)}
+        </div>}
+        {!!qualityIntelligence.themes.length&&<div className="messinho-quality-themes"><strong>Wiederkehrende Themen</strong><div>{qualityIntelligence.themes.map(item=><span key={item.theme}>{item.theme.replaceAll('_',' ')} · {item.count}</span>)}</div></div>}
+        <div className="messinho-quality-hypotheses">
+          <strong>Verbesserungshypothesen · {qualityIntelligence.hypotheses.length}</strong>
+          {!qualityIntelligence.hypotheses.length&&<small>Noch keine wiederkehrenden, ausreichend belegten Muster. Weitere geprüfte Rückmeldungen sammeln.</small>}
+          {qualityIntelligence.hypotheses.map(item=><article key={item.id}><div><b>{item.type==='repeated_low_quality'?'Wiederholt schwache Antwortqualität':item.type==='repeated_verified_corrections'?'Wiederkehrende verifizierte Korrekturen':'Wiederkehrendes Feedback-Thema'}</b><small>{item.group} · {item.sample_size} Signale · Priorität {item.priority}</small></div><p>{item.proposal}</p></article>)}
+        </div>
+        <small className="messinho-quality-muted">Diese Auswertung erstellt ausschließlich Prüfhypothesen. Weder Prompts noch Fähigkeiten, Wissen oder Modellgewichte werden automatisch verändert.</small>
+      </>}
     </section>}
     <section className="messinho-learning-panel">
       <div className="messinho-learning-summary"><strong>MESSINHO · Lern- und Kalibrierungssystem</strong><small>{learningData?.calibration_count??'–'} Kalibrierungen · {learningData?.active_model?.version?(learningData.active_model.trained?'Gelerntes Modell ':'Deterministisches Basisprofil ')+learningData.active_model.version:'Positions-Basisprofil aktiv'}</small><small>Nur administrativ verifizierte Ergebnisse fließen in neue Modellversionen ein.</small></div>
