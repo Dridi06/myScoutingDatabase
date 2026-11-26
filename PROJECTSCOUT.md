@@ -2165,3 +2165,10 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Added tests for implicit dynamic questions, educational questions about coaching, and historical questions.
 - The same 90-day freshness gate and freshness-bounded memory expiry apply; no extra persistence or automatic model changes.
 - Full test/build and manual STAGING deployment pending.
+
+
+#### STAGING release verification — implicit freshness detection — 2026-11-26 17:10 UTC
+- Render deployment `dep-dc46fqtg1s2s73dfcqng` reached `live` on runtime SHA `5c46e5b36bc8dcf22b41162ea26b1e25147d0700`.
+- Complete Node suite: **248 passed, 0 failed, 0 cancelled, 0 skipped**.
+- Backend syntax checks passed; Vite production build completed successfully (1,636 modules transformed).
+- STAGING only; auto-deploy disabled. Production/main, production Supabase and PFMS/PFSS untouched. PR #47 remains Draft/open/unmerged.
