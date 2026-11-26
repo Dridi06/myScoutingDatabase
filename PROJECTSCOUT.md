@@ -1997,3 +1997,12 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 2. Collect real reviewed feedback and evaluate whether the initial thresholds produce useful, stable patterns.
 3. Add a human-approved hypothesis lifecycle (accepted / rejected / test-created / validated) before allowing any quality hypothesis to influence Critic checks or capability behavior.
 4. Keep automatic prompt, capability and model changes disabled until a hypothesis has a regression test, measurable before/after result and explicit admin approval.
+
+
+### Additional governance hardening — factual-correction apply gate — 2026-11-26
+- Review-state audit found that the prior SQL review RPC allowed a factual correction to transition from `reviewed` directly to `applied`, bypassing the evidence-backed `verified` state.
+- Added and applied STAGING migration `20261126170000_messinho_feedback_apply_gate`.
+- New transition rule: factual corrections can be marked `applied` only after their status is `verified`; verification still requires an HTTPS evidence URL. Other feedback categories can be applied only after review.
+- Live database catalog confirms the updated RPC contains the explicit `factual_correction_must_be_verified_before_apply` gate. RPC execution remains service_role-only (anon=false, authenticated=false, service_role=true).
+- This is a database-only hardening migration; no runtime code change or redeploy was required. Runtime remains live on `76d39c4ed34fc16e8cc3700f09bd19d4c096f9a7`.
+- STAGING currently contains no generated feedback records. No synthetic rows were added.
