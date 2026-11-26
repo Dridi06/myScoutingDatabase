@@ -2172,3 +2172,14 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Complete Node suite: **248 passed, 0 failed, 0 cancelled, 0 skipped**.
 - Backend syntax checks passed; Vite production build completed successfully (1,636 modules transformed).
 - STAGING only; auto-deploy disabled. Production/main, production Supabase and PFMS/PFSS untouched. PR #47 remains Draft/open/unmerged.
+
+
+## 2026-11-26 – Freshness classes for dynamic football knowledge and graceful provider failure
+
+- Tightened current-information windows by topic: live standings, fixtures, results and day-specific/live questions require sources no older than 7 days; coach, squad, transfer, market-value and injury status questions require sources no older than 30 days; other explicitly time-sensitive general topics retain 90 days.
+- The evidence assessment exposes the selected freshness window. Historical questions remain exempt from current-source requirements.
+- Owner-scoped knowledge memory now expires dynamic football answers according to the evidence freshness window, rather than always using the general 90-day deadline; the standard 14-day cache TTL still applies as the upper bound.
+- If the independent search provider fails or times out, the chat now returns a clear, user-friendly limited-research response rather than an unhelpful server error. It does not fall back to invented current facts.
+- Added regression tests for 7/30/90-day topic windows, rejecting two-week-old standings sources, and seven-day memory expiry.
+- No schema migration. No changes to the separate player scouting evidence pipeline, model weights or production.
+- Release gate: full Node test suite, backend syntax checks, Vite build, then manual STAGING deployment only. Render auto-deploy remains disabled; PR #47 remains Draft/open/unmerged.
