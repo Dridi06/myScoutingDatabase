@@ -173,6 +173,7 @@ function describeMissingInputs(inputs=[]) {
 function capabilityMatches(goal, capability) {
   const text = normalize(goal);
   const phrases = KEYWORDS[capability.id] || [];
+  if (text.includes(normalize(capability.name)) || text.includes(normalize(capability.id))) return 5;
   if (phrases.some(phrase => text.includes(normalize(phrase)))) return 5;
   const idWords = normalize(capability.id).split(' ').filter(word=>word.length>3);
   const nameWords = normalize(capability.name).split(' ').filter(word=>word.length>3);
@@ -224,13 +225,13 @@ export function planMessinhoCapabilities(message, role='scout', context={}) {
   if (!steps.length && blocked.length) {
     return {denied:true,goal,label:labels.join(' + ')||'Geschützte MESSINHO-Funktion',steps:[],
       blocked_capabilities:blocked,matched_intents:matchedLegacy.map(plan=>plan.id),
-      discovered_capabilities:requested,mode:'goal_composed_capability_discovery',role};
+      discovered_capabilities:requested,mode:matchedLegacy.length?'goal_composed_deterministic':'goal_composed_capability_discovery',role};
   }
   return {
     denied:false,goal,label:labels.join(' + ')||'Automatische MESSINHO-Aufgabenplanung',labels,
     matched_intents:matchedLegacy.map(plan=>plan.id),discovered_capabilities:requested,
     steps,blocked_capabilities:blocked,deferred_capabilities:deferred,
-    max_steps:MAX_CAPABILITY_STEPS,mode:'goal_composed_capability_discovery',role,
+    max_steps:MAX_CAPABILITY_STEPS,mode:matchedLegacy.length?'goal_composed_deterministic':'goal_composed_capability_discovery',role,
     context_hints:context&&typeof context==='object'?Object.keys(context).slice(0,20):[]
   };
 }
