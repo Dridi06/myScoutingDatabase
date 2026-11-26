@@ -1099,7 +1099,8 @@ async function createMessinhoAgentTask(ownerId,goal,plan,input,role){
   try{
     const storedPlan={goal:String(goal||'').slice(0,1200),label:plan?.label||'MESSINHO-Aufgabe',
       matched_intents:plan?.matched_intents||[],discovered_capabilities:plan?.discovered_capabilities||[],
-      blocked_capabilities:plan?.blocked_capabilities||[],mode:plan?.mode||null,role};
+      blocked_capabilities:plan?.blocked_capabilities||[],mode:plan?.mode||null,
+      autonomy_version:plan?.autonomy_version||null,success_criteria:Array.isArray(plan?.success_criteria)?plan.success_criteria.slice(0,8):[],role};
     const pending=[...new Set([...(plan?.steps||[]),...(plan?.deferred_capabilities||[])])];
     const {data,error}=await db.from('messinho_agent_tasks').insert({
       owner_id:ownerId,goal:storedPlan.goal,status:'running',plan:storedPlan,context:buildMessinhoTaskContext(input),
