@@ -108,7 +108,7 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
 
   const countryNames = Object.keys(COUNTRY_ALIASES).sort((a, b) => b.length - a.length);
   const countryPattern = new RegExp('\\b(?:in\\s+)?(' + countryNames.map(name => name.replace(/[.*+?^{}()|[\]\\]/g, '\\$&')).join('|') +
-    '|germany|german|england|english|spain|spanish|italy|italian|france|french|netherlands|dutch|belgium|belgian|austria|austrian|switzerland|swiss|turkey|turkish|denmark|danish|sweden|swedish|norway|norwegian|poland|polish|croatia|croatian|serbia|serbian|usa|brazil|brazilian|argentina|argentinian)\\b', 'i');
+    '|deutsch|germany|german|england|english|spain|spanish|italy|italian|france|french|netherlands|dutch|belgium|belgian|austria|austrian|switzerland|swiss|turkey|turkish|denmark|danish|sweden|swedish|norway|norwegian|poland|polish|croatia|croatian|serbia|serbian|usa|brazil|brazilian|argentina|argentinian)\\b', 'i');
   const regionMatch = context.match(countryPattern);
   let region = regionMatch ? regionMatch[1].replace(/^in\s+/i, '').trim() : '';
   const regionKey = Object.entries(COUNTRY_ALIASES).find(([key, aliases]) =>
