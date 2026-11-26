@@ -5,7 +5,8 @@
 import { runMessinhoCapabilityPlanAsync } from './messinho-orchestrator.js';
 import { detectMessinhoKnowledgeGap } from './messinho-evolution.js';
 import { buildMessinhoPerformanceIntelligence } from './messinho-performance-intelligence.js';
-export const MESSINHO_AGENT_CORE_VERSION='1.0.0';
+import { planMessinhoAutonomously, observeMessinhoExecution } from './messinho-autonomy.js';
+export const MESSINHO_AGENT_CORE_VERSION='2.0.0';
 export const MAX_AGENT_EXECUTION_BUDGET_MS=8000;
 const VALID_STATUSES=new Set(['completed','verified','proposal_ready','insufficient_data','error','denied','invalid_input','unknown_capability','unverified','needs_review','no_reliable_improvement']);
 function addEvent(trace,name,details={}) { return [...trace,{step:trace.length+1,event:name,at:new Date().toISOString(),...details}]; }
@@ -26,13 +27,16 @@ export function validateMessinhoAgentRun(plan,run) {
 }
 export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scout',budgetMs=MAX_AGENT_EXECUTION_BUDGET_MS,onStep}={}) {
  const started=Date.now(),budget=Math.max(250,Math.min(MAX_AGENT_EXECUTION_BUDGET_MS,Number(budgetMs)||MAX_AGENT_EXECUTION_BUDGET_MS));
+ const autonomousPlanning=planMessinhoAutonomously(goal||plan?.goal||'',{role,context:input});
+ plan=plan||autonomousPlanning.plan;
  let state={phase:'planning',goal:goal||plan?.goal||'',trace:[]};
+ state.trace=addEvent(state.trace,'autonomous_goal_interpreted',{status:autonomousPlanning.status,contract_valid:autonomousPlanning.contract?.valid===true});
  state.trace=addEvent(state.trace,'plan_accepted',{steps:plan?.steps?.length||0,role});
  if(!plan||plan.denied||!Array.isArray(plan.steps)||!plan.steps.length){
    const phase=plan?.denied?'blocked':'needs_clarification';
    const knowledgeGap=detectMessinhoKnowledgeGap(plan?.goal||state.goal);
    state={...state,phase,knowledge_gap:knowledgeGap,trace:addEvent(state.trace,'planning_stopped',{reason:plan?.denied?'permission_boundary':'no_matching_plan',knowledge_gap:knowledgeGap.gap,knowledge_gap_reason:knowledgeGap.reason})};
-   return {plan,run:{status:plan?.denied?'denied':'needs_clarification',results:[],completed_steps:0,total_steps:0,
+   return {plan,run:{status:plan?.denied?'denied':'needs_clarification',approval_required:autonomousPlanning.status==='approval_required',results:[],completed_steps:0,total_steps:0,
      blocked_capabilities:plan?.blocked_capabilities||[],missing_inputs:[],replan_recommended:false,provider_independent:true,model_weights_changed:false},
      state,knowledge_gap:state.knowledge_gap||detectMessinhoKnowledgeGap(state.goal),validation:{valid:true,expected_steps:0,returned_steps:0}};
  }
@@ -60,6 +64,8 @@ export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scou
    run={...run,status:'partial',deferred_capabilities:[...new Set([...(run.deferred_capabilities||[]),...failed])],replan_recommended:true};
  }
  state={...state,phase:'validating'};
+ const observation=observeMessinhoExecution(plan,run);
+ state.trace=addEvent(state.trace,'autonomous_observation',{phase:observation.phase,completion_ratio:observation.completion_ratio,replan_recommended:observation.replan_recommended});
  const validation=validateMessinhoAgentRun(plan,run);
  state.trace=addEvent(state.trace,'validation_finished',{valid:validation.valid,missing_results:validation.missing_results.length,missing_inputs:validation.missing_inputs.length});
  const hasErrors=(run.results||[]).some(item=>item.status==='error'),hasInputs=validation.missing_inputs.length>0;
@@ -67,6 +73,6 @@ export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scou
  const phase=!validation.valid?'failed':hasInputs?'waiting_for_input':incomplete?'partial':'completed';
  state={...state,phase,completed_at:new Date().toISOString(),elapsed_ms:Date.now()-started};
  state.trace=addEvent(state.trace,'agent_cycle_closed',{phase,elapsed_ms:state.elapsed_ms});
- return {plan,run:{...run,performance_intelligence:performanceIntelligence,agent_core_version:MESSINHO_AGENT_CORE_VERSION,validation,
+ return {plan,contract:autonomousPlanning.contract,observation,run:{...run,performance_intelligence:performanceIntelligence,autonomous_observation:observation,agent_core_version:MESSINHO_AGENT_CORE_VERSION,validation,
    next_action:hasInputs?'ask_user_for_missing_inputs':hasErrors?'diagnose_and_replan':run.deferred_capabilities?.length?'resume_deferred_steps':'report_result'},state,validation};
 }
