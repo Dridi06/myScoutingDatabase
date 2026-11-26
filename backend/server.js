@@ -717,7 +717,7 @@ app.get('/api/messinho/capabilities',async(req,res)=>{
     const summary=getMessinhoCapabilitySummary();
     res.set('Cache-Control','no-store');
     return res.json({ok:true,registry_version:summary.registry_version,summary,runtime:getMessinhoRuntimeSummary(),groups:listExecutableMessinhoCapabilities(),role:actor.profile.role,
-      note:'Alle 100 IDs besitzen einen ausführbaren Runtime-Handler. Das Ergebnis kann bei fehlenden Daten, Quellen oder Providerzugriff bewusst insufficient_data melden. Provider- und Datenbankaktionen bleiben zusätzlich abgesichert.'});
+      note:'Alle 100 IDs sind im Agenten-Dispatcher registriert. Die Runtime weist spezialisierte Handler und generische Fallbacks getrennt aus; fehlende oder noch nicht spezialisierte Funktionen werden nicht als vollständig implementiert dargestellt. Provider- und Datenbankaktionen bleiben zusätzlich abgesichert.'});
   }catch(error){console.error('MESSINHO capability catalog failed:',error.message);return res.status(500).json({error:'Funktionsübersicht konnte nicht geladen werden.'});}
 });
 const messinhoCapabilityLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele MESSINHO-Funktionsaufrufe. Bitte später erneut versuchen.'}});
