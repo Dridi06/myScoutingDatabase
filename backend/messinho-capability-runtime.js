@@ -395,8 +395,10 @@ function researchHandler(id,input){
    return result(id,'completed',{candidates:eligible.map(item=>({...item,value_per_score:round(item.value/item.score,2),below_group_value:item.value<meanValue&&item.score>=meanScore})).sort((a,b)=>a.value_per_score-b.value_per_score),group_mean_value:round(meanValue),group_mean_score:round(meanScore),estimate_only:true});
  }
  if(id==='club_research'){
-   const club=input.club||input.club_profile;if(!club&&!sources.length)return missingResult(id,['club_identity','club_sources']);
-   return result(id,'completed',{club:club?{name:club.name||null,country:club.country||null,league:club.league||null,website:club.website||null}:null,source_count:sources.length,sources:sourceAudit(sources,now),verified_facts:asArray(input.claims).filter(claim=>claim&&claim.verified===true)});
+   const club=input.club||input.club_profile;
+   if(!club)return missingResult(id,['club_identity']);
+   if(!sources.length)return missingResult(id,['club_sources'],'Der Verein ist zugeordnet, aber es liegen noch keine auswertbaren Recherchequellen vor.');
+   return result(id,'completed',{club:{name:club.name||null,country:club.country||null,league:club.league||null,website:club.website||null},source_count:sources.length,sources:sourceAudit(sources,now),verified_facts:asArray(input.claims).filter(claim=>claim&&claim.verified===true)});
  }
  if(id==='squad_research'){
    const squad=asArray(input.squad||input.players);if(!squad.length)return missingResult(id,['squad_players']);
