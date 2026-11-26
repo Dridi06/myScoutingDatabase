@@ -26,6 +26,9 @@ test('only two individually rights-cleared CC BY 4.0 article works are allowlist
     assert.ok(rights);
     assert.equal(verifyMessinhoSourceRights({...rights,status:'verified_permitted',ai_tdm:true,commercial_use:true,derivative_use:true}),true);
   }
+  const plos=getMessinhoVerifiedSourceRightsById('plos_one_vo2max_prediction_2023');
+  assert.equal(verifyMessinhoSourceRights({...plos,retrieval_url:'https://example.com/other.xml'}),false);
+  assert.equal(verifyMessinhoSourceRights({...plos,retrieval_method:'pmc_bioc_json'}),false);
   assert.equal(verifyMessinhoSourceRights(openStaxClaim),false);
 });
 
