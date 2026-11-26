@@ -1354,7 +1354,7 @@ Before the next staging deployment, the general research path was hardened:
 - Integrated the calculation module into `POST /api/agent/chat` immediately after live-question/small-talk handling and before general LLM fallback. The user does not select a tool; MESSINHO recognizes supported calculation questions and invokes the engine automatically.
 - Basic arithmetic supports addition, subtraction, multiplication, division, parentheses, powers and modulo, with division-by-zero and invalid-input handling.
 - Added percentage calculations, fractions, and proportional rule-of-three calculations.
-- Probability/statistics currently include exact/at-least/at-most binomial probabilities, Poisson probabilities, Bayes updates, and 95% Wilson confidence intervals for observed scouting conversion/success rates.
+- Probability/statistics currently include exact/at-least/at-most binomial probabilities, Poisson probabilities, Bayes updates, 95% Wilson confidence intervals, hypergeometric probabilities (sampling without replacement), cumulative normal-distribution probabilities, z-scores, and combinations/binomial coefficients.
 - Physics currently includes Newton's second law, average speed, acceleration, kinetic and potential energy, mechanical work, power, density, pressure, momentum, Hooke's law, Ohm's law, electrical power, wave speed, circle circumference and circle area.
 - Results return a formula, calculation steps, units, and relevant assumptions. Probability results explicitly distinguish an observed statistical rate from a guaranteed individual player outcome.
 - Added `tests/messinho-math.test.js` for arithmetic, percentages, fractions, rule of three, binomial/Poisson/Bayes/Wilson calculations, and physics formula cases.
@@ -1368,7 +1368,7 @@ Before the next staging deployment, the general research path was hardened:
 - Chat response metadata distinguishes exact reuse from high-confidence lexical reuse.
 - Added regression tests for positive paraphrase matching and superficially similar but different/contrasting questions.
 
-**Source head deployed to STAGING:** `76d18326cdef8a1eb23dbac3ab88aee387967bcd`.
+**Source head deployed to STAGING:** `2c828e68624d36ce5e663becc75bb48ee6ff1c3f`.
 
 **Verification and release status:**
 - Test cases have been added, but the complete repository Node test suite has **not yet been executed** on this branch.
@@ -1391,11 +1391,13 @@ Before the next staging deployment, the general research path was hardened:
 ### MESSINHO mathematics and knowledge retrieval — STAGING deployment verification (2026-11-26)
 
 - STAGING service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`), branch `feature/messinho-unified-ai-integration`, auto-deploy disabled.
-- Deployed commit: `76d18326cdef8a1eb23dbac3ab88aee387967bcd`.
-- Render deployment: `dep-dc3saftg1s2s73cj6i4g`, status **live**, finished `2026-11-26T05:36:36.801Z`.
+- Deployed commit: `2c828e68624d36ce5e663becc75bb48ee6ff1c3f`.
+- Render deployment: `dep-dc3sbdk9v7es73d4nd5g`, status **live**, finished `2026-11-26T05:38:34.254Z`. The earlier `76d1832` deployment is superseded by this expanded probability build.
 - Build command now gates deployment on `npm test`, backend JavaScript syntax checks, and `vite build`.
-- Full Node suite: **166 passed, 0 failed**. New math tests cover arithmetic/parentheses, percentages, fractions, rule of three, binomial, Poisson, Bayes, Wilson intervals, and physics formula families.
+- Full Node suite after initial math integration: **166 passed, 0 failed**. After adding normal/hypergeometric/combinatorics dispatch, final full Node suite: **169 passed, 0 failed**. New math tests cover arithmetic/parentheses, percentages, fractions, rule of three, binomial, Poisson, Bayes, Wilson intervals, normal distribution, hypergeometric probability, combinations, and physics formula families.
 - Backend syntax check completed successfully; Vite build succeeded with 1,636 modules transformed.
 - Runtime logs confirm `node backend/server.js` started, API listening on port 10000, Supabase Data API HTTP 200, and configured Tavily/OpenAI presence (no secret values logged).
 - The deterministic math module and conservative paraphrase retrieval are therefore **deployed to STAGING**. They have not yet been verified through an authenticated human chat session; no Scout/Admin test credentials were used or created.
 - Production Render service, production Supabase, and `main` were not modified. PR #47 remains Draft, open, and unmerged.
+
+- One intermediate deployment attempt exposed three missing dispatch cases for the added normal/hypergeometric/combinatorics tests; these were corrected before the final deployment. Final build/test gate passed all 169 tests.
