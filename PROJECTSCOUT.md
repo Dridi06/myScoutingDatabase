@@ -2274,3 +2274,15 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Render Build: **260 Tests bestanden, 0 fehlgeschlagen**, Backend-Syntax- und Vite-Build erfolgreich. Deployment-ID `dep-dc4772u1egvs73fhsntg` wurde für STAGING gestartet; zum Zeitpunkt dieses Checkpoints war der Deploystatus noch `update_in_progress`, daher nicht als live deklarieren.
 - WICHTIG: Diese Integration macht MESSINHO bereit, rechtlich verifizierte Wissenseinträge automatisch in passenden Agent-Aufgaben zu verwenden. Tatsächlicher Quellenimport ist noch NICHT freigegeben: die Wissensdatenbank hat 0 Einträge und es existiert noch kein abgeschlossener Katalog mit 100 einzeln geprüften Fachwerken. Erst nach Rechteprüfung und Einspielung kann der praktische Wissensbetrieb beginnen.
 - Weiterhin STAGING-only; Auto-Deploy off; Produktion/main, PFMS/PFSS unberührt; PR #47 Draft/offen/unmerged.
+
+
+## 2026-11-26 — Umsetzungsschritt 3: Rechte-Allowlist und ehrliche Handler-Klassifizierung
+
+- Neue zentrale Rechte-Allowlist in `backend/messinho-rights-registry.js`. Sie ist absichtlich leer, bis einzelne Werke unabhängig geprüft und freigegeben wurden.
+- Der Wissensspeicher akzeptiert Rechteangaben nicht mehr allein aufgrund von Feldern, die ein Rechercheanbieter oder Aufrufer mitsendet. Für eine dauerhafte Aufnahme muss eine passende `source_id` in der intern geprüften Allowlist existieren und Lizenz, Rechteinhaber, Beleg-URL sowie AI/TDM-, kommerzielle und Bearbeitungsrechte exakt übereinstimmen.
+- Jede Quellenreferenz muss dieselbe registrierte `source_id` tragen. Unbekannte/ungeprüfte Quellen werden fail-closed abgewiesen.
+- Capability-Runtime: Die bisherige Liste markierte pauschal alle 100 IDs als `specialist_logic`, obwohl sechs Fähigkeiten keinen eigenen expliziten Fachzweig besitzen. Die Kennzeichnung wurde anhand tatsächlich vorhandener Handler-Zweige korrigiert. Als generische Fallbacks ausgewiesen: `supervised_learning`, `weight_optimization`, `country_learning`, `talent_pathway_learning`, `breakthrough_learning`, `controlled_self_optimization`.
+- `completion_verified_count` bleibt bewusst 0; Dispatch-/Handler-Präsenz ist noch kein End-to-End-Nachweis.
+- Diese Änderung ist noch nicht deployed; Tests und Build müssen vor einem manuellen STAGING-Deploy erfolgreich sein.
+- Rechtekatalog enthält weiterhin 0 freigegebene Werke. Die 100er-Zielzahl wird nicht künstlich mit ungeprüften Titeln aufgefüllt.
+- Grenzen unverändert: Feature-Branch und dediziertes STAGING; keine Produktion/main/PFMS/PFSS-Änderungen; PR #47 Draft/offen/unmerged; Render Auto-Deploy aus.
