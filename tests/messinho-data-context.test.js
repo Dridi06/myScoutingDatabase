@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildMessinhoCapabilityContext, extractMessinhoGoalFilters } from '../backend/messinho-data-context.js';
+import { scopeMessinhoOwner } from '../backend/messinho-access.js';
 
 const now=Date.parse('2026-01-01T00:00:00.000Z');
 
@@ -108,4 +109,24 @@ test('age limits and goalkeeper intent are parsed without inventing missing filt
  assert.equal(filters.position,'Torwart');
  assert.equal(filters.max_age,19);
  assert.equal(filters.min_age,undefined);
+});
+
+test('owner scope filters every scout read and leaves admin reads globally scoped',()=>{
+ const calls=[];
+ const query={eq(column,value){calls.push([column,value]);return this;}};
+ const scoutQuery=scopeMessinhoOwner(query,{user:{id:'scout-123'},profile:{role:'scout'}});
+ assert.equal(scoutQuery,query);
+ assert.deepEqual(calls,[['owner_id','scout-123']]);
+ calls.length=0;
+ const adminQuery=scopeMessinhoOwner(query,{user:{id:'admin-1'},profile:{role:'admin'}});
+ assert.equal(adminQuery,query);
+ assert.deepEqual(calls,[]);
+});
+
+test('owner scope rejects missing or unsupported actors before any query can execute',()=>{
+ const calls=[];
+ const query={eq(){calls.push('eq');return this;}};
+ assert.throws(()=>scopeMessinhoOwner(query,null),/Authenticated MESSINHO actor required/);
+ assert.throws(()=>scopeMessinhoOwner(query,{user:{id:'x'},profile:{role:'user'}}),/Authenticated MESSINHO actor required/);
+ assert.deepEqual(calls,[]);
 });
