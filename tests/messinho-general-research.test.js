@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {isMessinhoGeneralResearchQuestion,normalizeMessinhoGeneralSources,assessMessinhoGeneralEvidence,isMessinhoGeneralClaimSupported,isMessinhoGeneralClaimCorroborated,isMessinhoTimeSensitiveQuestion,messinhoFreshnessWindowDays,researchMessinhoGeneralQuestion} from '../backend/messinho-general-research.js';
+import {isMessinhoGeneralResearchQuestion,normalizeMessinhoGeneralSources,filterMessinhoRelevantGeneralSources,assessMessinhoGeneralEvidence,isMessinhoGeneralClaimSupported,isMessinhoGeneralClaimCorroborated,isMessinhoTimeSensitiveQuestion,messinhoFreshnessWindowDays,researchMessinhoGeneralQuestion} from '../backend/messinho-general-research.js';
 
 test('detects open knowledge questions but leaves greetings and scouting commands alone',()=>{
  assert.equal(isMessinhoGeneralResearchQuestion('Warum ist der Himmel blau?'),true);
@@ -27,6 +27,26 @@ test('provider-supplied licence claims cannot pass the independently reviewed ri
  assert.equal(rows[0].rights,null);
 });
 
+test('filters unrelated Wikipedia navigation results from VO2max scouting research',()=>{
+ const sources=[
+  {title:'Auf dem Kreuzzug ins Glück',snippet:'Datenschutz Über Wikipedia Haftungsausschluss Impressum Statistiken Mobile Ansicht Wikimedia Foundation Powered by MediaWiki'.repeat(3),publisher:'de.wikipedia.org'},
+  {title:'VO2max and maximal oxygen uptake',snippet:'VO2max is the maximal oxygen uptake and a measure of cardiorespiratory fitness. '.repeat(3),publisher:'sports-science.example'},
+  {title:'Cardiorespiratory fitness and aerobic capacity',snippet:'Maximal oxygen uptake is commonly used to assess cardiorespiratory fitness and aerobic capacity. '.repeat(3),publisher:'research.example'}
+ ];
+ const filtered=filterMessinhoRelevantGeneralSources(sources,'Wie ordne ich die aerobe Leistungsfähigkeit eines Fußballspielers anhand seiner VO₂max ein?');
+ assert.equal(filtered.length,2);
+ assert.ok(filtered.every(source=>/vo2max|oxygen uptake|cardiorespiratory fitness/i.test(source.title+' '+source.snippet)));
+});
+test('fails closed when VO2max search results contain only unrelated pages',async()=>{
+ const unrelated=[
+  {url:'https://de.wikipedia.org/wiki/A',title:'Auf dem Kreuzzug ins Glück',content:'Datenschutz Über Wikipedia Haftungsausschluss Impressum Sicherheit Verhaltenskodex Entwickler Statistiken Mobile Ansicht. '.repeat(4)},
+  {url:'https://en.wikipedia.org/wiki/B',title:'Wikipedia navigation',content:'About Wikipedia Privacy policy Disclaimer Contact Wikimedia Foundation Powered by MediaWiki. '.repeat(4)}
+ ];
+ const result=await researchMessinhoGeneralQuestion('Was ist VO2max? Erkläre mir den Wert.',{TAVILY_API_KEY:'test'},async()=>({ok:true,json:async()=>({results:unrelated})}));
+ assert.equal(result.status,'no_sources');
+ assert.equal(result.sources.length,0);
+ assert.equal(result.evidence.can_answer,false);
+});
 test('requires independent domains and substantial evidence before answering',()=>{
  const limited=assessMessinhoGeneralEvidence([{publisher:'a.example',snippet:'x'.repeat(150)},{publisher:'a.example',snippet:'y'.repeat(150)}]);
  assert.equal(limited.can_answer,false);
