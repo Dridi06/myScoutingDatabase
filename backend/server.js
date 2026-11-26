@@ -18,6 +18,7 @@ import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainabl
 import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './messinho-research.js';
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
 import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
+import { classifyMessinhoProviderFailure, getMessinhoSmallTalkReply } from './messinho-conversation.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -867,7 +868,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
           {role:'user',content:JSON.stringify({requested:{ageMin,ageMax,birthYearFrom,birthYearTo,position,nationality,region,targetLevel,limit:filters.limit||15},sources:discoverySources.map(({title,url,publisher,published_date,content})=>({title,url,publisher,published_date,content}))})}
         ]
       })});
-      if(!aiResponse.ok){const detail=(await aiResponse.text()).slice(0,400);console.error('OpenAI discovery analysis failed:',aiResponse.status,detail);return res.status(502).json({error:'Die KI konnte die globale Spielerauswahl nicht analysieren.'});}
+      if(!aiResponse.ok){const providerPayload=await aiResponse.json().catch(()=>({}));const failure=classifyMessinhoProviderFailure(aiResponse.status,providerPayload);console.error('OpenAI discovery analysis failed:',aiResponse.status,failure.code,providerPayload?.error?.code||providerPayload?.error?.type||'');return res.status(failure.status).json({error:failure.userMessage,code:failure.code,retryable:failure.code!=='provider_authentication_failed'});}
       const aiData=await aiResponse.json();
       const raw=aiData.choices?.[0]?.message?.content;
       if(!raw)return res.status(502).json({error:'Die KI lieferte keine auswertbare Spielerauswahl.'});
@@ -1542,6 +1543,8 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const actor={user:authData.user,profile};
     const agentMemory=await loadMessinhoAgentMemory(ownerId);
     const normalized=interpretedMessage.toLocaleLowerCase('de-DE').normalize('NFKC');
+    const smallTalkReply=getMessinhoSmallTalkReply(interpretedMessage);
+    if(smallTalkReply)return respond({reply:smallTalkReply,intent:'small_talk',items:[]});
     const isPlayerFollowUp=Boolean(resolveMessinhoPlayerFollowUp(interpretedMessage,history));
     const help=/\b(hilfe|befehle|funktionen)\b/.test(normalized)||(/\bwas kannst du\b/.test(normalized)&&!isPlayerFollowUp);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
