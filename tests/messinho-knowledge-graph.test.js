@@ -4,6 +4,7 @@ import {
   buildMessinhoKnowledgeConcept,
   findMessinhoKnowledgeConcepts,
   linkMessinhoKnowledgeConcepts,
+  reviewMessinhoKnowledgeConcept,
   storeMessinhoKnowledgeConcept,
   MESSINHO_KNOWLEDGE_LEVELS,
   MESSINHO_KNOWLEDGE_RELATIONS
@@ -47,6 +48,10 @@ test('knowledge concept refuses unreviewed sources even if provider claims right
 test('knowledge graph does not persist or retrieve without a database',async()=>{
   assert.deepEqual(await storeMessinhoKnowledgeConcept(null,draft),{persisted:false,reason:'storage_unavailable'});
   assert.deepEqual(await findMessinhoKnowledgeConcepts(null,'Bayes theorem'),{status:'unavailable',items:[]});
+});
+
+test('knowledge review requires a real database and explicit approved-admin identity',async()=>{
+ assert.deepEqual(await reviewMessinhoKnowledgeConcept(null,{concept_id:'concept-1',decision:'approve',reason:'Evidence checked and approved',reviewer_id:'admin-1'}),{reviewed:false,reason:'invalid_review_request'});
 });
 
 test('knowledge graph rejects invalid relationship writes',async()=>{
