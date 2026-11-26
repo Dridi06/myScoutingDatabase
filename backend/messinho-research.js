@@ -82,6 +82,7 @@ export async function researchMessinhoPlayerProfile(name,env=process.env,fetchIm
  if(!response.ok)throw new Error('Spielerrecherche ist derzeit nicht verfügbar.');
  const payload=await response.json(),sources=normalizeResearchSources(payload.results||[]);
  if(!sources.length)return {status:'insufficient_sources',player:{name:query},sources:[],profile:null,message:'Ich habe keine ausreichend geeigneten öffentlichen Quellen gefunden.'};
+ if(!env.OPENAI_API_KEY)return {status:'needs_review',player:{name:query},profile:null,sources,quality_control:{passed:false,iterations:0,score:0,feedback:'OpenAI-Qualitätsprüfung ist nicht konfiguriert.'},message:'Die Quellen wurden gefunden, aber das Spielerprofil konnte nicht unabhängig geprüft werden.'};
  const quality=await runMessinhoQualityLoop({
   question:query,sources,
   draftFactory:async({feedback})=>{
