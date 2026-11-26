@@ -2110,3 +2110,11 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Added unit and integration tests for current source thresholds, stale/undated source rejection, stable knowledge behavior, and early return before synthesis.
 - No schema migration. No prompts, agent capabilities or model weights are automatically changed by this evidence gate.
 - Release pending full test/syntax/build gate and manual STAGING deploy. Production remains untouched; Render auto-deploy remains disabled; PR #47 remains Draft/open/unmerged.
+
+
+#### STAGING release verification — freshness-aware research — 2026-11-26 17:05 UTC
+- Render deployment `dep-dc46dgu1egvs73ffla9g` reached `live` on runtime SHA `e849a6da25e51b9b2da074e91c7da2a6b6b83ccd`.
+- Complete Node suite: **241 passed, 0 failed, 0 cancelled, 0 skipped**.
+- Backend syntax checks passed and Vite production build completed successfully (1,636 modules transformed).
+- Render logs confirm the service is live at the dedicated STAGING URL. Render configuration confirms `autoDeploy=no` and `autoDeployTrigger=off`.
+- Production/main, production Supabase and PFMS/PFSS remain untouched. PR #47 remains Draft/open/unmerged.
