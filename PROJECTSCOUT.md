@@ -1126,3 +1126,50 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - Updated `tests/messinho-agent-core.test.js` to provide a concrete unknown tactical question. Commit: `c58997f59c8eca0deac76b12d8ce00a9a54210e3`.
 - On that exact commit, MESSINHO backend syntax, MESSINHO Node tests, ASI quality checks, and Staging health smoke test are green. MESSINHO validation is still running at the time of this checkpoint; do not infer full CI completion until it returns.
 - No deployment, migration application, merge, or Production changes. Staging remains the only intended target.
+
+
+## 2026-11-26 — Agent-Core Ergebnisvalidierung korrigiert und STAGING aktualisiert
+
+### Ausgangspunkt
+- Fortsetzung nach dem vorherigen Checkpoint zur kontrollierten MESSINHO-Evolution und Wissenslückenbehandlung.
+- Maßgeblicher Render-STAGING-Service: `myscoutingdatabase-messinho-staging`, ID `srv-dc3chlqjnfac73acd6ig`.
+- Der tatsächlich konfigurierte Render-Branch ist `feature/messinho-unified-ai-integration`; ältere Checkpoints mit `feature/messinho-agent-workspace` sind für den aktuellen STAGING-Service nicht maßgeblich.
+- Render Auto-Deploy bleibt deaktiviert. Änderungen wurden ausschließlich auf dem oben genannten Entwicklungsbranch vorgenommen.
+
+### Fehlerkorrektur
+- Datei: `backend/messinho-agent-core.js`.
+- Commit: `8129091c3c413512944291a2b619280834d0e374`.
+- Befund: `validateMessinhoAgentRun` erfasste fehlende Ergebnisse geplanter Capability-Schritte in `missing_results`, bezog diese aber nicht in `valid` ein. Ein unvollständiger Plan konnte dadurch fälschlich als gültig ausgewiesen werden.
+- Korrektur: `valid` ist jetzt nur wahr, wenn auch `missingResults.length === 0` gilt.
+- Regressionstest in `tests/messinho-agent-core.test.js`: Ein Plan mit zwei erwarteten Fähigkeiten und nur einem zurückgegebenen Ergebnis muss `valid === false` liefern.
+- Test-Commit: `82b126e342989c91f4af19eeb0b8956692c592b3`.
+
+### CI-Nachweise für Commit `82b126e342989c91f4af19eeb0b8956692c592b3`
+- MESSINHO Node tests: Run `45759958645`, erfolgreich; **136/136 Tests bestanden**, 0 fehlgeschlagen.
+- MESSINHO validation: Run `45759958520`, erfolgreich; **136/136 Tests bestanden** und Frontend-Build erfolgreich.
+- ASI quality checks: Run `45759958579`, erfolgreich; **136/136 Tests bestanden** und Frontend-Build erfolgreich.
+- MESSINHO backend syntax: Run `45759958571`, erfolgreich.
+- Staging health smoke: Run `45759958586`, erfolgreich; HTTP 200, `ok=true`, Datenbank `ok`, Authentifizierung `ready`, MESSINHO-Core `provider_independent`, externe Recherche `ready`, optionale KI-Analyse `ready`. Dieser Smoke-Test lief vor dem neuen Render-Deploy gegen den zuvor laufenden STAGING-Code.
+
+### Render STAGING Deploy
+- Deployment: `dep-dc3rv8rl550s73fe3qk0`.
+- Exakter Code-Commit: `82b126e342989c91f4af19eeb0b8956692c592b3`.
+- Status: `live`; Render Event `deploy_ended / succeeded` um `2026-11-26T05:12:40Z`.
+- Build erfolgreich; Prozess `npm start` / `node backend/server.js` gestartet; API meldete Listening auf Port 10000.
+- Frische Runtime-Logs bestätigen: STAGING-Supabase-Server-Secret vorhanden (neuer Secret-Key-Typ), Supabase Data API HTTP 200, Tavily=true, OpenAI=true.
+- Diese Statusmeldungen bestätigen Konfiguration und Prozessstart, nicht die vollständige Auth-/Chat-/Task-E2E-Funktion.
+
+### Daten- und Sicherheitsauswirkung
+- Keine Supabase-Migration, keine SQL-Schreiboperation und keine Änderung an Datenbanktabellen.
+- Keine Nutzer-, Scout-, Spieler-, Memory-, Trace-, Task- oder Lerndaten verändert.
+- Keine Modellgewichte geändert und kein automatisches Training ausgeführt.
+- Produktion `main`, LIVE-Render und Produktions-Supabase unverändert.
+- PFMS/PFSS nicht berührt.
+
+### Noch offene Verifikation / nächster Schritt
+1. Nach diesem Dokumentations-Checkpoint den GitHub Actions Staging health smoke erneut ausführen lassen, damit HTTP 200 / Datenbank `ok` ausdrücklich gegen den neuen Deploy `dep-dc3rv8rl550s73fe3qk0` bestätigt wird.
+2. Danach mit freigegebenen, ausschließlich im STAGING angelegten Testkonten Login, Rollen, Scout-Owner-Isolation und Spielerzugriffe testen.
+3. MESSINHO-Chat E2E prüfen: Begrüßung, Live-Uhrzeit Europe/Berlin, normale unbekannte Frage, Knowledge-Gap-Antwort, Capability-Auswahl und provider/quota Fehlerbehandlung.
+4. Memory-/Trace-/Task-Ledger-Persistenz, SSE-Unterbrechung, Resume, Lease-Ablauf, Idempotenz und Cross-User-Denial prüfen.
+5. Keine Produktionspromotion oder Merge-Freigabe aus diesem Checkpoint ableiten.
+
