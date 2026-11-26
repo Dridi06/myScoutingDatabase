@@ -6,7 +6,6 @@ import {
   linkMessinhoKnowledgeConcepts,
   reviewMessinhoKnowledgeConcept,
   storeMessinhoKnowledgeConcept,
-  reviewMessinhoKnowledgeConcept,
   MESSINHO_KNOWLEDGE_LEVELS,
   MESSINHO_KNOWLEDGE_RELATIONS
 } from '../backend/messinho-knowledge-graph.js';
