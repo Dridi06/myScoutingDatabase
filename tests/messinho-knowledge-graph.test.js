@@ -9,7 +9,6 @@ import {
   MESSINHO_KNOWLEDGE_LEVELS,
   MESSINHO_KNOWLEDGE_RELATIONS
 } from '../backend/messinho-knowledge-graph.js';
-import { getMessinhoVerifiedSourceRightsForUrl } from '../backend/messinho-rights-registry.js';
 
 const draft={
   domain:'mathematics',topic:'Probability',title:'Bayes theorem',
@@ -46,34 +45,28 @@ test('knowledge concept refuses unreviewed sources even if provider claims right
   assert.equal(result.reason,'one_rights_verified_source_required');
 });
 
-test('one rights-cleared source can persist only an inactive foundation candidate',()=>{
+test('OpenStax content cannot create a candidate without written AI permission',()=>{
   const url='https://assets.openstax.org/oscms-prodcms/media/documents/College-Algebra-2e-WEB.pdf';
-  const rights=getMessinhoVerifiedSourceRightsForUrl(url);
   const result=buildMessinhoKnowledgeConcept({
     domain:'mathematics',topic:'Algebra',title:'Linear equations',
     definition:'A linear equation describes a relation in which the unknown variable has degree one.',
     knowledge_level:'foundational',knowledge_type:'concept',
     claims:[{text:'A linear equation has a variable of degree one.',source_urls:[url]}],
-    sources:[{source_id:rights.source_id,title:'College Algebra 2e',url,rights}],
+    sources:[{source_id:'openstax_college_algebra_2e_2021',title:'College Algebra 2e',url}],
     confidence:0.8
   });
-  assert.equal(result.eligible,true);
-  assert.equal(result.record.knowledge_status,'candidate');
-  assert.equal(result.record.rights.verified_source_count,1);
-  assert.equal(result.record.sources[0].license,'CC BY 4.0');
-  assert.equal(result.record.sources[0].license_url,'https://creativecommons.org/licenses/by/4.0/');
-  assert.ok(result.record.sources[0].attribution);
+  assert.equal(result.eligible,false);
+  assert.equal(result.reason,'one_rights_verified_source_required');
 });
 
-test('one-source candidates cannot be promoted to active knowledge',async()=>{
+test('unapproved one-source candidates cannot be promoted to active knowledge',async()=>{
   const url='https://assets.openstax.org/oscms-prodcms/media/documents/College-Algebra-2e-WEB.pdf';
-  const rights=getMessinhoVerifiedSourceRightsForUrl(url);
   const row={
     id:'candidate-1',domain:'mathematics',knowledge_status:'candidate',
     parent_concept_key:null,prerequisites:[],
-    sources:[{source_id:rights.source_id,url}],
+    sources:[{source_id:'openstax_college_algebra_2e_2021',url}],
     claims:[{text:'Linear equation concept',source_urls:[url]}],
-    rights:{status:'verified_permitted',ai_tdm:true,commercial_use:true,derivative_use:true,source_rights:[rights]}
+    rights:{status:'verified_permitted',ai_tdm:true,commercial_use:true,derivative_use:true,source_rights:[]}
   };
   const query={select(){return this;},eq(){return this;},async maybeSingle(){return {data:row,error:null};}};
   const db={from(){return query;}};
