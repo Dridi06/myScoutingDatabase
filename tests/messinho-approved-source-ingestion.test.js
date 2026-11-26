@@ -56,7 +56,7 @@ test('approved LibreTexts and Austin chapter HTML routes return only relevant co
  ]){
   const result=await fetchMessinhoApprovedSource(sourceId,{topic:'matrix multiplication matrices columns rows product',fetchImpl:async(url,options)=>{
    assert.equal(new URL(url).hostname,host);
-   assert.match(options.headers.accept,/text\\/html/);
+   assert.equal(options.headers.accept,'text/html,application/xhtml+xml;q=0.9');
    return {ok:true,text:async()=>fixtures[host]};
   }});
   assert.equal(result.status,'completed');
