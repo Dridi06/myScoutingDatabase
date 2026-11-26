@@ -1432,7 +1432,7 @@ async function loadMessinhoCapabilityContext({player,players,plan,actor}){
     player,players:Array.isArray(players)?players:[],observations:loaded.observations||[],
     events:loaded.events||[],evidence:loaded.evidence||[],candidateEvidence:loaded.candidateEvidence||[],
     contracts:loaded.contracts||[],calibration:loaded.calibration||[],playerDirectory:loaded.playerDirectory||[],
-    predictions:predictionRecords,predictionOutcomes,sourceRegistry,now:Date.now()
+    predictions:predictionRecords,predictionOutcomes,sourceRegistry,goal:plan?.goal||'',now:Date.now()
   });
 }
 
