@@ -46,7 +46,7 @@ export function normalizeMessinhoGeneralSources(results=[]){
 }
 export function isMessinhoTimeSensitiveQuestion(question){
  const text=String(question||'');
- if(/\b(früher|frueher|damals|historisch|rückblick|rueckblick|im jahr 19\d{2}|saison 20\d{2}\/\d{2})\b/i.test(text))return false;
+ if(/\b(früher|frueher|damals|historisch|rückblick|rueckblick|im jahr 19\d{2}|saison 20\d{2}\/\d{2})\b/i.test(text)||(/\b(war|waren|wurde|wurden|trainierte|spielte)\b/i.test(text)&&/\b(?:19|20)\d{2}\b/.test(text)))return false;
  if(/\b(aktuell|heute|jetzt|derzeit|momentan|zurzeit|neueste[nr]?|aktuellste[nr]?|diese woche|diesen monat|gestern|morgen|live|stand heute|202[6-9])\b/i.test(text))return true;
  return /\b(wer trainiert|trainer (?:von|bei)|cheftrainer|head coach (?:of|at)|tabellenstand|tabellenplatz|spielplan (?:für|der|von)|kader (?:von|des|bei)|transfernews|transfergerüchte|aktueller marktwert)\b/i.test(text);
 }
