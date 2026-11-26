@@ -1725,7 +1725,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       }
       return respond({reply:research.answer||research.message||'Ich kann diese Frage gerade nicht zuverlässig recherchieren. Bitte versuche es später erneut oder grenze die Frage etwas ein.',intent:'general_knowledge_research_limited',items:sourceItems,sources:research.sources||[],evidence:research.evidence||null,limitations:research.evidence?.limitations||[]});
     }
-    const conversationalContext=history.map(item=>({role:item.role,content:item.text})).slice(-10);
+    const conversationalContext=history.map(item=>({role:item.role,content:item.text})).slice(-20);
     if(process.env.OPENAI_API_KEY){
       try{
         const chatResponse=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(30000),headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({
