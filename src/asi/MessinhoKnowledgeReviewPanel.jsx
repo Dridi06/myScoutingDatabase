@@ -1,5 +1,5 @@
 import React,{useCallback,useEffect,useMemo,useState} from 'react';
-import {BookOpenCheck,RefreshCw,ShieldCheck,AlertTriangle,CheckCircle2,XCircle,GitBranch} from 'lucide-react';
+import {BookOpenCheck,RefreshCw,ShieldCheck,CheckCircle2,XCircle,GitBranch} from 'lucide-react';
 import './messinho.css';
 
 export default function MessinhoKnowledgeReviewPanel({supabase,profile}){
@@ -42,8 +42,7 @@ export default function MessinhoKnowledgeReviewPanel({supabase,profile}){
  const reviewCandidate=async(item,decision)=>{
   const defaultReason={
    approve:'Fachinhalt, zwei unabhängige Belege, Nutzungsrechte und Grundlagen geprüft.',
-   reject:'Fachprüfung: Inhalt oder Quellenlage erfüllt die Freigabekriterien nicht.',
-   mark_conflicting:'Fachlicher Widerspruch erkannt; der Eintrag bleibt bis zur Klärung gesperrt.'
+   reject:'Fachprüfung: Inhalt oder Quellenlage erfüllt die Freigabekriterien nicht.'
   }[decision];
   const reason=String(candidateReasons[item.id]||defaultReason).trim();
   if(reason.length<10){setError('Bitte eine nachvollziehbare Prüfbegründung mit mindestens 10 Zeichen eintragen.');return;}
@@ -122,7 +121,6 @@ export default function MessinhoKnowledgeReviewPanel({supabase,profile}){
        <label className="messinho-knowledge-reason">Prüfbegründung<textarea rows={2} maxLength={500} value={candidateReasons[item.id]||''} onChange={e=>setCandidateReasons(prev=>({...prev,[item.id]:e.target.value}))} placeholder="Begründung wird beim Freigeben oder Ablehnen gespeichert …"/></label>
        <div className="messinho-knowledge-actions">
         <button type="button" disabled={!!reviewing||busy} onClick={()=>reviewCandidate(item,'approve')}><CheckCircle2 size={14}/>{reviewing===item.id?'Prüft …':'Freigeben'}</button>
-        <button type="button" className="secondary" disabled={!!reviewing||busy} onClick={()=>reviewCandidate(item,'mark_conflicting')}><AlertTriangle size={14}/>Widerspruch markieren</button>
         <button type="button" className="danger" disabled={!!reviewing||busy} onClick={()=>reviewCandidate(item,'reject')}><XCircle size={14}/>Ablehnen</button>
        </div>
       </article>;
