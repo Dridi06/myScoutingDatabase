@@ -12,6 +12,12 @@ function mockFetch(url){
  if(url.includes('ncbi.nlm.nih.gov'))return Promise.resolve({ok:true,json:async()=>pmcJson});
  return Promise.resolve({ok:false,status:404});
 }
+function mockMathFetch(url){
+ if(url.includes('math.libretexts.org'))return Promise.resolve({ok:true,text:async()=>'<html><body><p>Matrix multiplication is defined when the number of columns of the first matrix equals the number of rows of the second matrix. If A is m by n and B is n by p, then their product AB is an m by p matrix.</p></body></html>'});
+ if(url.includes('understandinglinearalgebra.org'))return Promise.resolve({ok:true,text:async()=>'<html><body><p>For matrix multiplication, the number of columns of the first matrix must equal the number of rows of the second matrix. The resulting product has the row count of the first matrix and the column count of the second matrix.</p></body></html>'});
+ return Promise.resolve({ok:false,status:404});
+}
+
 function mockDb(){
  const saved={};
  const query={
@@ -45,6 +51,8 @@ test('VO2max foundation learning requires both exact approved sources and create
 
 test('VO2max curriculum adapter accepts general definitions but rejects player-specific requests',()=>{
  assert.equal(isMessinhoApprovedFoundationTopic('Was ist VO2max?'),true);
+ assert.equal(isMessinhoApprovedFoundationTopic('Was ist Matrixmultiplikation?'),true);
+ assert.equal(isMessinhoApprovedFoundationTopic('Matrixmultiplikation'),true);
  assert.equal(isMessinhoApprovedFoundationTopic('VO2max'),true);
  assert.equal(isMessinhoApprovedFoundationTopic('Vergleiche die VO2max zweier Spieler'),false);
  assert.equal(isMessinhoApprovedFoundationTopic('Welche VO2max hat mein Spieler?'),false);
@@ -55,8 +63,25 @@ test('VO2max source seeding is limited to general foundation questions',()=>{
  assert.equal(isMessinhoApprovedFoundationTopic('Was ist VO2max?'),true);
  assert.equal(isMessinhoApprovedFoundationTopic('VO2max'),true);
  assert.equal(isMessinhoApprovedFoundationTopic('Vergleiche den VO2max von zwei Spielern'),false);
+ assert.equal(isMessinhoApprovedFoundationTopic('Vergleiche die Matrixmultiplikation zweier Verfahren'),false);
  assert.equal(isMessinhoApprovedFoundationTopic('Analysiere die VO2max-Daten dieses Spielers'),false);
  assert.equal(isMessinhoApprovedFoundationTopic('Ich habe gesundheitliche Beschwerden und mein VO2max ist niedrig'),false);
+});
+
+test('matrix multiplication foundation is learned from two independent licensed textbooks',async()=>{
+ const db=mockDb();
+ const result=await learnMessinhoApprovedFoundationConcept(db,'Was ist Matrixmultiplikation?',{fetchImpl:mockMathFetch});
+ assert.equal(result.status,'candidate_created');
+ assert.equal(result.concept_key,'mathematics.linear_algebra.matrix_multiplication');
+ assert.equal(result.concept_title,'Matrixmultiplikation');
+ assert.equal(result.active,false);
+ assert.equal(result.approval_required,true);
+ const record=db.saved.args.p_record;
+ assert.equal(record.domain,'mathematics');
+ assert.equal(record.knowledge_level,'foundational');
+ assert.equal(record.formula,'(AB)_{ij} = Σ_{k=1}^{n} A_{ik} · B_{kj}');
+ assert.equal(record.sources.length,2);
+ assert.equal(record.claims[0].source_urls.length,2);
 });
 
 test('foundation learning does not run for unrelated questions',async()=>{
