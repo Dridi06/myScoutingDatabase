@@ -70,10 +70,10 @@ export function matchesPosition(requested, positions) {
 
 export function matchesPreferredFoot(requested, observed) {
   if (!requested) return true;
-  const value = normalize(observed);
-  if (!value) return false;
-  if (requested === 'left') return /(?:left|links|linksfussig)/.test(value);
-  if (requested === 'right') return /(?:right|rechts|rechtsfussig)/.test(value);
+  const value = String(observed ?? '').normalize('NFKC').toLocaleLowerCase('de-DE');
+  if (!value.trim()) return false;
+  if (requested === 'left') return /(?:left|links)/.test(value);
+  if (requested === 'right') return /(?:right|rechts)/.test(value);
   if (requested === 'both') return /(?:both|beid|ambidextr)/.test(value);
   return false;
 }
