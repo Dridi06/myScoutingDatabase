@@ -165,10 +165,9 @@ export function buildMessinhoKnowledgeApplicationFollowUp(question, { conceptKey
   const hasMethod = directMethod || estimatedMethod;
   const hasDate = /\b(?:20\d{2}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}\.\d{2,4})\b/.test(raw);
 
-  const playerAge = Number.isFinite(Number(player?.age)) && player?.age !== null ? Number(player.age) : null;
-  const birthYear = Number.isFinite(Number(player?.birth_year ?? player?.year)) && (player?.birth_year ?? player?.year) != null ? Number(player?.birth_year ?? player?.year) : null;
-  const derivedAge = playerAge ?? (birthYear ? new Date(now).getFullYear() - birthYear : null);
-  const hasAge = derivedAge !== null || /\b\d{2}\s*(?:jahre|j\.?)\b/i.test(raw);
+  const playerAge = Number.isFinite(Number(player?.age)) && player?.age !== null && player?.age !== undefined ? Number(player.age) : null;
+  // A birth year alone is not an exact age: the birthday may not have occurred yet.
+  const hasAge = playerAge !== null || /\b\d{2}\s*(?:jahre|j\.?)\b/i.test(raw);
   const playerPositions = Array.isArray(player?.positions) ? player.positions.filter(Boolean) : player?.position ? [player.position] : [];
   const hasPosition = playerPositions.length > 0 || /\b(torwart|innenverteidiger|aussenverteidiger|außenverteidiger|verteidiger|mittelfeld|stuermer|stürmer|fluegel|flügel|position)\b/i.test(raw);
   const hasTrainingContext = Boolean(player?.training_status || player?.training_level || /\b(trainingsstatus|trainingsumfang|trainingsniveau|leistungssportler|amateur|profi|semiprofi)\b/i.test(raw));
