@@ -1598,23 +1598,46 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         players=found.data||[];
         player=players[0]||null;
         if(!player){
-          const candidates=await db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status,analysis,sources,researched_at').eq('owner_id',ownerId).ilike('player_name','%'+safeName+'%').limit(5);
+          let candidateQuery=db.from('asi_player_candidates').select('id,owner_id,player_name,birth_year,nationality,current_club,positions,recommendation,status,analysis,sources,researched_at').ilike('player_name','%'+safeName+'%');
+          candidateQuery=scopeMessinhoOwner(candidateQuery,actor).limit(5);
+          const candidates=await candidateQuery;
           if(candidates.error)return res.status(500).json({error:'Die Kandidatendaten konnten nicht geladen werden.'});
           players=candidates.data||[];
           player=players[0]||null;
         }
       }
-      if(!player&&/vergleich|vergleiche|gegenüberstellen/i.test(interpretedMessage)){
-        const candidates=await db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status,analysis,sources,researched_at').eq('owner_id',ownerId).order('researched_at',{ascending:false}).limit(50);
-        if(candidates.error)return res.status(500).json({error:'Die Kandidaten für den automatischen Vergleich konnten nicht geladen werden.'});
-        players=candidates.data||[];
-        player=players[0]||null;
+      const needsRoster=messinhoNeeds(automaticPlan,MESSINHO_ROSTER_CAPABILITIES)||
+        automaticPlan.steps.some(id=>['peer_comparison_analysis','competition_comparison','comparable_player_research'].includes(id));
+      if(needsRoster){
+        const [rosterResult,candidateResult]=await Promise.all([
+          scopeMessinhoOwner(db.from('players').select('*').order('name').limit(500),actor),
+          scopeMessinhoOwner(db.from('asi_player_candidates').select('id,owner_id,player_name,birth_year,nationality,current_club,positions,analysis,sources,status,recommendation,researched_at').order('researched_at',{ascending:false}).limit(500),actor)
+        ]);
+        if(rosterResult.error||candidateResult.error)return res.status(500).json({error:'Der Spieler- und Kandidatenbestand konnte für diese Aufgabe nicht vollständig geladen werden.'});
+        const roster=rosterResult.data||[],candidatePool=candidateResult.data||[];
+        const seen=new Set(players.map(item=>String(item.player_id||item.id)));
+        players=[...players,...roster.filter(item=>!seen.has(String(item.player_id||item.id))),...candidatePool.filter(item=>!seen.has(String(item.player_id||item.id)))];
+        if(!player&&automaticPlan.steps.some(id=>MESSINHO_PLAYER_CAPABILITIES.has(id)))player=roster[0]||candidatePool[0]||null;
+      }
+      const requiresNamedPlayer=automaticPlan.steps.some(id=>MESSINHO_PLAYER_CAPABILITIES.has(id));
+      if(!player&&!requiresNamedPlayer){
+        player={name:'Kader- und Talentpool',positions:[],ratings:{}};
       }
       if(!player)return respond({reply:'Ich kann die passende Funktion automatisch ausführen. Dafür benötige ich noch einen konkreten Spieler oder ausreichend zugeordnete Kandidatendaten. Bitte nenne den Spielernamen oder starte eine Spielersuche.',intent:'capability_clarification',pending:true,items:[],planned_capabilities:automaticPlan.steps});
       const activeModel=await getActiveMessinhoModel();
-      const run=runMessinhoCapabilityPlan(automaticPlan,{player,players:players.length?players:[player],model_profiles:activeModel?.configuration?.profiles||null,sources:Array.isArray(player.sources)?player.sources:[],claims:[]},profile.role);
+      let capabilityContext;
+      try{
+        capabilityContext=await loadMessinhoCapabilityContext({player,players:players.length?players:[player],plan:automaticPlan,actor});
+      }catch(error){
+        console.error('MESSINHO contextual evidence loading failed:',error.message);
+        return res.status(500).json({error:'Die zugehörigen Scouting-Daten konnten nicht vollständig und sicher geladen werden. Bitte versuche es erneut.'});
+      }
+      capabilityContext.model_profiles=activeModel?.configuration?.profiles||null;
+      capabilityContext.squad=players.filter(item=>item.player_id);
+      capabilityContext.candidates=players;
+      const run=runMessinhoCapabilityPlan(automaticPlan,capabilityContext,profile.role);
       const reply=formatMessinhoCapabilityResults(run,player.name||player.player_name||null);
-      return respond({reply,intent:'automatic_capability_orchestration',items:players.map(p=>({id:p.player_id||p.id,name:p.name||p.player_name,club:p.club||p.current_club,positions:p.positions||[]})),orchestration:{label:run.label,status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,provider_independent:true,model_weights_changed:false},capability_results:profile.role==='admin'?run.results:undefined});
+      return respond({reply,intent:'automatic_capability_orchestration',items:players.map(p=>({id:p.player_id||p.id,name:p.name||p.player_name,club:p.club||p.current_club,positions:p.positions||[]})),orchestration:{label:run.label,status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,provider_independent:true,model_weights_changed:false,data_context:capabilityContext.data_context||null},capability_results:profile.role==='admin'?run.results:undefined});
     }
     const searchTerm=extractMessinhoPlayerSearchTerm(interpretedMessage);
     if(searchTerm){
