@@ -358,7 +358,8 @@ function researchHandler(id,input){
  if(id==='international_research'){
    if(!sources.length)return missingResult(id,['international_sources_from_ASI']);
    const coverage={};for(const source of sources){const key=source.country||source.region||'country_unknown';coverage[key]=(coverage[key]||0)+1;}
-   return result(id,'completed',{source_count:sources.length,country_or_region_coverage:coverage,sources:sourceAudit(sources,now),provider_execution:'uses_ASI_retrieved_sources'});
+   const audited=sourceAudit(sources,now),eligible=audited.filter(item=>item.assessment.url_valid&&item.assessment.secure_transport).length;
+   return result(id,'completed',{source_count:sources.length,eligible_sources:eligible,country_or_region_coverage:coverage,sources:audited,provider_execution:'uses_ASI_retrieved_sources'});
  }
  if(id==='cross_league_research'){
    const leagues=[...new Set(candidates.map(candidate=>candidate.league||candidate.competition).filter(Boolean))];
