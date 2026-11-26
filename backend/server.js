@@ -624,7 +624,9 @@ async function saveMessinhoAgentTrace(ownerId,goal,plan,run,durationMs){
     const resultSummary=(run?.results||[]).map(item=>({
       capability_id:item.capability_id,status:item.status,
       missing_inputs:Array.isArray(item.missing_inputs)?item.missing_inputs:[],
-      error_code:item.error_code||null
+      error_code:item.error_code||null,provenance:item.provenance?{origin:item.provenance.origin,record_refs:(item.provenance.record_refs||[]).slice(0,20),
+        metric_evidence:(item.provenance.metric_evidence||[]).slice(0,20),source_evidence:(item.provenance.source_evidence||[]).slice(0,10),
+        verified_outcome_count:item.provenance.verified_outcome_count||0,claims:(item.provenance.claims||[]).slice(0,20),limitations:(item.provenance.limitations||[]).slice(0,10)}:null
     }));
     const {error}=await db.from('messinho_agent_traces').insert({
       owner_id:ownerId,goal:String(goal||'').slice(0,1200),
@@ -641,8 +643,11 @@ function compactMessinhoTaskResult(item){
     error_code:item?.error_code||null};
   if(item?.result!==undefined){
     const serialized=JSON.stringify(item.result);
-    output.result=serialized.length<=1800?item.result:{truncated:true,preview:serialized.slice(0,1700)};
+    output.result=serialized.length<=900?item.result:{truncated:true,preview:serialized.slice(0,850)};
   }
+  if(item?.provenance)output.provenance={origin:item.provenance.origin||'unknown',record_refs:(item.provenance.record_refs||[]).slice(0,5),
+    metric_evidence:(item.provenance.metric_evidence||[]).slice(0,8),source_evidence:(item.provenance.source_evidence||[]).slice(0,3),
+    verified_outcome_count:item.provenance.verified_outcome_count||0,claims:(item.provenance.claims||[]).slice(0,8),limitations:(item.provenance.limitations||[]).slice(0,3)};
   return output;
 }
 async function saveMessinhoAgentTask(ownerId,goal,plan,input,run,role){
