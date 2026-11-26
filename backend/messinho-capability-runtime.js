@@ -437,6 +437,18 @@ function researchHandler(id,input){
    return result(id,licensed.length?'completed':'insufficient_data',{source_count:sources.length,licensed_source_count:licensed.length,sources:audited,reason:licensed.length?'Only explicitly licensed or owned sources are returned.':'HTTPS availability is not a licence. No source is treated as usable without explicit rights evidence.'});
  }
  if(id==='contract_expiry_monitor'||id==='contract_research'){
+   const records=asArray(input.contract_records);
+   const verified=records.filter(row=>row&&row.verification_status==='verified'&&row.source_url&&/^https:\\/\\//i.test(row.source_url));
+   if(verified.length){
+     const today=new Date(now).toISOString().slice(0,10);
+     const assessed=verified.map(row=>{
+       const days=row.contract_end?Math.ceil((Date.parse(row.contract_end+'T00:00:00Z')-Date.parse(today+'T00:00:00Z'))/86400000):null;
+       return {club:row.club_name||null,parent_club:row.parent_club_name||null,contract_status:row.contract_status||null,contract_start:row.contract_start||null,contract_end:row.contract_end||null,days_until_expiry:days,option_type:row.option_type||null,confidence:finite(row.confidence),source_url:row.source_url,current:row.is_current===true};
+     });
+     return result(id,'completed',{verified_contract_records:assessed.length,contracts:assessed,expiring_within_12_months:assessed.filter(row=>row.current&&row.days_until_expiry!==null&&row.days_until_expiry>=0&&row.days_until_expiry<=365),source:'admin/scout-verified contract snapshots',date_extraction_performed:false});
+   }
+   if(records.length)return result(id,'needs_review',{unverified_contract_records:records.length,contracts:records.map(row=>({contract_end:row.contract_end||null,verification_status:row.verification_status||'pending',source_url:row.source_url||null})),reason:'Vertragsdaten sind vorhanden, aber noch nicht als verifiziert freigegeben.'});
+
    if(!sources.length)return missingResult(id,['contract_sources']);
    const patterns=[new RegExp('(?:contract|vertrag).{0,80}?(?:expires|expiry|läuft bis|laeuft bis|bis zum|until|through)(?:\\s+(?:on|am))?\\s+([0-9]{1,2}[./-][0-9]{1,2}[./-][0-9]{2,4}|[0-9]{4}-[0-9]{2}-[0-9]{2})','i'),new RegExp('(?:contract|vertrag).{0,80}?([0-9]{4}-[0-9]{2}-[0-9]{2})','i')];
    const mentions=sources.flatMap(source=>patterns.flatMap(pattern=>{const match=String(source.content||'').match(pattern);return match?[{date_mention:match[1],source_url:source.url,source_title:source.title||null,verified:false}]:[];}));
