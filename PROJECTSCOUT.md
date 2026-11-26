@@ -2054,3 +2054,14 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - The scouting discovery source pipeline still requires independent review for result relevance and source-to-player identity evidence. This patch fixes intent/context routing; it does not claim that the external candidate research is fully reliable.
 - Authenticated Scout/Admin smoke tests remain pending a user-controlled login session.
 - STAGING only. Production/main, PFMS/PFSS and production Supabase remain untouched. Render auto-deploy remains disabled. PR #47 remains Draft/open/unmerged.
+
+
+### STAGING deployment verification — scouting intent/context fixes — 2026-11-26 16:54 UTC
+- Render deployment: dep-dc468cnlk1mc739oe8c0
+- Exact deployed commit: 267d3e72938770b8206886902ca37976adda190c
+- Render build event: succeeded; deployment event: succeeded; final status: live.
+- Full Node test suite: **234 passed, 0 failed, 0 cancelled, 0 skipped**.
+- Regression tests confirm the 21-year-old defensive-midfielder request survives the “Land bzw. Liga-Standort” clarification, “deutsch” resolves to Germany, and conversational complaints are excluded from external general research.
+- Backend syntax validation and Vite production build completed successfully; Vite transformed 1,636 modules and reported “built”.
+- This is a STAGING release only. Render auto-deploy remains disabled. Production/main and production Supabase remain untouched. PFMS/PFSS remain untouched. PR #47 remains Draft/open/unmerged.
+- Remaining validation: owner should test the exact multi-turn scouting flow in the live STAGING UI. External candidate discovery quality still needs separate source-relevance and identity verification work; this release does not claim that candidate research is fully reliable.
