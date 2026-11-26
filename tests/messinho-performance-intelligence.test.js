@@ -20,6 +20,25 @@ test('autonomous intelligence never infers stamina, injury risk or missing value
  assert.equal(result.overall_rating,null);
 });
 
+test('autonomous intelligence refuses ambiguous speed and jump units',()=>{
+ const result=buildMessinhoPerformanceIntelligence({player_metrics:{
+  top_speed:34,vertical_jump:52,shot_speed:110
+ }});
+ assert.equal(result.findings.length,0);
+ assert.equal(result.status,'insufficient_data');
+});
+
+test('ball kinetic energy requires an explicitly kilogram-based ball mass',()=>{
+ const ambiguous=buildMessinhoPerformanceIntelligence({player_metrics:{
+  ball_mass:{value:0.43,unit:'g'},shot_speed:{value:100,unit:'km/h'}
+ }});
+ assert.equal(ambiguous.findings.some(item=>item.metric==='ball_kinetic_energy'),false);
+ const valid=buildMessinhoPerformanceIntelligence({player_metrics:{
+  ball_mass_kg:0.43,shot_speed:{value:100,unit:'km/h'}
+ }});
+ assert.equal(valid.findings.some(item=>item.metric==='ball_kinetic_energy'),true);
+});
+
 test('autonomous intelligence combines measured performance with transparent physics',()=>{
  const result=buildMessinhoPerformanceIntelligence({player_metrics:{
   sprint_10m_time:{value:1.7,unit:'s'},pass_accuracy:84,duel_win_pct:61
