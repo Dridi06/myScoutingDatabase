@@ -6,6 +6,8 @@ const clean=v=>String(v??'').trim();
 const round=(v,d=8)=>Number(v.toFixed(d));
 const fmt=v=>new Intl.NumberFormat('de-DE',{maximumFractionDigits:6}).format(v);
 const factorial=n=>{let x=1;for(let i=2;i<=n;i++)x*=i;return x;};
+const erf=x=>{const sign=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return sign*y;};
+const normalCdf=z=>0.5*(1+erf(z/Math.SQRT2));
 const choose=(n,k)=>{if(k<0||k>n)return 0;let x=1;for(let i=1;i<=Math.min(k,n-k);i++)x=x*(n-i+1)/i;return x;};
 function tokenize(s){const x=s.replace(/,/g,'.').replace(/×/g,'*').replace(/[·⋅]/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/\s+/g,'');const t=x.match(/(?:\d+(?:\.\d*)?|\.\d+)|[()+\-*/%^]/g)||[];if(t.join('')!==x||!t.length)throw Error('Der Ausdruck enthält nicht unterstützte Zeichen.');return t;}
 function evaluate(s){
@@ -18,7 +20,7 @@ function evaluate(s){
  const v=add();if(i!==t.length||!Number.isFinite(v))throw Error('Der Ausdruck ist ungültig oder das Ergebnis nicht endlich.');return v;
 }
 const out=(kind,title,value,formula,steps,extra={})=>({status:'completed',kind,title,value:round(value),formatted:fmt(value),formula,steps,assumptions:[],...extra});
-function params(q){const p={};for(const m of q.matchAll(/\b(n|p|k|lambda|λ|a|b|c|m|v|v0|v1|t|s|g|h|energie|volumen|kraft|flaeche|r|x|u|i|f|frequenz|wellenlaenge|wellenlänge)\s*[:=]\s*(-?\d+(?:[.,]\d+)?)/giu)){p[m[1].toLowerCase().replace('λ','lambda')]=Number(m[2].replace(',','.'));}return p;}
+function params(q){const p={};for(const m of q.matchAll(/\b(population|successes|draws|mu|sigma|n|p|k|lambda|λ|a|b|c|m|v|v0|v1|t|s|g|h|energie|volumen|kraft|flaeche|r|x|u|i|f|frequenz|wellenlaenge|wellenlänge)\s*[:=]\s*(-?\d+(?:[.,]\d+)?)/giu)){p[m[1].toLowerCase().replace('λ','lambda')]=Number(m[2].replace(',','.'));}return p;}
 function probability(q){
  const p=params(q),n=p.n,k=p.k,prob=p.p;
  if(/binomial|binomialverteilung|scouting.*wahrscheinlichkeit|wahrscheinlichkeit.*scouting/i.test(q)&&Number.isInteger(n)&&n>=0&&n<=1000&&prob>=0&&prob<=1&&Number.isInteger(k)&&k>=0&&k<=n){
