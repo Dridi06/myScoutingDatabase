@@ -20,6 +20,7 @@ test('agent validation detects duplicate and missing results',()=>{
  assert.equal(validation.valid,false);
  assert.deepEqual(validation.duplicate_capabilities,['overall_score']);
  assert.deepEqual(validation.missing_results,['position_score']);
+ assert.equal(validation.valid,false,'missing capability results must invalidate the agent run');
 });
 test('execution budget is capped and exposed',async()=>{
  const plan=planMessinhoCapabilities('Analysiere Spieler X','scout');
