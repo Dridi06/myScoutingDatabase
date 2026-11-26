@@ -213,3 +213,36 @@ test('scout feedback learning accepts only verified feedback and remains non-mut
   assert.equal(result.result.training_performed, false);
   assert.equal(result.result.model_weights_changed, false);
 });
+
+test('contract research prefers verified structured contract snapshots and flags expiry', () => {
+  const result = executeMessinhoCapability('contract_expiry_monitor', {
+    now: '2026-11-26T12:00:00.000Z',
+    contract_records: [
+      { club_name: 'Club A', contract_end: '2027-05-31', verification_status: 'verified', source_url: 'https://club.example/official', is_current: true, confidence: 0.95 },
+      { club_name: 'Club B', contract_end: '2027-01-31', verification_status: 'pending', source_url: 'https://unverified.example', is_current: true }
+    ],
+    sources: [{ title: 'untrusted search snippet', url: 'https://search.example', content: 'contract expires 2027-01-31' }]
+  });
+  assert.equal(result.status, 'completed');
+  assert.equal(result.result.verified_contract_records, 1);
+  assert.equal(result.result.contracts[0].club, 'Club A');
+  assert.equal(result.result.expiring_within_12_months.length, 1);
+  assert.equal(result.result.expiring_within_12_months[0].club, 'Club A');
+  assert.equal(result.result.date_extraction_performed, false);
+});
+
+test('contract research does not promote pending structured contract snapshots to verified facts', () => {
+  const result = executeMessinhoCapability('contract_research', {
+    contract_records: [
+      { club_name: 'Club A', contract_end: '2027-05-31', verification_status: 'pending', source_url: 'https://club.example/official' }
+    ]
+  });
+  assert.equal(result.status, 'needs_review');
+  assert.equal(result.result.unverified_contract_records, 1);
+});
+
+test('contract research requires a source bundle when no structured contract records exist', () => {
+  const result = executeMessinhoCapability('contract_research', {});
+  assert.equal(result.status, 'insufficient_data');
+  assert.ok(result.missing_inputs.includes('contract_sources'));
+});
