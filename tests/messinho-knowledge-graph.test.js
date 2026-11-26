@@ -29,6 +29,11 @@ test('knowledge graph defines the agreed four learning levels and typed links',(
   assert.ok(MESSINHO_KNOWLEDGE_RELATIONS.includes('contradicts'));
 });
 
+test('knowledge hierarchy rejects unknown levels and missing prerequisites',()=>{
+  assert.equal(buildMessinhoKnowledgeConcept({...draft,knowledge_level:'expert'}).reason,'invalid_knowledge_level');
+  assert.equal(buildMessinhoKnowledgeConcept({...draft,parent_concept_key:null,prerequisites:[]}).reason,'learning_dependency_required');
+});
+
 test('knowledge concept refuses unreviewed sources even if provider claims rights',()=>{
   const result=buildMessinhoKnowledgeConcept({...draft,sources:draft.sources.map(source=>({...source,rights:{
     source_id:source.source_id,status:'verified_permitted',license:'CC BY 4.0',
