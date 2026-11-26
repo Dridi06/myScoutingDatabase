@@ -79,6 +79,7 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 - Added tests/messinho-knowledge-graph.test.js for level/link contracts, invalid rights, prerequisite validation and fail-closed storage behavior.
 - Added an atomic service_role-only candidate creation RPC that writes the candidate and version snapshot in one transaction, plus a SECURITY DEFINER review RPC restricted to service_role and approved admins.
 - Added an admin-only review queue/API, an append-only review ledger, and a conflict table that retains competing source-backed proposals instead of silently discarding them. Conflicts require explicit review.
+- Conflict recording is atomic: the competing proposal and evidence are retained, the currently active concept is quarantined as conflicting, and a new immutable version snapshot is written in the same database transaction.
 - Added append-only privileges for the review ledger and indexed its foreign keys.
 - The graph remains empty until rights-cleared source material is reviewed. No books/PDFs were imported and no model weights or scoring rules were changed.
 
