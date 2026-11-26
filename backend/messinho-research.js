@@ -1,3 +1,4 @@
+import { runMessinhoQualityLoop, MESSINHO_SCOUT_SYSTEM_PROMPT } from './messinho-quality-control.js';
 /**
  * MESSINHO external research: evidence-first market-value assessment.
  * Tavily supplies attributable public search results; OpenAI only structures and
@@ -81,18 +82,38 @@ export async function researchMessinhoPlayerProfile(name,env=process.env,fetchIm
  if(!response.ok)throw new Error('Spielerrecherche ist derzeit nicht verfügbar.');
  const payload=await response.json(),sources=normalizeResearchSources(payload.results||[]);
  if(!sources.length)return {status:'insufficient_sources',player:{name:query},sources:[],profile:null,message:'Ich habe keine ausreichend geeigneten öffentlichen Quellen gefunden.'};
- let profile=null;
- if(env.OPENAI_API_KEY){
-  const prompt={requested_player:query,sources:sources.map(({title,url,publisher,published_date,snippet})=>({title,url,publisher,published_date,snippet})),instructions:[
-   'Identify whether sources refer to the requested football player. Do not assume identity from name alone.',
-   'If the requested name appears misspelled, suggest a correction only when sources clearly support it; explain the correction.',
-   'Summarize only supported facts: full name, birth date/year, nationality, position, current club, career highlights, recent performance/statistics when explicitly reported.',
-   'Do not invent missing data. Use null for unknown facts. Every factual item must cite one or more exact source URLs from the supplied list.',
-   'Mention source dates and distinguish current from historical information.',
-   'Return JSON with keys identity_status, corrected_name, summary, facts, career, recent_performance, missing_data.'
-  ]};
-  const aiResponse=await fetchImpl('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(35000),headers:{Authorization:'Bearer '+env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:env.OPENAI_MODEL||'gpt-4.1-mini',temperature:0,response_format:{type:'json_object'},messages:[{role:'system',content:'You are MESSINHO, a careful football scouting conversational assistant. Evidence only. Never fabricate. Output JSON.'},{role:'user',content:JSON.stringify(prompt)}]})});
-  if(aiResponse.ok){const ai=await aiResponse.json();try{profile=JSON.parse(ai.choices?.[0]?.message?.content||'{}');}catch{profile=null;}}
- }
- return {status:'completed',player:{name:query},profile,sources,provider:{search:'Tavily',analysis:profile?(env.OPENAI_MODEL||'gpt-4.1-mini'):'source_only'},researched_at:new Date().toISOString()};
+ const quality=await runMessinhoQualityLoop({
+  question:query,sources,
+  draftFactory:async({feedback})=>{
+   const prompt={requested_player:query,sources:sources.map(({title,url,publisher,published_date,snippet})=>({title,url,publisher,published_date,snippet})),critic_feedback:feedback||null,instructions:[
+    'Identify whether sources refer to the requested football player. Do not assume identity from name alone.',
+    'If the requested name appears misspelled, suggest a correction only when sources clearly support it; explain the correction.',
+    'Summarize only supported facts: full name, birth date/year, nationality, position, current club, career highlights, recent performance/statistics when explicitly reported.',
+    'Do not invent missing data. Use null for unknown facts. Every factual item must cite one or more exact source URLs from the supplied list.',
+    'Mention source dates and distinguish current from historical information.',
+    'Return JSON with keys identity_status, corrected_name, summary, facts, career, recent_performance, missing_data. Each facts item must contain text and source_urls.'
+   ]};
+   const response=await fetchImpl('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(35000),headers:{Authorization:'Bearer '+env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:env.OPENAI_MODEL||'gpt-4.1-mini',temperature:0,response_format:{type:'json_object'},messages:[
+    {role:'system',content:MESSINHO_SCOUT_SYSTEM_PROMPT+' Du gibst strukturierte JSON-Daten aus. Nutze ausschließlich die gelieferten Quellen.'},
+    {role:'user',content:JSON.stringify(prompt)}
+   ]})});
+   if(!response.ok)throw new Error('player_profile_synthesis_failed');
+   const data=await response.json(),profile=JSON.parse(data.choices?.[0]?.message?.content||'{}');
+   const allowed=new Set(sources.map(source=>source.url));
+   const claims=(Array.isArray(profile.facts)?profile.facts:[]).map(fact=>({
+    text:clean(typeof fact==='string'?fact:(fact?.text||fact?.claim||''),700),
+    source_urls:Array.isArray(fact?.source_urls)?fact.source_urls:Array.isArray(fact?.sources)?fact.sources.map(source=>typeof source==='string'?source:source?.url).filter(Boolean):[]
+   })).filter(claim=>claim.text&&claim.source_urls.length&&claim.source_urls.every(url=>allowed.has(url)));
+   if(!claims.length)throw new Error('no_cited_player_facts');
+   const linked=[...new Set(claims.flatMap(claim=>claim.source_urls))].slice(0,3);
+   const links=linked.map(url=>{const source=sources.find(item=>item.url===url);return source?'['+clean(source.title,100)+']('+url+')':null;}).filter(Boolean);
+   const answer=clean(profile.summary,3000)+' Belege: '+links.join(' · ')+'.';
+   return {answer,claims,profile};
+  },maxIterations:3,env,fetchImpl
+ }).catch(()=>({passed:false,answer:'',claims:[],profile:null,iterations:0,history:[],review:{score:0,feedback:'Spielerprofil konnte nicht unabhängig geprüft werden.'}}));
+ const profile=quality.passed?quality.profile:null;
+ return {status:quality.passed?'completed':'needs_review',player:{name:query},profile,sources,
+  provider:{search:'Tavily',analysis:quality.passed?(env.OPENAI_MODEL||'gpt-4.1-mini'):'source_only'},
+  quality_control:{passed:quality.passed,iterations:quality.iterations,score:quality.review?.score||0,history:quality.history||[],feedback:quality.review?.feedback||null},
+  researched_at:new Date().toISOString()};
 }
