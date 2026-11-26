@@ -1279,6 +1279,25 @@ app.get('/api/messinho/quality-intelligence',messinhoQualityIntelligenceLimiter,
     return res.json({ok:true,report});
   }catch(error){console.error('MESSINHO quality intelligence failed:',error.message);return res.status(500).json({error:'Qualitätsauswertung konnte nicht erstellt werden.'});}
 });
+const messinhoKnowledgeQueueLimiter=rateLimit({windowMs:60*60*1000,limit:30,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Wissensabfragen. Bitte später erneut versuchen.'}});
+app.get('/api/messinho/knowledge-concepts',messinhoKnowledgeQueueLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    if(actor.profile.role!=='admin'||!actor.profile.approved||actor.profile.approval_status!=='approved')return res.status(403).json({error:'Nur freigeschaltete Administratoren dürfen die Wissensbasis verwalten.'});
+    const allowed=['candidate','active','conflicting','stale','superseded','quarantined','rejected'];
+    const status=allowed.includes(req.query.status)?req.query.status:'candidate';
+    const domain=typeof req.query.domain==='string'?req.query.domain:null;
+    const limit=Math.max(1,Math.min(100,Number.parseInt(req.query.limit,10)||50));
+    let query=db.from('messinho_knowledge_concepts')
+      .select('id,concept_key,domain,topic,title,definition,knowledge_level,knowledge_type,parent_concept_key,prerequisites,formula,applicability,limitations,claims,sources,rights,evidence_grade,confidence,knowledge_status,version,created_at,updated_at,review_due_at')
+      .eq('knowledge_status',status).order('created_at',{ascending:false}).limit(limit);
+    if(domain)query=query.eq('domain',domain);
+    const {data,error}=await query;
+    if(error)return res.status(500).json({error:'Wissenseinträge konnten nicht geladen werden.'});
+    return res.json({ok:true,status,domain,concepts:data||[]});
+  }catch(error){console.error('MESSINHO knowledge queue failed:',error.message);return res.status(500).json({error:'Wissensbasis konnte nicht geladen werden.'});}
+});
 const messinhoKnowledgeReviewLimiter=rateLimit({windowMs:60*60*1000,limit:20,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Wissensfreigaben. Bitte später erneut versuchen.'}});
 app.post('/api/messinho/knowledge/:id/review',messinhoKnowledgeReviewLimiter,async(req,res)=>{
   try{
