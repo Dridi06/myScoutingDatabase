@@ -20,6 +20,23 @@ const avg=xs=>xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:null;
 const std=xs=>{const m=avg(xs);return m===null?null:Math.sqrt(avg(xs.map(x=>(x-m)**2)));};
 const dateValue=v=>{const n=Date.parse(v);return Number.isFinite(n)?n:null;};
 const asArray=v=>Array.isArray(v)?v:[];
+const POSITION_FILTER_ALIASES={
+ 'stürmer':['9er','stürmer','striker','forward','centre forward','center forward'],
+ 'torwart':['torwart','keeper','goalkeeper','gk'],
+ 'innenverteidiger':['iv links','iv rechts','iv re/li','innenverteidiger','centre back','center back'],
+ 'außenverteidiger':['av links','av rechts','av re/li','außenverteidiger','full back','fullback'],
+ 'mittelfeld':['6er','8er','10er','mittelfeld','midfielder'],
+ 'flügelspieler':['flügel links','flügel rechts','flügel re/li','flügelspieler','winger']
+};
+function positionMatches(positions,requested){
+ const target=norm(requested);
+ const aliases=POSITION_FILTER_ALIASES[target]||[String(requested)];
+ const accepted=[target,...aliases.map(norm)];
+ return positions.some(position=>{
+   const actual=norm(position);
+   return accepted.some(alias=>actual===alias||actual.includes(alias)||alias.includes(actual));
+ });
+}
 const aliases={
  technical:['technical','technik','dribbling','passing','passspiel','finishing','abschluss','first touch','ballkontrolle'],
  tactical:['tactical','taktik','positioning','positionierung','decision','entscheidungs','vision','raumverhalten','pressing'],
@@ -363,7 +380,7 @@ function researchHandler(id,input){
      const birth=finite(candidate.birth_year??candidate.year);
      const age=finite(candidate.age)??(birth!==null?new Date(now).getFullYear()-birth:null);
      const positions=asArray(candidate.positions||candidate.position).map(norm);
-     if(criteria.position&&!positions.some(position=>position.includes(norm(criteria.position))))return false;
+     if(criteria.position&&!positionMatches(positions,criteria.position))return false;
      if(finite(criteria.max_age)!==null&&(age===null||age>finite(criteria.max_age)))return false;
      if(finite(criteria.min_age)!==null&&(age===null||age<finite(criteria.min_age)))return false;
      if(finite(criteria.birth_year_from)!==null&&(birth===null||birth<finite(criteria.birth_year_from)))return false;
