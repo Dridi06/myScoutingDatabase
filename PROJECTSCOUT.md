@@ -1488,3 +1488,50 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 6. Keep production and PFMS/PFSS untouched. Do not merge PR #47 or claim production readiness until authenticated E2E and security follow-up are complete.
 
 **Persistent test checkpoint file:** `docs/STAGING_TEST_CHECKPOINT_20261126.md` (feature branch). This detailed master record is authoritative for continuation; the checkpoint file contains the test matrix and incident timeline.
+
+
+## 2026-11-26 — Responsive UX and interaction-stability pass (STAGING)
+
+**Owner request:** Make the complete STAGING site work cleanly on phones and desktop; prevent screens/dashboard tiles from jumping or shifting after clicks; group and size all tiles sensibly on mobile; remove unnecessary non-AI and duplicate page functions.
+
+**Scope and safety:**
+- Repository: `Dridi06/myScoutingDatabase`.
+- Branch: `feature/messinho-unified-ai-integration`.
+- Target: dedicated Render STAGING service `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`).
+- STAGING Supabase ref: `nwqwnrhupbyhshsprxjt`.
+- Production `main`, production Render, production Supabase, PFMS and PFSS remain out of scope and unchanged.
+- STAGING auto-deploy is disabled; any release must be manually triggered and verified.
+
+**Source audit:**
+- Reviewed the current React app navigation, dashboard, global stylesheet, ASI workspace, MESSINHO workspace and existing help guide.
+- Confirmed the top-level pages represent distinct workflows: player create/edit/search/database, player analysis/ASI, MESSINHO talent search/chat, scout administration, system diagnostics, deletion audit, and support/ticket messaging.
+- No redundant top-level workflow was proven safe to delete. These functions have distinct user and security purposes, so they were retained rather than risking loss of scouting/admin capability.
+- The help guide is explanatory content, not a second AI agent; it was retained.
+- Identified interaction movement from global button hover transforms and specific dashboard tile hover transforms, plus smooth document scrolling and several conflicting late-stage responsive overrides.
+
+**Implemented — `src/styles.css`:**
+- Disabled smooth scrolling for the workspace so navigation/focus changes do not animate the page unexpectedly.
+- Reserved scrollbar gutter to reduce horizontal layout shifts when page content height changes.
+- Kept the workspace header sticky with a stable background while scrolling.
+- Removed translate transforms from button hover/focus/active states and dashboard action/metric/position tiles; retained non-positional feedback such as color, border and shadow changes.
+- Stabilized dashboard minimum height and constrained grid children to prevent content overflow.
+- Reworked mobile dashboard metrics to use responsive auto-fit columns and a single column when the screen is too narrow.
+- Grouped foot-preference tiles and position groups vertically on mobile; improved chip wrapping and touch target height.
+- Improved safe-area handling, narrow-screen typography, form widths, player facts/rating layouts, table horizontal scrolling, and MESSINHO composer/message wrapping.
+- Added responsive breakpoints for <=1100, <=760, <=520 and <=380 CSS pixels.
+- Kept existing product visual identity; no database or persistent user data was changed.
+
+**Regression coverage:**
+- Added `tests/responsive-layout.test.js` to guard against reintroducing smooth scrolling, button/tile translation, poor mobile dashboard grid behavior, safe-area regressions, and a non-sticky workspace header.
+- The Render STAGING service was confirmed on the correct feature branch with auto-deploy disabled.
+- GitHub Actions did not return push-triggered workflow runs for the commits; full `npm test` and `vite build` must be verified through the manual STAGING build before calling this change deployed.
+
+**UI cleanup decision:**
+- No unique non-AI workflow was removed in this pass because current source review did not establish any as redundant or obsolete. The request to remove duplicates is accepted; further deletion requires identifying actual duplicated controls/flows with evidence, not deleting essential player, scout, support or audit functionality by guesswork.
+- No authenticated cross-device browser session or screenshot automation was available during this pass. Responsive CSS regression checks and the STAGING build are the next verification gates.
+
+**Commits:**
+- `3fe77909e3f76fb36965673a3d36e5ff1d319bd4` — responsive CSS and interaction stability.
+- `a7c55a30845939bb90bb649f50f5121f3c487c7d` — responsive regression tests.
+
+**Deployment status at checkpoint:** Code committed to the STAGING feature branch. Render STAGING manual deployment and build verification are pending. Do not call it live until the exact deployment commit is confirmed live and health is checked.
