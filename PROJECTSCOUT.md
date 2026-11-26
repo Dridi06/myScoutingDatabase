@@ -1220,3 +1220,38 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 3. MESSINHO-Chat auf dem aktuell live geschalteten STAGING-Commit testen: normale Frage, Knowledge-Gap, Live-Uhrzeit, Recherche mit Quellen, Provider-Ausfall und Kontingentfehler.
 4. Erst nach diesen E2E-/Sicherheitsnachweisen den Status der betroffenen Fähigkeiten erhöhen. Keine Live- oder Produktionsfreigabe aus diesem Checkpoint ableiten.
 
+
+
+## 2026-11-26 — Evidence-first allgemeine Wissensrecherche (STAGING-Entwicklung)
+
+**Owner request:** MESSINHO soll unbekannte Fragen erkennen, selbst recherchieren, Quellen gegeneinander prüfen, logisch antworten und sein Wissen kontrolliert erweitern.
+
+**Implemented on the staging branch (not yet deployed):**
+- Added `backend/messinho-general-research.js`.
+- General question detection routes eligible unknown knowledge questions into a dedicated research path after existing live-time, small-talk, scouting, player-research and capability flows.
+- Tavily search results are normalized to HTTPS sources, deduplicated, and filtered to exclude FUSSBALL.DE.
+- A response requires at least two substantial sources from at least two distinct domains. Otherwise MESSINHO explicitly reports insufficient evidence.
+- OpenAI is optional and only used to synthesize the supplied evidence. The generated claims are accepted only when they cite URLs in the retrieved source allowlist. If synthesis is unavailable or invalid, a deterministic source digest is returned.
+- Search content is treated as untrusted data; no instructions in retrieved pages are executed.
+- Added `tests/messinho-general-research.test.js` for question routing, source normalization, independent-domain checks, missing provider configuration, source-only fallback, and non-question bypass.
+- Updated `backend/server.js` to route eligible general questions through the new research module.
+- No Supabase writes, migrations, new user accounts, or persistent general-knowledge storage were performed. Existing `messinho_agent_memory` fields do not currently define a reviewed knowledge-base contract; automatic persistence is therefore deferred until schema and RLS ownership are explicitly verified.
+- No model weights, capability code, or active learning model are modified by research results.
+
+**Commits:**
+- `836d92191469128de04dd59fbcf3de72aa1eeec8` — add general research module
+- `a938a396e60b6345cf6ed79dbf543dee8b93ea2a` — integrate research route in server
+- `c7bb52699f15ab860af497d17a88c3ccaad2193d` — add research tests
+
+**Verification / release status:**
+- Static source review completed.
+- GitHub combined status returned no status checks for the latest test commit; no successful CI result has yet been confirmed for this change.
+- This change has **not** been deployed to Render STAGING and is not live.
+- Production branch, production Render service, and production Supabase remain untouched.
+
+**Next steps:**
+1. Run the new and full Node test suite plus backend syntax check in CI.
+2. Fix any failures before deployment.
+3. Verify the staging Render service is still pinned to `feature/messinho-unified-ai-integration`, then deploy only that service.
+4. Run staging health and authenticated end-to-end tests with a permitted test account.
+5. Design a separate owner-scoped knowledge store with explicit provenance, freshness, review state, retention limits, and RLS before any durable general-knowledge learning is enabled.
