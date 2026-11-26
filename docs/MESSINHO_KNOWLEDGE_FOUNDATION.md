@@ -61,19 +61,19 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 
 ## Current legal/source gate
 
-- backend/messinho-rights-registry.js still has 0 approved sources.
-- The existing source register has 5 candidate/source-pool entries, all quarantined or discovery-only; 0 approved works.
-- STAGING canonical domain knowledge and answer-memory tables currently contain 0 rows.
-- Therefore no bulk knowledge ingestion is enabled yet. This is deliberate: no source is to be admitted on the basis of being free to read alone.
+- backend/messinho-rights-registry.js now contains 4 exact work/edition entries approved for CC BY 4.0 reuse and commercial TDM: OpenStax College Algebra 2e, Introductory Statistics 2e, University Physics Volume 1 (2021 PDF edition), and Introductory Business Statistics 2e.
+- The source register now contains 16 entries/resources; 4 exact works are verified_permitted, while OpenIntro, Grinstead/Snell GNU FDL and other candidates remain quarantined or excluded.
+- STAGING canonical domain knowledge and answer-memory tables currently contain 0 rows; no source PDF/full text or knowledge concept was imported.
+- Candidate persistence can now store a compact, independently worded concept from one exact rights-cleared work. Such records remain inactive candidates. Activation still requires two independent rights-cleared source domains, corroborated claims, active prerequisites and administrator review.
 - Next legal research task: work-level review for mathematics, physics, biology, statistics, football/sports science, medicine, risk management, banking and financial markets, with Germany-based commercial use considered. If rights remain unclear, retain quarantine.
 
 ## Implemented in this milestone
 
 - Added STAGING migration 20261126182955_messinho_knowledge_hierarchy.sql (applied as migration 20261126182955_messinho_knowledge_hierarchy).
 - Added graph schema, typed relations and immutable version snapshots.
-- Added backend/messinho-knowledge-graph.js with level/type validation, rights allowlist enforcement, two independent source-domain requirement, compact payloads, candidate-only insertion, conflict refusal, version snapshotting and active-only retrieval.
+- Added backend/messinho-knowledge-graph.js with level/type validation, rights allowlist enforcement, single-source candidate intake with two-independent-source approval gate, compact payloads, candidate-only insertion, conflict refusal, version snapshotting and active-only retrieval.
 - Connected graph retrieval to the existing POST /api/agent/chat flow and passed retrieved concepts to the scouting agent input and conversational context.
-- The general-research path now creates a foundational concept candidate only when the question is a foundation-style query, source claims are corroborated, and each source URL resolves through the reviewed rights allowlist. Provider-supplied license flags are ignored. The current empty allowlist intentionally prevents all candidate persistence.
+- The general-research path now creates a foundational concept candidate only when the question is a foundation-style query, source claims are corroborated, and at least one source URL resolves through the reviewed rights allowlist. Provider-supplied license flags are ignored. A candidate is not active knowledge; administrator approval requires two independent rights-cleared source domains.
 - Source URL permission matching enforces exact HTTPS origin and path boundaries, preventing lookalike hosts or prefix confusion.
 - The capability runtime merges active graph concepts with legacy verified knowledge for relevant explanations. Scoring/model-weight functions remain isolated so reference knowledge cannot silently alter numerical ratings or weights.
 - Added tests/messinho-knowledge-graph.test.js for level/link contracts, invalid rights, prerequisite validation and fail-closed storage behavior.
@@ -81,14 +81,14 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 - Added an admin-only review queue/API, an append-only review ledger, and a conflict table that retains competing source-backed proposals instead of silently discarding them. Conflicts require explicit review.
 - Conflict recording is atomic: the competing proposal and evidence are retained, the currently active concept is quarantined as conflicting, and a new immutable version snapshot is written in the same database transaction.
 - Added append-only privileges for the review ledger and indexed its foreign keys.
-- The graph remains empty until rights-cleared source material is reviewed. No books/PDFs were imported and no model weights or scoring rules were changed.
+- The graph remains empty until the next successful rights-cleared foundation research question. Four source works are approved for compact text mining only; no books/PDFs were imported and no model weights or scoring rules were changed.
 
 ## Verification still required
 - Complete CI on the latest feature commit.
 - Inspect and correct any test/syntax issues reported by CI.
 - Test actual authenticated chat retrieval and capability context on STAGING.
-- Add a governed admin approval/promotion workflow and explicit conflict review.
-- Complete work-level rights review before seeding the first concepts.
+- Build an admin UI for the existing review queue APIs; the backend approval/conflict workflow is implemented.
+- Expand work-level rights review to biology, medicine, sports science, football, computer science, risk management, banking and financial markets before ingesting those domains.
 - Do not manually deploy until CI passes; STAGING auto-deploy is disabled. Production and main remain untouched.
 
 
