@@ -3576,3 +3576,16 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Next: verify Render build output and 330-test count; once LIVE, owner repeats the exact Admin question. Expected: MESSINHO retrieves the active VO2max foundation, explains the concept with source evidence, then asks only for player-specific inputs. Continue with the second-turn test data and then Scout/tenant isolation.
 - Do not change the active knowledge row, rights, sources, or review status to mask a retrieval problem. Systematic knowledge import and VO2max pilot acceptance remain gated.
 - Production, `main`, PFMS and PFSS remain untouched.
+
+
+### Repeated live VO2max miss — runtime database diagnostics — 2026-11-26
+- Owner repeated the Admin test after deployment `63729e3`; the same fallback response persisted.
+- Render application logs show two further canonical lookup misses at 22:07:47Z and 22:09:54Z. Therefore the exact-key fallback change alone did not resolve the live issue.
+- Read-only SQL still confirms the canonical concept exists in Supabase project ref `nwqwnrhupbyhshsprxjt`; however, the running Render process may be connected to a different Supabase project or the runtime query may return no row due to its effective database context. This has not yet been proven.
+- Added privacy-safe runtime diagnostics around the exact-key lookup: number of returned rows, returned knowledge statuses/domains, active-valid boolean, and query error code only. No knowledge text, source content, credentials, user data or IDs are logged.
+- Diagnostic commit: `4f7d00920eb6ecdb9dc7137141145011a3bddb62`; STAGING deployment `dep-dc4asoe1egvs73frm670` triggered. Verify build and LIVE state, then reproduce once and inspect the diagnostic log before making further changes.
+- Next root-cause branch:
+  1. `rows=0`: verify Render's configured Supabase project hostname/ref matches the project where SQL found the concept; never expose secret values. Check server-role grants/RLS only after confirming project identity.
+  2. `rows>0`, status not active: inspect the exact returned status and environment/data divergence.
+  3. `active_valid=true` but UI still misses: inspect route canonical key filtering and response construction.
+- Do not insert, approve, duplicate or modify the VO2max knowledge record to mask this retrieval defect. No production changes. Knowledge import and pilot acceptance remain blocked.
