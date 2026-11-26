@@ -66,11 +66,16 @@ function rank(question,rows,limit){
  const query=new Set(tokens(question).filter(token=>!STOP.has(token)));
  if(!query.size)return [];
  return rows.map(record=>{
-  const words=new Set(tokens([record.domain,record.topic,record.title,record.definition,record.formula||''].join(' ')).filter(token=>!STOP.has(token)));
+  const words=new Set(tokens([record.concept_key,record.domain,record.topic,record.title,record.definition,record.applicability||'',...(record.limitations||[]),record.formula||''].join(' ')).filter(token=>!STOP.has(token)));
   const overlap=[...query].filter(token=>words.has(token)).length;
-  const score=overlap/Math.max(1,Math.min(query.size,words.size));
-  const minimumOverlap=query.size===1?1:2;
-  const minimumScore=query.size===1?0.5:0.28;
+  const keyAnchors=[...query].filter(token=>tokens(record.concept_key||'').includes(token)&&token.length>=5);
+  const baseScore=overlap/Math.max(1,Math.min(query.size,words.size));
+  // A precise canonical concept-key hit (e.g. VO2max) must remain retrievable
+  // inside longer player-specific requests; general token overlap alone was
+  // too strict and could silently hide valid active knowledge.
+  const score=keyAnchors.length?Math.max(baseScore,0.55):baseScore;
+  const minimumOverlap=keyAnchors.length?1:query.size===1?1:2;
+  const minimumScore=keyAnchors.length?0.5:query.size===1?0.5:0.28;
   return {record,score,overlap,minimumOverlap,minimumScore};
  }).filter(item=>item.record.knowledge_status==='active'&&item.overlap>=item.minimumOverlap&&item.score>=item.minimumScore)
    .sort((a,b)=>b.score-a.score).slice(0,Math.max(1,Math.min(12,limit)));
