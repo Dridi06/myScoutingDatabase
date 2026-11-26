@@ -1118,3 +1118,11 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - **Current intended boundary:** Staging candidate branch only; no Render deployment, no Supabase migration applied, no Production changes, no PR merge.
 - **Not yet complete:** Durable database storage for evolution proposals/approved capability versions, runtime execution adapters for newly approved declarative operations, semantic embedding retrieval, automatic candidate generation from provider/tool research, user-feedback ingestion, and end-to-end chat integration of unknown-question fallback. The current code is a secure foundation, not the complete self-evolving agent.
 - **Next:** Verify latest CI; correct failures; then implement owner-/admin-scoped persistence and safe reviewed operation handlers. Deploy only after all required tests and staging migration review are complete.
+
+
+### Regression correction — 2026-11-26
+
+- Re-inspected the failing CI logs on head `052562b015fc588a776dbad70bfd1c5f8ca5e613`. The remaining failure was the new knowledge-gap test invoking the agent core without a user goal; an empty input is correctly not classified as a knowledge gap.
+- Updated `tests/messinho-agent-core.test.js` to provide a concrete unknown tactical question. Commit: `c58997f59c8eca0deac76b12d8ce00a9a54210e3`.
+- On that exact commit, MESSINHO backend syntax, MESSINHO Node tests, ASI quality checks, and Staging health smoke test are green. MESSINHO validation is still running at the time of this checkpoint; do not infer full CI completion until it returns.
+- No deployment, migration application, merge, or Production changes. Staging remains the only intended target.
