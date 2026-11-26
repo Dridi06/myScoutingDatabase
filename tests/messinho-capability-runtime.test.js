@@ -69,3 +69,51 @@ test('match analysis capabilities use structured phase events and enforce video 
  const trustedVideo=executeMessinhoCapability('video_event_analysis',{player:{name:'Test'},events,_trusted_video_bundle:true});
  assert.equal(trustedVideo.status,'completed');
 });
+
+
+test('verified structured contract snapshots power contract expiry analysis',()=>{
+ const out=executeMessinhoCapability('contract_expiry_monitor',{
+   now:'2026-01-01T00:00:00.000Z',
+   contract_records:[{
+     club_name:'Test FC',contract_status:'active',contract_end:'2026-08-01',
+     verification_status:'verified',source_url:'https://club.example/contract',
+     confidence:0.95,is_current:true
+   }]
+ });
+ assert.equal(out.status,'completed');
+ assert.equal(out.result.verified_contract_records,1);
+ assert.equal(out.result.contracts[0].days_until_expiry,212);
+ assert.equal(out.result.expiring_within_12_months.length,1);
+});
+
+test('unverified structured contract snapshots are surfaced for review, never treated as verified',()=>{
+ const out=executeMessinhoCapability('contract_research',{
+   contract_records:[{contract_end:'2026-08-01',verification_status:'unconfirmed',source_url:'https://club.example/contract'}]
+ });
+ assert.equal(out.status,'needs_review');
+ assert.equal(out.result.unverified_contract_records,1);
+ assert.equal(out.result.verified_contract_records,undefined);
+});
+
+
+test('club research never claims completion from a club name alone',()=>{
+ const out=executeMessinhoCapability('club_research',{club_profile:{name:'Test FC'},sources:[]});
+ assert.equal(out.status,'insufficient_data');
+ assert.ok(out.missing_inputs.includes('club_sources'));
+});
+
+
+test('automated talent search maps natural-language position groups to stored scouting positions',()=>{
+ const out=executeMessinhoCapability('automated_talent_search',{
+   now:'2026-01-01T00:00:00.000Z',
+   candidates:[
+     {id:'striker',name:'Centre Forward',birth_year:2007,positions:['9er'],ratings:{technical:80,tactical:70,athletic:75,mental:70}},
+     {id:'keeper',name:'Goalkeeper',birth_year:2007,positions:['Torwart'],ratings:{technical:80,tactical:70,athletic:75,mental:70}},
+     {id:'unknown',name:'Unknown Position',birth_year:2007,ratings:{technical:80,tactical:70,athletic:75,mental:70}}
+   ],
+   filters:{position:'Stürmer',max_age:21}
+ });
+ assert.equal(out.status,'completed');
+ assert.equal(out.result.candidate_count,1);
+ assert.equal(out.result.results[0].id,'striker');
+});

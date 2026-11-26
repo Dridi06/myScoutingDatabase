@@ -20,6 +20,23 @@ const avg=xs=>xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:null;
 const std=xs=>{const m=avg(xs);return m===null?null:Math.sqrt(avg(xs.map(x=>(x-m)**2)));};
 const dateValue=v=>{const n=Date.parse(v);return Number.isFinite(n)?n:null;};
 const asArray=v=>Array.isArray(v)?v:[];
+const POSITION_FILTER_ALIASES={
+ 'sturmer':['9er','stürmer','striker','forward','centre forward','center forward'],
+ 'torwart':['torwart','keeper','goalkeeper','gk'],
+ 'innenverteidiger':['iv links','iv rechts','iv re/li','innenverteidiger','centre back','center back'],
+ 'aussenverteidiger':['av links','av rechts','av re/li','außenverteidiger','full back','fullback'],
+ 'mittelfeld':['6er','8er','10er','mittelfeld','midfielder'],
+ 'flugelspieler':['flügel links','flügel rechts','flügel re/li','flügelspieler','winger']
+};
+function positionMatches(positions,requested){
+ const target=norm(requested);
+ const aliases=POSITION_FILTER_ALIASES[target]||[String(requested)];
+ const accepted=[target,...aliases.map(norm)];
+ return positions.some(position=>{
+   const actual=norm(position);
+   return Boolean(actual)&&accepted.some(alias=>actual===alias||actual.includes(alias)||alias.includes(actual));
+ });
+}
 const aliases={
  technical:['technical','technik','dribbling','passing','passspiel','finishing','abschluss','first touch','ballkontrolle'],
  tactical:['tactical','taktik','positioning','positionierung','decision','entscheidungs','vision','raumverhalten','pressing'],
@@ -142,17 +159,22 @@ function analysisHandler(id,input){
  }
  if(id==='tactical_behaviour_analysis'||id==='game_phase_analysis'||id==='duel_analysis'||id==='video_event_analysis'||id==='minutes_analysis'||id==='availability_history_analysis'||id==='running_performance_analysis'||id==='speed_analysis'||id==='anomaly_detection'){
    if(!events.length&&!history.length)return missingResult(id,[id==='video_event_analysis'?'licensed_video_events':id==='minutes_analysis'?'appearance_records':id==='availability_history_analysis'?'availability_records':'dated_metrics']);
-   const filtered=id==='video_event_analysis'?(input._trusted_video_bundle===true?events.filter(e=>e.license_status==='licensed'||e.license_status==='owned'):[]):id==='duel_analysis'?events.filter(e=>/duel|zweikampf/i.test(String(e.action||e.type||''))):events;
+   const filtered=id==='video_event_analysis'?(input._trusted_video_bundle===true?events.filter(e=>e.license_status==='licensed'||e.license_status==='owned'):[]):id==='duel_analysis'?events.filter(e=>/duel|zweikampf/i.test(String(e.action||e.type||''))):(events.length?events:history);
    if(id==='video_event_analysis'&&!filtered.length)return missingResult(id,['licensed_video_events'],'Es werden ausschließlich lizenzierte oder eigene vorverarbeitete Ereignisdaten akzeptiert.');
    if(['tactical_behaviour_analysis','game_phase_analysis','duel_analysis','video_event_analysis'].includes(id)){
      const eventAnalysis=analyzeMessinhoMatch(filtered);
      if(eventAnalysis.status==='insufficient_data')return missingResult(id,[id==='video_event_analysis'?'mindestens fünf lizenzierte Ereignisse':'mindestens fünf strukturierte Ereignisse']);
      return result(id,'completed',{...eventAnalysis,analysis_basis:id==='video_event_analysis'?'licensed_video_events':'structured_match_events',interpretation:'Nur gelieferte Ereignisdaten werden ausgewertet; nicht erfasste Spielszenen bleiben unbekannt.'});
    }
-   const key=input.metric_key||'value';
-   const vals=filtered.map(e=>finite(e[key])).filter(v=>v!==null);
+   const defaultMetric={
+     minutes_analysis:'minutes',availability_history_analysis:'availability_rate',
+     running_performance_analysis:'distance',speed_analysis:'speed',anomaly_detection:'score'
+   }[id]||'value';
+   const key=input.metric_key||defaultMetric;
+   const vals=filtered.map(e=>finite(e[key]??e.ratings?.[key]??e.metrics?.[key])).filter(v=>v!==null);
+   if(!vals.length)return missingResult(id,[key+'_metrics'],'Es liegen keine numerischen Messwerte für diese Kennzahl vor. Ereigniszahlen allein ersetzen keine Leistungs- oder Verfügbarkeitsmessung.');
    const groups=filtered.reduce((acc,e)=>{const k=e.phase||e.event_type||e.type||'other';acc[k]=(acc[k]||0)+1;return acc;},{});
-   return result(id,'completed',{event_count:filtered.length,group_counts:groups,mean_value:avg(vals)===null?null:round(avg(vals)),min_value:vals.length?Math.min(...vals):null,max_value:vals.length?Math.max(...vals):null});
+   return result(id,'completed',{event_count:filtered.length,metric:key,group_counts:groups,mean_value:round(avg(vals)),min_value:Math.min(...vals),max_value:Math.max(...vals)});
  }
  if(id==='peer_comparison_analysis'||id==='competition_comparison'){
    const peers=getPlayers(input).filter(x=>normalizedPosition(x)===normalizedPosition(p));
@@ -350,12 +372,19 @@ function researchHandler(id,input){
  const sources=sourceBundle(input),now=input.now||Date.now();
  const candidates=asArray(input.candidates||input.players).filter(item=>item&&typeof item==='object');
  if(id==='automated_talent_search'){
-   const criteria=input.filters||input.criteria||{},filtered=candidates.filter(candidate=>{
-     const age=finite(candidate.age)??(finite(candidate.birth_year)!==null?new Date(now).getFullYear()-finite(candidate.birth_year):null);
+   const criteria=input.filters||input.criteria||{};
+   const hasCriteria=Boolean(criteria.position||finite(criteria.max_age)!==null||finite(criteria.min_age)!==null||
+     finite(criteria.birth_year_from)!==null||finite(criteria.birth_year_to)!==null);
+   if(!hasCriteria)return missingResult(id,['search_filters'],'Bitte nenne mindestens eine Position, Altersgrenze oder einen Jahrgangsbereich.');
+   const filtered=candidates.filter(candidate=>{
+     const birth=finite(candidate.birth_year??candidate.year);
+     const age=finite(candidate.age)??(birth!==null?new Date(now).getFullYear()-birth:null);
      const positions=asArray(candidate.positions||candidate.position).map(norm);
-     if(criteria.position&&!positions.some(position=>position.includes(norm(criteria.position))))return false;
+     if(criteria.position&&!positionMatches(positions,criteria.position))return false;
      if(finite(criteria.max_age)!==null&&(age===null||age>finite(criteria.max_age)))return false;
      if(finite(criteria.min_age)!==null&&(age===null||age<finite(criteria.min_age)))return false;
+     if(finite(criteria.birth_year_from)!==null&&(birth===null||birth<finite(criteria.birth_year_from)))return false;
+     if(finite(criteria.birth_year_to)!==null&&(birth===null||birth>finite(criteria.birth_year_to)))return false;
      return true;
    }).map(candidate=>({player:playerName(candidate),id:candidate.player_id??candidate.id??null,positions:candidate.positions||candidate.position||[],score:scoreMessinhoPlayer(candidate).score,coverage:profileScores(candidate).coverage}));
    filtered.sort((a,b)=>(b.score??-1)-(a.score??-1));
@@ -390,8 +419,10 @@ function researchHandler(id,input){
    return result(id,'completed',{candidates:eligible.map(item=>({...item,value_per_score:round(item.value/item.score,2),below_group_value:item.value<meanValue&&item.score>=meanScore})).sort((a,b)=>a.value_per_score-b.value_per_score),group_mean_value:round(meanValue),group_mean_score:round(meanScore),estimate_only:true});
  }
  if(id==='club_research'){
-   const club=input.club||input.club_profile;if(!club&&!sources.length)return missingResult(id,['club_identity','club_sources']);
-   return result(id,'completed',{club:club?{name:club.name||null,country:club.country||null,league:club.league||null,website:club.website||null}:null,source_count:sources.length,sources:sourceAudit(sources,now),verified_facts:asArray(input.claims).filter(claim=>claim&&claim.verified===true)});
+   const club=input.club||input.club_profile;
+   if(!club)return missingResult(id,['club_identity']);
+   if(!sources.length)return missingResult(id,['club_sources'],'Der Verein ist zugeordnet, aber es liegen noch keine auswertbaren Recherchequellen vor.');
+   return result(id,'completed',{club:{name:club.name||null,country:club.country||null,league:club.league||null,website:club.website||null},source_count:sources.length,sources:sourceAudit(sources,now),verified_facts:asArray(input.claims).filter(claim=>claim&&claim.verified===true)});
  }
  if(id==='squad_research'){
    const squad=asArray(input.squad||input.players);if(!squad.length)return missingResult(id,['squad_players']);
@@ -437,10 +468,35 @@ function researchHandler(id,input){
    return result(id,licensed.length?'completed':'insufficient_data',{source_count:sources.length,licensed_source_count:licensed.length,sources:audited,reason:licensed.length?'Only explicitly licensed or owned sources are returned.':'HTTPS availability is not a licence. No source is treated as usable without explicit rights evidence.'});
  }
  if(id==='contract_expiry_monitor'||id==='contract_research'){
+   const records=asArray(input.contract_records);
+   const verified=records.filter(row=>row&&['verified','confirmed','corroborated'].includes(row.verification_status)&&
+     typeof row.source_url==='string'&&row.source_url.startsWith('https://'));
+   if(verified.length){
+     const today=new Date(now).toISOString().slice(0,10);
+     const assessed=verified.map(row=>{
+       const days=row.contract_end?Math.ceil((Date.parse(row.contract_end+'T00:00:00Z')-Date.parse(today+'T00:00:00Z'))/86400000):null;
+       return {club:row.club_name||null,parent_club:row.parent_club_name||null,contract_status:row.contract_status||null,
+         contract_start:row.contract_start||null,contract_end:row.contract_end||null,days_until_expiry:days,
+         option_type:row.option_type||null,confidence:finite(row.confidence),source_url:row.source_url,current:row.is_current===true};
+     });
+     return result(id,'completed',{verified_contract_records:assessed.length,contracts:assessed,
+       expiring_within_12_months:assessed.filter(row=>row.current&&row.days_until_expiry!==null&&row.days_until_expiry>=0&&row.days_until_expiry<=365),
+       source:'admin/scout-verified contract snapshots',date_extraction_performed:false});
+   }
+   if(records.length)return result(id,'needs_review',{unverified_contract_records:records.length,
+     contracts:records.map(row=>({contract_end:row.contract_end||null,verification_status:row.verification_status||'pending',source_url:row.source_url||null})),
+     reason:'Vertragsdaten sind vorhanden, aber noch nicht als verifiziert freigegeben.'});
    if(!sources.length)return missingResult(id,['contract_sources']);
-   const patterns=[new RegExp('(?:contract|vertrag).{0,80}?(?:expires|expiry|läuft bis|laeuft bis|bis zum|until|through)(?:\\s+(?:on|am))?\\s+([0-9]{1,2}[./-][0-9]{1,2}[./-][0-9]{2,4}|[0-9]{4}-[0-9]{2}-[0-9]{2})','i'),new RegExp('(?:contract|vertrag).{0,80}?([0-9]{4}-[0-9]{2}-[0-9]{2})','i')];
-   const mentions=sources.flatMap(source=>patterns.flatMap(pattern=>{const match=String(source.content||'').match(pattern);return match?[{date_mention:match[1],source_url:source.url,source_title:source.title||null,verified:false}]:[];}));
-   return result(id,mentions.length?'needs_review':'insufficient_data',{contract_date_mentions:mentions,source_count:sources.length,rule:'Extracted dates are leads only and require confirmation from an official club or league source.'});
+   const patterns=[
+     new RegExp('(?:contract|vertrag).{0,80}?(?:expires|expiry|läuft bis|laeuft bis|bis zum|until|through)(?:\\s+(?:on|am))?\\s+([0-9]{1,2}[./-][0-9]{1,2}[./-][0-9]{2,4}|[0-9]{4}-[0-9]{2}-[0-9]{2})','i'),
+     new RegExp('(?:contract|vertrag).{0,80}?([0-9]{4}-[0-9]{2}-[0-9]{2})','i')
+   ];
+   const mentions=sources.flatMap(source=>patterns.flatMap(pattern=>{
+     const match=String(source.content||'').match(pattern);
+     return match?[{date_mention:match[1],source_url:source.url,source_title:source.title||null,verified:false}]:[];
+   }));
+   return result(id,mentions.length?'needs_review':'insufficient_data',{contract_date_mentions:mentions,source_count:sources.length,
+     rule:'Extracted dates are leads only and require confirmation from an official club or league source.'});
  }
  if(id==='source_cross_check'||id==='rumour_verification'){
    if(!sources.length)return missingResult(id,['sources']);
