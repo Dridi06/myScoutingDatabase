@@ -61,6 +61,7 @@ export async function learnMessinhoApprovedFoundationConcept(db,question,{fetchI
   stored,
   source_count:sources.length,
   source_ids:sources.map(source=>source.source_id),
+  source_references:sources.map(source=>({title:source.title,url:source.url,license:source.license,attribution:source.attribution})),
   active:false,
   approval_required:true,
   storage_policy:'compact_original_knowledge_only'
