@@ -11,12 +11,13 @@ using ((select private.is_admin()));
 
 -- Never rewind the player ID sequence when a player or an audit row is deleted.
 -- Preserve the greater of the current sequence value and the highest existing player ID.
-do $$
-declare
-  current_seq bigint;
-  max_player bigint;
+do $
+declare max_player bigint;
 begin
-  select last_value into current_seq from public.player_id_seq;
-  select coalesce(max(player_id), 0) into max_player from public.players;
-  perform setval('public.player_id_seq', greatest(current_seq, max_player, 1), true);
-end $$;
+  select coalesce(max(player_id),0) into max_player from public.players;
+  if max_player > 0 then
+    perform setval('public.player_id_seq', max_player, true);
+  else
+    perform setval('public.player_id_seq', 1, false);
+  end if;
+end $;
