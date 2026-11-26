@@ -642,7 +642,8 @@ async function saveMessinhoAgentTask(ownerId,goal,plan,input,run,role){
     const context={
       ...(input?.player?{player:input.player}:{}),
       ...(Array.isArray(input?.players)?{players:input.players.slice(0,80)}:{}),
-      user_preferences:input?.user_preferences&&typeof input.user_preferences==='object'?input.user_preferences:{}
+      user_preferences:input?.user_preferences&&typeof input.user_preferences==='object'?input.user_preferences:{},
+      _previous_capability_results:(run?.results||[]).slice(-20).map(item=>({capability_id:item.capability_id,status:item.status,result:item.result??null,missing_inputs:item.missing_inputs||[]}))
     };
     if(JSON.stringify(context).length>64000){
       context.players=(context.players||[]).slice(0,20);
@@ -694,7 +695,7 @@ app.post('/api/agent/tasks/:taskId/resume',async(req,res)=>{
     const byId=new Map([...oldResults,...(newRun.results||[])].map(item=>[item.capability_id,item]));
     const mergedResults=[...byId.values()];
     const stillPending=Array.isArray(newRun.deferred_capabilities)?newRun.deferred_capabilities:[];
-    const status=stillPending.length?'partial':(newRun.missing_inputs?.length?'waiting_for_input':'completed');
+    const status=stillPending.length?'partial':(newRun.missing_inputs?.length?'waiting_for_input':newRun.results?.some(item=>item.status==='error')?'failed':'completed');
     const {error:updateError}=await db.from('messinho_agent_tasks').update({
       status,completed_results:mergedResults.slice(0,100),pending_capabilities:stillPending.slice(0,100),
       attempt_count:(Number(task.attempt_count)||0)+1,updated_at:new Date().toISOString(),
