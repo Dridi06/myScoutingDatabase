@@ -337,7 +337,7 @@ For each meaningful feature, record:
 5. Expand the current six-area deterministic multi-intent planner into contract-driven goal decomposition across all 100 internal capabilities.
 6. Run the committed Node test suite in CI or another test runner, then improve natural-language interpretation, follow-up context, response quality, and deterministic fallback behavior without making OpenAI mandatory.
 7. Audit and integrate all 100 catalogue capabilities as internal agent skills; clearly distinguish implemented, partial, data-blocked, policy-blocked, and missing behavior.
-8. Keep the direct single-capability execution route disabled; audit and correct truthful runtime coverage/status reporting.
+8. Keep the direct single-capability execution route disabled; correct runtime coverage/status reporting (70 reachable specialist branches, 30 generic fallbacks) and fix the unreachable seasonal-learning branch.
 9. Update this file with implementation details and next actions after each meaningful change; append a LIVE release record after every feature deployment.
 7. MESSINHO's 100 capabilities are internal agent skills, not user-selectable tools. The user describes a goal in the existing chat; the agent chooses and combines skills automatically. Do not reintroduce a manual per-capability selector in the normal workspace.
 
@@ -497,3 +497,27 @@ The 100 MESSINHO capabilities must no longer be presented as 100 individual func
 ### New owner decision — autonomous chat behavior
 
 The owner wants the entire chat experience improved as part of the same agent integration: language understanding, spelling/name interpretation, natural conversation, context retention, clarification behavior, explanation quality, and final answers. These improvements must be consistent across all chat branches, not only the capability-run response formatter. OpenAI remains optional; the deterministic MESSINHO path must remain useful without it.
+
+
+### Runtime audit finding — 2026-11-26
+
+A source-level audit of the current `main` runtime found:
+
+- The catalogue contains **100 unique capability IDs**.
+- The four dispatch sets contain **100 unique IDs**, so every catalogue ID reaches one of the four broad domain handler functions.
+- The runtime contains **71 distinct explicit capability-ID branches**, but `seasonal_learning` is placed in the analysis handler even though dispatch routes it to the learning handler. That branch is unreachable.
+- Therefore, the source currently contains **70 reachable capability-specific branches** and **30 catalogue IDs that fall through to generic domain behavior**.
+- This does **not** prove that the 70 branches are complete, fully tested, persisted, or operational end-to-end. Each one still needs a contract and test audit.
+- `listExecutableMessinhoCapabilities()` currently marks all 100 catalogue entries as `execution_handler_available: true`, and runtime diagnostics report all 100 as registered. This describes broad dispatch registration, not 100 complete specialist implementations. It must be corrected so the admin overview distinguishes domain-specific logic from generic fallback and from fully verified capability completion.
+
+This is a source-code audit only. It is not a successful execution test of all 100 capabilities.
+
+### Immediate technical next step
+
+Correct runtime reporting and diagnostic wording before expanding the planner:
+1. Report dispatch coverage separately from specialist-logic coverage.
+2. Mark generic fallback entries honestly; do not label them as fully executable specialist functions.
+3. Fix the unreachable `seasonal_learning` branch and add a focused test.
+4. Make the admin diagnostic report specialist coverage and generic fallbacks instead of only `all_registered`.
+5. Run the complete Node test suite; Render's normal production build does not run `npm test`.
+
