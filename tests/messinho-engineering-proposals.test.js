@@ -31,7 +31,7 @@ test('requires bounded diff, tests, benchmark and rollback plan',()=>{
  assert.equal(normalizeMessinhoEngineeringProposal({...valid,patch:'not a diff'}).ok,false);
  assert.equal(normalizeMessinhoEngineeringProposal({...valid,test_plan:[]}).ok,false);
  assert.equal(normalizeMessinhoEngineeringProposal({...valid,rollback_plan:'x'}).ok,false);
- assert.equal(normalizeMessinhoEngineeringProposal({...valid,patch:diff().repeat(9)}).ok,false);
+ assert.equal(normalizeMessinhoEngineeringProposal({...valid,patch:Array.from({length:9},(_,i)=>diff('backend/example'+i+'.js')).join('\n')}).ok,false);
 });
 test('requires all six independent quality gates and exact frozen benchmark identity',()=>{
  const proposal=normalizeMessinhoEngineeringProposal(valid).value;
