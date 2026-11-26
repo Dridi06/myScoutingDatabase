@@ -36,7 +36,7 @@ export function buildMessinhoDomainKnowledgeRecord(input={},now=new Date()){
  const content=clean(input.content,1600),question=clean(input.question,500);
  const rights=input.rights||{};
  if(!content||content.length<40||!question)return {eligible:false,reason:'insufficient_content'};
- if(rights.status!=='verified_permitted'||!clean(rights.license,120)||rights.ai_tdm!==true||rights.commercial_use!==true||rights.derivative_use!==true)
+ if(rights.status!=='verified_permitted'||!clean(rights.license,120)||!clean(rights.rights_holder,180)||!/^https:\/\//i.test(String(rights.evidence_url||''))||rights.ai_tdm!==true||rights.commercial_use!==true||rights.derivative_use!==true)
   return {eligible:false,reason:'rights_not_verified'};
  const sources=(Array.isArray(input.sources)?input.sources:[]).filter(s=>/^https:\/\//i.test(String(s.url||''))&&clean(s.title,180)).slice(0,5);
  if(!sources.length)return {eligible:false,reason:'source_provenance_required'};
@@ -45,7 +45,7 @@ export function buildMessinhoDomainKnowledgeRecord(input={},now=new Date()){
  if(!fingerprint)return {eligible:false,reason:'invalid_fingerprint'};
  const verifiedAt=new Date(now).toISOString();
  return {eligible:true,record:{fingerprint,domain,question,content,claims,sources:sources.map(s=>({title:clean(s.title,180),url:s.url,section:clean(s.section,120)||null})),
-  rights:{status:'verified_permitted',license:clean(rights.license,120),evidence_url:clean(rights.evidence_url,500),ai_tdm:true,commercial_use:true,derivative_use:true,reviewed_at:clean(rights.reviewed_at,40)||verifiedAt},
+  rights:{status:'verified_permitted',license:clean(rights.license,120),rights_holder:clean(rights.rights_holder,180),evidence_url:clean(rights.evidence_url,500),ai_tdm:true,commercial_use:true,derivative_use:true,reviewed_at:clean(rights.reviewed_at,40)||verifiedAt},
   confidence:Math.max(0,Math.min(1,Number(input.confidence)||0)),knowledge_status:'active',version:1,verified_at:verifiedAt,created_at:verifiedAt,updated_at:verifiedAt}};
 }
 export function rankMessinhoDomainKnowledge(question,records=[],limit=5){
