@@ -1954,3 +1954,12 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 1. Confirm Render deployment `dep-dc45838u01pc73etpvmg` reaches `live` on SHA `ab909ea784a10e0e2d4e594ad77b7c42b7d2d925`.
 2. With the user's controlled Scout/Admin sessions, run the positive rating, negative rating, correction, duplicate, admin queue, role denial, HTTPS evidence and immutable audit smoke tests.
 3. Record results and only then begin quality-metric aggregation. No automatic self-training from ratings or unverified feedback.
+
+
+### Deployment confirmation — feedback signal semantics — 2026-11-26 15:46 UTC
+- Render deployment `dep-dc45838u01pc73etpvmg` reached status `live` with a matching `deploy_ended: succeeded` event.
+- Exact deployed runtime commit: `ab909ea784a10e0e2d4e594ad77b7c42b7d2d925`.
+- Render application logs confirmed: `Your service is live` and primary staging URL is available.
+- Build event: `succeeded`. The service build command invokes `npm run build`, which runs `npm test`, backend JavaScript syntax checks and `vite build` before deployment.
+- Latest GitHub branch head after this documentation checkpoint: `034cfa0e43fb4c093d8deb0f7e76349542364188`; the only commit after the deployed runtime SHA is this documentation checkpoint, not a runtime code change.
+- STAGING only; auto-deploy remains off. Production, PFMS/PFSS and main remain untouched.
