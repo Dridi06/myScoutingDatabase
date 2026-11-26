@@ -1067,38 +1067,7 @@ function compactMessinhoTaskResult(item){
     verified_outcome_count:item.provenance.verified_outcome_count||0,claims:(item.provenance.claims||[]).slice(0,8),limitations:(item.provenance.limitations||[]).slice(0,3)};
   return output;
 }
-function compactMessinhoTaskResult(item){
-  const output={capability_id:item?.capability_id||'unknown',status:item?.status||'unknown',
-    missing_inputs:Array.isArray(item?.missing_inputs)?item.missing_inputs.slice(0,20):[],
-    error_code:item?.error_code||null};
-  if(item?.result!==undefined){
-    const serialized=JSON.stringify(item.result);
-    output.result=serialized.length<=900?item.result:{truncated:true,preview:serialized.slice(0,850)};
-  }
-  if(item?.provenance)output.provenance={origin:item.provenance.origin||'unknown',record_refs:(item.provenance.record_refs||[]).slice(0,5),
-    metric_evidence:(item.provenance.metric_evidence||[]).slice(0,8),source_evidence:(item.provenance.source_evidence||[]).slice(0,3),
-    verified_outcome_count:item.provenance.verified_outcome_count||0,claims:(item.provenance.claims||[]).slice(0,8),limitations:(item.provenance.limitations||[]).slice(0,3)};
-  return output;
-}
-function buildMessinhoTaskContext(input,priorResults=[]){
-  const context={
-    ...(input?.player?{player:input.player}:{}),
-    ...(Array.isArray(input?.players)?{players:input.players.slice(0,80)}:{}),
-    user_preferences:input?.user_preferences&&typeof input.user_preferences==='object'?input.user_preferences:{},
-    ...(Array.isArray(input?.sources)?{sources:input.sources.slice(0,10).map(source=>({
-      title:String(source.title||'').slice(0,240),url:String(source.url||'').slice(0,1000),
-      publisher:String(source.publisher||'').slice(0,160),published_date:source.published_date||null,
-      content:String(source.content||source.snippet||'').slice(0,1200)
-    }))}:{}),
-    ...(Array.isArray(input?.claims)?{claims:input.claims.slice(0,40)}:{}),
-    _previous_capability_results:priorResults.slice(-8).map(compactMessinhoTaskResult)
-  };
-  if(JSON.stringify(context).length>64000){
-    context.players=(context.players||[]).slice(0,20);
-    if(JSON.stringify(context).length>64000)delete context.players;
-  }
-  return context;
-}
+
 async function createMessinhoAgentTask(ownerId,goal,plan,input,role){
   if(!db)return null;
   try{
