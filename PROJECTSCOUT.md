@@ -2531,3 +2531,19 @@ Mathematics; statistics; physics; biology; medicine; sports science; football; c
 - The rights and graph code changes are committed to the STAGING feature branch. Check CI on the latest HEAD before deployment.
 - The currently live STAGING runtime predates these latest rights/candidate changes; manual STAGING deployment is still required after CI passes.
 - Production `main`, production Render/Supabase, PFMS/PFSS and PR merge state remain untouched. PR #47 remains Draft/open/unmerged.
+
+
+## 2026-11-26 — Correction: OpenStax rights retracted; allowlist returned to zero
+
+### Rights correction
+- A later audit of the exact OpenStax prefaces found that the earlier four-work approval was incorrect. A Creative Commons label alone did not establish permission for MESSINHO's AI ingestion.
+- *College Algebra 2e*, *Introductory Statistics 2e* and *University Physics, Volume 1* state CC BY-NC-SA 4.0 and explicitly prohibit LLM training or ingestion into generative-AI offerings without prior written permission.
+- *Introductory Business Statistics* states CC BY 4.0 for the text, but its exact preface separately prohibits LLM training or ingestion into generative-AI offerings without OpenStax permission. CC BY 4.0 does not override that additional restriction.
+- Reverted all four OpenStax entries from `backend/messinho-rights-registry.js`. The permanent allowlist is again **0**. Regression tests now explicitly verify that a CC BY label cannot override an AI-ingestion restriction.
+- Updated `docs/MESSINHO_CROSS_DOMAIN_SOURCE_REGISTER.md` with the exact preface URLs and corrected licence/AI notices. The register remains 16 works/resources, 0 approved.
+- No OpenStax content was fetched into the product, no knowledge records were created, and no PDFs/full text were stored. No model weights, user/player/scout data or scoring rules changed.
+
+### CI correction
+- The temporary four-work allowlist commit failed CI: two tests exposed a stale graph expectation and a rights test that assumed a source was approved. The tests were updated to the current one-source quarantined-candidate rule and to require an empty allowlist.
+- CI for the latest branch HEAD must be rechecked after the rights retraction and test corrections. No deployment of the temporary four-work allowlist was triggered; the currently deployed STAGING runtime remains the previously verified commit `8e06b553d34b51ca324db8bdd4d85b7f60611d5f`.
+- The only acceptable next step for an OpenStax source is written permission explicitly covering commercial AI/TDM, ingestion into MESSINHO, and storage/use of compact derived knowledge records. Otherwise it remains excluded/quarantined.
