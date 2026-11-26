@@ -43,3 +43,10 @@ test('agent core awaits the checkpoint callback for every executed capability',a
  assert.deepEqual(seen,cycle.run.results.map(item=>item.capability_id));
  assert.equal(cycle.validation.valid,true);
 });
+
+test('agent core exposes a knowledge gap instead of pretending an unknown question was solved',async()=>{
+ const cycle=await executeMessinhoAgentPlan({plan:null,role:'scout'});
+ assert.equal(cycle.knowledge_gap.gap,true);
+ assert.equal(cycle.knowledge_gap.reason,'no_matching_capability_or_verified_evidence');
+ assert.equal(cycle.state.phase,'needs_clarification');
+});
