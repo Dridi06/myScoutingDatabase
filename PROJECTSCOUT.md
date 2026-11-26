@@ -2834,3 +2834,92 @@ No Admin/Scout credentials, passwords or session tokens were accessed, generated
   4. Run a real VO₂max candidate creation and approval cycle; verify persistent provenance, versions, conflicts, and active retrieval.
   5. Only then begin the controlled foundational knowledge import.
 
+## Projektcheckpoint — 2026-11-26 (Fortsetzung nach Quellenpipeline-Härtung)
+
+### Verbindlicher Projektumfang und Arbeitsregeln
+
+- **Projekt:** ausschließlich `myScoutingDatabase`.
+- **KI-Modul:** MESSINHO ist ein integriertes, autonom arbeitendes Scouting- und Wissensintelligenz-Modul innerhalb von myScoutingDatabase, nicht das Gesamtprojekt.
+- **Arbeitsbranch:** ausschließlich `feature/messinho-unified-ai-integration`.
+- **Zielumgebung:** ausschließlich der dedizierte STAGING-Dienst `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`).
+- **STAGING-URL:** `https://myscoutingdatabase-messinho-staging.onrender.com`.
+- **Supabase STAGING:** Projekt `myScoutingDatabase-staging`, ID `nwqwnrhupbyhshsprxjt`.
+- **Explizite Verbote:** niemals `main`, Produktion, PFMS/PFSS oder PFSS-Staging verändern; niemals mergen oder deployen, sofern nicht ein ausdrücklich dokumentierter Staging-Freigabeschritt erreicht und autorisiert wurde.
+- `PROJECTSCOUT.md` ist das führende Projekttagebuch. Vor jeder Fortsetzung den aktuellen Stand und die letzten Einträge lesen. Erledigte Aufgaben nicht wiederholen. Nach jedem abgeschlossenen Arbeitspaket diesen Checkpoint fortschreiben.
+- Keine Zugangsdaten, Passwörter oder Session-Tokens im Chat erfragen oder speichern. Authentifizierte Prüfungen nur über eine vom Nutzer bereitgestellte, sichere angemeldete STAGING-Sitzung.
+- Ehrlich zwischen Codeänderung, lokalem Test, CI-Nachweis, deployedem Code und authentifiziertem Live-Test unterscheiden. Niemals einen nicht ausgeführten Test als bestanden bezeichnen.
+
+### Zuletzt erledigte Arbeiten
+
+1. Vorherige Regression in der genehmigten Wissensaufnahme behoben:
+   - ungültige Regex-Flag-Prüfung für HTML-Accept-Header durch exakten Stringvergleich ersetzt;
+   - VO₂max-Erkennung in der Foundation-Erkennung korrigiert/geprüft;
+   - bestehende Korrekturen für sichere Matrix-Erkennung, Quellenrechte, Review-Fristen und Wissensfreigabe beibehalten.
+2. Vorheriger nachgewiesener CI-Stand auf Commit `c5a676464cb7fa3e86a55013af4bde0067b36400`: 304/304 Node-Tests bestanden, Backend-Syntax erfolgreich, 2/2 Checks erfolgreich. Dieser Nachweis gilt **nicht automatisch** für spätere Commits.
+3. Approved-source-Ingestion weiter gehärtet:
+   - HTTP-Redirects auf `manual` gestellt und 3xx-Antworten abgewiesen, einschließlich Same-Host-Redirects;
+   - maximale Quellantwortgröße von 2 MB ergänzt;
+   - deklarierte Content-Length vor Parsing geprüft;
+   - XML/HTML anhand UTF-8-Bytegröße begrenzt;
+   - BioC JSON nach Möglichkeit als Text eingelesen und vor JSON.parse größenbegrenzt; Fallback-Pfad ebenfalls geprüft;
+   - Regressionstests für Redirect-Blockierung und zu große BioC-Antworten ergänzt.
+4. Wissensspeicher geprüft:
+   - temporäre Quellen-Auszüge werden durch die strukturierte Wissensgraph-Whitelist nicht als dauerhafte Wissensfelder übernommen;
+   - fünf Knowledge-Graph-Tabellen haben RLS aktiviert;
+   - in der Rechteprüfung wurden keine direkten Tabellenrechte für `anon` oder `authenticated` auf diesen fünf Tabellen festgestellt; `postgres` und `service_role` besitzen die beobachteten Rechte;
+   - Admin-only API-Prüfungen sind in den Wissenskonzept-, Review- und Konfliktrouten implementiert.
+5. Staging-Wissensbestand read-only geprüft: `messinho_knowledge_concepts`, `messinho_knowledge_versions`, `messinho_knowledge_links`, `messinho_knowledge_conflicts` und `messinho_knowledge_reviews` jeweils 0 Einträge. Kein Wissensimport und keine Kandidatenerstellung durch diese Prüfung.
+6. `PROJECTSCOUT.md` um den vorherigen Härtungsbericht ergänzt (Commit `9550c916158235709cf0f4ef732e51aec0721b58`).
+
+### Letzter bekannter Repository-/Deployment-Stand
+
+- Letzter dokumentierter Commit nach Härtung und Dokumentation: `9550c916158235709cf0f4ef732e51aec0721b58`.
+- Auf diesem Commit meldeten die abgefragten GitHub-Status- und PR-Workflow-Endpunkte keine Checks bzw. Workflow-Runs. **Daher ist die neue Härtung noch nicht durch einen frischen CI-Lauf nachgewiesen.**
+- Letzter bestätigter Render-Live-Deploy ist weiterhin `dep-dc48781aekrs73cj27mg`, Commit `4155705ba7d52942e7455df6bb644c7040808a7d`. Neuere Feature-Branch-Änderungen sind nicht deployed.
+- Render Auto-Deploy ist deaktiviert. Das bleibt so.
+- Es wurde kein neuer Deploy ausgelöst und die Produktion wurde nicht berührt.
+
+### Aktueller Status: Noch keine Freigabe für den eigentlichen Wissensimport
+
+Die technische Grundlage ist weit fortgeschritten, aber es ist noch nicht nachgewiesen, dass die aktuelle Branch-Version erfolgreich gebaut und auf STAGING authentifiziert end-to-end getestet wurde. Die bisherigen Sicherheitsprüfungen sind keine vollständige Freigabe.
+
+### Geplante nächste Schritte — in genau dieser Reihenfolge
+
+**Schritt 1 — Aktuellen Branch und CI verifizieren**
+- Branch-HEAD und Commit-Historie erneut lesen; sicherstellen, dass die Härtungsänderungen und dieser Checkpoint im vereinbarten Branch liegen.
+- Einen vollständigen CI-/Build-Lauf für den aktuellen HEAD herbeiführen bzw. den Grund für fehlende Workflow-Runs ermitteln.
+- Alle Test-Suiten, Backend-Syntax-/Build-Prüfungen und neuen Regressionstests ausführen lassen; Fehler beheben, bis der aktuelle Commit nachweislich grün ist.
+- Keine alten CI-Ergebnisse als Beleg für den aktuellen Commit verwenden.
+
+**Schritt 2 — Authentifizierter STAGING-E2E-Test**
+- Nutzer meldet sich selbst in der dedizierten STAGING-App als freigeschalteter Admin an und sendet MESSINHO: `Was ist VO2max?`.
+- Verifizieren: genehmigte Quellen, ausreichende unabhängige Belege, Rechte-/Lizenzprüfung, kompakter strukturierter Kandidat, Quellenprovenienz, keine persistierten Originalauszüge.
+- Vor Freigabe muss der Kandidat in der aktiven Wissenssuche unsichtbar bleiben.
+- Admin genehmigt und lehnt einen Testkandidaten kontrolliert ab; Audit-/Review-Historie und Versionen prüfen.
+- Scout-Konto testen: Adminoberfläche und Review-APIs dürfen nicht zugänglich sein; Admin-only Endpunkte müssen 403 liefern. Zusätzlich Nutzer-/Organisationsisolation prüfen.
+- Fehlende Browser-Session ist eine externe Voraussetzung. Keine Passwörter oder Tokens im Chat erfragen. Wenn kein sicherer Sessionzugriff besteht, den Nutzer um Durchführung der konkreten UI-Aktion und Rückmeldung/Screenshot bitten.
+
+**Schritt 3 — Staging-Deployment-Gate**
+- Erst wenn Schritt 1 und 2 bestanden sind: exakten Branch-HEAD in den dedizierten Render-STAGING-Dienst deployen.
+- Vorher Service-ID, Branch-Konfiguration und Auto-Deploy-Off-Status kontrollieren.
+- Nach Deploy Commit-SHA, Build-Logs, Health-Endpunkte und Runtime-Fehler prüfen.
+- Niemals Produktion, `main` oder PFMS/PFSS anfassen.
+
+**Schritt 4 — Kontrollierter Foundation-Pilot**
+- Mit genau einem Grundlagengebiet starten: VO₂max.
+- Kandidatenerstellung, Quellenrechte, Belegqualität, Admin-Freigabe, persistente Version, Wissenslinks, Konfliktverhalten und aktive Abfrage nach Freigabe vollständig testen.
+- Nachweisen, dass MESSINHO das freigegebene Wissen in einem neuen Gespräch korrekt anwendet, verständlich erklärt, Grenzen nennt und Quellen nachvollziehbar ausweist.
+- Bei jedem Fehler Import pausieren, Ursache beheben, Regressionstest ergänzen und Checkpoint aktualisieren.
+
+**Schritt 5 — Erst danach skalierter Wissensaufbau**
+- Wissensgebiete hierarchisch und in Abhängigkeiten aufbauen: Grundlagen → spezialisierte Konzepte → Formeln/Methoden → Anwendungsfälle → Prognosen/Risikomanagement.
+- Jede Wissenseinheit strukturiert und maschinenlesbar speichern, nicht als PDF-Sammlung oder lose Textdatei.
+- Herkunft, Lizenz, Abrufzeit, Prüfstatus, Belege, Konfidenz, Einschränkungen, Versionen und Abhängigkeiten dauerhaft dokumentieren.
+- Neues Wissen bleibt Kandidat/inaktiv, bis die vorgesehenen Prüf- und Freigaberegeln bestanden sind.
+- Kein ungeprüftes Selbsttraining und keine automatische Aktivierung. Selbstverbesserung nur über nachvollziehbare Hypothesen, Tests, Review und versionierte Freigaben.
+- Ziel: dauerhaftes Wissen, das MESSINHO suchen, verknüpfen, anwenden, analysieren, bewerten, Prognosen daraus ableiten und in sachlicher, verständlicher Sprache erklären kann.
+
+### Nächste konkrete Aktion beim Fortsetzen
+
+Zuerst den aktuellen GitHub-Branch-HEAD und die jüngsten CI-Workflows prüfen, ohne bereits erfolgreich erledigte Arbeiten zu wiederholen. Danach die fehlende CI-Ausführung für den neuen Commit klären und die Regressionstests nachweislich laufen lassen. Der Admin-/Scout-E2E-Test bleibt das nächste nicht automatisierbare Gate. Bis beide Gates bestanden sind: kein Wissensimport und kein Deployment.
+
