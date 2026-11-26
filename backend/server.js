@@ -17,6 +17,7 @@ import { executeMessinhoCapability, listExecutableMessinhoCapabilities, getMessi
 import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainableAssessment, generateMessinhoHypotheses } from './messinho-development.js';
 import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './messinho-research.js';
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
+import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -1447,7 +1448,8 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       }
       if(!player)return respond({reply:'Ich kann die passende Funktion automatisch ausführen. Dafür benötige ich noch einen konkreten Spieler oder ausreichend zugeordnete Kandidatendaten. Bitte nenne den Spielernamen oder starte eine Spielersuche.',intent:'capability_clarification',pending:true,items:[],planned_capabilities:automaticPlan.steps});
       const activeModel=await getActiveMessinhoModel();
-      const run=runMessinhoCapabilityPlan(automaticPlan,{player,players:players.length?players:[player],model_profiles:activeModel?.configuration?.profiles||null,sources:Array.isArray(player.sources)?player.sources:[],claims:[]},profile.role);
+      const agentCycle=await executeMessinhoAgentPlan({plan:automaticPlan,input:{player,players:players.length?players:[player],model_profiles:activeModel?.configuration?.profiles||null,sources:Array.isArray(player.sources)?player.sources:[],claims:[]},role:profile.role});
+      const run=agentCycle.run;
       const reply=formatMessinhoCapabilityResults(run,player.name||player.player_name||null);
       return respond({reply,intent:'automatic_capability_orchestration',items:players.map(p=>({id:p.player_id||p.id,name:p.name||p.player_name,club:p.club||p.current_club,positions:p.positions||[]})),orchestration:{label:run.label,status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,provider_independent:true,model_weights_changed:false},capability_results:profile.role==='admin'?run.results:undefined});
     }
