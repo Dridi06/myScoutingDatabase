@@ -905,11 +905,12 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
         const evidenceAssessment=assessMessinhoEvidence(candidateSources);
         const supportedPositions=(Array.isArray(player.positions)?player.positions:[]).filter(value=>messinhoValueSupported(value,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence));
         const supportedPreferredFoot=messinhoValueSupported(player.preferred_foot,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence)?String(player.preferred_foot).trim().toLowerCase():null;
+        const supportedNationality=messinhoValueSupported(player.nationality,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence)?player.nationality:null;
         const footMatches=matchesPreferredFoot(preferredFoot,supportedPreferredFoot);
         if(position&&!matchesPosition(position,supportedPositions))return null;
-        if(preferredFoot&&(!supportedPreferredFoot||!footMatches))return null;\n        if(nationality&&!matchesNationality(nationality,supportedNationality))return null;
+        if(preferredFoot&&(!supportedPreferredFoot||!footMatches))return null;
+        if(nationality&&!matchesNationality(nationality,supportedNationality))return null;
         const supportedClub=messinhoValueSupported(player.current_club,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence)?player.current_club:null;
-        const supportedNationality=messinhoValueSupported(player.nationality,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence)?player.nationality:null;
         const verifiedMetrics=Object.fromEntries(Object.entries(player.performance_metrics&&typeof player.performance_metrics==='object'?player.performance_metrics:{}).filter(([metric,value])=>messinhoMetricSupported(metric,value,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence)));
         const tacticalFit=evaluateMessinhoTacticalFit({positions:supportedPositions,performance_metrics:verifiedMetrics},filters.teamProfile);
         const sources=candidateSources.map(({content,...s})=>s);
@@ -1751,13 +1752,13 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const wantsSummary=/\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\b/.test(normalized);
     if(dialog.shouldHandle){
       if(dialog.missing.length)return respond({reply:'Damit ich die Suche sauber eingrenzen kann, brauche ich noch: '+dialog.missing.join(', ')+'.',intent:'scouting_clarification',items:[],pending:true});
-      const {quantity,yearFrom,yearTo,ageGroup,age,preferredFoot,position,region,targetLevel}=dialog.request;
+      const {quantity,yearFrom,yearTo,ageGroup,age,preferredFoot,nationality,position,region,targetLevel}=dialog.request;
       const modelYear=new Date().getFullYear();
       const ageGroupNumber=ageGroup?Number(String(ageGroup).replace(/\\D/g,'')):null;
       const ageMin=age?age:yearFrom?Math.max(16,Math.min(30,modelYear-yearTo)):ageGroupNumber?Math.max(14,ageGroupNumber-3):16;
       const ageMax=age?age:yearFrom?Math.max(ageMin,Math.min(30,modelYear-yearFrom)):ageGroupNumber?Math.max(ageMin,ageGroupNumber-1):30;
       const origin=req.protocol+'://'+req.get('host');
-      const research=await fetch(origin+'/api/asi/player-search',{method:'POST',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({mode:'discover',filters:{ageMin,ageMax,birthYearFrom:yearFrom,birthYearTo:yearTo,position,preferredFoot,region,targetLevel,limit:quantity}})});
+      const research=await fetch(origin+'/api/asi/player-search',{method:'POST',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({mode:'discover',filters:{ageMin,ageMax,birthYearFrom:yearFrom,birthYearTo:yearTo,position,preferredFoot,nationality,region,targetLevel,limit:quantity}})});
       const payload=await research.json().catch(()=>({}));
       if(!research.ok)return res.status(research.status).json({error:payload.error||'Die vorhandene ASI-Recherche konnte nicht ausgeführt werden.'});
       const candidates=Array.isArray(payload.candidates)?payload.candidates:[]; 
@@ -1765,7 +1766,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const ranked=rankMessinhoPlayers(candidates,activeModel?.configuration?.profiles||null).slice(0,quantity);
       const ageLabel=age?'Alterswunsch '+age+' Jahre (Geburtsjahrfenster '+(modelYear-age-1)+'–'+(modelYear-age)+')':ageGroup||('Jahrgang '+yearFrom+(yearTo!==yearFrom?' bis '+yearTo:''));
       const reply='Die Recherche wurde über die vorhandene ASI-Quellenpipeline ausgeführt und anschließend durch MESSINHOs eigene positionsgewichtete Bewertungslogik sortiert. Ich habe '+candidates.length+' belegte Kandidaten erhalten und zeige '+ranked.length+' davon. Altersfilter: '+ageLabel+'. '+(age?'Das exakte Alter muss anhand des vollständigen Geburtsdatums bestätigt werden. ':'')+(payload.underfilled?'Die gewünschte Anzahl konnte mit der verfügbaren Quellenlage nicht vollständig belegt werden.':'Nicht belegte Leistungswerte wurden nicht geschätzt.');
-      return respond({reply,intent:'scouting_results',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null,requested:{quantity,yearFrom,yearTo,ageGroup,age,preferredFoot,position,region,targetLevel},sources:payload.sources||[],source_count:payload.source_count||0,saved_count:payload.saved_count||0,duplicate_count:payload.duplicate_count||0,underfilled:!!payload.underfilled,provider:payload.provider||null,limitations:payload.limitations||[]});
+      return respond({reply,intent:'scouting_results',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null,requested:{quantity,yearFrom,yearTo,ageGroup,age,preferredFoot,nationality,position,region,targetLevel},sources:payload.sources||[],source_count:payload.source_count||0,saved_count:payload.saved_count||0,duplicate_count:payload.duplicate_count||0,underfilled:!!payload.underfilled,provider:payload.provider||null,limitations:payload.limitations||[]});
     }
     // Deterministic mathematics and physics run before language-model fallback.
     // The calculation engine never evaluates arbitrary JavaScript or uses an LLM for arithmetic.
