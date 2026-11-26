@@ -112,3 +112,13 @@ test('foundation learning does not write if two sources fail to corroborate the 
  assert.equal(result.status,'insufficient_corroboration');
  assert.equal(db.saved.name,undefined);
 });
+
+test('recognized foundation failures block generic external research fallback',async()=>{
+ const {shouldBlockMessinhoFoundationResearchFallback}=await import('../backend/messinho-approved-knowledge-learning.js');
+ for(const status of ['insufficient_approved_sources','insufficient_corroboration','candidate_not_stored','already_present','pipeline_error','storage_unavailable']){
+  assert.equal(shouldBlockMessinhoFoundationResearchFallback({status}),true,status);
+ }
+ assert.equal(shouldBlockMessinhoFoundationResearchFallback({status:'candidate_created'}),false);
+ assert.equal(shouldBlockMessinhoFoundationResearchFallback({status:'not_applicable'}),false);
+ assert.equal(shouldBlockMessinhoFoundationResearchFallback(null),false);
+});
