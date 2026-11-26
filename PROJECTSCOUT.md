@@ -1657,3 +1657,24 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - The screenshot-driven answer formatting and bare-year-range arithmetic correction are included in the deployed commit.
 - This is a code-level and automated regression verification. A real authenticated Scout3 chat session still needs to confirm natural-language behavior from the user's browser.
 - Production Render, production `main`, production Supabase, PFMS and PFSS remain untouched. STAGING auto-deploy remains disabled; PR #47 remains Draft/unmerged.
+
+## 2026-11-26 — MESSINHO Mathematics & Physics Intelligence, first interpretation layer (STAGING)
+
+**Owner instruction:** Continue the existing deterministic mathematics/physics engine and progress from formula-only inputs toward understanding natural-language word problems.
+
+**Implemented on `feature/messinho-unified-ai-integration`:**
+- Added a deterministic German-language physics quantity extractor for distance and time in natural sentences.
+- Supports distance conversion into SI metres for km, m, cm and mm; time conversion into SI seconds for hours, minutes and seconds.
+- A natural-language average-speed problem now extracts known values, identifies the unknown (speed), applies (v=s/t), shows substitution steps, and returns both m/s and km/h.
+- Example covered by regression test: “Ein Fußballer läuft 100 Meter in 12 Sekunden. Wie schnell ist er?” -> 8.33333333 m/s = 30 km/h.
+- Added finite-result validation in the shared result constructor so Infinity/NaN cannot be reported as a completed calculation.
+- Added explicit zero-current validation for Ohm's law to avoid division by zero.
+- Added regression tests for natural-language speed, unit conversion, Ohm's law zero current, and non-finite results.
+
+**Limitations retained deliberately:**
+- This is a first rule-based interpretation layer, not unrestricted natural-language understanding.
+- Unit parsing currently covers distance/time for average speed only; no general dimensional-analysis framework or arbitrary unit conversion yet.
+- Other formula families still require the existing explicit parameter notation unless separately interpreted.
+- No neural model weights are trained or changed; this is deterministic software capability growth.
+
+**Verification:** Source/test changes committed to STAGING feature branch. Run the complete test/build pipeline and manually deploy the exact commit to Render STAGING before calling it live. Do not enable auto-deploy. Production, production Supabase, PFMS and PFSS remain untouched.
