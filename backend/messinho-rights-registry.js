@@ -20,6 +20,8 @@ const VERIFIED_SOURCE_RIGHTS = Object.freeze([
     source_url_prefixes:['https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0280897'],
     retrieval_method:'plos_jats_xml',
     retrieval_url:'https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0280897&type=manuscript',
+    redirect_hosts:['corpus-prod.f505aadad1e46610c8f8563037eb3c4b.r2.cloudflarestorage.com'],
+    redirect_path_prefixes:{'corpus-prod.f505aadad1e46610c8f8563037eb3c4b.r2.cloudflarestorage.com':'/10.1371/journal.pone.0280897/1/pone.0280897.xml'},
     title:'External validation of VO2max prediction models based on recreational and elite endurance athletes',
     edition:'2023'
   },
