@@ -111,7 +111,7 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
   const levelPattern = /\b(2\.?\s*bundesliga|3\.?\s*liga|bundesliga|regionalliga|oberliga|landesliga)\b/i;
   const levelMatch = context.match(levelPattern);
   const targetLevel = levelMatch ? levelMatch[0].replace(/\s+/g, ' ').trim() : '';
-  const quantityMatch = context.match(/\b(\d{1,2}|eins|eine|einen|zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn)\s+(?=(?:interessante[nr]?\s+)?(?:u\s*\d{1,2}[- ]?)?(?:spieler|talente|kandidaten|linker|linksverteidiger|left|rechter|rechtsverteidiger|right|innenverteidiger|mittelstürmer|stürmer|torwart|goalkeeper|keeper|flügelspieler|winger|zentraler|defensives|offensives|mittelfeldspieler)\b)/i);
+  const quantityMatch = context.match(/\b(\d{1,2}|eins|eine|einen|zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn)\s+(?=(?:interessante[nr]?\s+)?(?:u[\s-]*\d{1,2}[- ]?)?(?:spieler|talente|kandidaten|linker|linksverteidiger|left|rechter|rechtsverteidiger|right|innenverteidiger|mittelstürmer|stürmer|torwart|goalkeeper|keeper|flügelspieler|winger|zentraler|defensives|offensives|mittelfeldspieler)\b)/i);
   const numberWords={eins:1,eine:1,einen:1,zwei:2,drei:3,vier:4,fünf:5,sechs:6,sieben:7,acht:8,neun:9,zehn:10};
   const quantity = quantityMatch ? Math.max(1, Math.min(15, Number(quantityMatch[1])||numberWords[quantityMatch[1].toLocaleLowerCase('de-DE')]||10)) : 10;
 
