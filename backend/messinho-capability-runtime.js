@@ -10,7 +10,7 @@ import { assessMessinhoSource, messinhoValueSupported } from './messinho-intelli
 import { buildMessinhoLearningProposal } from './messinho-learning.js';
 import { analyzeMessinhoMatch } from './messinho-development.js';
 
-export const MESSINHO_CAPABILITY_RUNTIME_VERSION = '1.0.0';
+export const MESSINHO_CAPABILITY_RUNTIME_VERSION = '1.1.0';
 const clamp=(n,min=0,max=100)=>Math.max(min,Math.min(max,n));
 const finite=v=>v===null||v===undefined||v===''?null:Number.isFinite(Number(v))?Number(v):null;
 const norm=v=>String(v??'').normalize('NFKC').toLocaleLowerCase('de-DE').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,' ').trim();
@@ -361,7 +361,7 @@ const SPECIALIST_HANDLER_IDS=new Set(["holistic_player_analysis","position_analy
 export function listExecutableMessinhoCapabilities(){
  return allCatalog.map(group=>({...group,functions:group.functions.map(fn=>{
    const specialist=SPECIALIST_HANDLER_IDS.has(fn.id);
-   return {...fn,execution_handler_available:true,dispatch_available:true,specialist_handler_available:specialist,
+   return {...fn,execution_handler_available:specialist,dispatch_available:true,specialist_handler_available:specialist,
      handler_kind:specialist?'specialist':'generic_missing_input_fallback',
      implementation_status:specialist?'partial':'not_implemented',runtime_version:MESSINHO_CAPABILITY_RUNTIME_VERSION};
  })}));
@@ -385,6 +385,7 @@ export function getMessinhoRuntimeSummary(){
  const specialist=[...SPECIALIST_HANDLER_IDS].filter(id=>catalogById.has(id));
  const generic=[...catalogById.keys()].filter(id=>!SPECIALIST_HANDLER_IDS.has(id));
  return {version:MESSINHO_CAPABILITY_RUNTIME_VERSION,total_catalogue_entries:catalogById.size,
+   registered_handlers:specialist.length,unique_handlers:specialist.length,all_registered:specialist.length===catalogById.size,
    dispatched_entries:dispatched.size,dispatch_coverage:catalogById.size?Math.round(dispatched.size/catalogById.size*100):0,
    specialist_handler_count:specialist.length,generic_fallback_count:generic.length,
    specialist_coverage:catalogById.size?Math.round(specialist.length/catalogById.size*100):0,
