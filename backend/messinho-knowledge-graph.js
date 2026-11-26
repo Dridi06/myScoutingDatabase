@@ -137,8 +137,19 @@ export async function findMessinhoKnowledgeConcepts(db,question,{limit=6}={}){
    const {data:exact,error:exactError}=await db.from('messinho_knowledge_concepts')
     .select('id,concept_key,domain,topic,title,definition,knowledge_level,knowledge_type,parent_concept_key,prerequisites,formula,formula_variables,applicability,limitations,claims,sources,rights,evidence_grade,confidence,version,valid_from,valid_until,review_due_at')
     .eq('knowledge_status','active').eq('concept_key',canonical.key).limit(1);
-   if(exactError)throw exactError;
-   const exactActive=Array.isArray(exact)?exact.find(record=>!record.valid_until||new Date(record.valid_until).getTime()>Date.now()):null;
+   if(exactError){
+    console.warn('MESSINHO canonical exact lookup query failed:',exactError.code||'unknown');
+    throw exactError;
+   }
+   const exactRows=Array.isArray(exact)?exact:[];
+   const exactActive=exactRows.find(record=>record.knowledge_status==='active'&&(!record.valid_until||new Date(record.valid_until).getTime()>Date.now()));
+   console.info('MESSINHO canonical exact lookup diagnostic:',JSON.stringify({
+    concept_key:canonical.key,
+    rows:exactRows.length,
+    statuses:exactRows.map(record=>record.knowledge_status||'missing'),
+    domains:exactRows.map(record=>record.domain||'missing'),
+    active_valid: Boolean(exactActive)
+   }));
    if(exactActive)ranked.unshift({record:exactActive,score:1});
   }
   const items=ranked.map(item=>({...item.record,relevance:Number(item.score.toFixed(3))})).slice(0,Math.max(1,Math.min(12,limit)));
