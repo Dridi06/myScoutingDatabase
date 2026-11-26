@@ -6,6 +6,7 @@ import {
   linkMessinhoKnowledgeConcepts,
   reviewMessinhoKnowledgeConcept,
   storeMessinhoKnowledgeConcept,
+  reviewMessinhoKnowledgeConcept,
   MESSINHO_KNOWLEDGE_LEVELS,
   MESSINHO_KNOWLEDGE_RELATIONS
 } from '../backend/messinho-knowledge-graph.js';
@@ -52,6 +53,11 @@ test('knowledge graph does not persist or retrieve without a database',async()=>
 
 test('knowledge review requires a real database and explicit approved-admin identity',async()=>{
  assert.deepEqual(await reviewMessinhoKnowledgeConcept(null,{concept_id:'concept-1',decision:'approve',reason:'Evidence checked and approved',reviewer_id:'admin-1'}),{reviewed:false,reason:'invalid_review_request'});
+});
+
+test('knowledge review wrapper fails closed without database or admin identity',async()=>{
+  assert.deepEqual(await reviewMessinhoKnowledgeConcept(null,{concept_id:'x',decision:'approve',reason:'Evidence reviewed',reviewer_id:'admin'}),{reviewed:false,reason:'invalid_review_request'});
+  assert.deepEqual(await reviewMessinhoKnowledgeConcept({},{}),{reviewed:false,reason:'invalid_review_request'});
 });
 
 test('knowledge graph rejects invalid relationship writes',async()=>{
