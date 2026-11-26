@@ -79,7 +79,7 @@ function physics(q){
 export function calculateMessinhoMathQuestion(question){
  const q=clean(question);if(!q||q.length>1200)return null;
  // A bare four-digit year range is a scouting/date filter, not subtraction.
- if(/^\\s*\\d{4}\\s*[-–—]\\s*\\d{4}\\s*$/.test(q))return null;
+ if(/^\s*\d{4}\s*[-–—]\s*\d{4}\s*$/.test(q))return null;
  try{
   const ph=physics(q);if(ph)return ph;const pr=probability(q);if(pr)return pr;
   const expressionText=q.replace(/\bgeteilt durch\b/gi,'/').replace(/\bplus\b/gi,'+').replace(/\bminus\b/gi,'-').replace(/\bmal\b/gi,'*').replace(/÷/g,'/').replace(/×/g,'*');
