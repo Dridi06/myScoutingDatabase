@@ -14,7 +14,7 @@ const proposal={id:'proposal-bridge-01',title:'Robustere Fehlerbehandlung',ratio
 
 test('dispatches only explicit proposal_ready payloads from Admin agent results',async()=>{
  const calls=[];
- const run={results:[
+ const run={status:'completed',completed_steps:3,total_steps:3,results:[
   {capability_id:'controlled_self_optimization',status:'proposal_ready',result:{myki_engineering_proposal:proposal}},
   {capability_id:'dataset_quality_improvement',status:'proposal_ready',result:{proposal:{not:'software patch'}}},
   {capability_id:'other',status:'completed',result:{myki_engineering_proposal:proposal}}
