@@ -1825,3 +1825,33 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - **Build gate:** full Node suite 211 passed / 0 failed; backend JavaScript syntax checks passed (the build proceeded to Vite); Vite transformed 1,636 modules and built successfully. The preceding failed build was not promoted.
 - The quality loop is now live on STAGING for general evidence research and external player-profile synthesis. The existing worker remains gated on STAGING and only executes explicitly opted-in allowlisted read-only tasks.
 - PR #47 remains Draft/open/unmerged. Production/main and production Supabase, PFMS/PFSS remain untouched. No new Supabase migration was needed.
+
+
+## 2026-11-26 — UX checkpoint: MESSINHO chat first, help consolidated
+
+### Owner request and accepted UX decision
+- Move the MESSINHO AI-agent conversation from the bottom of the workspace to the top, immediately after the existing MESSINHO hero/header.
+- Bundle supporting explanations, learning/calibration tools, development-cycle controls, autonomous-mode explanation, overview/status information and roadmap into one compact, collapsible section titled **“Hilfe, Erklärungen & Agentenfunktionen”**.
+- Keep the chat as the primary interaction point. Supporting material must not compete visually with the conversation or make the page feel overloaded.
+- The help bundle is collapsed by default and can be expanded when needed. No existing learning, development, permission or role-gated functionality was removed.
+
+### Implementation
+- Updated `src/asi/MessinhoWorkspace.jsx`: moved the existing chat card directly below the hero and grouped all supporting panels and the roadmap inside one native collapsible `details` section.
+- Updated `src/asi/messinho.css`: added responsive styling for the grouped help panel, summary row and expand/collapse indicator.
+- Existing chat logic, API requests, message history, learning controls, development controls and role checks were preserved; this is a presentation/layout change only.
+- Commits:
+  - Chat moved / panels grouped: `cd18b18f56e9c3fc423bcaea7b5699fee07aec29`
+  - Consolidated help panel styling: `5269d447cd5179e31382d917e5e143b28a05c32b`
+
+### Verification and release status
+- Source updates are committed to `feature/messinho-unified-ai-integration`.
+- **Not yet verified by CI/build or deployed to STAGING.** Do not tell the owner the visual change is live until the frontend build, full test suite, exact Render deployment commit and live status are checked.
+- STAGING Render auto-deploy remains disabled; do not enable it. A manual STAGING deployment is required after validation.
+- PR #47 remains Draft/open/unmerged unless a fresh GitHub check proves otherwise.
+- Production `main`, production Render, production Supabase, PFMS and PFSS remain untouched.
+
+### Next steps
+1. Run the complete Node test suite, backend syntax checks and Vite production build on the current branch tip.
+2. Inspect the rendered workspace on desktop and mobile: chat must appear first; help content must be collapsed initially and expand cleanly without overflow.
+3. If checks pass, manually deploy only the dedicated STAGING Render service and verify the exact deployed SHA and health.
+4. Resume the next planned development task: integrate real scout/user feedback into the existing role-scoped, auditable learning flow. Separate general satisfaction feedback from factual corrections; only verified corrections/outcomes may create learning proposals, and model activation remains approval-gated.
