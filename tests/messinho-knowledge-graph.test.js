@@ -113,6 +113,21 @@ test('retrieves canonical VO2max knowledge in longer player-specific scouting qu
  assert.equal(result.items[0].concept_key,'sports_science.physiology.vo2max');
 });
 
+test('canonical VO2max lookup recovers active knowledge when broad lexical ranking misses',async()=>{
+ const row={id:'vo2',concept_key:'sports_science.physiology.vo2max',domain:'sports_science',topic:'Kardiorespiratorische Fitness',
+  title:'VO2max maximale Sauerstoffaufnahme',definition:'VO2max beschreibt die maximale Sauerstoffaufnahme des Körpers unter intensiver Belastung und ist ein Maß der kardiorespiratorischen Fitness.',
+  knowledge_level:'foundational',knowledge_type:'metric',knowledge_status:'active',version:3,confidence:0.88,sources:[],claims:[]};
+ let exactLookup=false;
+ const broad={select(){return this;},eq(){return this;},in(){return this;},or(){return this;},order(){return this;},async limit(){return {data:[],error:null};}};
+ const exact={select(fields){assert.match(fields,/concept_key/);return this;},eq(column,value){if(column==='concept_key'&&value===row.concept_key)exactLookup=true;return this;},or(){return this;},async limit(){return {data:[row],error:null};}};
+ const links={select(){return this;},async or(){return {data:[],error:null};}};
+ const db={from(table){if(table==='messinho_knowledge_links')return links;return exactLookup?exact:broad;}};
+ const result=await findMessinhoKnowledgeConcepts(db,'Was ist VO₂max? Erkläre mir den Wert, seine physiologische Bedeutung und seine Grenzen.');
+ assert.equal(exactLookup,true);
+ assert.equal(result.status,'hit');
+ assert.equal(result.items[0].concept_key,row.concept_key);
+});
+
 test('knowledge graph does not persist or retrieve without a database',async()=>{
   assert.deepEqual(await storeMessinhoKnowledgeConcept(null,draft),{persisted:false,reason:'storage_unavailable'});
   assert.deepEqual(await findMessinhoKnowledgeConcepts(null,'Bayes theorem'),{status:'unavailable',items:[]});
