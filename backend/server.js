@@ -22,6 +22,7 @@ import { classifyMessinhoProviderFailure, getMessinhoSocialReply, resolveMessinh
 import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
 import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
+import { calculateMessinhoMathQuestion } from './messinho-math.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -1552,6 +1553,15 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(liveAnswer)return respond({reply:liveAnswer.reply,intent:liveAnswer.intent,tool:liveAnswer.tool,verified_at:liveAnswer.verified_at,time_zone:liveAnswer.time_zone,items:[]});
     const smallTalkReply=getMessinhoSocialReply(interpretedMessage,history);
     if(smallTalkReply)return respond({reply:smallTalkReply,intent:'small_talk',items:[]});
+    // Deterministic mathematics and physics run before language-model fallback.
+    // The calculation engine never evaluates arbitrary JavaScript or uses an LLM for arithmetic.
+    const mathResult=calculateMessinhoMathQuestion(interpretedMessage);
+    if(mathResult){
+      const reply=mathResult.status==='completed'
+        ? mathResult.title+': '+mathResult.formatted+(mathResult.unit?' '+mathResult.unit:'')+'.\\nFormel: '+mathResult.formula+'.\\n'+(mathResult.steps||[]).map((step,index)=>(index+1)+'. '+step).join('\\n')+(mathResult.scouting_interpretation?'\\nEinordnung: '+mathResult.scouting_interpretation:'')+(mathResult.assumptions?.length?'\\nAnnahmen: '+mathResult.assumptions.join(' '):'')
+        : mathResult.message||'Die Berechnung konnte nicht sicher durchgeführt werden.';
+      return respond({reply,intent:'mathematics_'+mathResult.kind,calculation:mathResult,items:[]});
+    }
     const isPlayerFollowUp=Boolean(resolveMessinhoPlayerFollowUp(interpretedMessage,history));
     const help=/\b(hilfe|befehle|funktionen)\b/.test(normalized)||(/\bwas kannst du\b/.test(normalized)&&!isPlayerFollowUp);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
