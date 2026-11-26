@@ -2400,18 +2400,18 @@ Mathematics; statistics; physics; biology; medicine; sports science; football; c
 
 ### Verification / release status
 - STAGING migration applied; table existence and RLS state verified by read-only SQL.
-- GitHub Actions Node tests and backend syntax workflows were triggered by feature-branch pushes. The latest run must be checked for completion before deployment; a successful earlier commit is not proof that the latest HEAD passed.
-- Render STAGING auto-deploy remains disabled. No manual deployment was triggered in this pass.
+- GitHub Actions for commit 4593897290a90f0f184127a464549393ac1888ad: Node tests success and backend syntax success. Render build repeated the suite: 274 passed, 0 failed, followed by a successful Vite production build.
+- Dedicated Render STAGING deploy dep-dc47rt3en89c73feh6s0 is live on commit 4593897290a90f0f184127a464549393ac1888ad. Service URL: https://myscoutingdatabase-messinho-staging.onrender.com. Startup logs confirm the API is listening and the Supabase Data API returned HTTP 200. Auto-deploy remains disabled.
 - Authenticated chat E2E with the owner's existing STAGING session remains outstanding.
 - Production main, production Render, production Supabase, PFMS/PFSS and PR merge state remain untouched. PR #47 remains Draft/open/unmerged.
 
 ### Remaining steps
 1. Finish CI for the latest feature commit and correct any failures.
-2. Add a governed admin approval/promotion flow and explicit contradiction review; candidate knowledge must never become trusted automatically.
+2. Finish authenticated STAGING tests for the admin review queue and candidate approval API; add explicit resolution actions for retained conflicts.
 3. Review individual candidate works across all domains and Germany-based commercial AI/TDM rights. Keep the allowlist empty until work-level rights are proven.
 4. Populate the foundational curriculum first, then intermediate/advanced/specialist concepts with sources, formulas, limitations and prerequisites.
 5. Verify retrieval through the authenticated chat and real scouting capability execution on STAGING.
-6. Only then manually deploy the verified feature commit to dedicated STAGING. Do not promote production or merge PR #47 without explicit authorization.
+6. STAGING is deployed on the verified feature commit. Do not promote production or merge PR #47 without explicit authorization.
 
 
 ## 2026-11-26 — Knowledge ingestion transaction, admin review and conflict queue
