@@ -47,23 +47,47 @@ export function buildMessinhoKnowledgeRecord(ownerId,question,research,now=new D
  };
 }
 
+const KNOWLEDGE_STOPWORDS=new Set(['aber','auch','auf','aus','bei','das','dass','dem','den','der','des','die','ein','eine','einem','einen','einer','eines','für','im','in','ist','mit','oder','und','von','vom','warum','weshalb','wieso','wie','was','welche','welcher','welches','zu','zur','zum']);
+function knowledgeTokens(value){
+ const tokens=normalize(value).split(' ').filter(token=>token.length>=3&&!KNOWLEDGE_STOPWORDS.has(token));
+ return [...new Set(tokens)];
+}
+export function scoreMessinhoKnowledgeSimilarity(question,candidate){
+ const left=knowledgeTokens(question),right=knowledgeTokens(candidate);
+ if(left.length<3||right.length<3)return {score:0,overlap:0,jaccard:0,containment:0,eligible:false};
+ const a=new Set(left),b=new Set(right),intersection=[...a].filter(token=>b.has(token));
+ const union=new Set([...a,...b]).size,jaccard=intersection.length/union,containment=intersection.length/Math.min(a.size,b.size);
+ const score=0.65*jaccard+0.35*containment;
+ return {score,overlap:intersection.length,jaccard,containment,eligible:intersection.length>=3&&jaccard>=0.48&&containment>=0.75};
+}
 export async function findMessinhoKnowledge(db,ownerId,question,now=new Date()){
  const fingerprint=fingerprintMessinhoKnowledgeQuestion(question);
  if(!db||!ownerId||!fingerprint)return {status:'unavailable',record:null};
  try{
-  const {data,error}=await db.from('messinho_knowledge_memory')
-   .select('id,question,answer,answer_mode,claims,sources,evidence_summary,source_count,distinct_domains,last_verified_at,expires_at,hit_count')
-   .eq('owner_id',ownerId).eq('question_fingerprint',fingerprint).eq('verification_status','corroborated')
-   .gt('expires_at',new Date(now).toISOString()).maybeSingle();
-  if(error){console.warn('MESSINHO knowledge memory read unavailable:',error.code||'unknown');return {status:'unavailable',record:null};}
-  if(!data)return {status:'miss',record:null};
+  const base=()=>db.from('messinho_knowledge_memory').select('id,question,answer,answer_mode,claims,sources,evidence_summary,source_count,distinct_domains,last_verified_at,expires_at,hit_count')
+   .eq('owner_id',ownerId).eq('verification_status','corroborated').gt('expires_at',new Date(now).toISOString());
+  const exact=await base().eq('question_fingerprint',fingerprint).maybeSingle();
+  if(exact.error)throw exact.error;
+  let record=exact.data,match='exact',similarity=null;
+  if(!record){
+   const candidates=await base().order('last_verified_at',{ascending:false}).limit(40);
+   if(candidates.error)throw candidates.error;
+   const ranked=(candidates.data||[]).map(row=>({row,similarity:scoreMessinhoKnowledgeSimilarity(question,row.question)}))
+    .filter(item=>item.similarity.eligible).sort((a,b)=>b.similarity.score-a.similarity.score);
+   if(ranked.length){
+    const best=ranked[0];
+    const ambiguous=ranked[1]&&best.similarity.score-ranked[1].similarity.score<0.08;
+    if(!ambiguous){record=best.row;match='high_confidence_lexical';similarity=best.similarity;}
+   }
+  }
+  if(!record)return {status:'miss',record:null};
   const accessedAt=new Date(now).toISOString();
   const {error:updateError}=await db.from('messinho_knowledge_memory')
-   .update({hit_count:(Number(data.hit_count)||0)+1,last_accessed_at:accessedAt})
-   .eq('id',data.id).eq('owner_id',ownerId);
+   .update({hit_count:(Number(record.hit_count)||0)+1,last_accessed_at:accessedAt})
+   .eq('id',record.id).eq('owner_id',ownerId);
   if(updateError)console.warn('MESSINHO knowledge memory access counter unavailable:',updateError.code||'unknown');
-  return {status:'hit',record:data};
- }catch(error){console.warn('MESSINHO knowledge memory read failed:',error.message);return {status:'unavailable',record:null};}
+  return {status:match==='exact'?'hit':'similar_hit',record,match,similarity};
+ }catch(error){console.warn('MESSINHO knowledge memory read unavailable:',error.code||'unknown');return {status:'unavailable',record:null};}
 }
 
 export async function storeMessinhoKnowledge(db,ownerId,question,research,now=new Date()){
