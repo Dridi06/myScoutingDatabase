@@ -218,3 +218,16 @@ export function isMessinhoVo2maxApplicationDataReply(message) {
     || /\b(?:trainingsstatus|trainingsumfang|trainingsniveau|leistungssportler|amateur|profi|semiprofi)\b/i.test(text)
     || /\b(?:20\d{2}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}\.\d{2,4})\b/.test(raw);
 }
+
+
+/** Preserve the original VO2max question while applying the user's supplied follow-up data. */
+export function buildMessinhoVo2maxApplicationQuery(previousQuestion, reply, latestAssistantText) {
+  const previous = String(previousQuestion || '').trim();
+  const current = String(reply || '').trim();
+  const prompt = String(latestAssistantText || '');
+  if (!previous || !current || current.length > 1200) return null;
+  if (!prompt.includes('Für eine konkrete Einordnung eines Spielers brauche ich')) return null;
+  if (getMessinhoCanonicalConceptKey(previous) !== 'sports_science.physiology.vo2max') return null;
+  if (!isMessinhoVo2maxApplicationDataReply(current)) return null;
+  return previous + ' ' + current;
+}
