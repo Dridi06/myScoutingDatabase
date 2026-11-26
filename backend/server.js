@@ -2044,7 +2044,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         const foundationalIntent=/^(?:was ist|was bedeutet|erkl[aä]re(?: mir)?|erkl[aä]ren sie|grundlagen|definition|einf[uü]hrung|what is|define|explain the basics)\b/i.test(interpretedMessage.trim());
         let durableLearning={persisted:false,reason:foundationalIntent?'source_rights_not_verified':'foundational_parent_not_yet_established'};
         if(foundationalIntent){
-          durableLearning=await learnMessinhoKnowledgeFromResearch(db,{question:interpretedMessage,research});
+          const approvedFoundation=await learnMessinhoApprovedFoundationConcept(db,interpretedMessage);
+          durableLearning=approvedFoundation.status==='not_applicable'
+            ?await learnMessinhoKnowledgeFromResearch(db,{question:interpretedMessage,research})
+            :approvedFoundation;
         }
         return respond({reply:research.answer,intent:'general_knowledge_research',items:sourceItems,sources:research.sources,evidence:research.evidence,answer_mode:research.answer_mode,claims:research.claims,researched_at:research.researched_at,
           learning:{...research.learning,...learning,reused:false,verification_status:learning.persisted?'corroborated':null},
