@@ -3397,3 +3397,32 @@ Implemented on the feature branch:
 - Dedicated MESSINHO staging URL: `https://myscoutingdatabase-messinho-staging.onrender.com`.
 - The new knowledge result layout is now deployed to STAGING. Admin visual retest of the separated source list remains outstanding.
 - Latest documentation checkpoint commit before this confirmation: `07bb8f9022c04e93b16d399f7558f253391de10e`.
+
+
+## Admin acceptance test 2 — VO2max transfer/application — 2026-11-26 22:23 CET
+
+### User-provided staging screenshots
+The Admin asked:
+`Wie kann ich die VO2max eines Fußballspielers für die Leistungsbewertung nutzen? Welche zusätzlichen Informationen benötigst du, um seine Ausdauerleistungsfähigkeit seriös einzuschätzen?`
+
+The screenshots show MESSINHO explicitly stating that it retrieved the approved foundation knowledge from its knowledge network and presenting the saved VO2max definition, application, and limitations. It correctly states that the value must be interpreted together with age, sex, body mass, training status, test procedure, and sport-specific demands. It distinguishes an estimated VO2max from a direct spiroergometry/CPET measurement and warns against inferring overall football, tactical, technical, positional, or health quality from this one value. The approved knowledge concept and two source titles are displayed in the dedicated, readable knowledge card, with the `sports_science · foundational` classification.
+
+### Evaluation
+- Foundation retrieval and source-card presentation: **accepted by visual Admin evidence**.
+- Basic transfer of the foundation into football-scoping context: **partially demonstrated**. The answer gives relevant application context and limitations.
+- Required follow-up behaviour: **not yet accepted**. In the visible answer MESSINHO lists the factors but does not explicitly ask the user for the missing player-specific data (actual measured value, unit, test protocol/modality, date, and relevant context). The test asked which additional information is needed; the answer should close with a concise request for these inputs, or explicitly say it cannot assess a particular player without them.
+- No player-specific score or unsupported medical conclusion is visible; this is correct.
+
+### Project status and next actions
+1. Do not repeat the already-passed generic VO2max foundation retrieval test.
+2. Improve the application response behaviour so that, after explaining the stored foundation, MESSINHO identifies missing inputs and asks a targeted follow-up. Minimum inputs: measured or estimated VO2max value and unit (normally ml/kg/min), measurement method/test protocol (e.g. direct CPET/spiroergometry vs estimate/field test), test date, and relevant age/training/position context. Request only the necessary details; do not demand sensitive health information unrelated to the scouting purpose.
+3. Add automated regression tests: a player-application question without a supplied measurement must trigger a clarification request; no player rating may be fabricated; a supplied estimate must remain labelled as estimated; direct CPET must be distinguished from prediction/field-test values; missing age/test context must lower confidence or prompt clarification.
+4. Keep answer content grounded in the approved knowledge entry and its cited evidence. Do not silently substitute external search results for the approved stored foundation. External research may supplement only when the user asks for current/additional evidence or the knowledge is insufficient, and must be clearly separated.
+5. Re-run staging acceptance on mobile and inspect the complete response and metadata.
+6. Then run the final Admin/Scout permission and tenant-isolation tests. Only after these pass may the VO2max pilot be declared complete and the systematic first knowledge import begin.
+
+### Current gate
+The knowledge foundation is being retrieved and displayed correctly, and its basic application to football scouting is partly demonstrated. **The pilot is not yet fully accepted** because MESSINHO has not yet shown the required targeted clarification behaviour. No broad knowledge import is authorised yet.
+
+### Rules unchanged
+All existing branch, staging-only, security, approval, no-repeat, black/navy-and-gold design, and PROJECTSCOUT documentation requirements remain binding. Production, `main`, PFMS, and PFSS remain untouched.
