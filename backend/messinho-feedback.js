@@ -20,6 +20,7 @@ export function normalizeMessinhoFeedback(input={}){
  if(!TYPES.has(feedbackType))return {ok:false,error:'Unbekannte Feedback-Kategorie.'};
  if(rating!==null&&(!Number.isInteger(rating)||rating<1||rating>5))return {ok:false,error:'Die Bewertung muss zwischen 1 und 5 liegen.'};
  if(feedbackType==='quality_rating'&&rating===null)return {ok:false,error:'Für eine Qualitätsbewertung fehlt die Sternebewertung.'};
+ if(feedbackType!=='quality_rating'&&rating!==null)return {ok:false,error:'Eine Sternebewertung ist nur für Antwortqualitäts-Feedback zulässig.'};
  if(feedbackType!=='quality_rating'&&(!comment||comment.length<8))return {ok:false,error:'Bitte beschreibe die Korrektur oder den Fehler mit mindestens 8 Zeichen.'};
  const capabilityIds=[...new Set((Array.isArray(input.capability_ids)?input.capability_ids:[])
   .filter(value=>typeof value==='string').map(value=>value.toLowerCase().trim())
@@ -41,6 +42,6 @@ export function normalizeMessinhoFeedbackReview(input={}){
 }
 
 export function isMessinhoFeedbackEligibleForQualityMetrics(record){
- return Boolean(record&&['quality_rating','factual_correction','bug_report','feature_request'].includes(record.feedback_type)
+ return Boolean(record&&record.feedback_type==='quality_rating'
   &&Number.isInteger(Number(record.rating))&&Number(record.rating)>=1&&Number(record.rating)<=5);
 }
