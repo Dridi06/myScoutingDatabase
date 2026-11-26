@@ -551,9 +551,9 @@ function buildMessinhoCapabilityProvenance(id,input,output){
  }
  return {schema_version:'1.0',capability_id:id,
    origin:safeInput._trusted_source_bundle===true?'server_validated_ASI_bundle':records.length?'owner_scoped_database_records':sources.length?'supplied_source_bundle':'supplied_input',
-   record_refs:records,metric_evidence:metrics.map(metric=>({field:metric.key,normalized_value:metric.value})),
-   source_evidence:sources,verified_outcome_count:outcomes.length,
-   claims,limitations:[
+   record_count:records.length,record_refs:records.slice(0,50),metric_evidence:metrics.slice(0,50).map(metric=>({field:metric.key,normalized_value:metric.value})),
+   source_count:sources.length,source_evidence:sources.slice(0,20),verified_outcome_count:outcomes.length,
+   claims:claims.slice(0,50),limitations:[
      'Interpretations and calculated scores are derived outputs, not primary evidence.',
      ...(safeInput._trusted_source_bundle===true?[]:['External source claims are not treated as verified unless a dedicated verifier returns verified.']),
      ...(metrics.length?[]:['No player performance metrics were supplied for this capability.'])
