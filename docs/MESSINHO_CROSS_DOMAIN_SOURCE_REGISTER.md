@@ -43,6 +43,11 @@ The project is Germany-based and may be used commercially. A statement that a US
 | `excluded_book_of_proof` | Richard Hammack, *Book of Proof* (official author edition) | Mathematics / proof foundations | The author's official page states the licence forbids commercial use and altering content except for personal use; a mirrored PDF identifies CC BY-NC-ND 4.0. | Excluded under current default terms: non-commercial and no-derivatives are incompatible with the intended commercial, transformed knowledge pipeline. | `rejected_under_current_terms` |
 | `excluded_mit_6042j` | MIT OpenCourseWare 6.042J *Mathematics for Computer Science* (Spring 2019 course) | Mathematics / discrete math / probability | MIT's official course page states CC BY-NC-SA, which limits use to non-commercial purposes. | Excluded under current default terms for the commercial platform. Do not ingest unless written permission changes those terms. | `rejected_under_current_terms` |
 
+| `candidate_openstax_college_algebra_2e` | OpenStax *College Algebra 2e* (2021 edition) | Mathematics foundations | The exact official PDF states CC BY 4.0 and permits distribution, remixing and building upon the content with attribution. | Candidate for compact, original algebra concepts only. Confirm text vs third-party figure rights, AI/TDM process and required attribution. No PDF/full text stored. | `quarantined` |
+| `candidate_openstax_introductory_statistics_2e` | OpenStax *Introductory Statistics 2e* (2023 edition) | Statistics / probability foundations | The exact official PDF states CC BY 4.0 and supplies book-specific attribution requirements. | Candidate for compact, original statistical concepts/formulas. Confirm AI/TDM and individual third-party elements; preserve edition, attribution and change notice. | `quarantined` |
+| `candidate_openstax_university_physics_vol1` | OpenStax *University Physics, Volume 1* (2021 PDF edition) | Physics foundations | The exact official PDF states CC BY 4.0 and supplies book-specific attribution requirements. | Candidate for compact mechanics/physics concepts and formulas. Confirm AI/TDM and third-party material boundaries; do not reuse graphics. | `quarantined` |
+| `candidate_openstax_business_statistics_2e` | OpenStax *Introductory Business Statistics 2e* | Statistics / banking / finance foundations | The exact official PDF states CC BY 4.0; the preface explicitly permits distribution, remixing and building upon the content with attribution. | Candidate for compact statistics and business-risk concepts. Confirm exact edition, AI/TDM process and third-party art rights; preserve attribution/change notice. | `quarantined` |
+
 ## Primary evidence links
 
 - NIST SP 800-30 Rev. 1: https://csrc.nist.gov/pubs/sp/800/30/r1/final
@@ -58,6 +63,10 @@ The project is Germany-based and may be used commercially. A statement that a US
 - OpenIntro official resource licence: https://openintro.org/license/
 - OpenStax official licensing and commercial-use restriction: https://help.openstax.org/s/article/Licensing-information-of-OpenStax-textbooks
 - OpenStax commercial / AI project reuse request: https://riceuniversity.tfaforms.net/52
+- OpenStax College Algebra 2e exact CC BY 4.0 PDF: https://assets.openstax.org/oscms-prodcms/media/documents/College-Algebra-2e-WEB.pdf
+- OpenStax Introductory Statistics 2e exact CC BY 4.0 PDF: https://assets.openstax.org/oscms-prodcms/media/documents/Introductory_Statistics_2e_-_WEB.pdf
+- OpenStax University Physics Volume 1 exact CC BY 4.0 PDF: https://assets.openstax.org/oscms-prodcms/media/documents/UniversityPhysicsVol1-WEB.pdf
+- OpenStax Introductory Business Statistics 2e exact CC BY 4.0 PDF: https://assets.openstax.org/oscms-prodcms/media/documents/Introductory_Business_Statistics_2e_-_WEB.pdf
 - OpenStax *Statistics* exact work and AI-ingestion notice: https://openstax.org/books/statistics/pages/preface
 - PLOS TDM policy: https://plos.org/text-and-data-mining/
 - PLOS article licence and copyright policy: https://journals.plos.org/plosone/s/licenses-and-copyright
@@ -70,8 +79,8 @@ The project is Germany-based and may be used commercially. A statement that a US
 ## Current decision
 
 - Approved works: **0**.
-- Candidate works/resources recorded here: **10** (PMC, OpenStax and MIT OCW are source pools/families, not individual works).
-- Entries permitted in the permanent knowledge allowlist: **0**. OpenIntro and the Grinstead/Snell GNU FDL version remain quarantined pending exact work-level/copy-left review; OpenStax, Book of Proof and MIT 6.042J are excluded under their current default terms.
+- Candidate works/resources recorded here: **14** (PMC, OpenStax and MIT OCW are source pools/families; the four OpenStax CC BY 4.0 titles are individually scoped works).
+- Entries permitted in the permanent knowledge allowlist: **0**. OpenIntro and the Grinstead/Snell GNU FDL version remain quarantined pending exact work-level/copy-left review. Four exact OpenStax titles are quarantined CC BY 4.0 candidates; the wider OpenStax library default, Book of Proof and MIT 6.042J remain excluded under their current terms.
 - No source full text, PDF, OCR output, article, or dataset was downloaded or stored by creating this register.
 - No rights are inferred from search snippets alone. Each candidate remains quarantined pending exact work-level review.
 - No changes to the Supabase knowledge table, allowlist code, user data, player data, learning history or active model weights.
