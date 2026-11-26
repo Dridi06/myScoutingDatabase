@@ -61,19 +61,19 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 
 ## Current legal/source gate
 
-- backend/messinho-rights-registry.js now contains 4 exact work/edition entries approved for CC BY 4.0 reuse and commercial TDM: OpenStax College Algebra 2e, Introductory Statistics 2e, University Physics Volume 1 (2021 PDF edition), and Introductory Business Statistics 2e.
-- The source register now contains 16 entries/resources; 4 exact works are verified_permitted, while OpenIntro, Grinstead/Snell GNU FDL and other candidates remain quarantined or excluded.
+- backend/messinho-rights-registry.js currently contains **0 approved sources**. The four OpenStax PDF editions that initially appeared to carry CC BY 4.0 have separate book-specific OpenStax notices prohibiting LLM ingestion or use in generative-AI offerings without prior written permission; OpenStax's current library default is also CC BY-NC-SA 4.0. They remain quarantined and are not in the allowlist.
+- The source register contains 16 entries/resources and 0 approved works. OpenIntro and Grinstead/Snell remain quarantined; OpenStax is excluded pending written permission; PLOS remains a discovery pool pending article-by-article review.
 - STAGING canonical domain knowledge and answer-memory tables currently contain 0 rows; no source PDF/full text or knowledge concept was imported.
-- Candidate persistence can now store a compact, independently worded concept from one exact rights-cleared work. Such records remain inactive candidates. Activation still requires two independent rights-cleared source domains, corroborated claims, active prerequisites and administrator review.
+- The code can store a compact candidate from one exact rights-cleared work in future, but with the allowlist empty no candidate can currently be persisted. Activation still requires two independent rights-cleared source domains, corroborated claims, active prerequisites and administrator review.
 - Next legal research task: work-level review for mathematics, physics, biology, statistics, football/sports science, medicine, risk management, banking and financial markets, with Germany-based commercial use considered. If rights remain unclear, retain quarantine.
 
 ## Implemented in this milestone
 
 - Added STAGING migration 20261126182955_messinho_knowledge_hierarchy.sql (applied as migration 20261126182955_messinho_knowledge_hierarchy).
 - Added graph schema, typed relations and immutable version snapshots.
-- Added backend/messinho-knowledge-graph.js with level/type validation, rights allowlist enforcement, single-source candidate intake with two-independent-source approval gate, compact payloads, candidate-only insertion, conflict refusal, version snapshotting and active-only retrieval.
+- Added backend/messinho-knowledge-graph.js with level/type validation, rights allowlist enforcement, single-source candidate intake (currently disabled by the empty rights allowlist) with two-independent-source approval gate, compact payloads, candidate-only insertion, conflict refusal, version snapshotting and active-only retrieval.
 - Connected graph retrieval to the existing POST /api/agent/chat flow and passed retrieved concepts to the scouting agent input and conversational context.
-- The general-research path now creates a foundational concept candidate only when the question is a foundation-style query, source claims are corroborated, and at least one source URL resolves through the reviewed rights allowlist. Provider-supplied license flags are ignored. A candidate is not active knowledge; administrator approval requires two independent rights-cleared source domains.
+- The general-research path can create a foundational concept candidate only when the question is a foundation-style query, source claims are corroborated, and at least one source URL resolves through the reviewed rights allowlist. Provider-supplied license flags are ignored. The current allowlist is empty, so ingestion remains blocked. A candidate is not active knowledge; administrator approval requires two independent rights-cleared source domains.
 - Source URL permission matching enforces exact HTTPS origin and path boundaries, preventing lookalike hosts or prefix confusion.
 - The capability runtime merges active graph concepts with legacy verified knowledge for relevant explanations. Scoring/model-weight functions remain isolated so reference knowledge cannot silently alter numerical ratings or weights.
 - Added tests/messinho-knowledge-graph.test.js for level/link contracts, invalid rights, prerequisite validation and fail-closed storage behavior.
@@ -81,7 +81,7 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 - Added an admin-only review queue/API, an append-only review ledger, and a conflict table that retains competing source-backed proposals instead of silently discarding them. Conflicts require explicit review.
 - Conflict recording is atomic: the competing proposal and evidence are retained, the currently active concept is quarantined as conflicting, and a new immutable version snapshot is written in the same database transaction.
 - Added append-only privileges for the review ledger and indexed its foreign keys.
-- The graph remains empty until the next successful rights-cleared foundation research question. Four source works are approved for compact text mining only; no books/PDFs were imported and no model weights or scoring rules were changed.
+- The graph remains empty until a source receives explicit work-level AI/TDM and commercial permission. No source works are currently approved; no books/PDFs were imported and no model weights or scoring rules were changed.
 
 ## Verification still required
 - Complete CI on the latest feature commit.
@@ -107,8 +107,7 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 ## Initial source-rights screening (26 November 2026)
 
 - OpenIntro's official licensing page says most Statistics textbooks are CC BY-SA 3.0, which permits commercial reuse with attribution and ShareAlike; exceptions and third-party figures/files still require exact edition/file review. It remains quarantined pending that review.
-- OpenStax's current textbook library uses CC BY-NC-SA 4.0 by default and disallows commercial use. It is excluded unless OpenStax grants written commercial and AI-project permission.
-- Important work-level exception: exact OpenStax PDFs for *College Algebra 2e* (2021), *Introductory Statistics 2e* (2023), *University Physics Volume 1* (2021 PDF), and *Introductory Business Statistics 2e* state CC BY 4.0 and allow adaptation/commercial reuse with attribution. These exact editions are quarantined candidates, not yet approved: third-party content, attribution/change notices and the intended AI/TDM process still need a work-level check.
+- OpenStax's current textbook library uses CC BY-NC-SA 4.0 by default and disallows commercial use. In addition, book-specific notices explicitly prohibit LLM training/ingestion and use in generative-AI offerings without prior written permission. This separate AI restriction applies even where an older PDF colophon states CC BY 4.0. All OpenStax works are excluded pending written permission.
 - Grinstead and Snell's Dartmouth/CHANCE GNU FDL version of *Introduction to Probability* explicitly permits commercial redistribution and modification, but GNU FDL copyleft can apply to adapted versions. It remains quarantined until legal review determines how the share-alike terms apply to compact concepts in this product. The exact GNU version and its no-invariant-sections notice must be retained.
 - Book of Proof (CC BY-NC-ND) and MIT OCW 6.042J (CC BY-NC-SA) are excluded under their current non-commercial/no-derivatives terms.
 - U.S. federal/NIST works may be public domain in the United States, but official government guidance warns that third-party content may remain protected and that U.S. public-domain status alone does not settle international rights. NIST candidates therefore remain quarantined for the Germany-based product.
