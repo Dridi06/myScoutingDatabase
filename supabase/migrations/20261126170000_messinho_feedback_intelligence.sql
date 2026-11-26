@@ -179,6 +179,7 @@ create index if not exists messinho_feedback_reviews_history_idx
 alter table public.messinho_feedback_reviews enable row level security;
 revoke all on table public.messinho_feedback_reviews from public, anon, authenticated;
 grant select,insert on table public.messinho_feedback_reviews to service_role;
+drop policy if exists messinho_feedback_reviews_service_role_only on public.messinho_feedback_reviews;
 create policy messinho_feedback_reviews_service_role_only on public.messinho_feedback_reviews
   for all to service_role using (true) with check (true);
 
