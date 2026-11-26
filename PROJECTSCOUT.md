@@ -1060,3 +1060,15 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
   - MESSINHO validation — run 45754963454
   - Staging health smoke — run 45754963477
 - All five checks are green. Manual Staging deployment is the next step; verify exact deployed SHA before announcing LIVE.
+
+---
+
+## 2026-11-26 — U-19 hyphenated age-group parser correction
+
+- **User-observed regression:** The exact chat input `Suche drei U-19 Mittelfeldspieler aus Deutschland` still triggered a clarification asking for birth year or age group.
+- **Root cause:** `backend/messinho-validation.js` matched `U19` and `U 19` but not the hyphenated form `U-19`.
+- **Fix:** Age-group parser now accepts optional whitespace or hyphen between U and the age number and normalizes all forms to `U19`.
+- **Regression coverage:** Added a test that runs the same complete request with `U19`, `U-19`, and `U 19`, asserting quantity=3, ageGroup=U19, position=Mittelfeldspieler, region=deutschland, and no missing criteria.
+- **Files:** `backend/messinho-validation.js`, `tests/messinho-validation.test.js`.
+- **Code commits:** parser `f234d1f1a3528e8182e776da0be7a6c6624d2920`; tests `4062245ce17962d727bc096d9aae5eea3e8c9f96`.
+- **Status:** Not deployed. Waiting for CI on the latest branch head. Production untouched.
