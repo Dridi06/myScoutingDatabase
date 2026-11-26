@@ -1867,3 +1867,59 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Render service inspection confirms `autoDeploy=no`, branch `feature/messinho-unified-ai-integration`, URL `https://myscoutingdatabase-messinho-staging.onrender.com`.
 - **The chat-first layout and consolidated help bundle are now deployed on STAGING.** Browser-level visual QA on the owner's device remains outstanding; verify desktop/mobile appearance and accordion behavior before treating visual acceptance as complete.
 - Production `main`, production Render, production Supabase, PFMS and PFSS remain untouched. PR #47 remains Draft/open/unmerged.
+
+
+## 2026-11-26 — MESSINHO Feedback Intelligence Foundation (STAGING only)
+
+### Starting point and scope
+- Continued from the documented chat-first UX checkpoint; no project restart or replacement of existing MESSINHO learning modules.
+- Working branch: `feature/messinho-unified-ai-integration`.
+- Previous verified chat-first release remains commit `90a9d0532f6c4304f2c95c759fafd4b4b6b1ce42`, Render deployment `dep-dc44rheq1p3s73cu5rog`.
+- Dedicated Supabase project confirmed by live project metadata: `myScoutingDatabase-staging`, ref `nwqwnrhupbyhshsprxjt`, region `eu-central-1`, healthy.
+- Render STAGING auto-deploy remains disabled. No new Render deployment was triggered by this work. Production/main, production Supabase, PFMS and PFSS were not accessed or changed.
+
+### Existing architecture audit
+- Existing deterministic player scoring and explainable assessments remain in `messinho-engine.js` and `messinho-intelligence.js`.
+- Existing bounded Scout/Critic loop remains in `messinho-quality-control.js`; it handles evidence/answer quality and up to three correction passes.
+- Existing supervised calibration remains in `messinho-learning.js`; it trains only on admin-verified 12-month outcomes with at least 30 examples, 10 unique players, a 20% player holdout, minimum 1-point MAE improvement and bounded weight changes.
+- Existing owner-scoped, source-provenance knowledge memory remains in `messinho-knowledge-memory.js`; it is retrieval memory, not model-weight training.
+- Existing ASI tables are reused for calibration, prediction outcomes, training runs and model versioning. No duplicate player-learning or model-weight tables were introduced.
+- Direct STAGING database inspection found the frontend was calling `asi_review_scout_calibration` and `asi_review_model_candidate`, but neither RPC existed in the deployed database. The UI actions were therefore not backed by functioning database procedures.
+
+### Implemented feedback foundation
+- Added `backend/messinho-feedback.js` with bounded input normalization, category validation, rating validation, capability identifier allowlisting, HTTPS evidence validation and explicit review-state contracts.
+- Added `tests/messinho-feedback.test.js` covering valid ratings, invalid context/ranges, required factual-correction detail, bounded capability IDs, HTTPS verification and separation from outcome training.
+- Added authenticated, rate-limited server endpoints:
+  - `POST /api/messinho/feedback` — saves one feedback record per user/assistant-message pair.
+  - `GET /api/messinho/feedback` — administrator-only review queue.
+  - `POST /api/messinho/feedback/:feedbackId/review` — administrator-only atomic review transition.
+  - `POST /api/messinho/calibration/:recordId/review` — server-mediated existing calibration review.
+  - `POST /api/messinho/models/:modelVersionId/review` — server-mediated model candidate approval/rejection.
+- Added quiet thumbs-up/down controls to actual MESSINHO chat replies. Negative feedback can be categorized as answer-quality, factual correction, bug report or feature request, with optional/required explanation as appropriate.
+- Added an administrator feedback queue inside the existing collapsed help bundle. Factual corrections can only be marked verified with an HTTPS evidence URL and an administrator review.
+- Feedback is a separate quality signal. It is NOT inserted into `asi_scout_calibration_records`, `asi_prediction_outcomes` or training datasets. It does not change model weights, agent instructions or the knowledge memory automatically.
+- Added append-only `messinho_feedback_reviews` history. The review function serializes state transitions and writes the review event in the same transaction.
+
+### STAGING database migrations applied
+- `20261126153903_messinho_feedback_intelligence` — created `messinho_feedback` and `messinho_feedback_reviews`, enabled RLS, added server-only grants, and created the three atomic admin review functions.
+- `20261126153929_messinho_feedback_audit_hardening` — removed UPDATE/DELETE/TRUNCATE rights from the service role on the audit-history table and indexed reviewer foreign keys.
+- Both applied successfully to Supabase STAGING and reconciled to matching migration filenames in the repository.
+- Verified: both new tables exist, RLS is enabled, both tables currently contain zero rows, and the three review functions are executable by `service_role` only (not `anon` or `authenticated`).
+- Verified: `messinho_feedback_reviews` has only SELECT/INSERT grants for `service_role`; no UPDATE/DELETE/TRUNCATE grant remains. No direct Data API access is granted to end users.
+- Supabase performance advisor no longer reports unindexed foreign keys for the new feedback tables. Its remaining unused-index notices are expected before feedback data accumulates.
+- Existing unrelated security advisor findings remain: RLS without policies on `messinho_diagnostic_runs`, authenticated execution of the pre-existing `admin_set_scout_approval` SECURITY DEFINER function, and disabled leaked-password protection. These were not changed as part of this feedback task.
+
+### Current validation and release gate
+- Source files and migration files are committed to the feature branch; latest branch commit at this checkpoint is to be re-read before the next operation.
+- Database migration application and schema/privilege introspection succeeded on STAGING.
+- Unit tests have been added but the complete Node test suite, backend syntax checks and Vite production build have NOT yet been verified for the new code.
+- No Render deployment has been triggered. Do not describe the feedback UI/API as live until build gates pass, the manual STAGING deploy is live on the exact intended SHA, and authenticated Scout/Admin smoke tests succeed.
+- Existing STAGING Render auto-deploy remains disabled. Production remains untouched.
+
+### Next steps
+1. Run `npm test`, all backend `node --check` checks and the Vite production build on the current branch tip.
+2. Fix any test, syntax or build regressions before deployment.
+3. Manually deploy only the dedicated STAGING Render service after successful validation; verify exact deployed SHA and health.
+4. Run authenticated smoke tests: Scout positive rating, negative rating, factual correction, duplicate submission, non-admin review denial, Admin queue, evidence-required verification, immutable review history, calibration verification and atomic model approval/rejection.
+5. Only after measured data exists, design a separate quality-metrics stage. Do not convert ratings or unverified corrections into player outcomes or model training.
+6. Keep PR #47 Draft/open/unmerged unless explicitly approved. Never deploy to production from this branch.
