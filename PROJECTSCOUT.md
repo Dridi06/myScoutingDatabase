@@ -1548,3 +1548,28 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - No database migrations or persistent user/player/scout data changes were made.
 - No authenticated browser screenshot/visual QA was available; CSS regression tests and deployment health are verified, but exact rendering/scroll behavior on physical iPhone/Android/desktop browsers still requires interactive visual confirmation.
 - Production `main`, production Render, production Supabase, PFMS and PFSS remain unchanged. STAGING auto-deploy remains disabled; PR #47 remains Draft/unmerged.
+
+
+## 2026-11-26 — MESSINHO chat viewport/zoom correction (STAGING)
+
+**User report:** After typing/sending a message in the MESSINHO chat, the page visually distorts and changes size.
+
+**Root-cause findings:**
+- MESSINHO's message list had several competing min-height/max-height declarations across the component stylesheet and global responsive stylesheet.
+- The chat card did not have a definite block size, so its flex child could participate in page-height changes as messages accumulated.
+- The chat input was explicitly set to 13px in the component stylesheet. On iOS Safari, focusing an input below 16px triggers automatic page zoom, which matches the reported visual resizing when tapping/typing in the chat.
+- The previous auto-scroll only changes the message list's own scrollTop; it does not call document scrollIntoView. The primary fixes therefore target input auto-zoom and layout sizing rather than removing conversation auto-scroll.
+
+**Implemented:**
+- src/asi/messinho.css: fixed desktop chat card height to a bounded responsive range (480–680px), and mobile height to a stable 560px (540px at <=380px).
+- Message list now uses the remaining fixed flex area (height:0; flex:1 1 0; min-height:0) and scrolls internally, rather than expanding the outer page.
+- Composer is a non-shrinking fixed row; message bubbles are constrained to the available width and can wrap long content.
+- Disabled scroll anchoring and smooth scrolling inside the chat to prevent browser-driven jumps.
+- Set the MESSINHO composer input to 16px (including mobile, with !important) to prevent iOS Safari's focus-triggered automatic zoom.
+- Added two regression tests to tests/responsive-layout.test.js for the fixed chat viewport/internal scroll and iOS 16px input size.
+
+**Commits:**
+- 17fd7791ee092f619956b524a95e40939515f1b1 — chat layout/scroll/input sizing.
+- ed494c5a8b2c4f3ad71a17f2c49d96399d115441 — regression tests.
+
+**Verification status:** Changes are committed on feature/messinho-unified-ai-integration. The STAGING build/deployment must be run and verified before calling this correction live. Production and PFMS/PFSS remain untouched.
