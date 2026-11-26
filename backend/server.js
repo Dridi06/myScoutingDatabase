@@ -998,6 +998,75 @@ async function messinhoAuthenticatedUser(req,res){
   if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved')){res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});return null;}
   return {user:data.user,profile,token};
 }
+const EMPTY_MESSINHO_MEMORY=()=>({active_player_ids:[],user_preferences:{},active_entities:{},last_intent:null,last_goal:null});
+async function loadMessinhoAgentMemory(ownerId){
+  if(!db)return EMPTY_MESSINHO_MEMORY();
+  try{
+    const {data,error}=await db.from('messinho_agent_memory')
+      .select('active_player_ids,user_preferences,active_entities,last_intent,last_goal')
+      .eq('owner_id',ownerId).maybeSingle();
+    if(error){
+      if(error.code!=='42P01')console.warn('MESSINHO memory read unavailable:',error.message);
+      return EMPTY_MESSINHO_MEMORY();
+    }
+    return {
+      active_player_ids:Array.isArray(data?.active_player_ids)?data.active_player_ids.map(Number).filter(id=>Number.isSafeInteger(id)&&id>0).slice(0,10):[],
+      user_preferences:data?.user_preferences&&typeof data.user_preferences==='object'?data.user_preferences:{},
+      active_entities:data?.active_entities&&typeof data.active_entities==='object'?data.active_entities:{},
+      last_intent:typeof data?.last_intent==='string'?data.last_intent:null,
+      last_goal:typeof data?.last_goal==='string'?data.last_goal:null
+    };
+  }catch(error){console.warn('MESSINHO memory read failed:',error.message);return EMPTY_MESSINHO_MEMORY();}
+}
+async function saveMessinhoAgentMemory(ownerId,memory){
+  if(!db)return false;
+  try{
+    const payload={
+      owner_id:ownerId,
+      active_player_ids:(Array.isArray(memory.active_player_ids)?memory.active_player_ids:[]).map(Number).filter(id=>Number.isSafeInteger(id)&&id>0).slice(0,10),
+      user_preferences:memory.user_preferences&&typeof memory.user_preferences==='object'?memory.user_preferences:{},
+      active_entities:memory.active_entities&&typeof memory.active_entities==='object'?memory.active_entities:{},
+      last_intent:typeof memory.last_intent==='string'?memory.last_intent.slice(0,80):null,
+      last_goal:typeof memory.last_goal==='string'?memory.last_goal.slice(0,1200):null,
+      updated_at:new Date().toISOString()
+    };
+    const {error}=await db.from('messinho_agent_memory').upsert(payload,{onConflict:'owner_id'});
+    if(error){if(error.code!=='42P01')console.warn('MESSINHO memory write unavailable:',error.message);return false;}
+    return true;
+  }catch(error){console.warn('MESSINHO memory write failed:',error.message);return false;}
+}
+async function saveMessinhoAgentTrace(ownerId,goal,plan,run,durationMs){
+  if(!db)return;
+  try{
+    const resultSummary=(run?.results||[]).map(item=>({
+      capability_id:item.capability_id,status:item.status,
+      missing_inputs:Array.isArray(item.missing_inputs)?item.missing_inputs:[],
+      error_code:item.error_code||null,provenance:item.provenance?{origin:item.provenance.origin,record_refs:(item.provenance.record_refs||[]).slice(0,20),
+        metric_evidence:(item.provenance.metric_evidence||[]).slice(0,20),source_evidence:(item.provenance.source_evidence||[]).slice(0,10),
+        verified_outcome_count:item.provenance.verified_outcome_count||0,claims:(item.provenance.claims||[]).slice(0,20),limitations:(item.provenance.limitations||[]).slice(0,10)}:null
+    }));
+    const {error}=await db.from('messinho_agent_traces').insert({
+      owner_id:ownerId,goal:String(goal||'').slice(0,1200),
+      status:run?.status||'error',
+      plan:{steps:plan?.steps||[],blocked_capabilities:plan?.blocked_capabilities||[],deferred_capabilities:plan?.deferred_capabilities||[],mode:plan?.mode||null},
+      result_summary:resultSummary,duration_ms:Math.max(0,Math.min(120000,Number(durationMs)||0))
+    });
+    if(error&&error.code!=='42P01')console.warn('MESSINHO trace write unavailable:',error.message);
+  }catch(error){console.warn('MESSINHO trace write failed:',error.message);}
+}
+function compactMessinhoTaskResult(item){
+  const output={capability_id:item?.capability_id||'unknown',status:item?.status||'unknown',
+    missing_inputs:Array.isArray(item?.missing_inputs)?item.missing_inputs.slice(0,20):[],
+    error_code:item?.error_code||null};
+  if(item?.result!==undefined){
+    const serialized=JSON.stringify(item.result);
+    output.result=serialized.length<=900?item.result:{truncated:true,preview:serialized.slice(0,850)};
+  }
+  if(item?.provenance)output.provenance={origin:item.provenance.origin||'unknown',record_refs:(item.provenance.record_refs||[]).slice(0,5),
+    metric_evidence:(item.provenance.metric_evidence||[]).slice(0,8),source_evidence:(item.provenance.source_evidence||[]).slice(0,3),
+    verified_outcome_count:item.provenance.verified_outcome_count||0,claims:(item.provenance.claims||[]).slice(0,8),limitations:(item.provenance.limitations||[]).slice(0,3)};
+  return output;
+}
 const messinhoResearchLimiter=rateLimit({windowMs:60*60*1000,limit:12,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Marktwert-Recherchen. Bitte später erneut versuchen.'}});
 app.post('/api/messinho/research/market-value',messinhoResearchLimiter,async(req,res)=>{
   try{
