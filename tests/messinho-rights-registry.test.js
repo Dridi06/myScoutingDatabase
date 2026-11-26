@@ -21,7 +21,7 @@ const openStaxClaim={
 
 test('only four individually rights-cleared CC BY 4.0 works are allowlisted',()=>{
   assert.equal(getMessinhoVerifiedSourceRightsCount(),4);
-  for(const id of ['plos_one_vo2max_prediction_2023','pmc_cardiorespiratory_fitness_2022','libretexts_kuttler_matrix_multiplication_2022','austin_matrix_multiplication_2026']){
+  for(const id of ['plos_one_vo2max_prediction_2023','pmc_cardiorespiratory_fitness_2022','libretexts_kuttler_matrix_multiplication_2023','austin_matrix_multiplication_2023']){
     const rights=getMessinhoVerifiedSourceRightsById(id);
     assert.ok(rights);
     assert.equal(verifyMessinhoSourceRights({...rights,status:'verified_permitted',ai_tdm:true,commercial_use:true,derivative_use:true}),true);
@@ -72,9 +72,9 @@ test('approved article URLs are exact, including PLOS DOI query and PMC article 
   assert.equal(getMessinhoVerifiedSourceRightsForUrl(pmc)?.source_id,'pmc_cardiorespiratory_fitness_2022');
   const kuttler='https://math.libretexts.org/Bookshelves/Linear_Algebra/A_First_Course_in_Linear_Algebra_%28Kuttler%29/02%3A_Matrices/2.02%3A_Multiplication_of_Matrices';
   const austin='https://understandinglinearalgebra.org/sec-matrices-lin-combs.html';
-  assert.equal(isMessinhoRegisteredSourceUrl('libretexts_kuttler_matrix_multiplication_2022',kuttler),true);
-  assert.equal(isMessinhoRegisteredSourceUrl('austin_matrix_multiplication_2026',austin),true);
-  assert.equal(isMessinhoRegisteredSourceUrl('austin_matrix_multiplication_2026','https://understandinglinearalgebra.org/sec-matrices-lin-combs.html.evil'),false);
+  assert.equal(isMessinhoRegisteredSourceUrl('libretexts_kuttler_matrix_multiplication_2023',kuttler),true);
+  assert.equal(isMessinhoRegisteredSourceUrl('austin_matrix_multiplication_2023',austin),true);
+  assert.equal(isMessinhoRegisteredSourceUrl('austin_matrix_multiplication_2023','https://understandinglinearalgebra.org/sec-matrices-lin-combs.html.evil'),false);
 });
 
 test('unregistered, non-HTTPS and lookalike URLs are never accepted',()=>{
