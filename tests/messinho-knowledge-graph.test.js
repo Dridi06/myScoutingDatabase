@@ -96,7 +96,8 @@ test('knowledge graph rejects invalid relationship writes',async()=>{
 test('retrieves an active VO2max concept from a one-term general question',async()=>{
  const row={id:'vo2',domain:'sports_science',topic:'Kardiorespiratorische Fitness',title:'VO2max maximale Sauerstoffaufnahme',definition:'VO2max beschreibt die maximale Sauerstoffaufnahme des Körpers unter intensiver Belastung und ist ein Maß der kardiorespiratorischen Fitness.',knowledge_level:'foundational',knowledge_type:'metric',knowledge_status:'active',version:1,confidence:0.9,sources:[],claims:[]};
  const query={select(){return this;},eq(){return this;},in(column,values){assert.deepEqual(values,['sports_science','general']);return this;},or(){return this;},order(){return this;},async limit(){return {data:[row],error:null};}};
- const db={from(table){assert.equal(table,'messinho_knowledge_concepts');return query;}};
+ const links={select(){return this;},async or(){return {data:[],error:null};}};
+ const db={from(table){return table==='messinho_knowledge_concepts'?query:links;}};
  const result=await findMessinhoKnowledgeConcepts(db,'Was ist VO2max?');
  assert.equal(result.status,'hit');
  assert.equal(result.items[0].id,'vo2');
