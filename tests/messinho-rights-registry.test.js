@@ -4,7 +4,8 @@ import {
   verifyMessinhoSourceRights,
   isMessinhoRegisteredSourceUrl,
   getMessinhoVerifiedSourceRightsForUrl,
-  getMessinhoVerifiedSourceRightsCount
+  getMessinhoVerifiedSourceRightsCount,
+  getMessinhoVerifiedSourceRightsById
 } from '../backend/messinho-rights-registry.js';
 
 const openStaxClaim={
@@ -18,11 +19,14 @@ const openStaxClaim={
   ai_tdm:true,commercial_use:true,derivative_use:true
 };
 
-test('the permanent source allowlist remains empty until all rights are verified',()=>{
-  assert.equal(getMessinhoVerifiedSourceRightsCount(),0);
+test('only two individually rights-cleared CC BY 4.0 article works are allowlisted',()=>{
+  assert.equal(getMessinhoVerifiedSourceRightsCount(),2);
+  for(const id of ['plos_one_vo2max_prediction_2023','pmc_cardiorespiratory_fitness_2022']){
+    const rights=getMessinhoVerifiedSourceRightsById(id);
+    assert.ok(rights);
+    assert.equal(verifyMessinhoSourceRights({...rights,status:'verified_permitted',ai_tdm:true,commercial_use:true,derivative_use:true}),true);
+  }
   assert.equal(verifyMessinhoSourceRights(openStaxClaim),false);
-  assert.equal(isMessinhoRegisteredSourceUrl(openStaxClaim.source_id,openStaxClaim.evidence_url),false);
-  assert.equal(getMessinhoVerifiedSourceRightsForUrl(openStaxClaim.evidence_url),null);
 });
 
 test('a CC BY label cannot override explicit OpenStax AI-ingestion restrictions',()=>{
@@ -47,6 +51,18 @@ test('rights verification rejects incomplete attribution and licence evidence',(
   assert.equal(verifyMessinhoSourceRights({...openStaxClaim,license_url:'https://example.com/license'}),false);
   assert.equal(verifyMessinhoSourceRights({...openStaxClaim,attribution:''}),false);
   assert.equal(verifyMessinhoSourceRights({...openStaxClaim,ai_tdm:false}),false);
+});
+
+test('approved article URLs are exact, including PLOS DOI query and PMC article identity',()=>{
+  const plos='https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0280897';
+  const pmc='https://pmc.ncbi.nlm.nih.gov/articles/PMC11269081/';
+  assert.equal(isMessinhoRegisteredSourceUrl('plos_one_vo2max_prediction_2023',plos),true);
+  assert.equal(isMessinhoRegisteredSourceUrl('plos_one_vo2max_prediction_2023','https://journals.plos.org/plosone/article?id=10.1371/journal.pone.9999999'),false);
+  assert.equal(isMessinhoRegisteredSourceUrl('plos_one_vo2max_prediction_2023',plos+'&download=1'),false);
+  assert.equal(isMessinhoRegisteredSourceUrl('pmc_cardiorespiratory_fitness_2022',pmc),true);
+  assert.equal(isMessinhoRegisteredSourceUrl('pmc_cardiorespiratory_fitness_2022',pmc+'figure/1'),false);
+  assert.equal(getMessinhoVerifiedSourceRightsForUrl(plos)?.source_id,'plos_one_vo2max_prediction_2023');
+  assert.equal(getMessinhoVerifiedSourceRightsForUrl(pmc)?.source_id,'pmc_cardiorespiratory_fitness_2022');
 });
 
 test('unregistered, non-HTTPS and lookalike URLs are never accepted',()=>{
