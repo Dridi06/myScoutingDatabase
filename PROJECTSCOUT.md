@@ -2232,3 +2232,18 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - New detailed architecture and storage safeguards are specified in `docs/MESSINHO_FREE_LEGAL_MEDICAL_KNOWLEDGE_PLAN.md`.
 - No implementation, database migration, backup configuration or deployment has been performed by recording this decision. Next work: inspect existing knowledge memory, database backup capabilities, permissions and agent routing; design a compact persistent cross-domain knowledge layer that reuses current infrastructure and has no unapproved paid services. Then implement incrementally in STAGING with tests and restore verification.
 - Operating boundary unchanged: feature/messinho-unified-ai-integration and dedicated STAGING only; production/main, PFMS/PFSS and PR #47 merge state untouched; Render auto-deploy disabled.
+
+
+## 2026-11-26 — Owner directive: risk management, banking and stock-market intelligence
+
+- Add risk management and the operating principles of banks, exchanges and financial markets as first-class domains in MESSINHO's permanent cross-domain knowledge architecture.
+- Coverage includes enterprise/operational risk, credit and counterparty risk, liquidity/funding risk, market and interest-rate risk, concentration risk, risk appetite/tolerance, controls, residual risk, early-warning indicators and stress testing.
+- Banking knowledge includes commercial/central-bank roles, deposits and lending, maturity transformation, net interest margin, credit assessment, collateral, capital/liquidity requirements and payment systems.
+- Exchange/market knowledge includes order books, order types, bid/ask and spreads, liquidity, volatility, price discovery, market makers, auctions, indices, trading halts and primary/secondary markets.
+- Quantitative methods include time series, return/risk, volatility, correlation/covariance, regression, sensitivity/scenario analysis, Monte Carlo, drawdown, VaR and Expected Shortfall, plus PD/LGD/EAD credit-risk concepts.
+- MESSINHO must analyze data quality and horizon, identify exposures/dependencies/concentrations, produce base/upside/downside/stress scenarios, disclose assumptions and uncertainty, backtest where possible, avoid overfitting and explain limitations in plain language.
+- Never invent real-time prices, order-book data, bank data or macroeconomic observations. Dynamic market information requires fresh timestamped sources/data; no paid market-data feed or service without explicit cost approval.
+- Correlation is not causation; past performance is not a guarantee. VaR is not a worst-case loss and should be complemented by stress analysis/Expected Shortfall. Forecasts are probabilistic ranges/scenarios, not certainties.
+- Keep general financial education/analysis distinct from individualized investment advice, credit decisions or regulated financial services. No trade execution or financial account side effects without separate explicit authorization and legal/security review.
+- Detailed requirements added to `docs/MESSINHO_FREE_LEGAL_MEDICAL_KNOWLEDGE_PLAN.md`. This is a knowledge-domain and architecture decision only; no financial data feed, paid service, trading integration, code, database migration or deployment was added.
+- Continue on feature/messinho-unified-ai-integration and dedicated STAGING only. Production/main, PFMS/PFSS and PR #47 merge state untouched; Render auto-deploy disabled.
