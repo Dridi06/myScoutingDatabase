@@ -3528,3 +3528,17 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Supabase staging audit was read-only. It confirmed player owner/Admin RLS gates and service-mediated access for knowledge-review tables. The Admin knowledge review endpoints enforce approved Admin role checks. Remaining advisor notices (legacy Admin SECURITY DEFINER RPC callable by authenticated but guarded internally; leaked-password protection disabled) remain recorded for separate hardening; no database grants, schema, or data were changed in this task.
 - Next: wait for this documentation commit's CI, manually deploy the tested branch head to the dedicated Render STAGING service only, verify the deployed SHA and LIVE status, then complete live Admin/Scout continuation and tenant-isolation acceptance. Keep the VO2max pilot and systematic knowledge import gated until those acceptance checks pass.
 - Production, main, PFMS and PFSS remain untouched; no merge or production release is authorised.
+
+
+### Manual STAGING deployment — VO2max continuation routing — 2026-11-26 22:39 CET
+- Manually deployed the tested feature-branch head to the dedicated Render STAGING service only.
+- Render deployment: dep-dc4adi17lnhs73fs0e1g.
+- Deployed branch commit: 0ca88b161f5cde8bf4b24db23ffdb05186020ab1 (documentation commit containing tested code commit 7a86c60ee582ce749f5a1ff571e2f849952280eb).
+- Render deployment status: LIVE; build status succeeded; deploy-ended event confirmed success.
+- Build log confirms Node suite 329 passed, 0 failed; Vite production build successful with 1,637 modules transformed.
+- Runtime startup log confirms Node API listening on port 10000, Supabase Data API returned HTTP 200, and Render reported “Your service is live”.
+- Dedicated STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com.
+- CI for code commit 7a86c60ee582ce749f5a1ff571e2f849952280eb: all four checks success (test, backend syntax, health, combined regression/syntax/build).
+- No authenticated Admin or Scout browser session was available to perform the live chat follow-up or cross-tenant UI test. Deployment health is not equivalent to feature acceptance.
+- Current gate: continuation routing fix is implemented, regression-tested and LIVE on STAGING; VO2max pilot remains pending live Admin/Scout acceptance, role checks and tenant-isolation tests. Systematic knowledge import remains blocked.
+- Production, main, PFMS and PFSS remain untouched. No merge or production release is authorised.
