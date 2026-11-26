@@ -154,24 +154,24 @@ export function buildMessinhoKnowledgeApplicationFollowUp(question, { conceptKey
   if (conceptKey !== 'sports_science.physiology.vo2max') return null;
   const text = normalizeSocialText(question);
   if (!text || text.length > 1200) return null;
-  const asksApplication = /\\b(nutzen|anwenden|anwend|ordne|einordnen|interpretieren|leistungsbewertung|bewerten|beurteilen|einschaetzen|einschätzen|ausdauerleistungsfaehigkeit|ausdauerleistungsfähigkeit|welche informationen|welche daten|was benoetigst|was benötigst|was brauche ich|zusaetzlich|zusätzlich)\\b/.test(text);
+  const asksApplication = /\b(nutzen|anwenden|anwend|ordne|einordnen|interpretieren|leistungsbewertung|bewerten|beurteilen|einschaetzen|einschätzen|ausdauerleistungsfaehigkeit|ausdauerleistungsfähigkeit|welche informationen|welche daten|was benoetigst|was benötigst|was brauche ich|zusaetzlich|zusätzlich)\b/.test(text);
   if (!asksApplication) return null;
 
   const raw = String(question || '');
-  const hasValue = /\\b\\d{1,2}(?:[.,]\\d+)?\\s*(?:ml\\s*[·.]?\\s*kg\\s*(?:\\/|\\*|·)\\s*min(?:\\s*[-−]?\\s*1)?|ml\\/kg\\/min)\\b/i.test(raw)
-    || /\\bvo\\s*[₂2]?\\s*max\\s*[:=]?\\s*\\d{1,2}(?:[.,]\\d+)?\\b/i.test(raw);
-  const directMethod = /spiroergometrie|\\bcpet\\b|direkt gemessen|direktmessung/i.test(raw);
+  const hasValue = /\b\d{1,2}(?:[.,]\d+)?\s*(?:ml\s*[·.]?\s*kg\s*(?:\/|\*|·)\s*min(?:\s*[-−]?\s*1)?|ml\/kg\/min)\b/i.test(raw)
+    || /\bvo\s*[₂2]?\s*max\s*[:=]?\s*\d{1,2}(?:[.,]\d+)?\b/i.test(raw);
+  const directMethod = /spiroergometrie|\bcpet\b|direkt gemessen|direktmessung/i.test(raw);
   const estimatedMethod = /geschaetzt|geschätzt|schaetzung|schätzung|feldtest|lauftest|yo.?yo|beep.?test|indirekt bestimmt|vorhersage|prediction/i.test(raw);
   const hasMethod = directMethod || estimatedMethod;
-  const hasDate = /\\b(?:20\\d{2}-\\d{2}-\\d{2}|\\d{1,2}\\.\\d{1,2}\\.\\d{2,4})\\b/.test(raw);
+  const hasDate = /\b(?:20\d{2}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}\.\d{2,4})\b/.test(raw);
 
   const playerAge = Number.isFinite(Number(player?.age)) && player?.age !== null ? Number(player.age) : null;
   const birthYear = Number.isFinite(Number(player?.birth_year ?? player?.year)) && (player?.birth_year ?? player?.year) != null ? Number(player?.birth_year ?? player?.year) : null;
   const derivedAge = playerAge ?? (birthYear ? new Date(now).getFullYear() - birthYear : null);
-  const hasAge = derivedAge !== null || /\\b\\d{2}\\s*(?:jahre|j\\.?)\\b/i.test(raw);
+  const hasAge = derivedAge !== null || /\b\d{2}\s*(?:jahre|j\.?)\b/i.test(raw);
   const playerPositions = Array.isArray(player?.positions) ? player.positions.filter(Boolean) : player?.position ? [player.position] : [];
-  const hasPosition = playerPositions.length > 0 || /\\b(torwart|innenverteidiger|aussenverteidiger|außenverteidiger|verteidiger|mittelfeld|stuermer|stürmer|fluegel|flügel|position)\\b/i.test(raw);
-  const hasTrainingContext = Boolean(player?.training_status || player?.training_level || /\\b(trainingsstatus|trainingsumfang|trainingsniveau|leistungssportler|amateur|profi|semiprofi)\\b/i.test(raw));
+  const hasPosition = playerPositions.length > 0 || /\b(torwart|innenverteidiger|aussenverteidiger|außenverteidiger|verteidiger|mittelfeld|stuermer|stürmer|fluegel|flügel|position)\b/i.test(raw);
+  const hasTrainingContext = Boolean(player?.training_status || player?.training_level || /\b(trainingsstatus|trainingsumfang|trainingsniveau|leistungssportler|amateur|profi|semiprofi)\b/i.test(raw));
 
   const missing = [];
   if (!hasValue) missing.push({ key: 'vo2max_value', label: 'VO₂max-Messwert mit Einheit (üblicherweise ml/kg/min)' });
