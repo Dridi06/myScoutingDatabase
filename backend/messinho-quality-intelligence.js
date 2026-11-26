@@ -122,6 +122,8 @@ export function buildMessinhoQualityIntelligence(input=[],options={}){
    excluded_pending_or_rejected:records.filter(row=>['pending','rejected'].includes(row.status)).length},
   ratings:summarizeRatings(ratings),trend:trendSummary(ratings,now),
   by_capability:byCapability.slice(0,12),by_intent:byIntent.slice(0,12),
+  by_model_version:buildGroupSummaries(ratings,row=>row.model_version||'').slice(0,12),
+  by_engine_version:buildGroupSummaries(ratings,row=>row.engine_version||'').slice(0,12),
   themes:[...themes].map(([theme,count])=>({theme,count})).sort((a,b)=>b.count-a.count||a.theme.localeCompare(b.theme)).slice(0,12),
   hypotheses:createHypotheses(records),
   governance:{feedback_is_training_data:false,automatic_changes:false,minimum_group_sample:MIN_GROUP_SAMPLE,corrections_require_admin_verification:true,
