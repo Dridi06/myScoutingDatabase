@@ -57,6 +57,7 @@ test('approved article URLs are exact, including PLOS DOI query and PMC article 
   const plos='https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0280897';
   const pmc='https://pmc.ncbi.nlm.nih.gov/articles/PMC11269081/';
   assert.equal(isMessinhoRegisteredSourceUrl('plos_one_vo2max_prediction_2023',plos),true);
+  assert.equal(isMessinhoRegisteredSourceUrl('plos_one_vo2max_prediction_2023','https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0280897'),true);
   assert.equal(isMessinhoRegisteredSourceUrl('plos_one_vo2max_prediction_2023','https://journals.plos.org/plosone/article?id=10.1371/journal.pone.9999999'),false);
   assert.equal(isMessinhoRegisteredSourceUrl('plos_one_vo2max_prediction_2023',plos+'&download=1'),false);
   assert.equal(isMessinhoRegisteredSourceUrl('pmc_cardiorespiratory_fitness_2022',pmc),true);
