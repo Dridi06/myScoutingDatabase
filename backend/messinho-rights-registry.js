@@ -54,7 +54,13 @@ export function isMessinhoSourceUrlWithinPrefix(url, prefix, exact = false) {
   try {
     const candidate = new URL(url), base = new URL(prefix);
     if (candidate.protocol !== 'https:' || base.protocol !== 'https:' || candidate.origin !== base.origin) return false;
-    if (exact) return candidate.pathname.replace(/\/+$/,'') === base.pathname.replace(/\/+$/,'') && candidate.search === base.search;
+    if (exact) {
+      const normalizeSearch = search => [...new URLSearchParams(search).entries()]
+        .sort(([ak,av],[bk,bv]) => ak.localeCompare(bk) || av.localeCompare(bv))
+        .map(([key,value]) => key+'='+value).join('&');
+      return candidate.pathname.replace(/\/+$/,'') === base.pathname.replace(/\/+$/,'')
+        && normalizeSearch(candidate.search) === normalizeSearch(base.search);
+    }
     const basePath = base.pathname.endsWith('/') ? base.pathname : base.pathname + '/';
     return candidate.pathname === base.pathname || candidate.pathname.startsWith(basePath);
   } catch { return false; }
