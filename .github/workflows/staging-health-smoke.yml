@@ -2,6 +2,9 @@ name: Staging health smoke test
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - feature/messinho-unified-ai-integration
