@@ -4,7 +4,7 @@
  * rights is eligible for permanent persistence. No source full text is stored.
  */
 import { createHash } from 'node:crypto';
-import { verifyMessinhoSourceRights } from './messinho-rights-registry.js';
+import { verifyMessinhoSourceRights, isMessinhoRegisteredSourceUrl } from './messinho-rights-registry.js';
 
 const clean=(v,max=1200)=>String(v??'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
 const normalize=v=>clean(v,1800).normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
@@ -39,7 +39,7 @@ export function buildMessinhoDomainKnowledgeRecord(input={},now=new Date()){
  if(!content||content.length<40||!question)return {eligible:false,reason:'insufficient_content'};
  if(!verifyMessinhoSourceRights(rights))
   return {eligible:false,reason:'rights_not_in_verified_registry'};
- const sources=(Array.isArray(input.sources)?input.sources:[]).filter(s=>s&&s.source_id===rights.source_id&&/^https:\/\//i.test(String(s.url||''))&&clean(s.title,180)).slice(0,5);
+ const sources=(Array.isArray(input.sources)?input.sources:[]).filter(s=>s&&s.source_id===rights.source_id&&isMessinhoRegisteredSourceUrl(rights.source_id,s.url)&&clean(s.title,180)).slice(0,5);
  if(!sources.length)return {eligible:false,reason:'source_provenance_required'};
  const claims=(Array.isArray(input.claims)?input.claims:[]).map(x=>clean(x,400)).filter(Boolean).slice(0,8);
  const fingerprint=fingerprintMessinhoDomainKnowledge(content,domain);
