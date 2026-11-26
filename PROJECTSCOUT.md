@@ -3701,3 +3701,13 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Next: verify full CI and STAGING build; resolve exact work-level rights for technical sources (including ShareAlike and German/EU TDM position); add only individually cleared works to the registry with exact URL tests; then prepare small candidate batches with at least two independent corroborating sources per claim, prerequisite ordering and Admin review. Only after approval may the concepts be activated and assessed in retrieval/application tests.
 - No code-execution agent, self-modification, production access, deployment permission, automatic model training, or modification of guardrails was enabled.
 - The VO2max multi-turn application pilot and authenticated Admin/Scout plus tenant-isolation checks remain open; this curriculum work does not waive those release gates.
+
+
+### Technical Intelligence Foundation v2 — STAGING release confirmation — 2026-11-27
+- Render staging deployment: `dep-dc4bp9d6e07s73eosv20`; deployed commit `fb628f7756c1b5f9f36d61d24df64a1cddeef4e8`; final status `live` at 2026-11-26T23:12:09Z.
+- Build verification: **337 tests passed, 0 failed**; the four new package tests passed (25 concepts, all prerequisites resolve, no dependency cycles, 50 assessment tasks, all rights pending and no execution/activation).
+- Vite build succeeded (2.35s); API process started; Supabase Data API returned HTTP 200; Render reported the staging service live.
+- Staging URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- No database writes or migrations; active concept count remains 1, candidate count 0, links 0, versions 3, reviews 1. No user/player/scouting data changed.
+- This release deploys the application code and versioned curriculum artifacts. It does **not** import the 25 concepts into Supabase, clear source rights, activate new knowledge, or enable a coding agent.
+- The prior VO2max authenticated follow-up pilot and Admin/Scout/tenant-isolation tests remain open; no user-session tests are claimed.
