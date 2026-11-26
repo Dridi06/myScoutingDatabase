@@ -27,6 +27,7 @@ drop policy if exists asi_candidates_owner_insert on public.asi_player_candidate
 create policy asi_candidates_owner_insert on public.asi_player_candidates for insert to authenticated with check (owner_id=(select auth.uid()) or (select private.is_admin()));
 drop policy if exists asi_candidates_owner_update on public.asi_player_candidates;
 create policy asi_candidates_owner_update on public.asi_player_candidates for update to authenticated using (owner_id=(select auth.uid()) or (select private.is_admin())) with check (owner_id=(select auth.uid()) or (select private.is_admin()));
+revoke all on public.asi_player_candidates from anon, authenticated;
 grant select,insert,update on public.asi_player_candidates to authenticated;
 comment on table public.asi_player_candidates is 'Research candidates awaiting scout decision; separate from canonical players table.';
 commit;
