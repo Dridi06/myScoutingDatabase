@@ -82,6 +82,27 @@ test('verified domain knowledge is passed as explanatory context but never chang
  assert.equal(report.knowledge_context.score_or_model_weights_changed,false);
  assert.ok(report.knowledge_context.entries.some(item=>item.knowledge_level==='specialist'&&item.formula===null));
 });
+test('approved VO2max foundation knowledge is passed into relevant scouting explanation without changing scores',()=>{
+ const concept={domain:'sports_science',title:'VO2max maximale Sauerstoffaufnahme',
+  definition:'VO2max bezeichnet die maximale Sauerstoffaufnahme des Körpers unter intensiver Belastung.',
+  applicability:'Im Fußball-Scouting als Baustein zur Einordnung der aeroben Leistungsfähigkeit und Ausdauerbasis.',
+  knowledge_level:'foundational',knowledge_type:'metric',formula:null,
+  limitations:['Geschätzte Werte sind nicht mit einer direkten Spiroergometrie/CPET gleichzusetzen.'],
+  claims:['VO2max is maximal oxygen uptake.'],
+  sources:[{title:'PLOS ONE',url:'https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0280897'},{title:'PMC',url:'https://pmc.ncbi.nlm.nih.gov/articles/PMC11269081/'}],
+  rights:{status:'verified_permitted',ai_tdm:true,commercial_use:true,derivative_use:true},valid_from:'2026-11-26T20:31:43.000Z',confidence:0.88};
+ const report=executeMessinhoCapability('holistic_player_analysis',{
+  player:{name:'Testspieler',positions:['Stürmer'],ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4}},
+  goal:'Analysiere VO2max und aerobe Leistungsfähigkeit dieses Spielers',
+  _messinho_knowledge_concepts:[concept]
+ });
+ assert.equal(report.knowledge_context.mode,'verified_reference_context');
+ assert.equal(report.knowledge_context.applied_to_explanation_only,true);
+ assert.equal(report.knowledge_context.score_or_model_weights_changed,false);
+ assert.ok(report.knowledge_context.entries.some(item=>item.domain==='sports_science'&&/maximale Sauerstoffaufnahme/.test(item.knowledge)));
+ assert.ok(report.knowledge_context.entries[0].limitations.some(item=>/CPET/.test(item)));
+});
+
 test('unverified or incomplete knowledge records are never passed into capability results',()=>{
  const bad={domain:'medicine',question:'Medical',content:'Unverified text',sources:[{title:'Source',url:'https://example.org'}],rights:{status:'unknown',ai_tdm:false}};
  const result=executeMessinhoCapability('holistic_player_analysis',{player:{name:'Test',ratings:{Technik:4}},goal:'medizin',_messinho_domain_knowledge:[bad]});
