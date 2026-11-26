@@ -1017,3 +1017,13 @@ Der nächste Chat beginnt nicht mit einer Neuentwicklung und fragt den Nutzer ni
 - Das Projekt `myScoutingDatabase` bleibt geschützt als Produktion. Die beiden anderen Projekte sind fremde PFSS/PFFS-Umgebungen und dürfen nicht verwendet werden.
 - Kein Supabase-Projekt wurde erstellt, pausiert, restauriert oder verändert. Es wurde keine SQL-Abfrage mit Schreibwirkung und keine Migration ausgeführt.
 - Für den nächsten Datenbank-Schritt ist ein separates Staging-Projekt erforderlich. Vor dem Erstellen muss der Owner die gewünschte Organisation und mögliche Kosten bestätigen; bis dahin bleiben Task-Ledger-Migration und Datenbank-E2E blockiert.
+
+
+### CI-Nachweis für aktuellen Dokumentations-HEAD — 2026-11-26
+- GitHub Actions-Repositoryabfrage für Branch `feature/messinho-agent-workspace` bestätigt zwei aktuelle Runs auf exakt HEAD `fef74a27e1df4d21c7b76f547d17bce8215985c3`:
+  - MESSINHO staging validation, Run `45740675505`, conclusion `success`; Job `Node tests and frontend build`: Install dependencies, Run automated tests und Build frontend alle erfolgreich.
+  - MESSINHO validation, Run `45740675492`, conclusion `success`; Job `validate`: Install dependencies, Run MESSINHO unit tests und Build frontend alle erfolgreich.
+- Beide Workflows wurden durch Push des Dokumentations-Commits ausgelöst. Da nur `PROJECTSCOUT.md` geändert wurde, ist der Quellcode in diesen Runs identisch zum davor geprüften Stand; die Tests liefen aber erfolgreich gegen den exakten Branch-HEAD.
+- Render STAGING läuft weiterhin auf Code-Commit `262cb0c...`; die drei nachfolgenden Commits bis `fef74a2...` sind ausschließlich PROJECTSCOUT-Dokumentationsänderungen. Auto-Deploy bleibt deaktiviert. Kein weiterer Render-Deploy ausgelöst.
+- Der aktuelle Node-Test- und Frontend-Build-CI-Nachweis ist damit vorhanden. Authentifizierte Datenbank-, Provider-, Browser-, SSE-Unterbrechungs- und Task-Resume-E2E-Nachweise fehlen weiterhin.
+- Supabase-Projektinventur: kein dediziertes `myScoutingDatabase-staging` vorhanden. Die Erstellung ist der nächste blockierende Schritt. Vorher muss der Owner die Zielorganisation bestätigen; mögliche Projektkosten sind vor kostenpflichtiger Erstellung zu klären. Kein Projekt erstellt und keine Migration angewendet.
