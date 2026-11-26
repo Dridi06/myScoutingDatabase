@@ -24,7 +24,7 @@ const VERIFIED_SOURCE_RIGHTS = Object.freeze([
     edition:'2023'
   },
   {
-    source_id:'libretexts_kuttler_matrix_multiplication_2022',
+    source_id:'libretexts_kuttler_matrix_multiplication_2023',
     status:'verified_permitted',
     license:'CC BY 4.0',
     license_url:'https://creativecommons.org/licenses/by/4.0/',
@@ -43,7 +43,7 @@ const VERIFIED_SOURCE_RIGHTS = Object.freeze([
     edition:'LibreTexts chapter revision 2023'
   },
   {
-    source_id:'austin_matrix_multiplication_2026',
+    source_id:'austin_matrix_multiplication_2023',
     status:'verified_permitted',
     license:'CC BY 4.0',
     license_url:'https://creativecommons.org/licenses/by/4.0/',
