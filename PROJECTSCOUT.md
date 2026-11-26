@@ -3049,3 +3049,40 @@ Zuerst den neuen GitHub-Workflow-Lauf und den aktuellen Branch-HEAD verifizieren
 
 ### Klare Statusregel
 Eine externe Recherche ist kein Wissensimport. Ein Kandidat ist noch kein aktives Wissen. Nur ein dauerhaft gespeicherter, geprüfter, freigegebener und anschließend erfolgreich wiederverwendeter Wissenseintrag zählt als abgeschlossener Grundlagenpilot.
+
+
+## STAGING deployment checkpoint — 2026-11-26 19:57 UTC
+
+### CI and build evidence
+- Current deployed code commit: `330972bc04ed0a283e51020312ea618591fc51e3`.
+- GitHub Actions for this commit: Node tests, backend syntax and full production build all completed successfully (3/3 checks).
+- Render STAGING build executed the configured `npm run build`: **311 tests passed, 0 failed, 0 cancelled, 0 skipped**; all backend JavaScript syntax checks passed; Vite transformed 1,637 modules and completed the production build.
+- Render deployment `dep-dc48tpgu01pc73f7hbdg` completed with status `live` at `2026-11-26T19:57:00Z`.
+- Runtime started with `myScoutingDatabase API listening on 10000`; startup log confirms Supabase Data API HTTP 200.
+- Dedicated service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`), branch `feature/messinho-unified-ai-integration`, auto-deploy remains disabled. No production service or main branch was deployed.
+
+### STAGING database security and content check
+- Read-only inspection confirms RLS enabled on `messinho_knowledge_concepts`, `messinho_knowledge_links`, `messinho_knowledge_versions`, `messinho_knowledge_reviews`, `messinho_knowledge_conflicts` and `messinho_domain_knowledge`.
+- Knowledge review/create/conflict RPCs inspected are executable by `service_role`; `anon` and `authenticated` cannot execute them.
+- The six knowledge tables remain empty: no concept, domain knowledge, review or link records exist yet. No user or knowledge data was inserted or changed during this checkpoint.
+- The independent source-rights registry contains two specifically reviewed VO2max/cardiorespiratory sources: PLOS ONE DOI 10.1371/journal.pone.0280897 and the CC BY 4.0 cardiorespiratory fitness review PMCID PMC11269081. Their reuse rights, exact URL scopes and review dates are recorded in code. A candidate still requires successful retrieval, relevant excerpts, claim corroboration and atomic persistence.
+
+### Remaining verification boundary
+- An authenticated Admin chat round-trip, candidate creation from the live providers, Admin approval, and a fresh-chat retrieval of the newly active concept have not yet been executed. No controlled Admin/Scout login session or test credentials were created or used.
+- A direct external HTTP probe of `/api/health` was not available from the current execution environment; the service's live deployment state, application startup and Supabase HTTP 200 are confirmed from Render. Do not mark the endpoint probe as passed.
+- The knowledge tables are still empty; therefore MESSINHO cannot yet demonstrate reuse of a persisted approved concept. The first VO2max knowledge pilot is prepared but not complete.
+
+### Next required actions
+1. In the STAGING app, authenticate as an existing approved Admin and ask a general foundation question: `Was ist VO2max?`. Confirm that the result is a compact inactive candidate, not a claim that active knowledge already exists.
+2. In Admin knowledge review, inspect source attribution, two-source corroboration, evidence, rights, definition, limitations and applicability; approve only if all gates pass.
+3. Confirm the candidate becomes active with a durable version and an append-only review record; verify no Scout can approve or inspect Admin-only review controls.
+4. Start a fresh chat and ask `Was ist VO2max?` again. Confirm the response metadata reports a hierarchical knowledge-graph hit/reuse, with no external research call required for the already-known definition.
+5. Verify the record remains available after a service restart and across another Admin/Scout session subject to permissions. Only then mark the pilot passed and begin the staged curriculum import for the next foundational domains.
+6. Keep all work on this feature branch and dedicated STAGING. No merge, main, production or PFMS/PFSS changes.
+
+### Release truth
+- Code/build gate: passed.
+- STAGING deployment: live.
+- Database governance: read-only security checks passed.
+- VO2max active-knowledge import and authenticated reuse: pending.
+- Overall first-knowledge-pilot status: **not yet passed**.
