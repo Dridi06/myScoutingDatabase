@@ -703,6 +703,6 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 
 ### Next steps
 1. The dedicated Render staging service is `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`), linked to `feature/messinho-agent-workspace` with auto-deploy disabled. The connected Supabase account currently exposes only one active project named `myScoutingDatabase` (`vxtybjaabtfhxfwctnyj`); no separate staging database is available in the current project list. Do not run staging smoke tests against this shared/uncertain database or use the main Render service.
-2. Run staging-only API smoke tests with a dedicated non-production account and test players; verify owner scoping, evidence trust, license checks, natural-language filters and actual per-capability results.
-3. Continue capability-by-capability end-to-end tests and only then raise `completion_verified_count`.
-4. Keep PR #46 open and isolated until staging verification is complete and rollout is explicitly approved.
+5. Once staging-only keys are configured, run API smoke tests with a dedicated non-production account and test players; verify owner scoping, evidence trust, license checks, natural-language filters and actual per-capability results.
+6. Continue capability-by-capability end-to-end tests and only then raise `completion_verified_count`.
+7. Keep PR #46 open and isolated until staging verification is complete and rollout is explicitly approved.
