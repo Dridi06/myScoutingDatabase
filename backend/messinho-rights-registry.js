@@ -11,7 +11,7 @@ const VERIFIED_SOURCE_RIGHTS = Object.freeze([
     license_url:'https://creativecommons.org/licenses/by/4.0/',
     rights_holder:'Article authors (authors retain copyright); PLOS ONE publisher',
     evidence_url:'https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0280897',
-    tdm_evidence_url:'https://journals.plos.org/plosone/s/licenses-and-copyright',
+    tdm_evidence_url:'https://api.plos.org/text-and-data-mining.html',
     reviewed_at:'2026-11-26',
     ai_tdm:true,commercial_use:true,derivative_use:true,
     attribution:'Wiecha et al. (2023), External validation of VO2max prediction models based on recreational and elite endurance athletes, PLOS ONE 18(1): e0280897, DOI 10.1371/journal.pone.0280897, CC BY 4.0. MESSINHO created an independently worded summary; changes are indicated.',
@@ -46,10 +46,10 @@ export function verifyMessinhoSourceRights(rights = {}) {
   if (!rights || typeof rights !== 'object' || !rights.source_id) return false;
   const entry = VERIFIED_SOURCE_RIGHTS.find(item => item.source_id === rights.source_id);
   if (!entry || entry.status !== 'verified_permitted') return false;
-  for (const key of ['license', 'license_url', 'rights_holder', 'evidence_url', 'tdm_evidence_url', 'attribution']) {
+  for (const key of ['license', 'license_url', 'rights_holder', 'evidence_url', 'tdm_evidence_url', 'attribution', 'retrieval_method', 'retrieval_url']) {
     if (!entry[key] || entry[key] !== rights[key]) return false;
   }
-  if (!/^https:\/\//i.test(entry.evidence_url)||!/^https:\/\//i.test(entry.license_url)||!/^https:\/\//i.test(entry.tdm_evidence_url)) return false;
+  if (!/^https:\/\//i.test(entry.evidence_url)||!/^https:\/\//i.test(entry.license_url)||!/^https:\/\//i.test(entry.tdm_evidence_url)||!/^https:\/\//i.test(entry.retrieval_url)) return false;
   if (entry.ai_tdm !== true || entry.commercial_use !== true || entry.derivative_use !== true) return false;
   return rights.status === 'verified_permitted' && rights.ai_tdm === true && rights.commercial_use === true && rights.derivative_use === true;
 }
