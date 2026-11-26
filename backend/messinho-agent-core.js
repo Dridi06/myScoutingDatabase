@@ -3,6 +3,7 @@
  * Provider-independent and read-only: no database writes, model activation or external calls.
  */
 import { runMessinhoCapabilityPlanAsync } from './messinho-orchestrator.js';
+import { detectMessinhoKnowledgeGap } from './messinho-evolution.js';
 export const MESSINHO_AGENT_CORE_VERSION='1.0.0';
 export const MAX_AGENT_EXECUTION_BUDGET_MS=8000;
 const VALID_STATUSES=new Set(['completed','verified','proposal_ready','insufficient_data','error','denied','invalid_input','unknown_capability','unverified','needs_review','no_reliable_improvement']);
@@ -28,10 +29,11 @@ export async function executeMessinhoAgentPlan({plan,input={},role='scout',budge
  state.trace=addEvent(state.trace,'plan_accepted',{steps:plan?.steps?.length||0,role});
  if(!plan||plan.denied||!Array.isArray(plan.steps)||!plan.steps.length){
    const phase=plan?.denied?'blocked':'needs_clarification';
-   state={...state,phase,trace:addEvent(state.trace,'planning_stopped',{reason:plan?.denied?'permission_boundary':'no_matching_plan'})};
+   const knowledgeGap=detectMessinhoKnowledgeGap(plan?.goal||state.goal);
+   state={...state,phase,knowledge_gap:knowledgeGap,trace:addEvent(state.trace,'planning_stopped',{reason:plan?.denied?'permission_boundary':'no_matching_plan',knowledge_gap:knowledgeGap.gap,knowledge_gap_reason:knowledgeGap.reason})};
    return {plan,run:{status:plan?.denied?'denied':'needs_clarification',results:[],completed_steps:0,total_steps:0,
      blocked_capabilities:plan?.blocked_capabilities||[],missing_inputs:[],replan_recommended:false,provider_independent:true,model_weights_changed:false},
-     state,validation:{valid:true,expected_steps:0,returned_steps:0}};
+     state,knowledge_gap:state.knowledge_gap||detectMessinhoKnowledgeGap(state.goal),validation:{valid:true,expected_steps:0,returned_steps:0}};
  }
  state={...state,phase:'executing',trace:addEvent(state.trace,'execution_started',{budget_ms:budget,max_steps:plan.steps.length})};
  let run=await runMessinhoCapabilityPlanAsync(plan,input,role,{budgetMs,onStep});
