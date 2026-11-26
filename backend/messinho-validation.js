@@ -68,6 +68,16 @@ export function matchesPosition(requested, positions) {
   });
 }
 
+export function matchesPreferredFoot(requested, observed) {
+  if (!requested) return true;
+  const value = normalize(observed);
+  if (!value) return false;
+  if (requested === 'left') return /(?:left|links|linksfussig)/.test(value);
+  if (requested === 'right') return /(?:right|rechts|rechtsfussig)/.test(value);
+  if (requested === 'both') return /(?:both|beid|ambidextr)/.test(value);
+  return false;
+}
+
 export function sourceSupportsRegion(region, sourceText, currentClub) {
   if (!region) return true;
   const normalizedRegion = normalize(region);
