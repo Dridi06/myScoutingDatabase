@@ -3589,3 +3589,13 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
   2. `rows>0`, status not active: inspect the exact returned status and environment/data divergence.
   3. `active_valid=true` but UI still misses: inspect route canonical key filtering and response construction.
 - Do not insert, approve, duplicate or modify the VO2max knowledge record to mask this retrieval defect. No production changes. Knowledge import and pilot acceptance remain blocked.
+
+
+### Admin screenshot reproduced — canonical lookup hardening — 2026-11-26 23:15 CET
+- Owner repeated the Admin question after the safe-diagnostic deployment; screenshot confirms the same guarded “no active approved entry” response.
+- Render log for this request (22:15:47Z) again shows the canonical VO2max miss. The expected detailed row-count diagnostic was not present in the captured runtime log, so the previous hypothesis about DB project mismatch is not confirmed.
+- Source-path review confirms the route requires the exact canonical concept key in the result returned by `findMessinhoKnowledgeConcepts`. To remove dependency on broad lexical ranking, domain filtering, and result limits, canonical concepts are now fetched through an independent exact-key query on every canonical question; only `knowledge_status='active'` records with non-expired validity are promoted to the top of the result list. The ordinary broad query remains for related concepts.
+- Added a regression test proving the exact canonical query runs even when broad results already contain a noncanonical row. Existing tests continue to cover exact fallback and Unicode VO₂max matching.
+- Code/test commit: `92ff4e8bd3de089d30166dc9c7f42228f0c09651` (includes the unconditional exact-key retrieval patch from `e1205c5`).
+- Dedicated STAGING deployment: `dep-dc4b01bl550s738nhlug`, triggered at 22:17:41Z. Verify build/test output and LIVE status before requesting another user test.
+- No DB rows, approval states, rights, or source records were modified. No production changes. Pilot acceptance and systematic knowledge import remain blocked until a successful authenticated Admin response and subsequent Scout/tenant isolation checks.
