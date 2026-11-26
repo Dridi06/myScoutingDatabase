@@ -82,3 +82,12 @@ test('unregistered, non-HTTPS and lookalike URLs are never accepted',()=>{
   assert.equal(isMessinhoRegisteredSourceUrl(openStaxClaim.source_id,'https://example.com/College-Algebra-2e-WEB.pdf'),false);
   assert.equal(isMessinhoRegisteredSourceUrl(openStaxClaim.source_id,'https://assets.openstax.org/oscms-prodcms/media/documents/College-Algebra-2e-WEB.pdf.evil'),false);
 });
+
+
+test('rights verification blocks sources after their scheduled review deadline',()=>{
+  const approved=getMessinhoVerifiedSourceRightsById('plos_one_vo2max_prediction_2023');
+  assert.ok(approved.review_due_at);
+  assert.equal(verifyMessinhoSourceRights(approved,new Date('2027-11-26T23:59:59.999Z')),true);
+  assert.equal(verifyMessinhoSourceRights(approved,new Date('2027-11-27T00:00:00.000Z')),false);
+  assert.equal(verifyMessinhoSourceRights({...approved,review_due_at:'2028-11-26'},new Date('2027-11-26T12:00:00.000Z')),false);
+});
