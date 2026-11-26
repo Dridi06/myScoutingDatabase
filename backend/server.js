@@ -1863,7 +1863,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         ].filter(Boolean).join('\n\n'));
         const applicationFollowUp=buildMessinhoKnowledgeApplicationFollowUp(knowledgeApplicationQuestion,{conceptKey:canonicalConceptKey,knowledgeLevel:first.knowledge_level});
         return respond({
-          reply:'Ich habe das freigegebene Grundlagenwissen direkt aus meinem Wissensnetz abgerufen.\\n\\n'+sections.join('\\n\\n')+(applicationFollowUp?'\\n\\n'+applicationFollowUp.reply:''),
+          reply:'Ich habe das freigegebene Grundlagenwissen direkt aus meinem Wissensnetz abgerufen.\n\n'+sections.join('\n\n')+(applicationFollowUp?'\n\n'+applicationFollowUp.reply:''),
           intent:applicationFollowUp?'knowledge_application_clarification':'structured_knowledge_graph_hit',
           pending:Boolean(applicationFollowUp),
           follow_up:applicationFollowUp?.follow_up||null,
