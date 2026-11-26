@@ -3561,3 +3561,18 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - The runtime exception was confirmed from the pre-fix log. The post-fix deployment starts successfully. A browser-authenticated repeat of the exact Admin chat request is still required to prove the user-facing route now completes; this environment has no authenticated browser session. Do not claim the VO2max pilot is accepted yet.
 - Next acceptance step: owner refreshes the STAGING page (hard reload / reopen), repeats the same Admin question, and shares the reply. If the first turn returns the targeted clarification, supply the requested VO2max data in the next turn to verify continuation. Then complete the Scout and tenant-isolation checks.
 - Systematic knowledge import remains blocked until live Admin/Scout acceptance passes. Production, `main`, PFMS and PFSS remain untouched; no merge or production release was made.
+
+
+### VO2max knowledge retrieval miss after runtime fix — 2026-11-26 23:06 CET
+- Owner repeated the Admin chat test after the missing helper import was fixed. The chat route now returns a normal MESSINHO response instead of the previous generic processing error.
+- New live result: MESSINHO identifies the question as a foundation question but reports no active approved knowledge entry. This is a retrieval defect, not a missing database record.
+- Read-only Supabase inspection of project `nwqwnrhupbyhshsprxjt` confirmed that `messinho_knowledge_concepts` contains the canonical record `sports_science.physiology.vo2max`, status `active`, validity open-ended, confidence 0.880, evidence grade B, two rights-verified sources and one claim corroborated by both sources. No status or data mutation was made.
+- Source review found the broad lookup applied a PostgREST validity OR expression and then used a similar expression in the canonical exact-key fallback. The exact canonical fallback should not depend on the broad query's OR filter.
+- Changed `backend/messinho-knowledge-graph.js`: canonical fallback now queries the exact active concept key without the broad validity OR expression and enforces `valid_until` in application code. It still requires `knowledge_status='active'`; it does not promote candidates or bypass approval.
+- Added regression test in `tests/messinho-knowledge-graph.test.js` to verify that an exact active VO2max concept remains retrievable when the broad query returns no rows.
+- Code commit: `263f7d14b2d13e839f331ea8d149390b1f55ade3`.
+- Test commit: `63729e3954c3058bfd109780aedbc96ce7009852`.
+- Dedicated STAGING deployment triggered for tested branch head: `dep-dc4aqkui0phs739lagkg`, commit `63729e3954c3058bfd109780aedbc96ce7009852`. At time of this note the deployment was still building; verify final status before claiming LIVE.
+- Next: verify Render build output and 330-test count; once LIVE, owner repeats the exact Admin question. Expected: MESSINHO retrieves the active VO2max foundation, explains the concept with source evidence, then asks only for player-specific inputs. Continue with the second-turn test data and then Scout/tenant isolation.
+- Do not change the active knowledge row, rights, sources, or review status to mask a retrieval problem. Systematic knowledge import and VO2max pilot acceptance remain gated.
+- Production, `main`, PFMS and PFSS remain untouched.
