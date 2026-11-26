@@ -53,6 +53,20 @@ function toSI(metric, dimension, defaultUnit) {
   return metric.value * factor;
 }
 function round(value, digits=3) { return Number(value.toFixed(digits)); }
+function speedToKmh(metric) {
+  if (!metric) return null;
+  const unit = normalizeKey(metric.unit || '');
+  if (unit === 'kmh' || (!unit && /_(?:kmh|kmproh)$/.test(normalizeKey(metric.source_key)))) return metric.value;
+  if (unit === 'ms' || unit === 'mps' || (!unit && /_(?:ms|mps)$/.test(normalizeKey(metric.source_key)))) return metric.value * 3.6;
+  return null;
+}
+function jumpToCm(metric) {
+  if (!metric) return null;
+  const unit = normalizeKey(metric.unit || '');
+  if (unit === 'cm' || (!unit && /_(?:cm)$/.test(normalizeKey(metric.source_key)))) return metric.value;
+  if (unit === 'm' || (!unit && /_(?:m)$/.test(normalizeKey(metric.source_key)))) return metric.value * 100;
+  return null;
+}
 
 export function buildMessinhoPerformanceIntelligence(input={}, goal='') {
   const measurements = {};
@@ -81,30 +95,33 @@ export function buildMessinhoPerformanceIntelligence(input={}, goal='') {
     }
   }
   if (topSpeed) {
-    const kmh = normalizeKey(topSpeed.unit || 'kmh') === 'kmh' ? topSpeed.value : normalizeKey(topSpeed.unit || '') === 'ms' || normalizeKey(topSpeed.unit || '') === 'mps' ? topSpeed.value*3.6 : null;
+    const kmh = speedToKmh(topSpeed);
     if (kmh !== null && kmh >= 0 && kmh <= 60) {
       measurements.top_speed_kmh = round(kmh,2);
       findings.push({type:'measured_physics',metric:'top_speed',value:round(kmh,2),unit:'km/h',basis:'explizit angegebener Messwert'});
     }
   }
   if (jump) {
-    const cm = normalizeKey(jump.unit || 'cm') === 'm' ? jump.value*100 : normalizeKey(jump.unit || 'cm') === 'cm' ? jump.value : null;
+    const cm = jumpToCm(jump);
     if (cm !== null && cm >= 0 && cm <= 150) {
       measurements.vertical_jump_cm = round(cm,1);
       findings.push({type:'measured_physics',metric:'vertical_jump',value:round(cm,1),unit:'cm',basis:'explizit angegebener Messwert'});
     }
   }
   if (shotSpeed) {
-    const kmh = normalizeKey(shotSpeed.unit || 'kmh') === 'kmh' ? shotSpeed.value : normalizeKey(shotSpeed.unit || '') === 'ms' || normalizeKey(shotSpeed.unit || '') === 'mps' ? shotSpeed.value*3.6 : null;
+    const kmh = speedToKmh(shotSpeed);
     if (kmh !== null && kmh >= 0 && kmh <= 250) {
       measurements.shot_speed_kmh = round(kmh,1);
       findings.push({type:'measured_physics',metric:'shot_speed',value:round(kmh,1),unit:'km/h',basis:'explizit angegebener Messwert'});
     }
   }
   if (ballMass && shotSpeed) {
-    const kg = ballMass.value;
-    const speedMs = normalizeKey(shotSpeed.unit || 'kmh') === 'kmh' ? shotSpeed.value/3.6 : shotSpeed.value;
-    if (kg > 0 && kg <= 1 && speedMs >= 0 && speedMs <= 70) {
+    const massUnit = normalizeKey(ballMass.unit || '');
+    const massKeyHasKg = /_kg$/.test(normalizeKey(ballMass.source_key));
+    const kg = massUnit === 'kg' || (!massUnit && massKeyHasKg) ? ballMass.value : null;
+    const speedUnit = normalizeKey(shotSpeed.unit || '');
+    const speedMs = speedUnit === 'kmh' ? shotSpeed.value/3.6 : ['ms','mps'].includes(speedUnit) ? shotSpeed.value : null;
+    if (kg !== null && kg > 0 && kg <= 1 && speedMs !== null && speedMs >= 0 && speedMs <= 70) {
       const energy = .5 * kg * speedMs ** 2;
       findings.push({type:'derived_physics',metric:'ball_kinetic_energy',value:round(energy,2),unit:'J',formula:'E = ½ · m · v²',basis:'explizite Ballmasse und gemessene Ballgeschwindigkeit',interpretation:'Physikalische Bewegungsenergie des Balls; kein Maß für Schusspräzision oder Torwahrscheinlichkeit.'});
     }
