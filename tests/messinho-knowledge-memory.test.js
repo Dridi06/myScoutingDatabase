@@ -114,3 +114,18 @@ test('does not persist current knowledge without explicit freshness evidence',()
  assert.equal(isMessinhoKnowledgePersistable('Wer ist aktuell der Trainer?',currentResearch),false);
  assert.equal(buildMessinhoKnowledgeRecord(ownerA,'Wer ist aktuell der Trainer?',currentResearch,now),null);
 });
+
+
+test('bounds live standings memory to the seven-day freshness window',()=>{
+ const currentResearch={
+  ...research,
+  sources:[
+   {...research.sources[0],published_date:'2026-11-22'},
+   {...research.sources[1],published_date:'2026-11-23'}
+  ],
+  evidence:{can_answer:true,limitations:[],freshness:{required:true,status:'current_sources',fresh_source_count:2,fresh_distinct_domains:2,max_age_days:7}}
+ };
+ const row=buildMessinhoKnowledgeRecord(ownerA,'Wie ist aktuell der Tabellenstand?',currentResearch,now);
+ assert.ok(row);
+ assert.equal(Date.parse(row.expires_at),Date.parse('2026-11-29T00:00:00.000Z'));
+});
