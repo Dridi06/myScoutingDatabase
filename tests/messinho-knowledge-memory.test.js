@@ -15,7 +15,7 @@ const research={
   {title:'Atmospheric optics',url:'https://a.example/sky',publisher:'a.example',snippet:'Blue light has a shorter wavelength and is scattered more strongly by molecules in Earth atmosphere. '.repeat(2)},
   {title:'Rayleigh scattering',url:'https://b.example/sky',publisher:'b.example',snippet:'Rayleigh scattering explains why short wavelengths are scattered more efficiently in the atmosphere. '.repeat(2)}
  ],
- evidence:{can_answer:true,limitations:[]}
+ evidence:{can_answer:true,limitations:[]},quality_control:{passed:true,iterations:2,score:9}
 };
 
 test('normalizes equivalent German questions to the same fingerprint',()=>{
@@ -25,6 +25,7 @@ test('normalizes equivalent German questions to the same fingerprint',()=>{
 test('only persists completed research with substantial independent HTTPS sources',()=>{
  assert.equal(isMessinhoKnowledgePersistable('Warum ist der Himmel blau?',research),true);
  assert.equal(isMessinhoKnowledgePersistable('Warum ist der Himmel blau?',{...research,evidence:{can_answer:false}}),false);
+ assert.equal(isMessinhoKnowledgePersistable('Warum ist der Himmel blau?',{...research,quality_control:{passed:false}}),false);
  assert.equal(isMessinhoKnowledgePersistable('Warum ist der Himmel blau?',{...research,sources:[research.sources[0],{...research.sources[1],url:'https://a.example/other'}]}),false);
  assert.equal(isMessinhoKnowledgePersistable('Wie geht es meiner Familie?',research),false);
  assert.equal(isMessinhoKnowledgePersistable('Wie lautet meine Mail test@example.com?',research),false);
