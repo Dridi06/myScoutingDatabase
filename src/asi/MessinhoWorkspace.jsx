@@ -1,6 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {BrainCircuit,Send,ShieldCheck,Database,Search,Users,MessageCircle,Clock3,LoaderCircle,ThumbsUp,ThumbsDown} from 'lucide-react';
 import './messinho.css';
+import MessinhoKnowledgeReviewPanel from './MessinhoKnowledgeReviewPanel.jsx';
 
 export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},compact=false}){
   const [messages,setMessages]=useState([{id:'welcome',role:'assistant',text:'Hallo! Ich bin Messinho, dein Scouting-Agent. Beschreibe einfach dein Ziel in normaler Sprache. Ich nutze die dafür bereits verfügbaren Analyse- und Scouting-Schritte automatisch, berücksichtige den Gesprächsverlauf und sage dir offen, wenn Daten oder Belege fehlen.'}]);
@@ -290,6 +291,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     <details className="messinho-help-bundle">
       <summary><span><strong>Hilfe, Erklärungen & Agentenfunktionen</strong><small>Gebündelte Informationen, Lernwerkzeuge, Entwicklungszyklus und Status</small></span><span className="messinho-help-chevron">⌄</span></summary>
       <div className="messinho-help-content">
+    {profile?.role==='admin'&&<MessinhoKnowledgeReviewPanel supabase={supabase} profile={profile}/>}
     {profile?.role==='admin'&&<section className="messinho-feedback-admin">
       <div className="messinho-learning-summary"><strong>MESSINHO · Feedback-Prüfung</strong><small>{feedbackQueue.length} offene Rückmeldungen · getrennt von verifizierten Spielergebnissen</small></div>
       <div className="messinho-feedback-admin-actions"><button type="button" className="secondary" disabled={feedbackQueueBusy} onClick={loadFeedbackQueue}>{feedbackQueueBusy?'Lädt …':'Feedback aktualisieren'}</button></div>
