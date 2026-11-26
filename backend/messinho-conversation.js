@@ -150,18 +150,18 @@ export function resolveMessinhoLiveQuestion(message, { now = new Date(), timeZon
  * knowledge is requested for player-specific application.
  * This helper never estimates a value or creates a player rating.
  */
-export function buildMessinhoKnowledgeApplicationFollowUp(question, { conceptKey = null, player = null, now = new Date() } = {}) {
+export function buildMessinhoKnowledgeApplicationFollowUp(question, { conceptKey = null, player = null, knowledgeLevel = 'foundational' } = {}) {
   if (conceptKey !== 'sports_science.physiology.vo2max') return null;
   const text = normalizeSocialText(question);
-  if (!text || text.length > 1200) return null;
-  const asksApplication = /\b(nutzen|anwenden|anwend|ordne|einordnen|interpretieren|leistungsbewertung|bewerte|bewerten|beurteilen|einschaetzen|einschätzen|ausdauerleistungsfaehigkeit|ausdauerleistungsfähigkeit|welche informationen|welche daten|was benoetigst|was benötigst|was brauche ich|zusaetzlich|zusätzlich)\b/.test(text);
+  if (!text || text.length > 1600) return null;
+  const asksApplication = /\b(nutzen|anwenden|anwend|ordne|einordnen|interpretieren|leistungsbewertung|bewerte|bewerten|beurteilen|einschaetzen|ausdauerleistungsfaehigkeit|welche informationen|welche daten|was benoetigst|was brauche ich|zusaetzlich)\b/.test(text);
   if (!asksApplication) return null;
 
   const raw = String(question || '');
-  const hasValue = /\b\d{1,2}(?:[.,]\d+)?\s*(?:ml\s*[·.]?\s*kg\s*(?:\/|\*|·)\s*min(?:\s*[-−]?\s*1)?|ml\/kg\/min)\b/i.test(raw)
-    || /\bvo\s*[₂2]?\s*max\s*[:=]?\s*\d{1,2}(?:[.,]\d+)?\b/i.test(raw);
+  const hasValue = /\b\d{1,3}(?:[.,]\d+)?\s*(?:ml\s*[·.]?\s*kg\s*(?:\/|\*|·)\s*min(?:\s*[-−]?\s*1)?|ml\/kg\/min)\b/i.test(raw)
+    || /\bvo\s*[₂2]?\s*max\s*[:=]?\s*\d{1,3}(?:[.,]\d+)?\b/i.test(raw);
   const directMethod = /spiroergometrie|\bcpet\b|direkt gemessen|direktmessung/i.test(raw);
-  const estimatedMethod = /geschaetzt|geschätzt|schaetzung|schätzung|feldtest|lauftest|yo.?yo|beep.?test|indirekt bestimmt|vorhersage|prediction/i.test(raw);
+  const estimatedMethod = /geschaetzt|schaetzung|feldtest|lauftest|yo.?yo|beep.?test|indirekt bestimmt|vorhersage|prediction/i.test(text);
   const hasMethod = directMethod || estimatedMethod;
   const hasDate = /\b(?:20\d{2}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}\.\d{2,4})\b/.test(raw);
 
@@ -169,8 +169,8 @@ export function buildMessinhoKnowledgeApplicationFollowUp(question, { conceptKey
   // A birth year alone is not an exact age: the birthday may not have occurred yet.
   const hasAge = playerAge !== null || /\b\d{2}\s*(?:jahre|j\.?)\b/i.test(raw);
   const playerPositions = Array.isArray(player?.positions) ? player.positions.filter(Boolean) : player?.position ? [player.position] : [];
-  const hasPosition = playerPositions.length > 0 || /\b(torwart|innenverteidiger|aussenverteidiger|außenverteidiger|verteidiger|mittelfeld|stuermer|stürmer|fluegel|flügel|position)\b/i.test(raw);
-  const hasTrainingContext = Boolean(player?.training_status || player?.training_level || /\b(trainingsstatus|trainingsumfang|trainingsniveau|leistungssportler|amateur|profi|semiprofi)\b/i.test(raw));
+  const hasPosition = playerPositions.length > 0 || /\b(torwart|innenverteidiger|aussenverteidiger|verteidiger|mittelfeld|stuermer|fluegel|position)\b/.test(text);
+  const hasTrainingContext = Boolean(player?.training_status || player?.training_level || /\b(trainingsstatus|trainingsumfang|trainingsniveau|leistungssportler|amateur|profi|semiprofi)\b/.test(text));
 
   const missing = [];
   if (!hasValue) missing.push({ key: 'vo2max_value', label: 'VO₂max-Messwert mit Einheit (üblicherweise ml/kg/min)' });
@@ -187,18 +187,34 @@ export function buildMessinhoKnowledgeApplicationFollowUp(question, { conceptKey
       : 'Ohne Testverfahren kann ich direkte Messwerte und Schätzwerte nicht gleichsetzen.';
   const missingText = missing.length
     ? 'Bitte ergänze noch: ' + missing.map(item => item.label).join('; ') + '.'
-    : 'Die wichtigsten Angaben sind vorhanden. Ich kann die Einordnung anschließend mit Messmethode, Kontext und Datenqualität vornehmen.';
+    : 'Die erforderlichen Angaben liegen vor. Ich kann die Messung methodisch und im Spielerkontext beschreiben. Der aktive Wissenseintrag ist derzeit Grundlagenwissen; ohne freigegebene, passende Referenzdaten vergebe ich keine Normrangfolge, keinen Perzentilwert und keinen Spieler-Score.';
   return {
     reply: 'Für eine konkrete Einordnung eines Spielers brauche ich die folgenden Angaben. ' + methodNote + ' ' + missingText
       + ' Ein absoluter Wert in L/min müsste zusätzlich mit der Körpermasse in Beziehung gesetzt werden. Aus der VO₂max allein erstelle ich keinen Gesamt-, Positions- oder Talent-Score.',
     follow_up: {
       kind: 'vo2max_player_application',
+      status: missing.length ? 'needs_input' : 'ready_for_descriptive_context_only',
       required_inputs: missing.map(item => item.key),
       missing_inputs: missing.map(item => item.label),
       method_classification: directMethod ? 'direct_cpet' : estimatedMethod ? 'estimated_or_field_test' : 'not_provided',
+      knowledge_level: knowledgeLevel,
       player_context: { age_available: hasAge, position_available: hasPosition, training_context_available: hasTrainingContext },
+      comparative_norms_available: false,
       score_created: false,
       estimated_value_created: false
     }
   };
+}
+
+/** Detect whether the next chat turn plausibly supplies a requested VO2max input. */
+export function isMessinhoVo2maxApplicationDataReply(message) {
+  const raw = String(message || '');
+  const text = normalizeSocialText(raw);
+  if (!text || text.length > 1200) return false;
+  return /\b\d{1,3}(?:[.,]\d+)?\s*ml\s*[\/·.]?\s*kg/i.test(raw)
+    || /\b(?:cpet|spiroergometrie|feldtest|lauftest|geschätzt|geschaetzt|direkt gemessen)\b/i.test(text)
+    || /\b\d{2}\s*(?:jahre|j\.?)\b/i.test(raw)
+    || /\b(?:torwart|innenverteidiger|aussenverteidiger|verteidiger|mittelfeld|stuermer|fluegel)\b/i.test(text)
+    || /\b(?:trainingsstatus|trainingsumfang|trainingsniveau|leistungssportler|amateur|profi|semiprofi)\b/i.test(text)
+    || /\b(?:20\d{2}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}\.\d{2,4})\b/.test(raw);
 }
