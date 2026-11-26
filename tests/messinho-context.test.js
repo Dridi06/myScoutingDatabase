@@ -6,7 +6,7 @@ import { sanitizeMessinhoHistory } from '../backend/messinho-engine.js';
 test('a bare birth-year range follows the previous conversation instead of becoming subtraction', () => {
   const history = [
     { role: 'user', text: 'Wir sprechen über den Geburtsjahrgang von Spielern.' },
-    { role: 'assistant', text: 'Wir hatten den Geburtsjahrgang als Thema.' }
+    { role: 'assistant', text: 'Ja, das war unser Thema.' }
   ];
   const result = parseMessinhoScoutingRequest('2004-2006', history, 2026);
   assert.equal(result.shouldHandle, false);
