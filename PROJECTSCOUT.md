@@ -1041,3 +1041,11 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - **Staging health smoke:** passed (run `45754793292`). Full test/syntax/build CI for this exact commit is still to be confirmed.
 - **Release boundary:** not yet deployed. Production untouched. PR #47 remains draft/unmerged.
 - **Next:** verify all CI checks; fix any failures; then manually deploy only to the Staging Render service and verify the exact deployed commit. Authenticated in-app tests still required.
+
+### Implementation follow-up — social engine wired to chat
+
+- Updated `backend/server.js` so the existing authenticated MESSINHO chat passes recent conversation history into `getMessinhoSocialReply`.
+- Normalized German umlauts and ß, including variants such as “Wie geht’s?”, “Tschüss”, “Dankeschön”, and “müde”.
+- Corrected intent detection to avoid intercepting explicit scouting/work requests.
+- Latest code head: `dd545fbc35d97ce4eeb06a84384e31a57f75fcaf`.
+- Tests were expanded, but automated Node/syntax/build results for this exact head have not yet been returned by GitHub Actions. Staging deployment is therefore pending verification; do not claim live yet.
