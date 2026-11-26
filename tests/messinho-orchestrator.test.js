@@ -370,3 +370,11 @@ test('automated talent search asks for meaningful filters instead of returning t
   assert.equal(result.status, 'insufficient_data');
   assert.ok(result.missing_inputs.includes('search_filters'));
 });
+
+
+test('natural-language talent discovery goals dispatch automatically without a manual skill selector',()=>{
+  const plan=planMessinhoCapabilities('Finde Stürmer zwischen 18 und 21 Jahren, Jahrgang 2005 bis 2008','scout');
+  assert.ok(plan);
+  assert.ok(plan.steps.includes('automated_talent_search'));
+  assert.equal(plan.denied,false);
+});
