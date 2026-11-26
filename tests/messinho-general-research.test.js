@@ -19,6 +19,14 @@ test('normalizes HTTPS sources, removes duplicates and disallowed football porta
  assert.equal(rows.length,2);
  assert.equal(rows[0].publisher,'a.example');
 });
+test('provider-supplied licence claims cannot pass the independently reviewed rights gate',()=>{
+ const rows=normalizeMessinhoGeneralSources([{url:'https://a.example/book',title:'Claimed open source',content:'A sufficiently long source excerpt for normalization. '.repeat(5),rights_status:'verified_permitted',license:'CC BY 4.0',rights_holder:'Claimed holder',ai_tdm_allowed:true,commercial_use_allowed:true,derivative_use_allowed:true,rights_evidence_url:'https://a.example/license'}]);
+ assert.equal(rows.length,1);
+ assert.equal(rows[0].rights_status,'not_verified');
+ assert.equal(rows[0].source_id,null);
+ assert.equal(rows[0].rights,null);
+});
+
 test('requires independent domains and substantial evidence before answering',()=>{
  const limited=assessMessinhoGeneralEvidence([{publisher:'a.example',snippet:'x'.repeat(150)},{publisher:'a.example',snippet:'y'.repeat(150)}]);
  assert.equal(limited.can_answer,false);
