@@ -887,3 +887,13 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - Migration now enables RLS, grants owner-only authenticated read policy as defense in depth, revokes direct `anon`/`authenticated` table access, and grants CRUD only to backend `service_role`. This follows Supabase's 2026 Data API guidance that new public tables are not automatically exposed and require explicit grants.
 - Render staging remains configured with auto-deploy disabled. No Render deployment or production change has been made.
 - **Required before staging end-to-end test:** provide or create a dedicated myScoutingDatabase staging Supabase project and configure its credentials only in the staging Render service; then apply the migration to that staging project and verify the task list/resume flow.
+
+
+### Konfigurationsabgleich Staging vs. LIVE — 2026-11-26
+- Owner authorized aligning the staging AI-provider configuration with LIVE while keeping the LIVE service and production database untouched.
+- Render service comparison: both services use Node, Frankfurt, `npm install --no-audit --no-fund && npm run build` (LIVE build command differs only by omitting the audit flags), and `npm start`. Staging remains on `feature/messinho-agent-workspace` with auto-deploy off; LIVE remains on `main` with auto-deploy on.
+- Latest available LIVE startup logs confirm Supabase server credentials present, Tavily=true, OpenAI=true, model `gpt-4.1-mini`, and successful Supabase Data API response. Logs expose only presence/status, not secret values.
+- Latest available STAGING startup logs still report Supabase service-role/secret key missing and Tavily=false/OpenAI=false. No staging environment variables were changed because Render's available integration can update variables but cannot read/copy the source service's secret values; never fabricate or expose secrets.
+- Supabase project inventory still shows only one `myScoutingDatabase` project (`vxtybjaabtfhxfwctnyj`) plus unrelated PFSS/PFFS test projects. The sole myScoutingDatabase project is treated as production. **Do not copy LIVE Supabase URL/keys into staging**, because that would connect staging to production and violate the no-production-mutation boundary.
+- Next safe action: user must enter/copy only the AI-provider credentials (e.g. OpenAI and Tavily keys) from LIVE into the STAGING Render Environment page, without copying any production Supabase credentials. For full authenticated agent/task-ledger tests, a dedicated myScoutingDatabase staging Supabase project is still required; do not apply the task-ledger migration to the sole production project.
+- No environment change, deployment, database migration, or production mutation was performed in this configuration-check step.
