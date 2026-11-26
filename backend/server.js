@@ -24,6 +24,7 @@ import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMe
 import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
 import { calculateMessinhoMathQuestion } from './messinho-math.js';
+import { startMessinhoBackgroundWorker, MESSINHO_BACKGROUND_READ_ONLY } from './messinho-background-worker.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -1144,6 +1145,30 @@ async function finalizeMessinhoAgentTask(taskId,ownerId,run,priorResults=[],atte
 }
 
 
+const messinhoTaskResumeLimiter=rateLimit({windowMs:60*60*1000,limit:10,standardHeaders:true,legacyHeaders:false});
+app.post('/api/messinho/tasks/:taskId/autonomous-resume',messinhoTaskResumeLimiter,async(req,res)=>{
+  try{
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    const taskId=String(req.params.taskId||'');
+    if(!/^[0-9a-f-]{36}$/i.test(taskId))return res.status(400).json({error:'Ungültige Aufgaben-ID.'});
+    const {data:task,error:readError}=await db.from('messinho_agent_tasks')
+      .select('id,status,pending_capabilities,expires_at,attempt_count')
+      .eq('id',taskId).eq('owner_id',actor.profile.id).maybeSingle();
+    if(readError)return res.status(500).json({error:'Aufgabe konnte nicht geprüft werden.'});
+    if(!task)return res.status(404).json({error:'Aufgabe nicht gefunden.'});
+    if(!['partial','queued'].includes(task.status))return res.status(409).json({error:'Nur unvollständige oder wartende Aufgaben können freigegeben werden.'});
+    const pending=Array.isArray(task.pending_capabilities)?task.pending_capabilities:[];
+    const unsafe=pending.filter(id=>!MESSINHO_BACKGROUND_READ_ONLY.includes(id));
+    if(!pending.length||unsafe.length)return res.status(409).json({error:'Diese Aufgabe enthält keine ausschließlich lesenden, für Hintergrundfortsetzung freigegebenen Arbeitsschritte.',blocked_capabilities:unsafe});
+    if(Date.parse(task.expires_at||'')<=Date.now()||Number(task.attempt_count||0)>=4)return res.status(409).json({error:'Aufgabe abgelaufen oder Versuchslimit erreicht.'});
+    const {data:updated,error}=await db.from('messinho_agent_tasks').update({
+      autonomous_resume_enabled:true,status:'queued',next_retry_at:null,last_error:null,updated_at:new Date().toISOString()
+    }).eq('id',taskId).eq('owner_id',actor.profile.id).in('status',['partial','queued']).select('id,status,autonomous_resume_enabled').maybeSingle();
+    if(error)return res.status(500).json({error:'Freigabe konnte nicht gespeichert werden.'});
+    if(!updated)return res.status(409).json({error:'Aufgabenstatus hat sich geändert. Bitte erneut laden.'});
+    return res.json({ok:true,task:updated,message:'Hintergrundfortsetzung wurde ausdrücklich freigegeben.'});
+  }catch(error){console.error('MESSINHO task resume opt-in failed:',error.message);return res.status(500).json({error:'Freigabe konnte nicht verarbeitet werden.'});}
+});
 const messinhoResearchLimiter=rateLimit({windowMs:60*60*1000,limit:12,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Marktwert-Recherchen. Bitte später erneut versuchen.'}});
 app.post('/api/messinho/research/market-value',messinhoResearchLimiter,async(req,res)=>{
   try{
@@ -1751,4 +1776,4 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
 
 app.use(express.static('dist',{maxAge:'1h',setHeaders(res,path){if(path.endsWith('/index.html'))res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');}}));
 app.get(/^(?!\/api\/).*/,(_req,res)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');res.sendFile(process.cwd()+'/dist/index.html');});
-app.listen(PORT,async()=>{console.log(`myScoutingDatabase API listening on ${PORT}`);console.log(`ASI SEARCH CHECK: Tavily=${Boolean(process.env.TAVILY_API_KEY)} OpenAI=${Boolean(process.env.OPENAI_API_KEY)} Model=${process.env.OPENAI_MODEL||'gpt-4.1-mini'}`);await diagnoseSupabase();try{await bootstrapAdmin();}catch(e){console.error('Admin bootstrap failed:',e.message);}});
+app.listen(PORT,async()=>{console.log(`myScoutingDatabase API listening on ${PORT}`);const messinhoWorker=startMessinhoBackgroundWorker({db});process.on('SIGTERM',()=>messinhoWorker.stop());process.on('SIGINT',()=>messinhoWorker.stop());console.log(`ASI SEARCH CHECK: Tavily=${Boolean(process.env.TAVILY_API_KEY)} OpenAI=${Boolean(process.env.OPENAI_API_KEY)} Model=${process.env.OPENAI_MODEL||'gpt-4.1-mini'}`);await diagnoseSupabase();try{await bootstrapAdmin();}catch(e){console.error('Admin bootstrap failed:',e.message);}});
