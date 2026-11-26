@@ -3733,3 +3733,20 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Next engineering task: inspect Supabase schema, migrations, RPCs and RLS for concepts/versions/conflicts/reviews; design the smallest safe staging-only canonical lifecycle and promotion transaction. Add regression tests for duplicate submissions, evidence merge, challenger quality, false improvements, atomic concurrent promotion, rollback, permissions and tenant isolation. Do not migrate or write to Supabase until this inspection is complete and impact is understood.
 - No knowledge is deleted, imported, activated or replaced by this requirement. No production/main/PFMS/PFSS changes, no code execution/self-modification, and no change to rights allowlist or guardrails.
 - Documentation commit: 10865b22d079dd7fd752690e3b8a9ea9ce1588d4.
+
+
+## Accepted requirement — protected player and scout records / Admin authority — 2026-11-27
+
+**Owner decision — binding security and data-governance rule for MESSINHO.**
+
+- MESSINHO is strictly read/analyze/propose for protected operational records. It must never independently create, edit, delete, approve/release, activate, deactivate, lock, unlock, or otherwise change player records or registered scout accounts.
+- **Player records:** MESSINHO may read permitted player records and inspect stored values for plausibility, consistency, completeness, contradictions, outliers and freshness. It may calculate analyses and assessments from the existing data.
+- **New player values or information:** when MESSINHO independently researches or receives new values, it may validate source rights/provenance, compare the information with the current player record, recalculate metrics, re-analyze and re-assess the player, and explain differences and uncertainty. It must present a proposed update/assessment to an authorized Admin. It must not write those values into the player record itself.
+- **Registered scouts:** MESSINHO must not edit scout profile/registration data, change roles or permissions, approve or release registrations, suspend/lock/unlock accounts, or delete scout accounts. These actions remain exclusively under Admin authority.
+- **Admin supremacy:** the Admin remains the final decision-maker for protected data and account operations. An analysis, confidence score, automated recommendation, scheduled job, learning process, or autonomous agent plan never constitutes approval.
+- **Technical enforcement required:** enforce this boundary server-side, not only in prompts or UI. Use least-privilege read-only access for MESSINHO on player/scout records; deny write/delete/approval mutations at API/service/database/RLS boundaries. Any proposal must be stored separately from the source record (or returned without persistence) and be clearly marked as pending Admin review. Only an authenticated, authorized Admin action may apply an approved change through the existing audited workflow.
+- **No indirect bypass:** the same prohibition applies to tools, capability handlers, background jobs, orchestration retries, learning/compaction processes, RPCs and service-role credentials. Do not let MESSINHO invoke a generic update/delete endpoint or inherit broad database credentials.
+- **Tests required:** prove that MESSINHO cannot mutate player rows or registered scout accounts through direct API calls, tool calls, RPCs, background execution, cross-tenant attempts or forged Admin context; prove it can read/analyze allowed values and prepare a proposal; prove only an authorized Admin can approve and apply a proposed change; verify audit history and tenant isolation.
+- This rule does not prohibit MESSINHO from updating its own permitted knowledge/evidence artifacts under the separately approved knowledge-governance lifecycle. It does not authorize changes to player/scout source records.
+- **Status:** accepted requirement, implementation and enforcement not yet verified. Do not claim protected-write prevention is implemented until code, database policies and adversarial tests demonstrate it.
+
