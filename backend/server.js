@@ -1329,7 +1329,7 @@ const MESSINHO_PLAYER_CAPABILITIES=new Set([
 ]);
 const MESSINHO_ROSTER_CAPABILITIES=new Set([
  'squad_research','club_need_research','automated_talent_search','hidden_gem_detection',
- 'underdog_detection','comparable_player_research'
+ 'underdog_detection','comparable_player_research','cross_league_research'
 ]);
 const MESSINHO_HISTORY_CAPABILITIES=new Set([
  'performance_development','form_curve_analysis','potential_analysis','potential_score','talent_score',
@@ -1339,7 +1339,7 @@ const MESSINHO_HISTORY_CAPABILITIES=new Set([
 const MESSINHO_EVIDENCE_CAPABILITIES=new Set([
  'identity_verification','birth_year_verification','position_verification','source_cross_check',
  'rumour_verification','research_report_generation','international_research','contract_research',
- 'contract_expiry_monitor','video_source_research','statistics_research','match_report_research'
+ 'contract_expiry_monitor','video_source_research','statistics_research','match_report_research','player_data_refresh'
 ]);
 const MESSINHO_EVENT_CAPABILITIES=new Set([
  'video_event_analysis','creativity_analysis','decision_quality_analysis','game_phase_analysis',
@@ -1637,8 +1637,9 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         ]);
         if(rosterResult.error||candidateResult.error)return res.status(500).json({error:'Der Spieler- und Kandidatenbestand konnte für diese Aufgabe nicht vollständig geladen werden.'});
         const roster=rosterResult.data||[],candidatePool=candidateResult.data||[];
-        const seen=new Set(players.map(item=>String(item.player_id||item.id)));
-        players=[...players,...roster.filter(item=>!seen.has(String(item.player_id||item.id))),...candidatePool.filter(item=>!seen.has(String(item.player_id||item.id)))];
+        const merged=new Map(players.map(item=>[String(item.player_id||item.id),item]));
+        for(const item of [...roster,...candidatePool]){const key=String(item.player_id||item.id);if(!merged.has(key))merged.set(key,item);}
+        players=[...merged.values()];
       }
       const requiresNamedPlayer=automaticPlan.steps.some(id=>MESSINHO_PLAYER_CAPABILITIES.has(id));
       if(!player&&!requiresNamedPlayer){
