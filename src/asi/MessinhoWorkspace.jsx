@@ -12,6 +12,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   const [messages,setMessages]=useState([{id:'welcome',role:'assistant',text:'Hallo! Ich bin Messinho, dein Scouting-Agent. Ich kann zunächst deinen Datenbestand auswerten, gespeicherte Kandidaten anzeigen und Spieler im vorhandenen Katalog suchen. Deine verifizierten Kalibrierungsdaten helfen, die Bewertungslogik kontrolliert zu verbessern.'}]);
   const [draft,setDraft]=useState('');
   const [busy,setBusy]=useState(false);
+  const [streamProgress,setStreamProgress]=useState('');
   const [listening,setListening]=useState(false);
   const [voiceOutput,setVoiceOutput]=useState(true);
   const [voiceAvailable,setVoiceAvailable]=useState(false);
@@ -61,19 +62,59 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   async function send(text=draft){
     const value=String(text||'').trim();
     if(!value||busy)return;
-    setDraft('');setError('');
+    setDraft('');setError('');setStreamProgress('Messinho plant die Arbeitsschritte …');
     setMessages(prev=>[...prev,{id:'u-'+Date.now(),role:'user',text:value}]);
     setBusy(true);
     try{
       const {data:{session}}=await supabase.auth.getSession();
       if(!session?.access_token)throw new Error('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
-      const response=await fetch('/api/agent/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({message:value,history:messages.map(m=>({role:m.role,text:m.text})).slice(-10)})});
-      const payload=await response.json().catch(()=>({}));
-      if(!response.ok)throw new Error(payload.error||'Messinho konnte nicht antworten.');
+      const response=await fetch('/api/agent/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},
+        body:JSON.stringify({message:value,history:messages.map(m=>({role:m.role,text:m.text})).slice(-10),stream:true})});
+      if(!response.ok){
+        const errorPayload=await response.json().catch(()=>({}));
+        throw new Error(errorPayload.error||'Messinho konnte nicht antworten.');
+      }
+      let payload=null;
+      const contentType=response.headers.get('content-type')||'';
+      if(contentType.includes('text/event-stream')&&response.body){
+        const reader=response.body.getReader(),decoder=new TextDecoder();
+        let buffer='';
+        const handleEvent=block=>{
+          const event=block.split('\\n').find(line=>line.startsWith('event:'))?.slice(6).trim();
+          const dataText=block.split('\\n').filter(line=>line.startsWith('data:')).map(line=>line.slice(5).trim()).join('\\n');
+          if(!dataText)return;
+          const data=JSON.parse(dataText);
+          if(event==='start')setStreamProgress('Aufgabenplan erstellt · '+(data.total_steps||0)+' Arbeitsschritte');
+          if(event==='progress'){
+            const fn=capabilityGroups.flatMap(group=>group.functions||[]).find(item=>item.id===data.capability_id);
+            setStreamProgress('Schritt '+data.completed_steps+' abgeschlossen · '+(fn?.name||'Analyse')+' · '+data.pending_steps+' offen');
+          }
+          if(event==='complete')payload=data;
+          if(event==='error')throw new Error(data.error||'Messinho konnte den Stream nicht abschließen.');
+        };
+        while(true){
+          const {value:chunk,done}=await reader.read();
+          if(done)break;
+          buffer+=decoder.decode(chunk,{stream:true});
+          let boundary;
+          while((boundary=buffer.indexOf('\\n\\n'))>=0){
+            const block=buffer.slice(0,boundary);buffer=buffer.slice(boundary+2);
+            if(block.trim())handleEvent(block);
+          }
+        }
+        buffer+=decoder.decode();
+        if(buffer.trim())handleEvent(buffer);
+        if(!payload)throw new Error('Der Datenstrom wurde unterbrochen. Bereits gespeicherte Arbeitsschritte bleiben erhalten; lade die Aufgabenliste neu und setze die Aufgabe fort.');
+      }else{
+        payload=await response.json().catch(()=>({}));
+      }
       const next={id:'a-'+Date.now(),role:'assistant',text:payload.reply||'Ich habe die Anfrage verarbeitet.',intent:payload.intent,items:Array.isArray(payload.items)?payload.items:[],metrics:payload.metrics||null};
       setMessages(prev=>[...prev,next]);speak(next.text);await refreshTasks();
-    }catch(e){setError(e.message||'Verbindung zu Messinho fehlgeschlagen.');}
-    finally{setBusy(false);}
+    }catch(e){
+      const message=e?.message||'Verbindung zu Messinho fehlgeschlagen.';
+      setError(message);
+      await refreshTasks();
+    }finally{setBusy(false);setStreamProgress('');}
   }
   function toggleMic(){
     const recognition=recognitionRef.current;
@@ -315,7 +356,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       {taskError&&<p role="status" className="messinho-error">{taskError}</p>}
       <div className="messinho-messages" aria-live="polite">
         {messages.map(message=><article key={message.id} className={'messinho-message '+message.role}><div className="messinho-avatar">{message.role==='assistant'?<BrainCircuit size={17}/>:<MessageCircle size={16}/>}</div><div className="messinho-bubble"><small>{message.role==='assistant'?'MESSINHO':'DU'}</small><p>{message.text}</p>{message.metrics&&<div className="messinho-metrics"><span>{message.metrics.players} Spieler im Katalog</span><span>{message.metrics.candidates} eigene Kandidaten</span></div>}{renderItems(message.items)}</div></article>)}
-        {busy&&<div className="messinho-thinking"><LoaderCircle className="messinho-spin" size={17}/> Messinho verarbeitet deine Anfrage …</div>}
+        {busy&&<div className="messinho-thinking"><LoaderCircle className="messinho-spin" size={17}/> {streamProgress||'Messinho verarbeitet deine Anfrage …'}</div>}
         <div ref={endRef}/>
       </div>
       {error&&<p className="messinho-error" role="alert">{error}</p>}
