@@ -1269,3 +1269,14 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - Local isolated test execution of the six new general-research tests: **6/6 passed**.
 - Full repository Node suite was not rerun in this verification; GitHub combined status did not report checks for the tested commit. Authenticated end-to-end chat test was not possible because no dedicated staging Scout test account was confirmed.
 - The deployment is **STAGING only**. Production remains unchanged.
+
+
+### Evidence validation hardening — 2026-11-26
+
+Before the next staging deployment, the general research path was hardened:
+- Unicode-aware German/English normalization was corrected for source text and question matching.
+- Synthesized claims must cite only retrieved URLs **and** overlap with at least three meaningful terms in the cited source excerpt (minimum 35% lexical overlap).
+- The user-visible synthesized answer is assembled from accepted claims, not from the model's free-form answer field. If no claim passes, MESSINHO falls back to the deterministic source digest.
+- Added a regression test for accepting a source-supported claim and rejecting an unrelated claim.
+- Focused local check for the claim-support rule: 2/2 passed.
+- These checks are a conservative lexical support filter, not a semantic proof of truth; human review and stronger evidence evaluation remain necessary.
