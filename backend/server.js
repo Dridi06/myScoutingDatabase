@@ -2024,7 +2024,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       if(foundationLearning?.status==='candidate_created'){
         const references=foundationLearning.source_references||[];
         return respond({
-          reply:'VO₂max bezeichnet die maximale Sauerstoffaufnahme des Körpers unter intensiver Belastung. Sie ist ein objektiver Messwert und gilt als Goldstandard zur Beurteilung der kardiorespiratorischen Fitness. Im Fußball-Scouting ist sie ein Baustein zur Einordnung der aeroben Leistungsfähigkeit, aber kein alleiniger Maßstab für die Gesamtqualität eines Spielers. Geschätzte Werte sind nicht mit einer direkten Spiroergometrie/CPET-Messung gleichzusetzen.\\n\\nIch habe daraus einen kompakten Grundlagen-Kandidaten mit zwei geprüften Fachquellen gespeichert. Er bleibt bis zur Administratorfreigabe inaktiv und wird noch nicht als freigegebenes Wissen verwendet.',
+          reply:(foundationLearning.answer||'Ich habe einen kompakten Grundlagen-Kandidaten erstellt.')+'\\n\\nIch habe daraus den Grundlagen-Kandidaten „'+(foundationLearning.concept_title||'Fachwissen')+'“ mit '+(foundationLearning.source_count||0)+' geprüften Fachquellen gespeichert. Er bleibt bis zur Administratorfreigabe inaktiv und wird noch nicht als freigegebenes Wissen verwendet.',
           intent:'approved_foundation_knowledge_candidate',
           items:references.map((source,index)=>({id:'foundation-source-'+index,name:source.title,kind:'Geprüfte CC BY 4.0 Fachquelle',sources:[{url:source.url,title:source.title}]})),
           sources:references,
