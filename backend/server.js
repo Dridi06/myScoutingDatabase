@@ -13,7 +13,8 @@ import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalF
 import { scopeMessinhoOwner } from './messinho-access.js';
 import { getMessinhoCapabilityCatalog, getMessinhoCapabilitySummary } from './messinho-capabilities.js';
 import { executeMessinhoCapability, listExecutableMessinhoCapabilities, getMessinhoRuntimeSummary } from './messinho-capability-runtime.js';
-import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
+import { planMessinhoCapabilities, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
+import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainableAssessment, generateMessinhoHypotheses } from './messinho-development.js';
 
 const app=express();
@@ -1134,7 +1135,8 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         user_preferences:agentMemory.user_preferences,
         history:history.slice(-15)
       };
-      const run=runMessinhoCapabilityPlan(plan,input,profile.role);
+      const agentCycle=executeMessinhoAgentPlan({plan,input,role:profile.role});
+      const run=agentCycle.run;
       const reply=formatMessinhoCapabilityResults(run,selectedPlayer?.name||null);
       const preferences={...agentMemory.user_preferences};
       const formation=message.match(/\b(4-\d-\d|3-\d-\d|5-\d-\d)\b/);
@@ -1156,7 +1158,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       await saveMessinhoAgentTrace(ownerId,message,plan,run,Date.now()-agentStartedAt);
       return res.json({
         reply,intent:'messinho_agent',items:selectedPlayer?[{kind:'Spielerkatalog',id:selectedPlayer.player_id,name:selectedPlayer.name,club:selectedPlayer.club,positions:selectedPlayer.positions||[]}]:[],
-        agent:{status:run.status,label:run.label,planned_capabilities:plan.steps,discovered_capabilities:plan.discovered_capabilities,
+        agent:{status:run.status,label:run.label,state:agentCycle.state,validation:agentCycle.validation,next_action:run.next_action,planned_capabilities:plan.steps,discovered_capabilities:plan.discovered_capabilities,
           completed_steps:run.completed_steps,total_steps:run.total_steps,missing_inputs:run.missing_inputs,
           blocked_capabilities:run.blocked_capabilities,deferred_capabilities:run.deferred_capabilities,
           replan_recommended:run.replan_recommended,results:run.results},
