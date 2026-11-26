@@ -351,3 +351,21 @@ When the owner references **PROJECTSCOUT** or asks to continue this project in a
 6. Do not ask the owner to repeat requirements already recorded here.
 
 **This document is the project continuity contract. The code and live system remain the source of truth for what is actually implemented; this document is the source of truth for what is intended, decided, completed, and planned.**
+
+
+## 14. Explicit project exclusions — binding scope boundary
+
+**PFMS and PFSS are separate, unrelated projects. They are not part of myScoutingDatabase and must not be considered when planning, designing, implementing, testing, documenting, or assessing this project.**
+
+- Do not import PFMS/PFSS requirements, features, architecture, databases, branches, services, deployments, assets, or assumptions into myScoutingDatabase.
+- Do not inspect, modify, merge, deploy to, or otherwise interact with PFMS/PFSS repositories or infrastructure as part of this project.
+- Do not use PFMS/PFSS progress or functionality as a dependency, baseline, or completion criterion.
+- The only project scope governed by PROJECTSCOUT.md is **myScoutingDatabase**, including its integrated MESSINHO module.
+- If a future request appears to refer to PFMS or PFSS, treat it as outside this project's scope and clarify before taking any action.
+
+This exclusion is explicit, permanent for this project record, and may be changed only if the owner expressly instructs otherwise.
+
+### Change log addition — 2026-11-26
+| Date | Request / decision | Status | Notes |
+|---|---|---|---|
+| 2026-11-26 | PFMS and PFSS are other projects and must not be considered in myScoutingDatabase work. | Binding exclusion | No requirements, code, infrastructure, assets, or progress from those projects are in scope. |
