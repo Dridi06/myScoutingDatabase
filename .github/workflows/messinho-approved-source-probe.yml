@@ -26,13 +26,13 @@ jobs:
               const body = await response.text();
               let detail = {};
               if (source.kind === 'xml') {
-                detail = { bytes: Buffer.byteLength(body), abstract_count: (body.match(/<abstract\\b/gi) || []).length, paragraph_count: (body.match(/<p\\b/gi) || []).length, has_vo2max: /vo.?2.?max|oxygen uptake/i.test(body) };
+                detail = { location: response.headers.get('location'), bytes: Buffer.byteLength(body), abstract_count: (body.match(/<abstract\\b/gi) || []).length, paragraph_count: (body.match(/<p\\b/gi) || []).length, has_vo2max: /vo.?2.?max|oxygen uptake/i.test(body) };
               } else {
                 let parsed;
                 try { parsed = JSON.parse(body); } catch {}
-                const docs = Array.isArray(parsed?.documents) ? parsed.documents : Array.isArray(parsed?.collection?.documents) ? parsed.collection.documents : [];
+                const docs = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.documents) ? parsed.documents : Array.isArray(parsed?.collection?.documents) ? parsed.collection.documents : [];
                 const passages = docs.flatMap(doc => Array.isArray(doc?.passages) ? doc.passages : []);
-                detail = { bytes: Buffer.byteLength(body), json_valid: !!parsed, document_count: docs.length, passage_count: passages.length, has_vo2max: /oxygen uptake|maximal oxygen/i.test(passages.map(p => p.text || '').join(' ')) };
+                detail = { payload_type: Array.isArray(parsed) ? 'array' : typeof parsed, payload_keys: parsed && !Array.isArray(parsed) ? Object.keys(parsed).slice(0,20) : [], sample_keys: docs[0] ? Object.keys(docs[0]).slice(0,20) : [], bytes: Buffer.byteLength(body), json_valid: !!parsed, document_count: docs.length, passage_count: passages.length, has_vo2max: /oxygen uptake|maximal oxygen/i.test(passages.map(p => p.text || '').join(' ')) };
               }
               console.log(JSON.stringify({ id: source.id, status: response.status, ok: response.ok, redirected: response.status >= 300 && response.status < 400, content_type: response.headers.get('content-type'), final_url: response.url, ...detail }));
               if (!response.ok || (source.kind === 'xml' ? !detail.paragraph_count : !detail.json_valid || !detail.passage_count)) failed = true;
