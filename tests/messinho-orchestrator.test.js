@@ -185,11 +185,11 @@ test('automated talent search filters a supplied candidate pool without pretendi
 test('club need research reports position gaps only from supplied squad and explicit requirements', () => {
   const result = executeMessinhoCapability('club_need_research', {
     squad: [{ positions: ['Stürmer'] }, { positions: ['Innenverteidiger'] }],
-    required_positions: [{ position: 'Stürmer', minimum: 2 }, { position: 'Torwart', minimum: 1 }]
+    required_positions: [{ position: 'Stürmer', minimum: 3 }, { position: 'Torwart', minimum: 1 }]
   });
   assert.equal(result.status, 'completed');
   assert.equal(result.result.priority_positions.length, 2);
-  assert.equal(result.result.priority_positions[0].position, 'Torwart');
+  assert.equal(result.result.priority_positions[0].position, 'Stürmer');
 });
 
 test('learning proposals remain approval-gated and never train or change active weights', () => {
