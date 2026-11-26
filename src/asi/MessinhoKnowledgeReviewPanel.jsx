@@ -114,6 +114,7 @@ export default function MessinhoKnowledgeReviewPanel({supabase,profile}){
           <a href={source.url} target="_blank" rel="noreferrer">{source.title||source.source_id||'Quelle öffnen'}</a>
           <small>{right.license||'Lizenz nicht hinterlegt'} · {right.rights_holder||'Rechteinhaber nicht hinterlegt'}</small>
           <small>{right.retrieval_method||'Abrufweg nicht hinterlegt'} · TDM-Nachweis {right.tdm_evidence_url?'vorhanden':'fehlt'}</small>
+          <small>Rechteprüfung bis {right.review_due_at||'nicht festgelegt'}</small>
          </div>;
         })}
        </div>
