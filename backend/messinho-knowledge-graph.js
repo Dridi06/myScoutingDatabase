@@ -32,18 +32,18 @@ export function buildMessinhoKnowledgeConcept(input={},now=new Date()){
   if(!rights||!verifyMessinhoSourceRights(rights)||source.source_id!==rights.source_id||!isMessinhoRegisteredSourceUrl(rights.source_id,source.url))continue;
   const url=clean(source.url,600),host=(()=>{try{return new URL(url).hostname.replace(/^www\./i,'').toLowerCase();}catch{return '';}})();
   if(!host||sources.some(item=>item.url===url))continue;
-  sources.push({source_id:rights.source_id,title:clean(source.title,220),url,host,section:clean(source.section,180)||null,edition:clean(source.edition,120)||null,accessed_at:new Date(now).toISOString()});
+  sources.push({source_id:rights.source_id,title:clean(source.title,220),url,host,section:clean(source.section,180)||null,edition:clean(source.edition,120)||null,license:clean(rights.license,120),license_url:clean(rights.license_url,600),attribution:clean(rights.attribution,500),changes_made:true,accessed_at:new Date(now).toISOString()});
  }
  const independentHosts=[...new Set(sources.map(source=>source.host))];
- if(sources.length<2||independentHosts.length<2)return {eligible:false,reason:'two_independent_rights_verified_sources_required'};
- const claims=(Array.isArray(input.claims)?input.claims:[]).map(claim=>typeof claim==='string'?{text:clean(claim,700),source_urls:sources.map(source=>source.url)}:{text:clean(claim?.text,700),source_urls:Array.isArray(claim?.source_urls)?claim.source_urls.filter(url=>sources.some(source=>source.url===url)).slice(0,5):[]}).filter(claim=>claim.text&&claim.source_urls.length>=2);
+ if(sources.length<1||independentHosts.length<1)return {eligible:false,reason:'one_rights_verified_source_required'};
+ const claims=(Array.isArray(input.claims)?input.claims:[]).map(claim=>typeof claim==='string'?{text:clean(claim,700),source_urls:sources.map(source=>source.url)}:{text:clean(claim?.text,700),source_urls:Array.isArray(claim?.source_urls)?claim.source_urls.filter(url=>sources.some(source=>source.url===url)).slice(0,5):[]}).filter(claim=>claim.text&&claim.source_urls.length>=1);
  if(!claims.length)return {eligible:false,reason:'corroborated_claims_required'};
  const rightsList=[...new Map(sources.map(source=>{const r=input.source_rights?.find(item=>item.source_id===source.source_id)||rawSources.find(item=>item.source_id===source.source_id)?.rights;return [source.source_id,r];})).values()];
  if(rightsList.length<1)return {eligible:false,reason:'rights_provenance_required'};
  const conceptKey=clean(input.concept_key,160)||[domain,slug(topic),slug(title)].filter(Boolean).join('.');
  if(!/^[a-z0-9][a-z0-9._:-]{2,159}$/.test(conceptKey))return {eligible:false,reason:'invalid_concept_key'};
  const nowIso=new Date(now).toISOString();
- const sourceRights=rightsList.map(rights=>({source_id:rights.source_id,status:'verified_permitted',license:clean(rights.license,120),rights_holder:clean(rights.rights_holder,180),evidence_url:clean(rights.evidence_url,600),ai_tdm:true,commercial_use:true,derivative_use:true,reviewed_at:clean(rights.reviewed_at,40)||nowIso}));
+ const sourceRights=rightsList.map(rights=>({source_id:rights.source_id,status:'verified_permitted',license:clean(rights.license,120),license_url:clean(rights.license_url,600),rights_holder:clean(rights.rights_holder,180),evidence_url:clean(rights.evidence_url,600),attribution:clean(rights.attribution,500),ai_tdm:true,commercial_use:true,derivative_use:true,reviewed_at:clean(rights.reviewed_at,40)||nowIso}));
  const contentFingerprint=fingerprint([domain,topic,title,definition,input.formula||''].join('|'));
  const record={
   concept_key:conceptKey,domain,topic,title,definition,knowledge_level:level,knowledge_type:type,
