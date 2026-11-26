@@ -10,7 +10,7 @@ test('quality loop never exceeds three iterations and stops on critic approval',
  let generated=0,reviewed=0;
  const result=await runMessinhoQualityLoop({question:'Wie spielt Tom Bischof?',sources,draftFactory:async()=>{generated++;return {answer:draft,claims};},
   env:{OPENAI_API_KEY:'test'},fetchImpl:async()=>{reviewed++;return fakeCritic(reviewed===2)();}});
- assert.equal(generated,2);assert.equal(reviewed,2);assert.equal(result.passed,true);assert.equal(result.iterations,2);
+ assert.equal(generated,2);assert.equal(reviewed,2);assert.equal(result.passed,true,JSON.stringify(result));assert.equal(result.iterations,2);
 });
 test('quality loop has a hard three-iteration ceiling',async()=>{
  let generated=0;
