@@ -69,3 +69,19 @@ test('match analysis capabilities use structured phase events and enforce video 
  const trustedVideo=executeMessinhoCapability('video_event_analysis',{player:{name:'Test'},events,_trusted_video_bundle:true});
  assert.equal(trustedVideo.status,'completed');
 });
+
+test('verified domain knowledge is passed as explanatory context but never changes player scoring',()=>{
+ const knowledge={domain:'medicine',question:'Sportmedizinische Grundlagen',content:'Eine Verletzungsbeurteilung benötigt fachliche Untersuchung und darf nicht aus Scoutingdaten abgeleitet werden.',claims:['Medizinische Freigaben benötigen fachliche Beurteilung.'],sources:[{title:'Permitted source',url:'https://example.org/medical'}],rights:{status:'verified_permitted',ai_tdm:true,commercial_use:true,derivative_use:true},verified_at:'2026-11-26T00:00:00.000Z',confidence:0.95};
+ const score=executeMessinhoCapability('overall_score',{player:{name:'Test',positions:['Stürmer'],ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4}},goal:'medizinische Bewertung',_messinho_domain_knowledge:[knowledge]});
+ assert.equal(score.status,'completed');
+ assert.equal(score.knowledge_context,undefined,'medical reference knowledge must not affect talent scoring');
+ const report=executeMessinhoCapability('holistic_player_analysis',{player:{name:'Test',positions:['Stürmer'],ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4}},goal:'sportmedizinische Einordnung',_messinho_domain_knowledge:[knowledge]});
+ assert.equal(report.knowledge_context.mode,'verified_reference_context');
+ assert.equal(report.knowledge_context.applied_to_explanation_only,true);
+ assert.equal(report.knowledge_context.score_or_model_weights_changed,false);
+});
+test('unverified or incomplete knowledge records are never passed into capability results',()=>{
+ const bad={domain:'medicine',question:'Medical',content:'Unverified text',sources:[{title:'Source',url:'https://example.org'}],rights:{status:'unknown',ai_tdm:false}};
+ const result=executeMessinhoCapability('holistic_player_analysis',{player:{name:'Test',ratings:{Technik:4}},goal:'medizin',_messinho_domain_knowledge:[bad]});
+ assert.equal(result.knowledge_context,undefined);
+});
