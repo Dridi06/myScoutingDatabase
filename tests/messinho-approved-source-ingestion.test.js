@@ -9,6 +9,7 @@ test('PLOS source retrieval uses the approved JATS endpoint and returns only com
   fetchImpl:async(url,options)=>{
    requested=url;
    assert.equal(options.headers.accept,'application/xml,text/xml;q=0.9');
+   assert.equal(options.redirect,'manual');
    return {ok:true,text:async()=>'<article><abstract><p>VO2max is the highest attained oxygen uptake during an incremental exercise test with large muscle groups.</p></abstract><body><p>VO2max is an important parameter to objectively assess cardiorespiratory fitness in healthy people.</p><p>Prediction models require external validation.</p></body></article>'};
   }
  });
@@ -99,4 +100,21 @@ test('expired source-rights review blocks retrieval before any network request',
  });
  assert.equal(result.status,'source_not_approved');
  assert.equal(called,false);
+});
+
+
+test('approved source retrieval never follows redirects, including same-host redirects',async()=>{
+ let calls=0;
+ const result=await fetchMessinhoApprovedSource('plos_one_vo2max_prediction_2023',{
+  fetchImpl:async()=>{calls++;return {ok:false,status:302,headers:{get:()=>'/redirected-article'},text:async()=>''};}
+ });
+ assert.equal(calls,1);
+ assert.equal(result.status,'retrieval_redirect_not_approved');
+});
+
+test('approved source retrieval rejects oversized BioC payloads before parsing',async()=>{
+ const result=await fetchMessinhoApprovedSource('pmc_cardiorespiratory_fitness_2022',{
+  fetchImpl:async()=>({ok:true,status:200,headers:{get:(name)=>name==='content-length'?'2000001':null},json:async()=>({collection:{documents:[]}})})
+ });
+ assert.equal(result.status,'source_payload_rejected');
 });
