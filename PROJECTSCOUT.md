@@ -2448,3 +2448,15 @@ Mathematics; statistics; physics; biology; medicine; sports science; football; c
 - Render STAGING auto-deploy remains disabled. No new Render deployment was triggered. The current deployed STAGING runtime is not yet proven to contain this knowledge foundation/review endpoint.
 - Authenticated admin/scout E2E and conflict queue UI tests remain outstanding.
 - Production `main`, production Render, production Supabase, PFMS/PFSS and PR merge state remain untouched. PR #47 remains Draft/open/unmerged.
+
+
+## 2026-11-26 — Atomic knowledge conflict quarantine and restoration
+
+- Added STAGING migration `20261126184217_messinho_knowledge_conflict_atomic_quarantine.sql`: `messinho_record_knowledge_conflict` records the competing compact proposal and evidence in one transaction. If the existing concept was active, the same transaction moves it to `conflicting`, increments its version and appends a snapshot. Conflicting knowledge is therefore no longer served as active while a material contradiction is unresolved.
+- Added STAGING migrations `20261126184330_messinho_knowledge_conflict_resolution.sql` and `20261126184345_messinho_knowledge_conflict_resolution_status.sql`. The conflict record stores the prior concept state. Admin resolution uses `messinho_resolve_knowledge_conflict`; it records reviewer, decision and reason, and restores the prior active/candidate state only after all open conflicts for that concept have been closed. Restoration creates a new immutable version snapshot. A rejected proposal never overwrites the existing definition.
+- Updated the conflict-review API to call the atomic RPC rather than directly updating the conflict table.
+- Verified in STAGING: prior-state column exists; both conflict RPCs are SECURITY DEFINER and executable only by service_role (plus postgres owner); conflict/review tables retain RLS with no browser policies. No conflict or concept rows were inserted for testing.
+- Current knowledge counts remain concepts 0, links 0, versions 0, conflicts 0, reviews 0. Rights allowlist remains empty.
+- CI on the latest code commit before these migration/documentation additions: Node suite 274/274 passed and backend syntax passed. Latest HEAD CI must be checked again before the next deployment.
+- Render STAGING deployment of commit `4593897290a90f0f184127a464549393ac1888ad` was triggered and reached **live** as deployment `dep-dc47rsl9el5s73ag1h80`. A duplicate queued deploy for the same commit was observed; the live deployment was confirmed. The subsequent conflict-restoration code/migrations are newer than that deployed commit and still require CI plus a follow-up STAGING deployment.
+- No production/main, production Supabase, PFMS/PFSS or PR merge changes. PR #47 remains Draft/open/unmerged.
