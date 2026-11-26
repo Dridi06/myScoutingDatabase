@@ -71,7 +71,13 @@ export async function fetchMessinhoApprovedSource(sourceId,{topic='',fetchImpl=g
   const url=new URL(rights.retrieval_url);
   const expectedHost=({plos_jats_xml:'journals.plos.org',pmc_bioc_json:'www.ncbi.nlm.nih.gov',libretexts_html:'math.libretexts.org',austin_html:'understandinglinearalgebra.org'})[rights.retrieval_method];
   if(url.hostname!==expectedHost)return {status:'retrieval_host_not_approved',source_id:sourceId,excerpts:[]};
-  const response=await fetchImpl(rights.retrieval_url,{headers:{accept:rights.retrieval_method==='pmc_bioc_json'?'application/json':rights.retrieval_method.endsWith('_html')?'text/html,application/xhtml+xml;q=0.9':'application/xml,text/xml;q=0.9'}});
+  const fetchOptions={headers:{accept:rights.retrieval_method==='pmc_bioc_json'?'application/json':rights.retrieval_method.endsWith('_html')?'text/html,application/xhtml+xml;q=0.9':'application/xml,text/xml;q=0.9'},redirect:'follow'};
+  if(typeof AbortSignal?.timeout==='function')fetchOptions.signal=AbortSignal.timeout(12000);
+  const response=await fetchImpl(rights.retrieval_url,fetchOptions);
+  if(response?.url){
+   try{if(new URL(response.url).hostname!==expectedHost)return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};}
+   catch{return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};}
+  }
   if(!response?.ok)return {status:'source_fetch_failed',source_id:sourceId,http_status:response?.status||null,excerpts:[]};
   let paragraphs=[];
   if(rights.retrieval_method==='plos_jats_xml'){
