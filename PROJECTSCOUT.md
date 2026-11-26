@@ -949,3 +949,12 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - Important runtime observation: startup diagnostics reported `TAVILY_API_KEY=false` and `OPENAI_API_KEY=false`. The backend process is live, but provider-backed research/conversational fallback cannot be considered operational until the corresponding Staging environment configuration is verified. Do not expose or request secret values in chat; inspect environment-variable presence through Render's secure settings.
 - Remaining verification: authenticated smoke test of `/api/agent/chat` and `/api/messinho/capabilities`, provider configuration check, then controlled AI-agent behavior tests. No production promotion or PR merge authorized.
 
+## Checkpoint – 2026-11-26 – Staging health smoke test
+
+- Added `.github/workflows/staging-health-smoke.yml` on the candidate branch. It probes the public Staging `/api/health` endpoint from a GitHub-hosted runner and fails if HTTP health or database readiness is not OK.
+- First smoke run: `45749868929` – success.
+- Observed response: HTTP 200, `ok=true`, database `ok`, authentication `ready`, MESSINHO core `provider_independent`.
+- Remaining provider readiness: `externalResearch=not_configured` and `optionalAiAnalysis=not_configured`. Render startup diagnostics independently reported `TAVILY_API_KEY=false` and `OPENAI_API_KEY=false`. Do not assume previously supplied credentials are present under the exact environment variable names read by this Staging service. Render connector does not expose secret values; never print them. Confirm presence securely in the Staging service's environment settings or align variable names without disclosing values.
+- Authenticated admin-only route checks and a real interactive AI-agent conversation are still pending; no admin access token or login session was available to this automated run. Do not create or reset user credentials as a workaround.
+- Staging remains live. Production untouched; PR #47 remains unmerged.
+
