@@ -1328,7 +1328,7 @@ const MESSINHO_PLAYER_CAPABILITIES=new Set([
  'scout_rating_agreement','explainable_rating','identity_verification','birth_year_verification',
  'position_verification','contract_research','contract_expiry_monitor','source_cross_check',
  'rumour_verification','research_report_generation','statistics_research','video_source_research',
- 'match_report_research','player_data_refresh'
+ 'match_report_research','player_data_refresh','comparable_player_research'
 ]);
 const MESSINHO_ROSTER_CAPABILITIES=new Set([
  'squad_research','club_need_research','automated_talent_search','hidden_gem_detection',
