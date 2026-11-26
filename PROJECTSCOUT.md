@@ -809,3 +809,44 @@ This is a preservation inventory, not a claim that every visual state has passed
 - Accepted: preserve the entire established design baseline; improve without replacing approved screens/assets.
 - In progress: selective integration of durable memory/task ledger and verified live-data context after schema and authorization review.
 - Not authorized: production deployment, production database changes, wholesale merge of the divergent staging branch, or automatic activation of a learned model.
+
+
+---
+
+## 14. Release-candidate checkpoint — 2026-11-26
+
+**Owner objective:** prepare the advanced Staging system so it can later be promoted to LIVE safely, while preserving the existing LIVE AI and all approved product behavior.
+
+### Candidate
+- Branch: `feature/messinho-unified-ai-integration`
+- Pull request: [#47](https://github.com/Dridi06/myScoutingDatabase/pull/47)
+- Candidate HEAD at checkpoint: `1b69a0bd0b0ed67c9d2db7da87f85e7c52df4441`
+- Base: `main` at `fa0d4dfbdd779f280bb3caf44c6cc70be8dcb5b6`
+- PR remains draft/open; not merged.
+- GitHub Actions MESSINHO Node tests run `45746920376` was still installing dependencies at checkpoint; no passing test result may be claimed yet.
+
+### Work completed in this checkpoint
+- Preserved the existing LIVE `/api/agent/chat` and specialist execution path while integrating the bounded MESSINHO Agent Core.
+- Added agent-core unit tests.
+- Added the staging memory/traces migration and task-ledger migration definitions to the candidate for review and reproducibility.
+- Added `docs/RELEASE_PROMOTION.md` with a controlled Staging→LIVE promotion process, security boundaries, CI, database rehearsal, E2E acceptance, backup and rollback gates.
+- Updated PR #47 to clearly distinguish included migration definitions from the still-pending full memory/task runtime integration.
+
+### Not yet completed / release blockers
+- Full selective integration of staging memory persistence, task ledger, streaming recovery and safe task resume into the current LIVE codebase.
+- Review and selective integration of the separate live-data-context work.
+- CI test and production build pass on the final candidate SHA.
+- RLS / cross-user isolation / safe-resume and idempotency tests.
+- Exact candidate deployed and verified on staging Render service.
+- E2E acceptance of existing chat, ASI, capabilities, provider fallback, interrupted tasks and mobile UI.
+- Backup/restore and rollback rehearsal.
+
+### Environment safety
+- Work in this checkpoint changed GitHub feature branch/PR only.
+- No Render service branch or deployment changed.
+- No Supabase project was migrated by these commits.
+- No production service, production database, production secret or active model weight was changed.
+- Continue staging-only. Never merge to `main` or deploy production without explicit owner approval in the current conversation.
+
+### Next action
+Wait for the current CI run, inspect the staging agent helper/route and main route side by side, then selectively integrate memory/task recovery into the candidate without replacing the current main server or approved frontend. Only after CI and security checks pass should the staging Render service be pointed to this candidate branch.
