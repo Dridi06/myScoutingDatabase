@@ -53,7 +53,7 @@ export function formatMessinhoCapabilityResults(run, playerName = null) {
       const score = data.score ?? data.overall?.score ?? data.potential_indicator;
       lines.push('• ' + title + ': ' + (score !== undefined && score !== null ? score + '/100' : item.status === 'proposal_ready' ? 'Lernvorschlag erstellt – Freigabe erforderlich' : 'abgeschlossen'));
     } else if (item.status === 'insufficient_data') {
-      lines.push('• ' + title + ': Daten fehlen (' + (item.missing?.join(', ') || 'keine ausreichenden Eingaben') + ').');
+      lines.push('• ' + title + ': Daten fehlen (' + (item.missing_inputs?.join(', ') || 'keine ausreichenden Eingaben') + ').');
     } else {
       lines.push('• ' + title + ': ' + (item.status || 'nicht verfügbar') + '.');
     }
