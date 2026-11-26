@@ -1678,3 +1678,15 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - No neural model weights are trained or changed; this is deterministic software capability growth.
 
 **Verification:** Source/test changes committed to STAGING feature branch. Run the complete test/build pipeline and manually deploy the exact commit to Render STAGING before calling it live. Do not enable auto-deploy. Production, production Supabase, PFMS and PFSS remain untouched.
+
+### Mathematics & Physics Intelligence — STAGING deployment verified (2026-11-26)
+
+- Render STAGING deployment: `dep-dc43hes9v7es73dot5t0`.
+- Deployed commit: `855a0b49a061699d159b9ee6a76b3fa8390ff50d`.
+- Render status: **live**, completed `2026-11-26T13:49:17.656Z`.
+- Build/test verification: **185 tests passed, 0 failed**; Vite transformed 1,636 modules and completed the production build.
+- Runtime: `node backend/server.js` started, API listening on port 10000; STAGING Supabase Data API returned HTTP 200; Tavily and OpenAI provider configuration detected.
+- Added regression coverage for German natural-language speed problems, SI conversion from kilometres/minutes, zero-current Ohm validation, and non-finite arithmetic results.
+- The first two deployment attempts failed due to syntax/patch-fragment errors in the new parser. These were corrected; the final deployment above is the verified successful build. The failed deployments did not replace the previously live service.
+- STAGING auto-deploy remains disabled. Production `main`, production Render, production Supabase, PFMS and PFSS remain untouched.
+- Remaining scope: broaden the natural-language interpreter to more physics formula families, add general dimensional analysis/unit compatibility, validate physical domains across all formulas, and expand mathematics (algebra, geometry, calculus). The present speed interpreter is a focused deterministic first step, not unrestricted natural-language understanding.
