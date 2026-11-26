@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseMessinhoScoutingRequest, matchesPosition, matchesPreferredFoot, sourceSupportsRegion } from '../backend/messinho-validation.js';
+import { parseMessinhoScoutingRequest, matchesPosition, matchesPreferredFoot, matchesNationality, sourceSupportsRegion } from '../backend/messinho-validation.js';
 
 test('parses a complete scouting request and caps the requested result count', () => {
   const result = parseMessinhoScoutingRequest('Ich brauche 20 linker Verteidiger Jahrgang 2004 in Deutschland, Regionalliga', [], 2026);
@@ -140,7 +140,7 @@ test('retains the 21-year-old defensive-midfielder search after the location cla
  assert.equal(result.request.age,21);
  assert.equal(result.request.position,'defensiver Mittelfeldspieler');
  assert.equal(result.request.region,'deutschland');
- assert.equal(result.request.targetLevel,'3 Liga');
+ assert.equal(result.request.targetLevel,'3 Liga / Regionalliga');
 });
 
 test('recognizes German nationality adjective as Germany',()=>{
@@ -160,4 +160,27 @@ test('parses and validates an explicitly requested left-footed player',()=>{
  assert.equal(matchesPreferredFoot('left','right-footed'),false);
  assert.equal(matchesPreferredFoot('left',null),false);
  assert.equal(matchesPreferredFoot('both','beidfüßig'),true);
+});
+
+
+test('separates preferred German nationality from country or league location',()=>{
+ const result=parseMessinhoScoutingRequest('Suche einen 21-jährigen linksfüßigen 6er, am besten deutsch',[],2026);
+ assert.equal(result.request.nationality,'deutsch');
+ assert.equal(result.request.region,'');
+ assert.equal(result.missing.includes('Land bzw. Liga-Standort'),true);
+ assert.equal(matchesNationality('deutsch','German'),true);
+ assert.equal(matchesNationality('deutsch','Deutsch'),true);
+ assert.equal(matchesNationality('deutsch','French'),false);
+ assert.equal(matchesNationality('deutsch',null),false);
+});
+
+test('preserves both league alternatives from a scouting clarification',()=>{
+ const history=[
+  {role:'user',text:'Finde mir ein 21-jährigen linksfüßigen Mittelfeld Spieler der als 6er agieren kann und gut in der Defensive ist. Am besten deutsch'},
+  {role:'assistant',text:'Damit ich die Suche sauber eingrenzen kann, brauche ich noch: Geburtsjahrgang oder Altersklasse, Land bzw. Liga-Standort.'}
+ ];
+ const result=parseMessinhoScoutingRequest('Deutschland 3. Liga oder Regionalliga',history,2026);
+ assert.equal(result.request.nationality,'deutsch');
+ assert.equal(result.request.region,'deutschland');
+ assert.equal(result.request.targetLevel,'3. Liga / Regionalliga');
 });
