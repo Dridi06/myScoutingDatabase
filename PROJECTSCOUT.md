@@ -2261,3 +2261,16 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Geänderte Dateien: `backend/messinho-domain-knowledge.js`, `backend/messinho-general-research.js`, `backend/server.js`, `tests/messinho-domain-knowledge.test.js`, `supabase/migrations/20261126230000_messinho_domain_knowledge.sql`.
 - Noch offen für das Gesamtziel: 100 Rechte-geprüfte Quellen, Backups/Restore-Tests, capability-weite automatische Wissensübergabe inkl. Mathematik/Physik/Finanzprognosen, Konflikt-/Versionsreview, Forecast Backtesting und authentifizierte End-to-End-Tests. Dieser Zwischenstand ist nicht mit vollständiger Fertigstellung gleichzusetzen.
 - Staging-only bleibt verbindlich: Auto-Deploy off; Produktion/main, PFMS/PFSS unberührt; PR #47 Draft/offen/unmerged.
+
+
+## 2026-11-26 — Umsetzungsschritt 2: Wissensübergabe an den Agent Core und Capability Runtime
+
+- Im automatischen Chat-Agenten wird vor dem Task-Start passendes, dauerhaft gespeichertes Domänenwissen aus Supabase abgerufen und in den Task-Kontext aufgenommen.
+- Der Task-Kontext wird mit dem bestehenden Task-Checkpoint gespeichert; fortgesetzte Aufgaben erhalten denselben Wissenskontext, soweit dieser im Checkpoint enthalten ist.
+- Die Capability Runtime übernimmt rechtlich verifizierte Einträge nur bei thematischer Relevanz und gibt sie als strukturierten Referenzkontext an passende Ergebnis-/Erklärungsobjekte weiter.
+- Strikte Isolation: Medizinisches Wissen wird nicht in Spieler-Scores oder Modellgewichte eingespeist. Medizinische Inhalte sind nur erklärender Referenzkontext für einschlägige Fragestellungen; keine Diagnose oder Return-to-Play-Freigabe.
+- Scoring-/Lernfunktionen erhalten keinen Domänenwissens-Override. Es gibt keine automatische Änderung von Spielerbewertungen, Modellgewichten oder Trainingsdaten durch Fachtexte.
+- Neue Tests prüfen: Wissen wird bei relevanten Erklärungsfunktionen als Kontext übergeben; medizinisches Wissen beeinflusst keinen Talent-Score; nicht verifizierte Datensätze werden verworfen.
+- Render Build: **260 Tests bestanden, 0 fehlgeschlagen**, Backend-Syntax- und Vite-Build erfolgreich. Deployment-ID `dep-dc4772u1egvs73fhsntg` wurde für STAGING gestartet; zum Zeitpunkt dieses Checkpoints war der Deploystatus noch `update_in_progress`, daher nicht als live deklarieren.
+- WICHTIG: Diese Integration macht MESSINHO bereit, rechtlich verifizierte Wissenseinträge automatisch in passenden Agent-Aufgaben zu verwenden. Tatsächlicher Quellenimport ist noch NICHT freigegeben: die Wissensdatenbank hat 0 Einträge und es existiert noch kein abgeschlossener Katalog mit 100 einzeln geprüften Fachwerken. Erst nach Rechteprüfung und Einspielung kann der praktische Wissensbetrieb beginnen.
+- Weiterhin STAGING-only; Auto-Deploy off; Produktion/main, PFMS/PFSS unberührt; PR #47 Draft/offen/unmerged.
