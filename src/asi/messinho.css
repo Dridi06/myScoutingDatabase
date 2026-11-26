@@ -157,3 +157,35 @@
  .messinho-workspace .messinho-chat-card .messinho-composer input{height:42px!important}
  .messinho-workspace .messinho-chat-card .messinho-composer .messinho-send{flex-basis:39px}
 }
+
+
+/* Chat scroll fix: keep long conversations independently scrollable on desktop and touch devices. */
+.messinho-workspace .messinho-chat-card{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+.messinho-workspace .messinho-chat-card .messinho-messages{
+  display:flex;
+  flex:1 1 auto;
+  flex-direction:column;
+  min-height:0;
+  max-height:min(58vh,650px);
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior-y:contain;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+  scrollbar-gutter:stable;
+  scroll-padding-block:12px;
+}
+.messinho-workspace .messinho-chat-card .messinho-messages > *{
+  flex-shrink:0;
+}
+@media(max-width:760px){
+  .messinho-workspace .messinho-chat-card .messinho-messages{
+    max-height:58vh;
+    min-height:250px;
+    overscroll-behavior:contain;
+  }
+}
