@@ -1657,15 +1657,18 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const activeModel=await getActiveMessinhoModel();
       const agentInput={player,players:players.length?players:[player],model_profiles:activeModel?.configuration?.profiles||null,
         sources:Array.isArray(player.sources)?player.sources:[],claims:[],user_preferences:agentMemory.user_preferences};
-      const agentCycle=await executeMessinhoAgentPlan({plan:automaticPlan,input:agentInput,role:profile.role});
+      const taskRecord=await createMessinhoAgentTask(ownerId,interpretedMessage,automaticPlan,agentInput,profile.role);
+      const agentCycle=await executeMessinhoAgentPlan({plan:automaticPlan,input:agentInput,role:profile.role,
+        onStep:checkpoint=>taskRecord?checkpointMessinhoAgentTask(taskRecord.id,ownerId,checkpoint.completed_results,checkpoint.pending_capabilities):undefined});
       const run=agentCycle.run;
+      const finalizedTask=taskRecord?await finalizeMessinhoAgentTask(taskRecord.id,ownerId,run):null;
       const nextMemory={...agentMemory,active_player_ids:players.map(p=>p.player_id).filter(Number.isSafeInteger).slice(0,10),
         active_entities:{player_id:player.player_id||null,player_name:player.name||player.player_name||null},
         last_intent:automaticPlan.matched_intents?.join(',')||'capability_discovery',last_goal:interpretedMessage};
       const memoryPersisted=await saveMessinhoAgentMemory(ownerId,nextMemory);
       await saveMessinhoAgentTrace(ownerId,interpretedMessage,automaticPlan,run,agentCycle.state.elapsed_ms||0);
       const reply=formatMessinhoCapabilityResults(run,player.name||player.player_name||null);
-      return respond({reply,intent:'automatic_capability_orchestration',items:players.map(p=>({id:p.player_id||p.id,name:p.name||p.player_name,club:p.club||p.current_club,positions:p.positions||[]})),orchestration:{label:run.label,status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,provider_independent:true,model_weights_changed:false,agent_core_version:run.agent_core_version,agent_phase:agentCycle.state.phase,validation:agentCycle.validation,next_action:run.next_action,replan_recommended:run.replan_recommended},memory:{persisted:memoryPersisted,active_player_ids:nextMemory.active_player_ids,preferences:nextMemory.user_preferences},capability_results:profile.role==='admin'?run.results:undefined});
+      return respond({reply,intent:'automatic_capability_orchestration',items:players.map(p=>({id:p.player_id||p.id,name:p.name||p.player_name,club:p.club||p.current_club,positions:p.positions||[]})),orchestration:{label:run.label,status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,provider_independent:true,model_weights_changed:false,agent_core_version:run.agent_core_version,agent_phase:agentCycle.state.phase,validation:agentCycle.validation,next_action:run.next_action,replan_recommended:run.replan_recommended},memory:{persisted:memoryPersisted,active_player_ids:nextMemory.active_player_ids,preferences:nextMemory.user_preferences},task_checkpoint:taskRecord?{...taskRecord,...(finalizedTask||{}),pending_capabilities:run.deferred_capabilities||[]}:null,capability_results:profile.role==='admin'?run.results:undefined});
     }
     const searchTerm=extractMessinhoPlayerSearchTerm(interpretedMessage);
     if(searchTerm){
