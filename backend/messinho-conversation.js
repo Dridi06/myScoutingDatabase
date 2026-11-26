@@ -19,7 +19,7 @@ export function classifyMessinhoProviderFailure(status, payload = {}) {
 
 function normalizeSocialText(value) {
   return String(value || '').normalize('NFKC').toLocaleLowerCase('de-DE')
-    .replace(/[’']/g, '').replace(/[^\\p{L}\\p{N}\\s]/gu, ' ').replace(/\\s+/g, ' ').trim();
+    .replace(/[’']/g, '').replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^\\p{L}\\p{N}\\s]/gu, ' ').replace(/\\s+/g, ' ').trim();
 }
 
 const SOCIAL_POOLS = {
