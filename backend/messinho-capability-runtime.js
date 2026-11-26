@@ -21,12 +21,12 @@ const std=xs=>{const m=avg(xs);return m===null?null:Math.sqrt(avg(xs.map(x=>(x-m
 const dateValue=v=>{const n=Date.parse(v);return Number.isFinite(n)?n:null;};
 const asArray=v=>Array.isArray(v)?v:[];
 const POSITION_FILTER_ALIASES={
- 'stürmer':['9er','stürmer','striker','forward','centre forward','center forward'],
+ 'sturmer':['9er','stürmer','striker','forward','centre forward','center forward'],
  'torwart':['torwart','keeper','goalkeeper','gk'],
  'innenverteidiger':['iv links','iv rechts','iv re/li','innenverteidiger','centre back','center back'],
- 'außenverteidiger':['av links','av rechts','av re/li','außenverteidiger','full back','fullback'],
+ 'aussenverteidiger':['av links','av rechts','av re/li','außenverteidiger','full back','fullback'],
  'mittelfeld':['6er','8er','10er','mittelfeld','midfielder'],
- 'flügelspieler':['flügel links','flügel rechts','flügel re/li','flügelspieler','winger']
+ 'flugelspieler':['flügel links','flügel rechts','flügel re/li','flügelspieler','winger']
 };
 function positionMatches(positions,requested){
  const target=norm(requested);
