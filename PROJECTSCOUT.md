@@ -2375,12 +2375,16 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 
 ### Implemented on feature/messinho-unified-ai-integration
 - Added STAGING migration source supabase/migrations/20261126182955_messinho_knowledge_hierarchy.sql and applied it to STAGING Supabase project nwqwnrhupbyhshsprxjt (recorded migration version 20261126182955, name messinho_knowledge_hierarchy).
+- Added 20261126183401_messinho_knowledge_version_append_only.sql and 20261126183459_messinho_knowledge_version_fk_index.sql. Verified privileges: service_role has SELECT/INSERT/UPDATE on concepts and links, SELECT/INSERT only on versions; no DELETE/TRUNCATE rights remain for the permanent knowledge graph.
 - New tables:
   - messinho_knowledge_concepts: domain/topic/title/definition, four learning levels, concept type, parent/prerequisites, formulas and variables, applicability, limitations, claims, source rights, evidence grade, confidence, candidate/active/conflict/stale/superseded status, version and review dates.
   - messinho_knowledge_links: prerequisite, related, extends, contradicts, applies_to and derived_from relations.
   - messinho_knowledge_versions: append-only version snapshots with reason and actor.
 - All three tables have RLS enabled, no browser roles/policies/grants, and service_role-only backend access. STAGING catalog verification confirmed all three tables and RLS; policy_count is 0 by design because browser access is revoked.
 - Added backend/messinho-knowledge-graph.js. It validates level/type, requires a parent or prerequisites for non-foundational concepts, verifies each source against the independently reviewed rights allowlist, requires at least two independent source domains and corroborated claims, stores compact concept candidates, records an initial version snapshot, refuses silent overwrites and retrieves only active concepts.
+- Updated backend/messinho-general-research.js and backend/messinho-rights-registry.js: external provider license flags are ignored; source rights are attached only from the reviewed allowlist, and HTTPS source URL matching enforces exact origin/path boundaries.
+- Connected foundation-style research questions to canonical concept-candidate creation. Only corroborated claims with at least two independent, rights-verified source domains can be persisted; higher-level knowledge waits for prerequisite concepts. With the current allowlist empty, persistence correctly fails closed.
+- Added regression tests for provider-rights spoofing, exact URL scope, unreviewed source resolution and graph-backed capability explanations.
 - Integrated graph retrieval into POST /api/agent/chat. Retrieved approved concepts are passed to the existing scouting agent input and conversational reasoning context; general questions can use the graph before the older flat knowledge and answer-cache paths.
 - Updated backend/messinho-capability-runtime.js to combine active graph concepts with legacy rights-verified knowledge for relevant capability explanations. Scoring/model-weight functions remain isolated from reference knowledge so it cannot silently change numerical ratings or weights.
 - Added tests/messinho-knowledge-graph.test.js for learning-level/link contracts, rights refusal, prerequisite validation and fail-closed persistence/retrieval.
