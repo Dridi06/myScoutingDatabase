@@ -107,7 +107,7 @@ test('retrieves canonical VO2max knowledge in longer player-specific scouting qu
   applicability:'Im Fußball-Scouting als Baustein zur Einordnung der aeroben Leistungsfähigkeit und Ausdauerbasis.',
   limitations:['Geschätzte Werte sind nicht mit direkter CPET-Messung gleichzusetzen.'],
   knowledge_level:'foundational',knowledge_type:'metric',knowledge_status:'active',version:3,confidence:0.88,sources:[],claims:[]};
- const query={select(){return this;},eq(){return this;},in(column,values){assert.deepEqual(values,['sports_science','general']);return this;},or(){return this;},order(){return this;},async limit(){return {data:[row],error:null};}};
+ const query={select(fields){assert.match(fields,/knowledge_status/,'the broad projection must include knowledge_status before rank() filters active records');return this;},eq(){return this;},in(column,values){assert.deepEqual(values,['sports_science','general']);return this;},or(){return this;},order(){return this;},async limit(){return {data:[row],error:null};}};
  const links={select(){return this;},async or(){return {data:[],error:null};}};
  const db={from(table){return table==='messinho_knowledge_concepts'?query:links;}};
  const result=await findMessinhoKnowledgeConcepts(db,'Analysiere VO2max meines Spielers für die aerobe Leistungsfähigkeit');
@@ -135,7 +135,7 @@ test('canonical VO2max exact lookup bypasses a restrictive broad-query validity 
   title:'VO2max maximale Sauerstoffaufnahme',definition:'VO2max beschreibt die maximale Sauerstoffaufnahme des Körpers unter intensiver Belastung und ist ein Maß der kardiorespiratorischen Fitness.',
   knowledge_level:'foundational',knowledge_type:'metric',knowledge_status:'active',version:1,confidence:0.88,sources:[],claims:[],valid_until:null};
  let exactLookup=false;
- const query={select(){return this;},eq(column,value){if(column==='concept_key')exactLookup=value===row.concept_key;return this;},
+ const query={select(fields){assert.match(fields,/knowledge_status/,'both broad and exact projections must include the field used by the active-state guard');return this;},eq(column,value){if(column==='concept_key')exactLookup=value===row.concept_key;return this;},
   in(){return this;},or(){return this;},order(){return this;},
   async limit(){return {data:exactLookup?[row]:[],error:null};}};
  const links={select(){return this;},async or(){return {data:[],error:null};}};
