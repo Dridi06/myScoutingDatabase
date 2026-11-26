@@ -1325,7 +1325,10 @@ const MESSINHO_PLAYER_CAPABILITIES=new Set([
  'tactical_score','athletic_score','mental_score','goalkeeper_score','development_score','consistency_score',
  'league_fit_score','system_fit_score','coach_fit_score','club_fit_score','market_value_assessment',
  'value_for_money','risk_score','development_projection','competition_comparison','transfer_priority',
- 'scout_rating_agreement','explainable_rating'
+ 'scout_rating_agreement','explainable_rating','identity_verification','birth_year_verification',
+ 'position_verification','contract_research','contract_expiry_monitor','source_cross_check',
+ 'rumour_verification','research_report_generation','statistics_research','video_source_research',
+ 'match_report_research','player_data_refresh'
 ]);
 const MESSINHO_ROSTER_CAPABILITIES=new Set([
  'squad_research','club_need_research','automated_talent_search','hidden_gem_detection',
@@ -1470,7 +1473,7 @@ async function loadMessinhoCapabilityContext({player,players,plan,actor}){
   }
   context.outcomes=[
     ...calibrations.map(row=>({
-      player_id:playerId,position_group:row.messinho_position_group,
+      player_id:row.player_id,position_group:row.messinho_position_group,age:row.age,age_group:row.age_group,country:row.country,
       target_score:row.verified_outcome,verified_outcome:row.verified_outcome,
       verification_status:'verified',verified_by:row.verified_by,
       dimension_scores:row.messinho_dimension_scores||{},outcome_metric:row.outcome_metric,
