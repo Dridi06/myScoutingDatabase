@@ -2670,3 +2670,29 @@ Im nächsten Chat direkt mit Punkt 1 und 2 fortfahren: aktuellen Feature-HEAD un
 3. Use an authenticated STAGING admin session to ask a VO2max foundation question; confirm the two permitted endpoints are used, one compact candidate and version snapshot are stored, and no full-text payload is persisted.
 4. Test that the candidate is absent from trusted chat retrieval until explicit admin approval, then approve it and verify active retrieval.
 5. Extend the same pattern domain by domain only when exact, independently corroborated works with compatible commercial AI/TDM rights are found.
+
+
+## 2026-11-26 — General autonomous knowledge learning integrated and STAGING live
+
+### Implemented
+- Added `backend/messinho-knowledge-learning.js` as the general foundational-question learner for future rights-cleared domains. It runs only on completed, quality-approved, non-time-sensitive research; excludes personal health/context questions; fetches exact approved source material through the allowlisted retrieval module; verifies claims against transient excerpts; and writes only compact claims and metadata through the canonical graph store.
+- The VO2max adapter remains the first domain-specific foundation path. It now runs only for general foundational questions or a standalone VO2max query; it rejects player-specific, comparative, calculation and personal questions.
+- Both paths use the same graph, candidate-only storage and admin review gates. Source excerpts are used transiently and are never written to the knowledge graph. Exact article URL, licence, rights holder, attribution, TDM evidence URL, retrieval method/endpoint and rights-review date are retained.
+- Added tests for general candidate learning, source-retrieval failures, unsupported claims, personal/player-specific exclusions, exact endpoint provenance and candidate-only status.
+
+### Verification
+- Latest feature HEAD: `6a76f6be03f39e477f1262707d0921c161311470`.
+- GitHub CI: **299 tests passed, 0 failed**; backend syntax check passed.
+- Dedicated STAGING Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`).
+- Deployment: `dep-dc485f6i0phs739e3r2g`, exact commit `6a76f6be03f39e477f1262707d0921c161311470`, status **live**, finished `2026-11-26T19:05:09Z`.
+- Runtime logs confirm `node backend/server.js` started, API listening on port 10000, Supabase Data API HTTP 200, and configured Tavily/OpenAI presence. No secret values were logged.
+- No new migration was required for this application-code deployment. STAGING knowledge concepts, links, versions, conflicts and review rows remain empty until an authenticated learning request is made. No full source text/PDF was imported.
+- Authenticated end-to-end chat, candidate review UI and approval/retrieval after activation have **not** yet been exercised. Do not claim the candidate is already stored or active.
+
+### Next exact actions
+1. In the owner's authenticated STAGING browser session, ask a general question such as `Was ist VO2max?`. Confirm that both approved PLOS/PMC retrieval endpoints are called and one compact `candidate` plus its version snapshot is written.
+2. Confirm the candidate is not returned by trusted active-knowledge retrieval before admin approval; inspect stored source metadata and ensure no excerpt/full-text fields exist.
+3. In an approved Admin session, load the knowledge candidate queue, inspect evidence and rights, then approve or reject. Confirm the version/audit record and active retrieval after approval.
+4. Test Scout role denial for the admin queue/review endpoints and cross-role isolation.
+5. Only after the first domain path passes E2E, begin the next foundational domain using exact work-level rights review. Do not add OpenStax/NC/OpenIntro/NIST/other quarantined works without the required written/verified permissions.
+6. Keep production, `main`, production Supabase, PFMS/PFSS and PR merge state untouched. PR #47 remains Draft/open/unmerged.
