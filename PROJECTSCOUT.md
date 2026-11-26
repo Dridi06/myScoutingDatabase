@@ -850,3 +850,45 @@ This is a preservation inventory, not a claim that every visual state has passed
 
 ### Next action
 Wait for the current CI run, inspect the staging agent helper/route and main route side by side, then selectively integrate memory/task recovery into the candidate without replacing the current main server or approved frontend. Only after CI and security checks pass should the staging Render service be pointed to this candidate branch.
+
+
+---
+
+## 15. Unified AI / task continuity checkpoint — 2026-11-26
+
+### Implemented on the release candidate
+- Preserved the current main-branch chat route and its existing ASI, deterministic scoring, learning and conversational fallback paths.
+- Added a separate asynchronous capability runner for bounded execution budgets and awaited per-capability checkpoint callbacks. The original synchronous `runMessinhoCapabilityPlan` API remains intact for existing consumers.
+- Integrated owner-scoped MESSINHO memory read/write and execution trace persistence into the existing automatic capability path.
+- Added bounded context reuse for the previously selected player when no new player name is supplied; access remains scoped through `scopeMessinhoOwner`.
+- Added server-managed task ledger helpers for creation, checkpointing, finalization and bounded context storage.
+- Added authenticated task listing and task-resume endpoints. Task reads and updates are constrained by both task ID and authenticated owner ID; resume uses a conditional status claim to prevent concurrent replay.
+- Retained bounded source context (title, URL, publisher, date and excerpt) and claims for resumable tasks. Stored context is size-limited; previous capability results remain untrusted context and are not promoted to evidence.
+- Included the staging-only memory/trace and task-ledger migration definitions in this candidate and documented the Staging→LIVE promotion process.
+
+### Automated verification
+Candidate SHA: `c25a724dc64135d889ca99bde03a3721d0a2c57c`
+
+All three GitHub Actions workflows completed successfully on this exact SHA:
+- MESSINHO Node tests: success — run `45747384840`
+- MESSINHO validation (unit tests + frontend build): success — run `45747384905`
+- ASI quality checks (tests + frontend build): success — run `45747384870`
+
+This is automated CI evidence only. It is not a substitute for a deployed staging E2E test or security review against the live staging database.
+
+### Deployment and release state
+- PR #47 remains open and draft; not merged.
+- Staging Render service remains configured to `feature/messinho-agent-workspace` with auto-deploy off. This candidate has **not** been deployed.
+- The last staging runtime audit reported missing Supabase service-role credentials in Render. Recheck the staging service configuration and startup logs before deployment; configure the staging-only key directly in Render, never in Git or chat.
+- No staging database migration was executed by this candidate's commits; migration definitions are versioned for review.
+- Production Render, production Supabase, production secrets and active model weights remain untouched.
+
+### Remaining acceptance gates
+1. Review task-resume behavior for idempotency, expiration, stale leases and safe retry of partially completed work.
+2. Verify RLS and cross-user isolation with two separate staging test accounts.
+3. Verify memory, trace and task persistence against the staging Supabase project.
+4. Configure the missing staging-only service-role secret in Render and verify the startup DB check.
+5. Deploy this exact candidate SHA to the staging service and run authenticated E2E tests for login, chat, ASI, capability execution, task interruption/resume, provider fallback and mobile UI.
+6. Only after all gates pass, prepare a production PR from the verified candidate and obtain explicit production-release approval.
+
+**Do not merge PR #47 or deploy production automatically.** The candidate is CI-green and functionally integrated at code level, but staging deployment and E2E acceptance are still pending.
