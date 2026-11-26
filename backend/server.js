@@ -30,6 +30,7 @@ import { findMessinhoDomainKnowledge } from './messinho-domain-knowledge.js';
 import { findMessinhoKnowledgeConcepts, storeMessinhoKnowledgeConcept, reviewMessinhoKnowledgeConcept } from './messinho-knowledge-graph.js';
 
 import { calculateMessinhoMathQuestion } from './messinho-math.js';
+import { learnMessinhoApprovedFoundationConcept } from './messinho-approved-knowledge-learning.js';
 import { startMessinhoBackgroundWorker, MESSINHO_BACKGROUND_READ_ONLY } from './messinho-background-worker.js';
 
 const app=express();
@@ -2015,6 +2016,20 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         const sourceItems=(cached.sources||[]).map((source,index)=>({id:'general-source-'+index,name:source.title||source.publisher||source.url,kind:'Gespeicherte Recherchequelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
         return respond({reply:cached.answer,intent:'general_knowledge_memory_hit',items:sourceItems,sources:cached.sources,evidence:cached.evidence_summary,answer_mode:cached.answer_mode,
           claims:cached.claims||[],researched_at:cached.last_verified_at,knowledge_memory:{reused:true,match:remembered.match,similarity:remembered.similarity||null,verification_status:'corroborated',source_count:cached.source_count,distinct_domains:cached.distinct_domains,expires_at:cached.expires_at}});
+      }
+      let foundationLearning;
+      try{foundationLearning=await learnMessinhoApprovedFoundationConcept(db,interpretedMessage);}
+      catch(foundationError){console.warn('MESSINHO approved foundation learning unavailable:',foundationError.message);}
+      if(foundationLearning?.status==='candidate_created'){
+        const references=foundationLearning.source_references||[];
+        return respond({
+          reply:'VO₂max bezeichnet die maximale Sauerstoffaufnahme des Körpers unter intensiver Belastung. Sie ist ein objektiver Messwert und gilt als Goldstandard zur Beurteilung der kardiorespiratorischen Fitness. Im Fußball-Scouting ist sie ein Baustein zur Einordnung der aeroben Leistungsfähigkeit, aber kein alleiniger Maßstab für die Gesamtqualität eines Spielers. Geschätzte Werte sind nicht mit einer direkten Spiroergometrie/CPET-Messung gleichzusetzen.\\n\\nIch habe daraus einen kompakten Grundlagen-Kandidaten mit zwei geprüften Fachquellen gespeichert. Er bleibt bis zur Administratorfreigabe inaktiv und wird noch nicht als freigegebenes Wissen verwendet.',
+          intent:'approved_foundation_knowledge_candidate',
+          items:references.map((source,index)=>({id:'foundation-source-'+index,name:source.title,kind:'Geprüfte CC BY 4.0 Fachquelle',sources:[{url:source.url,title:source.title}]})),
+          sources:references,
+          durable_knowledge:foundationLearning,
+          knowledge_governance:{status:'candidate',active:false,approval_required:true}
+        });
       }
       let research;
       try{research=await researchMessinhoGeneralQuestion(interpretedMessage);}
