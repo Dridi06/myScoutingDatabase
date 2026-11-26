@@ -12,6 +12,7 @@ import { rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFoll
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
 import { normalizeMessinhoFeedback, normalizeMessinhoFeedbackReview } from './messinho-feedback.js';
 import { buildMessinhoQualityIntelligence } from './messinho-quality-intelligence.js';
+import { normalizeMessinhoHypothesisCreate, normalizeMessinhoHypothesisTransition } from './messinho-improvement-governance.js';
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
 import { getMessinhoCapabilitySummary } from './messinho-capabilities.js';
@@ -1265,6 +1266,57 @@ app.get('/api/messinho/quality-intelligence',messinhoQualityIntelligenceLimiter,
     const report=buildMessinhoQualityIntelligence(data||{});
     return res.json({ok:true,report});
   }catch(error){console.error('MESSINHO quality intelligence failed:',error.message);return res.status(500).json({error:'Qualitätsauswertung konnte nicht erstellt werden.'});}
+});
+const messinhoHypothesisLimiter=rateLimit({windowMs:60*60*1000,limit:40,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Änderungen am Verbesserungsprozess. Bitte später erneut versuchen.'}});
+async function requireApprovedMessinhoAdmin(req,res){
+  const actor=await messinhoAuthenticatedUser(req,res);
+  if(!actor)return null;
+  if(actor.profile.role!=='admin'||!actor.profile.approved||actor.profile.approval_status!=='approved'){
+    res.status(403).json({error:'Nur freigeschaltete Administratoren dürfen Verbesserungshypothesen verwalten.'});
+    return null;
+  }
+  return actor;
+}
+app.get('/api/messinho/improvement-hypotheses',messinhoHypothesisLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
+    const {data,error}=await db.from('messinho_improvement_hypotheses')
+      .select('id,hypothesis_key,hypothesis_type,group_by,group_key,sample_size,priority,proposal,status,review_reason,test_plan,evidence_url,evaluation,created_at,updated_at')
+      .order('updated_at',{ascending:false}).limit(100);
+    if(error){console.error('MESSINHO hypothesis list failed:',error.code||error.message);return res.status(500).json({error:'Verbesserungshypothesen konnten nicht geladen werden.'});}
+    return res.json({ok:true,hypotheses:data||[]});
+  }catch(error){console.error('MESSINHO hypothesis list failed:',error.message);return res.status(500).json({error:'Verbesserungshypothesen konnten nicht geladen werden.'});}
+});
+app.post('/api/messinho/improvement-hypotheses',messinhoHypothesisLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
+    const normalized=normalizeMessinhoHypothesisCreate(req.body||{});
+    if(!normalized.ok)return res.status(400).json({error:normalized.error});
+    const {data,error}=await db.rpc('asi_transition_messinho_hypothesis',{
+      p_action:'create',p_reason:normalized.value.reason,p_actor_id:actor.user.id,
+      p_hypothesis:normalized.value.hypothesis,p_evaluation:{}
+    });
+    if(error){const status=error.code==='23505'?409:error.code==='42501'?403:400;return res.status(status).json({error:error.code==='23505'?'Diese Hypothese wurde bereits in den Prüfprozess übernommen.':'Hypothese konnte nicht revisionssicher angelegt werden.'});}
+    return res.status(201).json({ok:true,hypothesis:data});
+  }catch(error){console.error('MESSINHO hypothesis create failed:',error.message);return res.status(500).json({error:'Hypothese konnte nicht angelegt werden.'});}
+});
+app.post('/api/messinho/improvement-hypotheses/:hypothesisId/transition',messinhoHypothesisLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(req.params.hypothesisId||'')))return res.status(400).json({error:'Ungültige Hypothesen-ID.'});
+    const normalized=normalizeMessinhoHypothesisTransition(req.body||{});
+    if(!normalized.ok)return res.status(400).json({error:normalized.error});
+    const {data,error}=await db.rpc('asi_transition_messinho_hypothesis',{
+      p_action:normalized.value.action,p_reason:normalized.value.reason,p_actor_id:actor.user.id,
+      p_hypothesis_id:req.params.hypothesisId,p_test_plan:normalized.value.test_plan,
+      p_evidence_url:normalized.value.evidence_url,p_evaluation:normalized.value.evaluation
+    });
+    if(error){const status=error.code==='42501'?403:error.code==='P0002'?404:409;return res.status(status).json({error:'Statuswechsel abgelehnt. Bitte Status, Testplan, Beleg und Berechtigung prüfen.'});}
+    return res.json({ok:true,hypothesis:data,message:'Status und unveränderlicher Audit-Eintrag wurden atomar gespeichert.'});
+  }catch(error){console.error('MESSINHO hypothesis transition failed:',error.message);return res.status(500).json({error:'Statuswechsel konnte nicht gespeichert werden.'});}
 });
 app.get('/api/messinho/feedback',async(req,res)=>{
   try{
