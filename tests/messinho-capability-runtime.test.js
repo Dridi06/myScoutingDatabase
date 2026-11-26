@@ -101,3 +101,18 @@ test('club research never claims completion from a club name alone',()=>{
  assert.equal(out.status,'insufficient_data');
  assert.ok(out.missing_inputs.includes('club_sources'));
 });
+
+
+test('automated talent search maps natural-language position groups to stored scouting positions',()=>{
+ const out=executeMessinhoCapability('automated_talent_search',{
+   now:'2026-01-01T00:00:00.000Z',
+   candidates:[
+     {id:'striker',name:'Centre Forward',birth_year:2007,positions:['9er'],ratings:{technical:80,tactical:70,athletic:75,mental:70}},
+     {id:'keeper',name:'Goalkeeper',birth_year:2007,positions:['Torwart'],ratings:{technical:80,tactical:70,athletic:75,mental:70}}
+   ],
+   filters:{position:'Stürmer',max_age:21}
+ });
+ assert.equal(out.status,'completed');
+ assert.equal(out.result.candidate_count,1);
+ assert.equal(out.result.results[0].id,'striker');
+});
