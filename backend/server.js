@@ -1413,14 +1413,9 @@ app.delete('/api/admin/myki/tickets/:ticketId',myKiTicketLimiter,async(req,res)=
   try{
     const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
     if(!await requireMyKiTable(res))return;
-    const {data:ticket,error:lookupError}=await db.from('messinho_myki_tickets').select('id,status').eq('id',req.params.ticketId).maybeSingle();
-    if(lookupError||!ticket)return res.status(404).json({error:'myKI-Ticket wurde nicht gefunden.'});
-    if(ticket.status==='integrating')return res.status(409).json({error:'Ein Ticket kann während einer Integration nicht gelöscht werden.'});
-    const now=new Date().toISOString();
-    const {error:updateError}=await db.from('messinho_myki_tickets').update({status:'deleted',deleted_at:now,updated_at:now}).eq('id',ticket.id);
-    if(updateError)return res.status(500).json({error:'Ticket konnte nicht gelöscht werden.'});
-    const {error:eventError}=await db.from('messinho_myki_ticket_events').insert({ticket_id:ticket.id,actor_id:actor.user.id,actor_type:'admin',action:'deleted',from_status:ticket.status,to_status:'deleted',safe_message:'Ticket aus dem aktiven myKI-Eingang entfernt.'});
-    if(eventError)console.error('myKI delete audit event failed:',eventError.code||eventError.message);
+    const {data:deleted,error}=await db.rpc('asi_admin_delete_messinho_myki_ticket',{p_ticket_id:req.params.ticketId,p_actor_id:actor.user.id});
+    if(error){const status=error.code==='42501'?403:error.code==='55000'?409:500;return res.status(status).json({error:error.code==='55000'?'Ein Ticket kann während einer Integration nicht gelöscht werden.':'Ticket konnte nicht revisionssicher gelöscht werden.'});}
+    if(!deleted)return res.status(404).json({error:'myKI-Ticket wurde nicht gefunden.'});
     return res.json({ok:true,message:'Ticket wurde aus dem aktiven Eingang entfernt.'});
   }catch(error){console.error('myKI ticket delete failed:',error.message);return res.status(500).json({error:'Ticket konnte nicht gelöscht werden.'});}
 });
@@ -1433,11 +1428,10 @@ app.post('/api/internal/messinho/myki-tickets',myKiTicketLimiter,async(req,res)=
     if(!await requireMyKiTable(res))return;
     const normalized=normalizeMyKiTicketProposal(req.body||{});if(!normalized.ok)return res.status(400).json({error:normalized.error});
     const record=createMyKiTicketRecord(normalized.value,{id:randomUUID()});if(!record.ok)return res.status(400).json({error:record.error});
-    const {data,error}=await db.from('messinho_myki_tickets').insert(record.ticket).select('id,ticket_id,status,created_at').single();
-    if(error){const status=error.code==='23505'?409:error.code==='42P01'?503:500;return res.status(status).json({error:error.code==='23505'?'Dieser Verbesserungsvorschlag wurde bereits eingereicht.':'KI-Ticket konnte nicht angelegt werden.'});}
-    const {error:eventError}=await db.from('messinho_myki_ticket_events').insert({ticket_id:data.id,actor_type:'messinho',action:'submitted',to_status:'submitted',safe_message:'MESSINHO hat einen Verbesserungsvorschlag eingereicht.'});
-    if(eventError)console.error('myKI create audit event failed:',eventError.code||eventError.message);
-    return res.status(201).json({ok:true,ticket:data});
+    const {data,error}=await db.rpc('asi_create_messinho_myki_ticket',{p_ticket:record.ticket});
+    if(error){const status=error.code==='23505'?409:error.code==='42P01'?503:500;return res.status(status).json({error:error.code==='23505'?'Dieser Verbesserungsvorschlag wurde bereits eingereicht.':'KI-Ticket konnte nicht revisionssicher angelegt werden.'});}
+    const dataTicket=data;
+    return res.status(201).json({ok:true,ticket:dataTicket});
   }catch(error){console.error('myKI internal ticket create failed:',error.message);return res.status(500).json({error:'KI-Ticket konnte nicht angelegt werden.'});}
 });
 app.get('/api/messinho/improvement-hypotheses',messinhoHypothesisLimiter,async(req,res)=>{
