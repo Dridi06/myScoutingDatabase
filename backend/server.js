@@ -1425,17 +1425,21 @@ async function loadMessinhoCapabilityContext({player,players,plan,actor}){
   }));
   const rawEvidence=[...(loaded.evidence||[]),...(loaded.candidateEvidence||[])];
   const now=Date.now();
-  const trustedEvidence=rawEvidence.filter(row=>
-    row.verification_status==='verified'&&row.review_status==='approved'&&row.reviewed_by&&
-    row.identity_status==='verified'&&row.source_url&&/^https:\\/\\//i.test(row.source_url)&&
-    (!row.valid_until||Date.parse(row.valid_until)>now)
-  );
+  const trustedEvidence=rawEvidence.filter(row=>{
+    const confirmed=['confirmed','corroborated'].includes(row.verification_status);
+    const identityMatched=['matched','confirmed'].includes(row.identity_status);
+    const legalApproved=row.legal_review_status==='approved'||row.legal_review_status==='not_required';
+    const ordinary=row.data_classification==='ordinary';
+    return confirmed&&row.review_status==='approved'&&row.reviewed_by&&identityMatched&&
+      legalApproved&&ordinary&&row.source_url&&/^https:\/\//i.test(row.source_url)&&
+      (!row.valid_until||Date.parse(row.valid_until)>now);
+  });
   const evidenceForUse=trustedEvidence.length?trustedEvidence:rawEvidence.filter(row=>row.source_url);
   context.sources=evidenceForUse.map(row=>({
     title:row.claim_title||row.source_name||row.publisher||'Scouting-Quelle',
     url:row.source_url,publisher:row.publisher||row.provider||row.source_name||null,
     content:row.evidence_excerpt||row.claim_text||'',
-    published_date:row.published_at||null,verification_status:row.verification_status||'pending',
+    published_date:row.published_at||null,verification_status:['confirmed','corroborated'].includes(row.verification_status)?'verified':(row.verification_status||'pending'),
     identity_status:row.identity_status||'unknown',fact_confidence:row.fact_confidence??null,
     review_status:row.review_status||'pending',legal_review_status:row.legal_review_status||'pending',
     license_id:row.license_id||null,metadata:row.metadata||{}
