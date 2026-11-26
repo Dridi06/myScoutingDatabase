@@ -84,8 +84,8 @@ export async function fetchMessinhoApprovedSource(sourceId,{topic='',fetchImpl=g
    source:{
     source_id:rights.source_id,title:rights.title,edition:rights.edition,
     url:rights.source_url_prefixes[0],license:rights.license,license_url:rights.license_url,
-    rights_holder:rights.rights_holder,evidence_url:rights.evidence_url,
-    attribution:rights.attribution,status:rights.status,ai_tdm:true,commercial_use:true,derivative_use:true
+    rights_holder:rights.rights_holder,evidence_url:rights.evidence_url,tdm_evidence_url:rights.tdm_evidence_url,
+    reviewed_at:rights.reviewed_at,attribution:rights.attribution,status:rights.status,ai_tdm:true,commercial_use:true,derivative_use:true
    },
    retrieval_method:rights.retrieval_method,
    excerpts,
