@@ -105,6 +105,13 @@ export async function storeMessinhoKnowledgeConcept(db,input,now=new Date()){
 const CANONICAL_CONCEPT_MATCHERS=[
  {key:'sports_science.physiology.vo2max',pattern:/\b(vo\s*[₂2]\s*max|vo2max|vo₂max|maximale sauerstoffaufnahme|kardiorespiratorische fitness|cardiorespiratory fitness)\b/i}
 ];
+export function formatMessinhoKnowledgeValue(value){
+ if(value===null||value===undefined||value==='')return '';
+ if(Array.isArray(value))return value.map(item=>formatMessinhoKnowledgeValue(item)).filter(Boolean).join('; ');
+ if(typeof value==='string'||typeof value==='number'||typeof value==='boolean')return String(value);
+ if(typeof value==='object')return Object.entries(value).map(([key,item])=>key+': '+formatMessinhoKnowledgeValue(item)).join('; ');
+ return '';
+}
 export function getMessinhoCanonicalConceptKey(question){
  const match=CANONICAL_CONCEPT_MATCHERS.find(item=>item.pattern.test(String(question||'')));
  return match?.key||null;
