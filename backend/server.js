@@ -18,7 +18,7 @@ import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainabl
 import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './messinho-research.js';
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
 import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
-import { classifyMessinhoProviderFailure, getMessinhoSmallTalkReply } from './messinho-conversation.js';
+import { classifyMessinhoProviderFailure, getMessinhoSocialReply } from './messinho-conversation.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -1543,7 +1543,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const actor={user:authData.user,profile};
     const agentMemory=await loadMessinhoAgentMemory(ownerId);
     const normalized=interpretedMessage.toLocaleLowerCase('de-DE').normalize('NFKC');
-    const smallTalkReply=getMessinhoSmallTalkReply(interpretedMessage);
+    const smallTalkReply=getMessinhoSocialReply(interpretedMessage,history);
     if(smallTalkReply)return respond({reply:smallTalkReply,intent:'small_talk',items:[]});
     const isPlayerFollowUp=Boolean(resolveMessinhoPlayerFollowUp(interpretedMessage,history));
     const help=/\b(hilfe|befehle|funktionen)\b/.test(normalized)||(/\bwas kannst du\b/.test(normalized)&&!isPlayerFollowUp);
