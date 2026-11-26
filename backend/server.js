@@ -13,6 +13,7 @@ import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalF
 import { scopeMessinhoOwner } from './messinho-access.js';
 import { getMessinhoCapabilityCatalog, getMessinhoCapabilitySummary } from './messinho-capabilities.js';
 import { executeMessinhoCapability, listExecutableMessinhoCapabilities, getMessinhoRuntimeSummary } from './messinho-capability-runtime.js';
+import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
 import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainableAssessment, generateMessinhoHypotheses } from './messinho-development.js';
 
 const app=express();
@@ -579,6 +580,60 @@ async function messinhoAuthenticatedUser(req,res){
   if(profile.role==='scout'&&(!profile.approved||profile.approval_status!=='approved')){res.status(403).json({error:'Dein Scout-Zugang ist noch nicht freigeschaltet.'});return null;}
   return {user:data.user,profile,token};
 }
+const EMPTY_MESSINHO_MEMORY=()=>({active_player_ids:[],user_preferences:{},active_entities:{},last_intent:null,last_goal:null});
+async function loadMessinhoAgentMemory(ownerId){
+  if(!db)return EMPTY_MESSINHO_MEMORY();
+  try{
+    const {data,error}=await db.from('messinho_agent_memory')
+      .select('active_player_ids,user_preferences,active_entities,last_intent,last_goal')
+      .eq('owner_id',ownerId).maybeSingle();
+    if(error){
+      if(error.code!=='42P01')console.warn('MESSINHO memory read unavailable:',error.message);
+      return EMPTY_MESSINHO_MEMORY();
+    }
+    return {
+      active_player_ids:Array.isArray(data?.active_player_ids)?data.active_player_ids.map(Number).filter(id=>Number.isSafeInteger(id)&&id>0).slice(0,10):[],
+      user_preferences:data?.user_preferences&&typeof data.user_preferences==='object'?data.user_preferences:{},
+      active_entities:data?.active_entities&&typeof data.active_entities==='object'?data.active_entities:{},
+      last_intent:typeof data?.last_intent==='string'?data.last_intent:null,
+      last_goal:typeof data?.last_goal==='string'?data.last_goal:null
+    };
+  }catch(error){console.warn('MESSINHO memory read failed:',error.message);return EMPTY_MESSINHO_MEMORY();}
+}
+async function saveMessinhoAgentMemory(ownerId,memory){
+  if(!db)return false;
+  try{
+    const payload={
+      owner_id:ownerId,
+      active_player_ids:(Array.isArray(memory.active_player_ids)?memory.active_player_ids:[]).map(Number).filter(id=>Number.isSafeInteger(id)&&id>0).slice(0,10),
+      user_preferences:memory.user_preferences&&typeof memory.user_preferences==='object'?memory.user_preferences:{},
+      active_entities:memory.active_entities&&typeof memory.active_entities==='object'?memory.active_entities:{},
+      last_intent:typeof memory.last_intent==='string'?memory.last_intent.slice(0,80):null,
+      last_goal:typeof memory.last_goal==='string'?memory.last_goal.slice(0,1200):null,
+      updated_at:new Date().toISOString()
+    };
+    const {error}=await db.from('messinho_agent_memory').upsert(payload,{onConflict:'owner_id'});
+    if(error){if(error.code!=='42P01')console.warn('MESSINHO memory write unavailable:',error.message);return false;}
+    return true;
+  }catch(error){console.warn('MESSINHO memory write failed:',error.message);return false;}
+}
+async function saveMessinhoAgentTrace(ownerId,goal,plan,run,durationMs){
+  if(!db)return;
+  try{
+    const resultSummary=(run?.results||[]).map(item=>({
+      capability_id:item.capability_id,status:item.status,
+      missing_inputs:Array.isArray(item.missing_inputs)?item.missing_inputs:[],
+      error_code:item.error_code||null
+    }));
+    const {error}=await db.from('messinho_agent_traces').insert({
+      owner_id:ownerId,goal:String(goal||'').slice(0,1200),
+      status:run?.status||'error',
+      plan:{steps:plan?.steps||[],blocked_capabilities:plan?.blocked_capabilities||[],deferred_capabilities:plan?.deferred_capabilities||[],mode:plan?.mode||null},
+      result_summary:resultSummary,duration_ms:Math.max(0,Math.min(120000,Number(durationMs)||0))
+    });
+    if(error&&error.code!=='42P01')console.warn('MESSINHO trace write unavailable:',error.message);
+  }catch(error){console.warn('MESSINHO trace write failed:',error.message);}
+}
 app.get('/api/messinho/capabilities',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
@@ -959,6 +1014,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const dialog=parseMessinhoScoutingRequest(message,history);
     const ownerId=authData.user.id;
     const actor={user:authData.user,profile};
+    const agentMemory=await loadMessinhoAgentMemory(ownerId);
     const normalized=message.toLocaleLowerCase('de-DE').normalize('NFKC');
     const help=/\b(hilfe|was kannst du|befehle|funktionen)\b/.test(normalized);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
@@ -1008,7 +1064,109 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const [players,candidates]=await Promise.all([playerQuery,db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status').eq('owner_id',ownerId).ilike('player_name','%'+safeTerm+'%').limit(10)]);
       if(players.error||candidates.error)return res.status(500).json({error:'Die interne Spielersuche ist fehlgeschlagen.'});
       const items=[...(players.data||[]).map(p=>({kind:'Spielerkatalog',id:p.player_id,name:p.name,club:p.club,year:p.year,positions:p.positions||[],foot:p.foot})),...(candidates.data||[]).map(p=>({kind:'Kandidat',id:p.id,name:p.player_name,club:p.current_club,year:p.birth_year,positions:p.positions||[],recommendation:p.recommendation,status:p.status}))];
+      if((players.data||[]).length){
+        const selected=(players.data||[]).slice(0,10);
+        await saveMessinhoAgentMemory(ownerId,{...agentMemory,active_player_ids:selected.map(p=>p.player_id),active_entities:{player_names:selected.map(p=>p.name)},last_intent:'search',last_goal:message});
+      }
       return res.json({reply:items.length?'Ich habe '+items.length+' gespeicherte Einträge gefunden.':'Ich habe keinen internen Treffer gefunden.',intent:'search',items});
+    }
+    const agentStartedAt=Date.now();
+    const plan=planMessinhoCapabilities(message,profile.role,{
+      active_player_ids:agentMemory.active_player_ids,
+      user_preferences:agentMemory.user_preferences,
+      history_count:history.length,
+      previous_goal:agentMemory.last_goal
+    });
+    if(plan){
+      const playerCapabilityIds=new Set([
+        'holistic_player_analysis','position_analysis','multi_position_analysis','play_style_detection',
+        'strength_weakness_analysis','potential_analysis','performance_development','form_curve_analysis',
+        'game_intelligence_analysis','tactical_behaviour_analysis','game_phase_analysis','duel_analysis',
+        'running_performance_analysis','speed_analysis','technical_detail_analysis','creativity_analysis',
+        'decision_quality_analysis','consistency_analysis','peer_comparison_analysis','age_relative_analysis',
+        'availability_history_analysis','minutes_analysis','video_event_analysis','anomaly_detection',
+        'player_profile_synthesis','overall_score','position_score','potential_score','talent_score',
+        'technical_score','tactical_score','athletic_score','mental_score','goalkeeper_score',
+        'development_score','consistency_score','league_fit_score','system_fit_score','coach_fit_score',
+        'club_fit_score','market_value_assessment','value_for_money','risk_score','development_projection',
+        'competition_comparison','transfer_priority','scout_rating_agreement','explainable_rating'
+      ]);
+      const needsPlayer=plan.steps.some(id=>playerCapabilityIds.has(id));
+      let selectedPlayer=null;
+      let matchedPlayers=[];
+      if(needsPlayer){
+        if(agentMemory.active_player_ids.length){
+          const activeQuery=scopeMessinhoOwner(
+            db.from('players').select('player_id,owner_id,name,club,year,positions,foot,ratings,performance_metrics,metrics').in('player_id',agentMemory.active_player_ids),
+            actor
+          );
+          const {data,error}=await activeQuery;
+          if(error)return res.status(500).json({error:'Der gespeicherte Spieler-Kontext konnte nicht geladen werden.'});
+          matchedPlayers=data||[];
+        }
+        if(!matchedPlayers.length){
+          let playerQuery=scopeMessinhoOwner(
+            db.from('players').select('player_id,owner_id,name,club,year,positions,foot,ratings,performance_metrics,metrics').order('player_id',{ascending:false}).limit(500),
+            actor
+          );
+          const {data,error}=await playerQuery;
+          if(error)return res.status(500).json({error:'Dein Spielerkatalog konnte für die Kontextauflösung nicht geladen werden.'});
+          const messageKey=message.normalize('NFKC').toLocaleLowerCase('de-DE');
+          matchedPlayers=(data||[]).filter(p=>p.name&&messageKey.includes(String(p.name).normalize('NFKC').toLocaleLowerCase('de-DE')));
+        }
+        if(matchedPlayers.length>1){
+          return res.json({reply:'Ich habe mehrere passende Spieler in deinem Datenbestand gefunden. Bitte nenne den vollständigen Namen oder die Spieler-ID, damit ich keine falsche Person analysiere.',intent:'player_clarification',items:matchedPlayers.slice(0,8).map(p=>({id:p.player_id,name:p.name,club:p.club||null,positions:p.positions||[]})),pending:true});
+        }
+        selectedPlayer=matchedPlayers[0]||null;
+        if(!selectedPlayer){
+          return res.json({reply:'Welche Person soll ich analysieren? Nenne bitte den Spielernamen oder die Spieler-ID. Ich werde keine Spieleridentität erraten.',intent:'player_clarification',items:[],pending:true,agent:{planned_capabilities:plan.steps}});
+        }
+      }
+      let peerPlayers=[];
+      if(plan.steps.some(id=>['peer_comparison_analysis','competition_comparison','transfer_priority'].includes(id))){
+        const peerQuery=scopeMessinhoOwner(db.from('players').select('player_id,owner_id,name,club,year,positions,ratings,performance_metrics,metrics').limit(300),actor);
+        const {data,error}=await peerQuery;
+        if(error)return res.status(500).json({error:'Vergleichsdaten konnten nicht geladen werden.'});
+        peerPlayers=data||[];
+      }
+      const input={
+        ...(selectedPlayer?{player:selectedPlayer}:{}),
+        ...(peerPlayers.length?{players:peerPlayers}:{}),
+        user_preferences:agentMemory.user_preferences,
+        history:history.slice(-15)
+      };
+      const run=runMessinhoCapabilityPlan(plan,input,profile.role);
+      const reply=formatMessinhoCapabilityResults(run,selectedPlayer?.name||null);
+      const preferences={...agentMemory.user_preferences};
+      const formation=message.match(/\b(4-\d-\d|3-\d-\d|5-\d-\d)\b/);
+      if(formation)preferences.preferred_system=formation[1];
+      const budget=message.match(/(?:budget|budgetgrenze|max(?:imal)?|bis zu)\s*(\d+(?:[.,]\d+)?)\s*(mio\.?|million(?:en)?|m|€)?/i);
+      if(budget){
+        const amount=Number(budget[1].replace(',','.'));
+        if(Number.isFinite(amount))preferences.max_budget_eur=budget[2]&&/mio|million|^m$/i.test(budget[2])?Math.round(amount*1000000):Math.round(amount);
+      }
+      const nextMemory={
+        ...agentMemory,
+        active_player_ids:selectedPlayer?[selectedPlayer.player_id]:agentMemory.active_player_ids,
+        user_preferences:preferences,
+        active_entities:selectedPlayer?{player_id:selectedPlayer.player_id,player_name:selectedPlayer.name}:agentMemory.active_entities,
+        last_intent:plan.matched_intents?.join(',')||'capability_discovery',
+        last_goal:message
+      };
+      await saveMessinhoAgentMemory(ownerId,nextMemory);
+      await saveMessinhoAgentTrace(ownerId,message,plan,run,Date.now()-agentStartedAt);
+      return res.json({
+        reply,intent:'messinho_agent',items:selectedPlayer?[{kind:'Spielerkatalog',id:selectedPlayer.player_id,name:selectedPlayer.name,club:selectedPlayer.club,positions:selectedPlayer.positions||[]}]:[],
+        agent:{status:run.status,label:run.label,planned_capabilities:plan.steps,discovered_capabilities:plan.discovered_capabilities,
+          completed_steps:run.completed_steps,total_steps:run.total_steps,missing_inputs:run.missing_inputs,
+          blocked_capabilities:run.blocked_capabilities,deferred_capabilities:run.deferred_capabilities,
+          replan_recommended:run.replan_recommended,results:run.results},
+        memory:{active_player_ids:nextMemory.active_player_ids,preferences:nextMemory.user_preferences,persisted:true},
+        execution_policy:run.execution_policy
+      });
+    }
+    if(/^(hallo|hi|hey|guten morgen|guten tag|guten abend|servus)\b/i.test(message)){
+      return res.json({reply:'Hallo! Ich bin MESSINHO. Du kannst mir ein Scouting-Ziel nennen – ich zerlege es selbstständig in passende Analyse- und Rechercheaufgaben und zeige dir, wenn Daten fehlen.',intent:'smalltalk',items:[]});
     }
     return res.json({reply:'Ich habe deine Anfrage noch nicht eindeutig einem vorhandenen Modul zuordnen können. Beschreibe bitte Ziel, Spielerposition, Jahrgang und gewünschtes Leistungsniveau.',intent:'clarify',items:[]});
   }catch(error){console.error('Messinho agent chat failed:',error.message);return res.status(500).json({error:'Messinho konnte die Anfrage gerade nicht bearbeiten.'});}
