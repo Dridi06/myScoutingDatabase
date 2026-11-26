@@ -1846,7 +1846,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const canonicalConceptKey=currentCanonicalConceptKey||(continuingVo2Application?'sports_science.physiology.vo2max':null);
     const knowledgeApplicationQuestion=continuingVo2Application?priorVo2UserQuestion.text+' '+interpretedMessage:interpretedMessage;
     if(canonicalConceptKey){
-      const canonicalResult=await findMessinhoKnowledgeConcepts(db,interpretedMessage,{limit:8});
+      const canonicalResult=await findMessinhoKnowledgeConcepts(db,knowledgeApplicationQuestion,{limit:8});
       const canonicalItems=(canonicalResult.items||[]).filter(item=>item.concept_key===canonicalConceptKey);
       if(canonicalItems.length){
         const first=canonicalItems[0];
