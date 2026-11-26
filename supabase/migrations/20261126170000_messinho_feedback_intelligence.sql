@@ -66,7 +66,7 @@ begin
   ) then
     raise exception 'approved_admin_required' using errcode = '42501';
   end if;
-  if p_decision not in ('verify','reject') then
+  if p_decision is null or p_decision not in ('verify','reject') then
     raise exception 'invalid_calibration_decision' using errcode = '22023';
   end if;
   if char_length(btrim(coalesce(p_reason,''))) < 8 or char_length(p_reason) > 1200 then
@@ -124,7 +124,7 @@ begin
   ) then
     raise exception 'approved_admin_required' using errcode = '42501';
   end if;
-  if p_decision not in ('approve','reject') then
+  if p_decision is null or p_decision not in ('approve','reject') then
     raise exception 'invalid_model_decision' using errcode = '22023';
   end if;
   if char_length(btrim(coalesce(p_reason,''))) < 8 or char_length(p_reason) > 1200 then
@@ -136,7 +136,7 @@ begin
   if not found then raise exception 'model_candidate_not_found' using errcode = 'P0002'; end if;
   if p_decision = 'approve' then
     if coalesce((v_candidate.metrics->>'trained')::boolean,false) is not true
-      or jsonb_typeof(v_candidate.configuration->'profiles') <> 'object'
+      or coalesce(jsonb_typeof(v_candidate.configuration->'profiles') = 'object',false) is not true
       or not exists (select 1 from public.asi_model_evaluations e where e.model_version_id = p_model_version_id and e.passed = true)
     then
       raise exception 'model_candidate_failed_evaluation_gate' using errcode = '23514';
@@ -161,3 +161,80 @@ end;
 $$;
 revoke all on function public.asi_review_model_candidate(uuid,text,text,uuid) from public, anon, authenticated;
 grant execute on function public.asi_review_model_candidate(uuid,text,text,uuid) to service_role;
+
+
+-- Append-only review history for every administrative feedback decision.
+create table if not exists public.messinho_feedback_reviews (
+  id uuid primary key default gen_random_uuid(),
+  feedback_id uuid not null references public.messinho_feedback(id) on delete cascade,
+  reviewer_id uuid not null references public.profiles(id),
+  previous_status text not null check (previous_status in ('pending','reviewed','verified','rejected','applied')),
+  decision text not null check (decision in ('reviewed','verified','rejected','applied')),
+  reason text not null check (char_length(btrim(reason)) between 8 and 1200),
+  evidence_url text check (evidence_url is null or evidence_url ~ '^https://[^[:space:]]+$'),
+  created_at timestamptz not null default now()
+);
+create index if not exists messinho_feedback_reviews_history_idx
+  on public.messinho_feedback_reviews(feedback_id,created_at desc);
+alter table public.messinho_feedback_reviews enable row level security;
+revoke all on table public.messinho_feedback_reviews from public, anon, authenticated;
+grant select,insert on table public.messinho_feedback_reviews to service_role;
+create policy messinho_feedback_reviews_service_role_only on public.messinho_feedback_reviews
+  for all to service_role using (true) with check (true);
+
+-- Serializes review transitions and writes the immutable audit event atomically.
+create or replace function public.asi_review_messinho_feedback(
+  p_feedback_id uuid,
+  p_decision text,
+  p_reason text,
+  p_evidence_url text default null,
+  p_actor_id uuid default null
+) returns jsonb
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  v_feedback public.messinho_feedback%rowtype;
+  v_updated public.messinho_feedback%rowtype;
+begin
+  if not exists (
+    select 1 from public.profiles
+    where id = p_actor_id and role = 'admin' and approved = true and approval_status = 'approved'
+  ) then
+    raise exception 'approved_admin_required' using errcode = '42501';
+  end if;
+  if p_decision is null or p_decision not in ('reviewed','verified','rejected','applied') then
+    raise exception 'invalid_feedback_decision' using errcode = '22023';
+  end if;
+  if char_length(btrim(coalesce(p_reason,''))) < 8 or char_length(p_reason) > 1200 then
+    raise exception 'feedback_review_reason_required' using errcode = '22023';
+  end if;
+  if p_evidence_url is not null and p_evidence_url !~ '^https://[^[:space:]]+$' then
+    raise exception 'feedback_evidence_must_be_https' using errcode = '22023';
+  end if;
+  select * into v_feedback from public.messinho_feedback where id = p_feedback_id for update;
+  if not found then raise exception 'feedback_not_found' using errcode = 'P0002'; end if;
+  if p_decision = 'verified' then
+    if v_feedback.feedback_type <> 'factual_correction' or p_evidence_url is null
+      or v_feedback.status not in ('pending','reviewed') then
+      raise exception 'feedback_verification_gate_failed' using errcode = '23514';
+    end if;
+  elsif p_decision = 'reviewed' then
+    if v_feedback.status <> 'pending' then raise exception 'feedback_transition_not_allowed' using errcode = '23514'; end if;
+  elsif p_decision = 'rejected' then
+    if v_feedback.status not in ('pending','reviewed') then raise exception 'feedback_transition_not_allowed' using errcode = '23514'; end if;
+  elsif p_decision = 'applied' then
+    if v_feedback.status not in ('reviewed','verified') then raise exception 'feedback_transition_not_allowed' using errcode = '23514'; end if;
+  end if;
+  insert into public.messinho_feedback_reviews(feedback_id,reviewer_id,previous_status,decision,reason,evidence_url)
+    values(p_feedback_id,p_actor_id,v_feedback.status,p_decision,btrim(p_reason),p_evidence_url);
+  update public.messinho_feedback
+    set status = p_decision, reviewer_id = p_actor_id, reviewed_at = now(),
+        review_reason = btrim(p_reason), evidence_url = p_evidence_url, updated_at = now()
+    where id = p_feedback_id returning * into v_updated;
+  return to_jsonb(v_updated);
+end;
+$$;
+revoke all on function public.asi_review_messinho_feedback(uuid,text,text,text,uuid) from public, anon, authenticated;
+grant execute on function public.asi_review_messinho_feedback(uuid,text,text,text,uuid) to service_role;
