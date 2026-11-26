@@ -1,0 +1,32 @@
+name: MESSINHO staging validation
+
+on:
+  push:
+    branches:
+      - feature/messinho-agent-workspace
+  pull_request:
+    branches:
+      - feature/messinho-agent-workspace
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Node tests and frontend build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run automated tests
+        run: npm test
+      - name: Build frontend
+        run: npm run build
