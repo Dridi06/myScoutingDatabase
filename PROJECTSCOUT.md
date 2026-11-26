@@ -3086,3 +3086,11 @@ Eine externe Recherche ist kein Wissensimport. Ein Kandidat ist noch kein aktive
 - Database governance: read-only security checks passed.
 - VO2max active-knowledge import and authenticated reuse: pending.
 - Overall first-knowledge-pilot status: **not yet passed**.
+
+
+### Additional live STAGING health verification — 2026-11-26 19:58 UTC
+- Updated `.github/workflows/staging-health-smoke.yml` so the dedicated STAGING health probe runs on feature-branch pushes, not only when the workflow file itself changes.
+- GitHub Actions health run `45887555879` completed successfully against the deployed STAGING URL.
+- Exact probe result: HTTP **200**, `ok: true`; database **ok**, authentication **ready**, MESSINHO core **provider_independent**, external research **ready**, optional AI analysis **ready**.
+- The workflow commit is `6e4ccc871cda337d44db3a8392e729ac7d14b330`. All four GitHub checks for this branch commit completed successfully: staging health smoke, Node tests, backend syntax and staging branch CI.
+- This confirms service health and dependencies, not an authenticated chat conversation or knowledge-record reuse. The knowledge tables remain empty until the Admin starts and approves the VO2max pilot.
