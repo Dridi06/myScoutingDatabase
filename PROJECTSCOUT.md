@@ -3762,3 +3762,13 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - The Admin remains the final authority; MESSINHO's player/scout access remains read/analyze/propose only.
 - Next engineering sequence: inspect current hypothesis governance and tool/agent execution boundaries; define a no-side-effect engineering proposal workflow; add synthetic patch/evaluation tests; only later consider isolated sandbox execution with strict budgets and Admin-controlled staging promotion.
 - No database schema/data changes, no migrations, no source allowlist changes, no production changes and no deployment were performed in this checkpoint.
+
+
+### Technical Intelligence Foundation v2.1 — CI correction and verification — 2026-11-27
+- The first CI attempt exposed a brittle test assertion: the governance text had been strengthened to say "No autonomous code execution", while the test expected the exact substring "No code execution". The policy itself remained correct; the assertion was corrected to accept the explicit autonomous wording.
+- Verified latest feature-branch commit: `f49a6f86fdd1b6c354228432b40b28d5f1744839`.
+- GitHub Actions on that exact commit: `messinho-backend-syntax` SUCCESS; `staging-health-smoke` SUCCESS; `messinho-staging-ci` SUCCESS; `messinho-tests` SUCCESS.
+- Earlier failed/cancelled runs belong to intermediate commits and are superseded by the successful checks on the latest commit.
+- Read-only Supabase inspection confirmed RLS is enabled on `players`, `profiles`, and MESSINHO improvement-hypothesis tables. Current player policies explicitly allow authenticated Admin/approved-Scout operations; MESSINHO hypothesis tables are service_role-only. This is not yet proof that every backend service-role path prevents MESSINHO from mutating player/scout data. That requires code-path and adversarial API/tool tests before any execution capability.
+- No migration, database write, source allowlist change, knowledge import/activation, staging deploy or production change was made.
+- Next: audit the current improvement-hypothesis lifecycle, all MESSINHO tool/handler write paths, service-role Supabase client usage and protected player/profile routes. Define a proposal-only engineering agent interface and prove it cannot call operational CRUD endpoints. Only after those controls are verified should isolated sandbox execution be considered.
