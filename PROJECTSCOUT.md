@@ -2808,3 +2808,29 @@ No Admin/Scout credentials, passwords or session tokens were accessed, generated
 - Der aktuelle Quelltest vergleicht den HTML-`Accept`-Header exakt; die aktuelle Lernlogik und die Foundation-Tests sind auf dem Branch vorhanden.
 - Keine erneute Bereitstellung ausgelöst. Der zuvor angestoßene, nicht mehr aktive Render-Deploy `dep-dc484517lnhs73flus40` ist **deactivated**; der dokumentierte aktive STAGING-Stand bleibt unverändert.
 - Authentifizierte Admin-/Scout-E2E-Prüfung bleibt weiterhin erforderlich, bevor die neueren Branch-Änderungen nach STAGING übernommen werden. Produktion, `main`, Produktions-Supabase und PFMS/PFSS bleiben unberührt.
+
+### 2026-11-26 — Approved source ingestion hardening before first knowledge import
+
+- **Status:** Code changes committed to the staging feature branch; verification and authenticated staging E2E remain open. No deployment or knowledge import was performed.
+- **Branch:** `feature/messinho-unified-ai-integration`
+- **Latest code commit:** `42e8e395e3d0eb0e4d60fd50f13fe6c375677c93`
+- **Runtime source commit:** `33f271dc8d2e1b03d22ab4027025242b8b41e9ad`
+- **Files changed:**
+  - `backend/messinho-approved-source-ingestion.js`
+  - `tests/messinho-approved-source-ingestion.test.js`
+- **Security correction:** Approved-source HTTP retrieval now uses `redirect: 'manual'` and rejects 3xx responses instead of following redirects and only checking the final URL after a redirect has already been followed.
+- **Payload protection:** A 2 MB maximum is checked against the declared content length before parsing. XML/HTML are measured in UTF-8 bytes after retrieval; BioC JSON is read as text and size-checked before JSON parsing when the response supports text retrieval. The fallback JSON path is also size-checked.
+- **Regression coverage added:** Tests assert manual redirect mode, rejection of redirects (including same-host redirects), and rejection of oversized BioC responses.
+- **Existing safeguards re-inspected:** Source allowlist and review deadline checks; two-source corroboration; compact knowledge graph normalization; inactive candidate state; admin-only review endpoints; RLS enabled on the five shared knowledge tables. Staging grants observed for the five knowledge tables were limited to `postgres` and `service_role`; no direct `anon` or `authenticated` table grants were observed.
+- **Important distinction:** The source excerpts are transient inputs. The knowledge graph builder whitelists compact concept fields and source provenance; it does not persist the temporary `snippet` field. This was verified in the current implementation and existing learning tests.
+- **Staging database:** Knowledge tables exist. This audit did not write to them. No candidate was created and no import was started.
+- **CI status:** GitHub combined status and PR-associated workflow lookup returned no checks/runs for the latest commit at the time of this entry. Therefore the new regression tests are not yet reported as executed; do not describe them as passed.
+- **Render staging:** Service remains `myscoutingdatabase-messinho-staging`, branch `feature/messinho-unified-ai-integration`, with automatic deploy disabled. The active deployment remains on commit `4155705ba7d52942e7455df6bb644c7040808a7d`; this new branch commit is not deployed.
+- **Release boundary:** Production, `main`, and PFMS/PFSS were not changed. No deployment was triggered.
+- **Remaining gates before knowledge import:**
+  1. Obtain an actual CI/build execution for the latest branch commit and fix any regressions.
+  2. Complete authenticated Admin and Scout staging tests for candidate creation, non-visibility before approval, approve/reject audit history, and 403 protection for Scout/admin-only endpoints.
+  3. Deploy only to the dedicated staging service after the authentication gate is satisfied, then verify the exact deployed commit and health.
+  4. Run a real VO₂max candidate creation and approval cycle; verify persistent provenance, versions, conflicts, and active retrieval.
+  5. Only then begin the controlled foundational knowledge import.
+
