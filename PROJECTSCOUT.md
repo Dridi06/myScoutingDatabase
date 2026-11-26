@@ -2118,3 +2118,14 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Backend syntax checks passed and Vite production build completed successfully (1,636 modules transformed).
 - Render logs confirm the service is live at the dedicated STAGING URL. Render configuration confirms `autoDeploy=no` and `autoDeployTrigger=off`.
 - Production/main, production Supabase and PFMS/PFSS remain untouched. PR #47 remains Draft/open/unmerged.
+
+
+## 2026-11-26 – Claim-level independent corroboration
+
+- Strengthened general research beyond the global “two sources / two domains” threshold: every synthesized factual claim must now be supported independently by at least two cited source URLs from at least two distinct publisher domains.
+- Every cited source must independently pass the deterministic text-overlap support check for that claim. One relevant source plus one unrelated citation no longer passes.
+- Duplicate URLs and multiple URLs from the same publisher do not count as independent corroboration.
+- The synthesis instructions explicitly require two independent citations per claim; unsupported or single-source claims are discarded and cannot pass the answer quality loop.
+- This further protects owner-scoped knowledge memory because only answers that pass the evidence and quality gates are eligible for persistence.
+- Added regression tests for valid two-domain corroboration, single-source rejection, same-domain rejection and unrelated-source rejection.
+- No schema migration and no automatic changes to model weights or agent behavior beyond stricter evidence acceptance. Full tests/build and manual STAGING deployment are pending.
