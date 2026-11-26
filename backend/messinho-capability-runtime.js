@@ -1,6 +1,6 @@
 /**
  * MESSINHO 100-capability runtime.
- * Every catalogue ID resolves to an executable, deterministic handler.
+ * The dispatcher covers the catalogue, but generic fallbacks are not specialist implementations.
  * The runtime never fabricates absent player metrics, evidence, outcomes or market data.
  * Provider-dependent research consumes a validated research bundle supplied by the ASI pipeline.
  */
@@ -133,7 +133,7 @@ function analysisHandler(id,input){
    const potential=base===null?null:Math.round(clamp(base+(growth===null?0:Math.max(-5,Math.min(10,growth)))*.5));
    return result(id,'completed',{current_score:base,observed_change:growth,age:derivedAge,potential_indicator:potential,confidence:t?'longitudinal':'cross_sectional_only',limitations:t?[]:['Keine belastbare mehrzeitige Entwicklungshistorie; Potenzialindikator ist deshalb eingeschränkt.']});
  }
- if(id==='performance_development'||id==='form_curve_analysis'||id==='consistency_analysis'||id==='development_score'||id==='consistency_score'||id==='seasonal_learning'||id==='seasonal_metrics'){
+ if(id==='performance_development'||id==='form_curve_analysis'||id==='consistency_analysis'||id==='development_score'||id==='consistency_score'||id==='seasonal_metrics'){
    const key=input.metric_key||'score',t=trend(timeSeries,key);
    if(!t)return missingResult(id,['dated_metrics'],'Mindestens zwei datierte Messwerte derselben Kennzahl sind erforderlich.');
    const values=sortedDated(timeSeries).map(x=>finite(x[key])).filter(v=>v!==null);
@@ -168,6 +168,17 @@ function analysisHandler(id,input){
  return missingResult(id,['capability_specific_inputs']);
 }
 function evaluationHandler(id,input){
+ const p=getPlayer(input);
+ const dimensionByCapability={technical_score:'technical',tactical_score:'tactical',athletic_score:'athletic',mental_score:'mental',goalkeeper_score:'goalkeeping'};
+ if(dimensionByCapability[id]){
+   const dimensionName=dimensionByCapability[id],entries=metricEntries(p),score=dimension(entries,dimensionName);
+   if(score===null)return missingResult(id,[dimensionName+'_metrics']);
+   const matching=entries.filter(entry=>(aliases[dimensionName]||[]).some(alias=>norm(entry.key).includes(norm(alias))));
+   return result(id,'completed',{score:round(score),dimension:dimensionName,metric_count:matching.length,
+     evidence_coverage:Math.min(100,Math.round(matching.length/Math.max(1,entries.length)*100)),
+     calculation:'Mittelwert der vorhandenen, normalisierten Kennzahlen dieser Dimension',
+     limitations:['Nur gespeicherte numerische Werte wurden berücksichtigt.','Fehlende Werte wurden nicht imputiert.']});
+ }
  const p=getPlayer(input),entries=metricEntries(p),dims=metricsByDimension(entries);
  if(!p||!Object.keys(p).length)return missingResult(id,['player']);
  if(id==='overall_score'||id==='position_score'||id==='explainable_rating'){
@@ -260,6 +271,16 @@ function evaluationHandler(id,input){
 function learningHandler(id,input){
  const rows=verifiedOutcomes(input);
  const min=Number.isInteger(input.minimum_examples)?Math.max(5,input.minimum_examples):30;
+ if(id==='seasonal_learning'){
+   const records=asArray(input.seasonal_metrics).map(row=>({season:String(row?.season||row?.season_label||'').trim(),score:finite(row?.score??row?.overall_score)})).filter(row=>row.season&&row.score!==null);
+   const grouped=new Map();
+   for(const row of records){if(!grouped.has(row.season))grouped.set(row.season,[]);grouped.get(row.season).push(row.score);}
+   const seasons=[...grouped.entries()].map(([season,values])=>({season,observations:values.length,mean_score:round(avg(values))})).sort((a,b)=>a.season.localeCompare(b.season));
+   if(seasons.length<2)return missingResult(id,['seasonal_metrics_for_at_least_two_seasons'],'Für einen Saisonvergleich werden belegte Werte aus mindestens zwei unterschiedlichen Saisons benötigt.');
+   return result(id,'completed',{seasons,change:round(seasons.at(-1).mean_score-seasons[0].mean_score),
+     direction:seasons.at(-1).mean_score>seasons[0].mean_score?'improving':seasons.at(-1).mean_score<seasons[0].mean_score?'declining':'stable',
+     training_performed:false,model_weights_changed:false,method:'Deskriptiver Vergleich der gelieferten Saisonwerte; keine automatische Modellanpassung.'});
+ }
  if(id==='dataset_quality_improvement'||id==='data_error_learning'){
    const all=asArray(input.training_dataset||input.outcomes);
    const ids=all.map(x=>String(x.player_id??x.id??'')).filter(Boolean);
@@ -336,7 +357,15 @@ const researchIds=new Set(['automated_talent_search','international_research','c
 
 const allCatalog=getMessinhoCapabilityCatalog();
 const catalogById=new Map(allCatalog.flatMap(g=>g.functions).map(x=>[x.id,x]));
+const SPECIALIST_HANDLER_IDS=new Set(["technical_score","tactical_score","athletic_score","mental_score","goalkeeper_score","seasonal_learning"]);
 export function listExecutableMessinhoCapabilities(){
+ return allCatalog.map(group=>({...group,functions:group.functions.map(fn=>{
+   const specialist=SPECIALIST_HANDLER_IDS.has(fn.id);
+   return {...fn,execution_handler_available:true,dispatch_available:true,specialist_handler_available:specialist,
+     handler_kind:specialist?'specialist':'generic_missing_input_fallback',
+     implementation_status:specialist?'partial':'not_implemented',runtime_version:MESSINHO_CAPABILITY_RUNTIME_VERSION};
+ })}));
+}
  return allCatalog.map(group=>({...group,functions:group.functions.map(fn=>({...fn,execution_handler_available:true,runtime_version:MESSINHO_CAPABILITY_RUNTIME_VERSION}))}));
 }
 export function executeMessinhoCapability(id,input={}){
@@ -352,6 +381,14 @@ export function executeMessinhoCapability(id,input={}){
  return {...output,name:meta.name,domain:allCatalog.find(g=>g.functions.some(f=>f.id===id))?.id||null,description:meta.description};
 }
 export function getMessinhoRuntimeSummary(){
- const ids=[...analysisIds,...evaluationIds,...learningIds,...researchIds];
- return {version:MESSINHO_CAPABILITY_RUNTIME_VERSION,registered_handlers:ids.length,unique_handlers:new Set(ids).size,total_catalogue_entries:catalogById.size,all_registered:ids.length===catalogById.size&&new Set(ids).size===catalogById.size};
+ const dispatched=new Set([...analysisIds,...evaluationIds,...learningIds,...researchIds]);
+ const specialist=[...SPECIALIST_HANDLER_IDS].filter(id=>catalogById.has(id));
+ const generic=[...catalogById.keys()].filter(id=>!SPECIALIST_HANDLER_IDS.has(id));
+ return {version:MESSINHO_CAPABILITY_RUNTIME_VERSION,total_catalogue_entries:catalogById.size,
+   dispatched_entries:dispatched.size,dispatch_coverage:catalogById.size?Math.round(dispatched.size/catalogById.size*100):0,
+   specialist_handler_count:specialist.length,generic_fallback_count:generic.length,
+   specialist_coverage:catalogById.size?Math.round(specialist.length/catalogById.size*100):0,
+   not_implemented_capabilities:generic,
+   seasonal_learning_handler:learningIds.has('seasonal_learning')&&SPECIALIST_HANDLER_IDS.has('seasonal_learning')?'reachable':'unavailable',
+   all_dispatched:dispatched.size===catalogById.size};
 }
