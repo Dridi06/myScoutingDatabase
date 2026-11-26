@@ -22,7 +22,7 @@ export function validateMessinhoAgentRun(plan,run) {
    missing_inputs:[...new Set(results.flatMap(item=>Array.isArray(item?.missing_inputs)?item.missing_inputs:[]))],
    evidence_policy:'Only supplied database facts and server-validated research bundles are accepted; generated prose is not evidence.'};
 }
-export function executeMessinhoAgentPlan({plan,input={},role='scout',budgetMs=MAX_AGENT_EXECUTION_BUDGET_MS}={}) {
+export async function executeMessinhoAgentPlan({plan,input={},role='scout',budgetMs=MAX_AGENT_EXECUTION_BUDGET_MS,onStep}={}) {
  const started=Date.now(),budget=Math.max(250,Math.min(MAX_AGENT_EXECUTION_BUDGET_MS,Number(budgetMs)||MAX_AGENT_EXECUTION_BUDGET_MS));
  let state={phase:'planning',goal:plan?.goal||'',trace:[]};
  state.trace=addEvent(state.trace,'plan_accepted',{steps:plan?.steps?.length||0,role});
@@ -34,12 +34,12 @@ export function executeMessinhoAgentPlan({plan,input={},role='scout',budgetMs=MA
      state,validation:{valid:true,expected_steps:0,returned_steps:0}};
  }
  state={...state,phase:'executing',trace:addEvent(state.trace,'execution_started',{budget_ms:budget,max_steps:plan.steps.length})};
- let run=runMessinhoCapabilityPlan(plan,input,role,{budgetMs:budget});
+ let run=await runMessinhoCapabilityPlan(plan,input,role,{budgetMs,onStep});
  state.trace=addEvent(state.trace,'execution_finished',{status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,elapsed_ms:run.execution_trace?.elapsed_ms||Date.now()-started});
  const failed=(run.results||[]).filter(item=>item.status==='error').map(item=>item.capability_id);
  const remaining=budget-(Date.now()-started);
  if(failed.length&&remaining>=500){
-   const retry=runMessinhoCapabilityPlan({...plan,steps:failed,blocked_capabilities:[],deferred_capabilities:[]},input,role,{budgetMs:Math.min(2000,remaining)});
+   const retry=await runMessinhoCapabilityPlan({...plan,steps:failed,blocked_capabilities:[],deferred_capabilities:[]},input,role,{budgetMs:Math.min(2000,remaining)});
    const replacements=new Map((retry.results||[]).map(item=>[item.capability_id,item]));
    run={...run,results:run.results.map(item=>replacements.get(item.capability_id)||item),
      execution_trace:{...run.execution_trace,retry_attempted:true,retried_capabilities:failed,retry_results:(retry.results||[]).map(item=>({capability_id:item.capability_id,status:item.status}))}};
