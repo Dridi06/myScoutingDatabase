@@ -2792,3 +2792,19 @@ No Admin/Scout credentials, passwords or session tokens were accessed, generated
 - No Render deployment was triggered for the mathematics expansion. Current live STAGING remains `dep-dc48781aekrs73cj27mg`, commit `4155705ba7d52942e7455df6bb644c7040808a7d`.
 - Immediate gate remains the owner's authenticated VO₂max test, candidate review/approval, Scout 403 and post-approval retrieval. Only after that may the mathematics expansion be promoted to STAGING.
 - Production/main, production Supabase, user/player/scout data, model weights, PFMS/PFSS and PR merge state remain untouched; PR #47 remains Draft/open/unmerged.
+
+
+## 2026-11-26 — Regression beheben: HTML-Quellenpipeline und Foundation-Erkennung
+
+### Fehlerursache und Korrektur
+- Ein zwischenzeitlicher CI-Stand enthielt in `tests/messinho-approved-source-ingestion.test.js` einen fehlerhaften Regex-Literal für den HTML-`Accept`-Header. Node brach die Testdatei bereits beim Parsen mit `SyntaxError: Invalid regular expression flags` ab; dadurch schlugen sowohl der Node-Testlauf als auch der Syntax-Workflow fehl.
+- Die Header-Prüfung ist jetzt als exakter Stringvergleich formuliert (`text/html,application/xhtml+xml;q=0.9`). Das ist für diesen deterministischen HTTP-Header präziser und vermeidet unnötige Regex-Escaping-Fehler.
+- Die VO₂max-Grundlagenerkennung verwendet geprüfte Regex-Literale mit echten Wortgrenzen und Whitespace-Klassen. Regressionstests decken allgemeine Fragen und den Ausschluss spielerbezogener bzw. persönlicher Fragen ab.
+
+### Verifikation
+- Aktueller Feature-Branch-HEAD zum Prüfzeitpunkt: `9f64e5af150d3d03c94451fdf6051d34f0e9705d`.
+- GitHub Node-Tests: **304 bestanden, 0 fehlgeschlagen**.
+- Backend-Syntax-Workflow: **erfolgreich**.
+- Der aktuelle Quelltest vergleicht den HTML-`Accept`-Header exakt; die aktuelle Lernlogik und die Foundation-Tests sind auf dem Branch vorhanden.
+- Keine erneute Bereitstellung ausgelöst. Der zuvor angestoßene, nicht mehr aktive Render-Deploy `dep-dc484517lnhs73flus40` ist **deactivated**; der dokumentierte aktive STAGING-Stand bleibt unverändert.
+- Authentifizierte Admin-/Scout-E2E-Prüfung bleibt weiterhin erforderlich, bevor die neueren Branch-Änderungen nach STAGING übernommen werden. Produktion, `main`, Produktions-Supabase und PFMS/PFSS bleiben unberührt.
