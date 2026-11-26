@@ -19,8 +19,9 @@ export function buildMessinhoCapabilityContext({
 }){
   const context={player,players:asArray(players),candidates:asArray(players)};
   const history=asArray(observations).map(row=>{
-    const score=scoreMessinhoPlayer({...player,ratings:row.ratings||{}}).score;
-    return {...row,score,overall_score:score};
+    const ratings=row.ratings&&typeof row.ratings==='object'?row.ratings:{};
+    const score=scoreMessinhoPlayer({...player,ratings}).score;
+    return {...ratings,...row,score,overall_score:score};
   });
   if(history.length){
     context.history=history;
@@ -28,16 +29,25 @@ export function buildMessinhoCapabilityContext({
     context.seasonal_metrics=history.map(row=>({...row,season:String(row.observed_on||'').slice(0,4)}))
       .filter(row=>/^\d{4}$/.test(row.season));
   }
+  const registry=new Map(asArray(sourceRegistry).map(row=>[String(row.id),row]));
   context.events=asArray(events).filter(row=>row.verification_status==='verified')
-    .map(row=>({...row,type:row.event_type,action:row.event_type,date:row.match_date}));
+    .map(row=>{
+      const matchingSource=asArray(evidence).find(source=>source.source_url===row.source_url);
+      const source=registry.get(String(matchingSource?.source_id))||{};
+      const permitted=asArray(source.permitted_purposes);
+      const licensed=['approved','licensed','owned'].includes(source.license_status)&&
+        permitted.some(purpose=>['video_analysis','video_source_research'].includes(purpose));
+      return {...row,type:row.event_type,action:row.event_type,date:row.match_date,
+        license_status:licensed?'licensed':null,usage_rights:licensed?'confirmed':null};
+    });
+  context._trusted_video_bundle=context.events.some(row=>row.license_status==='licensed');
 
   const rawEvidence=[...asArray(evidence),...asArray(candidateEvidence)];
   const trustedEvidence=rawEvidence.filter(row=>trustedEvidenceRow(row,now));
   const evidenceForUse=trustedEvidence.length?trustedEvidence:rawEvidence.filter(row=>row?.source_url);
-  const registry=new Map(asArray(sourceRegistry).map(row=>[String(row.id),row]));
   context.sources=evidenceForUse.map(row=>{
     const source=registry.get(String(row.source_id))||{};
-    const videoAllowed=source.license_status==='approved'&&
+    const videoAllowed=['approved','licensed','owned'].includes(source.license_status)&&
       asArray(source.permitted_purposes).some(purpose=>['video_analysis','video_source_research'].includes(purpose));
     const trusted=trustedEvidenceRow(row,now);
     return {
@@ -52,6 +62,8 @@ export function buildMessinhoCapabilityContext({
       license_status:videoAllowed?'licensed':null,
       usage_rights:videoAllowed?'confirmed':null,
       permitted_purposes:asArray(source.permitted_purposes),
+      country:row.metadata?.country||row.metadata?.national_team_country||null,
+      region:row.metadata?.region||null,league:row.metadata?.league||null,
       metadata:row.metadata||{}
     };
   });
@@ -69,6 +81,11 @@ export function buildMessinhoCapabilityContext({
   }));
   context._trusted_source_bundle=trustedEvidence.length>0;
   context.contract_records=asArray(contracts);
+  const clubName=player?.club||player?.current_club||null;
+  if(clubName){
+    context.club={name:clubName,country:player?.country||null,league:player?.league||null};
+    context.club_profile={name:clubName,country:player?.country||null,league:player?.league||null};
+  }
 
   const directory=new Map(asArray(playerDirectory).map(row=>[String(row.player_id),row]));
   const verifiedCalibration=asArray(calibration)
