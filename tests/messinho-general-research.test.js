@@ -60,3 +60,40 @@ test('does not start external research for conversational complaints about resta
  assert.equal(isMessinhoGeneralResearchQuestion('Wieso startest du neu und erledigst'),false);
  assert.equal(isMessinhoGeneralResearchQuestion('Warum hast du meine Nachricht abgeschickt, obwohl ich noch nicht fertig war?'),false);
 });
+
+
+test('requires two recent independent sources for time-sensitive questions',()=>{
+ const now=new Date('2026-11-26T12:00:00Z');
+ const fresh=[
+  {publisher:'a.example',snippet:'x'.repeat(150),published_date:'2026-11-01'},
+  {publisher:'b.example',snippet:'y'.repeat(150),published_date:'2026-10-15'}
+ ];
+ const evidence=assessMessinhoGeneralEvidence(fresh,'Wer ist aktuell Trainer?',now);
+ assert.equal(evidence.can_answer,true);
+ assert.equal(evidence.freshness.status,'current_sources');
+ assert.equal(evidence.freshness.fresh_source_count,2);
+});
+
+test('does not present old or undated results as current facts',()=>{
+ const now=new Date('2026-11-26T12:00:00Z');
+ const old=[
+  {publisher:'a.example',snippet:'x'.repeat(150),published_date:'2025-01-01'},
+  {publisher:'b.example',snippet:'y'.repeat(150),published_date:'2025-03-01'}
+ ];
+ const evidence=assessMessinhoGeneralEvidence(old,'Was ist aktuell der Stand?',now);
+ assert.equal(evidence.can_answer,false);
+ assert.equal(evidence.status,'stale');
+ assert.equal(evidence.freshness.stale_source_count,2);
+ assert.match(evidence.limitations.join(' '),/höchstens 90 Tage/);
+});
+
+test('keeps recency requirements disabled for stable knowledge questions',()=>{
+ const now=new Date('2026-11-26T12:00:00Z');
+ const sources=[
+  {publisher:'a.example',snippet:'x'.repeat(150),published_date:'2024-01-01'},
+  {publisher:'b.example',snippet:'y'.repeat(150),published_date:'2023-01-01'}
+ ];
+ const evidence=assessMessinhoGeneralEvidence(sources,'Warum ist der Himmel blau?',now);
+ assert.equal(evidence.can_answer,true);
+ assert.equal(evidence.freshness.required,false);
+});
