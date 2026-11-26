@@ -1,6 +1,7 @@
 /**
  * MESSINHO 100-capability runtime.
- * Every catalogue ID resolves to an executable, deterministic handler.
+ * Catalogue registration, domain dispatch, specialist logic and verified completion are reported separately.
+ * Generic fallbacks are never presented as complete specialist implementations.
  * The runtime never fabricates absent player metrics, evidence, outcomes or market data.
  * Provider-dependent research consumes a validated research bundle supplied by the ASI pipeline.
  */
@@ -133,7 +134,7 @@ function analysisHandler(id,input){
    const potential=base===null?null:Math.round(clamp(base+(growth===null?0:Math.max(-5,Math.min(10,growth)))*.5));
    return result(id,'completed',{current_score:base,observed_change:growth,age:derivedAge,potential_indicator:potential,confidence:t?'longitudinal':'cross_sectional_only',limitations:t?[]:['Keine belastbare mehrzeitige Entwicklungshistorie; Potenzialindikator ist deshalb eingeschränkt.']});
  }
- if(id==='performance_development'||id==='form_curve_analysis'||id==='consistency_analysis'||id==='development_score'||id==='consistency_score'||id==='seasonal_learning'||id==='seasonal_metrics'){
+ if(id==='performance_development'||id==='form_curve_analysis'||id==='consistency_analysis'||id==='development_score'||id==='consistency_score'||id==='seasonal_metrics'){
    const key=input.metric_key||'score',t=trend(timeSeries,key);
    if(!t)return missingResult(id,['dated_metrics'],'Mindestens zwei datierte Messwerte derselben Kennzahl sind erforderlich.');
    const values=sortedDated(timeSeries).map(x=>finite(x[key])).filter(v=>v!==null);
@@ -333,6 +334,9 @@ const analysisIds=new Set(['holistic_player_analysis','position_analysis','multi
 const evaluationIds=new Set(['overall_score','position_score','potential_score','talent_score','technical_score','tactical_score','athletic_score','mental_score','goalkeeper_score','data_quality_score','source_trust_score','development_score','consistency_score','league_fit_score','system_fit_score','coach_fit_score','club_fit_score','market_value_assessment','value_for_money','risk_score','development_projection','competition_comparison','transfer_priority','scout_rating_agreement','explainable_rating']);
 const learningIds=new Set(['supervised_learning','position_specific_learning','scout_feedback_learning','prediction_audit','error_pattern_detection','weight_optimization','age_group_learning','league_learning','country_learning','talent_pathway_learning','false_positive_learning','breakthrough_learning','scout_accuracy_analysis','scout_calibration','model_benchmarking','regression_guard','dataset_quality_improvement','data_error_learning','position_change_learning','availability_outcome_learning','probability_calibration','seasonal_learning','verified_long_term_memory','model_versioning','controlled_self_optimization']);
 const researchIds=new Set(['automated_talent_search','international_research','cross_league_research','youth_talent_discovery','underdog_detection','hidden_gem_detection','club_research','squad_research','contract_research','contract_expiry_monitor','rumour_verification','market_monitoring','source_cross_check','identity_verification','birth_year_verification','position_verification','statistics_research','video_source_research','match_report_research','competition_monitoring','club_need_research','comparable_player_research','player_data_refresh','new_talent_monitoring','research_report_generation']);
+
+
+const specialistCapabilityIds=new Set([]);
 
 const allCatalog=getMessinhoCapabilityCatalog();
 const catalogById=new Map(allCatalog.flatMap(g=>g.functions).map(x=>[x.id,x]));
