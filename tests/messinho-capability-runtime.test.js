@@ -163,3 +163,17 @@ test('controlled self-optimization can only propose, never activate or change we
  assert.equal(out.result.model_weights_changed,false);
  assert.equal(out.result.activation,'blocked_until_admin_review');
 });
+
+test('capability outputs carry field-level provenance for player metrics',()=>{
+ const out=executeMessinhoCapability('overall_score',{player:{player_id:42,name:'Test',ratings:{Technik:4,Taktik:3}}});
+ assert.equal(out.provenance.capability_id,'overall_score');
+ assert.equal(out.provenance.record_refs[0].id,42);
+ assert.deepEqual(out.provenance.metric_evidence.map(x=>x.field).sort(),['Taktik','Technik']);
+ assert.ok(out.provenance.claims.some(x=>x.kind==='derived_score'));
+});
+test('untrusted sources remain labelled as supplied and are not marked verified',()=>{
+ const out=executeMessinhoCapability('source_cross_check',{sources:[{url:'https://example.org/report',title:'Report'}]});
+ assert.equal(out.provenance.origin,'supplied_source_bundle');
+ assert.equal(out.provenance.source_evidence.length,1);
+ assert.ok(out.provenance.limitations.some(x=>x.includes('not treated as verified')));
+});
