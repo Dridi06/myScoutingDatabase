@@ -1,5 +1,6 @@
 import { fetchMessinhoApprovedSource } from './messinho-approved-source-ingestion.js';
 import { storeMessinhoKnowledgeConcept } from './messinho-knowledge-graph.js';
+import { getMessinhoVerifiedSourceRightsById } from './messinho-rights-registry.js';
 import { isMessinhoGeneralClaimCorroborated } from './messinho-general-research.js';
 
 const VO2MAX_SOURCE_IDS=Object.freeze([
@@ -24,7 +25,9 @@ export async function learnMessinhoApprovedFoundationConcept(db,question,{fetchI
  };
  const sources=retrieved.map(item=>({
   ...item.source,
-  rights:item.source,
+  rights:getMessinhoVerifiedSourceRightsById(item.source.source_id),
+  retrieval_method:item.retrieval_method,
+  retrieval_url:getMessinhoVerifiedSourceRightsById(item.source.source_id)?.retrieval_url||null,
   publisher:new URL(item.source.url).hostname,
   snippet:item.excerpts.map(excerpt=>excerpt.text).join(' ').slice(0,7000),
   section:item.excerpts.map(excerpt=>excerpt.source_section).filter(Boolean).join(', ')
