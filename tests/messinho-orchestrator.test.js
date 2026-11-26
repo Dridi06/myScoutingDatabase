@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from '../backend/messinho-orchestrator.js';
+import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults, getMessinhoCapabilityDiscovery } from '../backend/messinho-orchestrator.js';
 
 test('MESSINHO composes all matching analysis intents from a natural-language goal', () => {
   const plan = planMessinhoCapabilities('Bitte analysiere das Potenzial und die Entwicklung von Spieler X', 'scout');
@@ -99,4 +99,43 @@ test('admin capability catalogue exposes honest implementation levels', () => {
   assert.equal(seasonal.implementation_level, 'specialist_logic');
   assert.equal(seasonal.completion_verified, false);
   assert.ok(all.some(item => item.implementation_level === 'generic_fallback'));
+});
+
+
+test('all 100 catalogue capabilities are discoverable by their natural-language names', () => {
+  const catalogue = getMessinhoCapabilityDiscovery();
+  assert.equal(catalogue.length, 100);
+  for (const capability of catalogue) {
+    const plan = planMessinhoCapabilities('Bitte führe die Fähigkeit ' + capability.name + ' aus', 'admin');
+    assert.ok(plan, 'No plan for ' + capability.id);
+    assert.ok(plan.discovered_capabilities.includes(capability.id), 'Capability not discovered: ' + capability.id);
+  }
+});
+
+test('catalogue discovery does not grant execution permission for protected learning skills', () => {
+  const plan = planMessinhoCapabilities('Bitte führe die Prognosekontrolle und Gewichtungsoptimierung aus', 'scout');
+  assert.ok(plan.discovered_capabilities.includes('prediction_audit'));
+  assert.ok(plan.discovered_capabilities.includes('weight_optimization'));
+  assert.ok(plan.blocked_capabilities.includes('prediction_audit'));
+  assert.ok(plan.blocked_capabilities.includes('weight_optimization'));
+  assert.ok(!plan.steps.includes('prediction_audit'));
+  assert.ok(!plan.steps.includes('weight_optimization'));
+});
+
+test('capability execution preserves source facts and never promotes prior output to verified evidence', () => {
+  const sources = [{ url: 'https://example.org', title: 'Example' }];
+  const plan = planMessinhoCapabilities('Bitte prüfe die Quellenqualität und erstelle einen Recherchebericht', 'scout');
+  const run = runMessinhoCapabilityPlan(plan, { sources, claims: [] }, 'scout');
+  assert.equal(run.execution_policy.source_data_mutated, false);
+  assert.equal(run.execution_policy.model_weights_mutated, false);
+  assert.equal(run.execution_policy.previous_results_used_as_untrusted_context, true);
+  assert.deepEqual(sources, [{ url: 'https://example.org', title: 'Example' }]);
+});
+
+test('planner exposes missing-input recovery and does not claim unsupported completion', () => {
+  const plan = planMessinhoCapabilities('Bitte analysiere die Spielminuten', 'scout');
+  const run = runMessinhoCapabilityPlan(plan, {}, 'scout');
+  assert.ok(run.results.some(item => item.status === 'insufficient_data'));
+  assert.equal(run.model_weights_changed, false);
+  assert.equal(run.provider_independent, true);
 });
