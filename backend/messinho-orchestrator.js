@@ -23,13 +23,16 @@ export function planMessinhoCapabilities(message, role = 'scout') {
 export function runMessinhoCapabilityPlan(plan, input = {}, role = 'scout') {
   if (!plan || plan.denied) return { status: 'denied', results: [] };
   const results = [];
+  let chainedInput = { ...input };
   for (const id of plan.steps.slice(0, 6)) {
     if (ADMIN_ONLY.has(id) && role !== 'admin') {
       results.push({ capability_id: id, status: 'denied' });
       continue;
     }
     try {
-      results.push(executeMessinhoCapability(id, input));
+      const output = executeMessinhoCapability(id, chainedInput);
+      results.push(output);
+      chainedInput = { ...chainedInput, _previous_capability_results: results.slice(-6), _previous_capability_result: output };
     } catch (error) {
       results.push({ capability_id: id, status: 'error', error: 'Die Teilfunktion konnte nicht ausgeführt werden.' });
     }
