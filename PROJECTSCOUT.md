@@ -1280,3 +1280,14 @@ Before the next staging deployment, the general research path was hardened:
 - Added a regression test for accepting a source-supported claim and rejecting an unrelated claim.
 - Focused local check for the claim-support rule: 2/2 passed.
 - These checks are a conservative lexical support filter, not a semantic proof of truth; human review and stronger evidence evaluation remain necessary.
+
+
+### Final hardened STAGING deployment — 2026-11-26
+
+- Final source branch head deployed: `426e545cc3a0f045680163430d7ccd8eb30c06cf`.
+- Render deployment: `dep-dc3s4q61egvs73ejlv80`, status **live**, completed `2026-11-26T05:24:26Z`.
+- Build succeeded; the Node server started successfully, reported API listening on port 10000, and Supabase Data API returned HTTP 200.
+- Runtime confirms Tavily and OpenAI are configured on STAGING.
+- This final deployment includes the hardened Unicode normalization and source-overlap claim filter.
+- The latest source code is deployed on STAGING only. No production promotion, branch merge, database migration, or data write was performed.
+- Full Node regression suite and authenticated E2E question/answer test remain outstanding.
