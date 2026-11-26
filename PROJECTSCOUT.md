@@ -1923,3 +1923,16 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 4. Run authenticated smoke tests: Scout positive rating, negative rating, factual correction, duplicate submission, non-admin review denial, Admin queue, evidence-required verification, immutable review history, calibration verification and atomic model approval/rejection.
 5. Only after measured data exists, design a separate quality-metrics stage. Do not convert ratings or unverified corrections into player outcomes or model training.
 6. Keep PR #47 Draft/open/unmerged unless explicitly approved. Never deploy to production from this branch.
+
+
+### Post-build verification — 2026-11-26 15:41 UTC
+- Render STAGING manual deployment `dep-dc456161egvs73fc80ig` completed with status `live`.
+- Deployed commit: `7b152409dd0bea3f259e8e3491b9cc85b87a9d8c` on `feature/messinho-unified-ai-integration`.
+- Build command completed successfully: `npm install --no-audit --no-fund && npm run build`.
+- Complete Node test suite: **217 passed, 0 failed, 0 cancelled, 0 skipped**.
+- Backend syntax gate passed: `find backend -maxdepth 1 -type f -name '*.js' -print0 | xargs -0 -n1 node --check`.
+- Vite production build passed: **1,636 modules transformed**, production assets generated.
+- Runtime startup confirmed: `myScoutingDatabase API listening on 10000`; staging Supabase service credentials detected and Supabase Data API returned HTTP 200.
+- Render auto-deploy remains disabled. No production or PFMS/PFSS deployment was triggered.
+- Authenticated UI/API end-to-end tests still require a controlled Scout/Admin login session; no credentials were created, exposed or reused during this run. Therefore the feature is deployed to STAGING, but the feedback submission and administrator review flow is not yet declared end-to-end accepted.
+- The only commits after the deployed SHA in this checkpoint are documentation updates; no runtime code change is pending deployment.
