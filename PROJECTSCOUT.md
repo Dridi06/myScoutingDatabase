@@ -2148,3 +2148,10 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Stable, non-time-sensitive knowledge keeps the existing 14-day cache TTL.
 - Added regression tests for the shortened expiry boundary and rejection of current knowledge without explicit freshness evidence.
 - No migration required; the existing owner scoping, provenance and verified-only memory rules remain intact. Full test/build and manual STAGING deploy pending.
+
+
+#### STAGING release verification — freshness-bounded memory — 2026-11-26 17:09 UTC
+- Render deployment `dep-dc46f23l550s738b7dm0` reached `live` on runtime SHA `dd64766562ee1e25ccbe6f6a5917fe52deeb9751`.
+- Complete Node suite: **246 passed, 0 failed, 0 cancelled, 0 skipped**.
+- Backend syntax checks passed; Vite production build completed successfully (1,636 modules transformed).
+- STAGING only; auto-deploy disabled. Production/main, production Supabase and PFMS/PFSS untouched. PR #47 remains Draft/open/unmerged.
