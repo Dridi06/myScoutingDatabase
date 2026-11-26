@@ -1085,6 +1085,12 @@ function buildMessinhoTaskContext(input,priorResults=[]){
     ...(input?.player?{player:input.player}:{}),
     ...(Array.isArray(input?.players)?{players:input.players.slice(0,80)}:{}),
     user_preferences:input?.user_preferences&&typeof input.user_preferences==='object'?input.user_preferences:{},
+    ...(Array.isArray(input?.sources)?{sources:input.sources.slice(0,10).map(source=>({
+      title:String(source.title||'').slice(0,240),url:String(source.url||'').slice(0,1000),
+      publisher:String(source.publisher||'').slice(0,160),published_date:source.published_date||null,
+      content:String(source.content||source.snippet||'').slice(0,1200)
+    }))}:{}),
+    ...(Array.isArray(input?.claims)?{claims:input.claims.slice(0,40)}:{}),
     _previous_capability_results:priorResults.slice(-8).map(compactMessinhoTaskResult)
   };
   if(JSON.stringify(context).length>64000){
