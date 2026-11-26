@@ -52,15 +52,15 @@ export function isMessinhoTimeSensitiveQuestion(question){
 }
 export function messinhoFreshnessWindowDays(question){
  const text=String(question||'');
- if(/\\b(tabellenstand|tabellenplatz|spielplan|spieltermine|ergebnisse|resultate|live|heute|gestern|morgen|diese woche)\\b/i.test(text))return 7;
- if(/\\b(trainer|cheftrainer|head coach|kader|transfer|marktwert|verletzt|verletzung)\\b/i.test(text))return 30;
+ if(/\b(tabellenstand|tabellenplatz|spielplan|spieltermine|ergebnisse|resultate|live|heute|gestern|morgen|diese woche)\b/i.test(text))return 7;
+ if(/\b(trainer|cheftrainer|head coach|kader|transfer|marktwert|verletzt|verletzung)\b/i.test(text))return 30;
  return 90;
 }
 export function assessMessinhoGeneralEvidence(sources=[],question='',now=new Date()){
  const domains=[...new Set(sources.map(source=>source.publisher).filter(Boolean))];
  const substantial=sources.filter(source=>source.snippet.length>=120);
  const maxAgeDays=messinhoFreshnessWindowDays(question);\n const fresh=sources.filter(source=>{
-  const timestamp=Date.parse(source.published_date||'');
+ const fresh=sources.filter(source=>{
   if(!Number.isFinite(timestamp))return false;
   const age=(new Date(now).getTime()-timestamp)/86400000;
   return age>=0&&age<=maxAgeDays;
