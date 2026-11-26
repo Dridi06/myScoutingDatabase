@@ -19,6 +19,7 @@ import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './me
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
 import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 import { classifyMessinhoProviderFailure, getMessinhoSocialReply, resolveMessinhoLiveQuestion } from './messinho-conversation.js';
+import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -1110,11 +1111,12 @@ async function checkpointMessinhoAgentTask(taskId,ownerId,completedResults,pendi
   if(!db||!taskId)return false;
   try{
     const completed=[...priorResults,...completedResults].slice(-20).map(compactMessinhoTaskResult);
-    const {error}=await db.from('messinho_agent_tasks').update({
+    const {data,error}=await db.from('messinho_agent_tasks').update({
       completed_results:completed,pending_capabilities:(pendingCapabilities||[]).slice(0,100),
       updated_at:new Date().toISOString(),lease_until:new Date(Date.now()+120000).toISOString()
-    }).eq('id',taskId).eq('owner_id',ownerId).eq('status','running');
+    }).eq('id',taskId).eq('owner_id',ownerId).eq('status','running').select('id').maybeSingle();
     if(error){console.warn('MESSINHO task checkpoint update failed:',error.message);return false;}
+    if(!isMessinhoTaskWriteConfirmed(data,taskId)){console.warn('MESSINHO task checkpoint was not persisted for the expected owner/task.');return false;}
     return true;
   }catch(error){console.warn('MESSINHO task checkpoint failed:',error.message);return false;}
 }
@@ -1125,12 +1127,13 @@ async function finalizeMessinhoAgentTask(taskId,ownerId,run,priorResults=[],atte
     (run?.results||[]).some(item=>item.status==='error')?'failed':'completed';
   try{
     const combined=[...priorResults,...(run?.results||[])].slice(-20).map(compactMessinhoTaskResult);
-    const {error}=await db.from('messinho_agent_tasks').update({
+    const {data,error}=await db.from('messinho_agent_tasks').update({
       status,completed_results:combined,pending_capabilities:pending.slice(0,100),
       attempt_count:attemptCount,updated_at:new Date().toISOString(),lease_until:null,
       last_error:(run?.results||[]).some(item=>item.status==='error')?'Ein oder mehrere Arbeitsschritte meldeten einen Fehler.':null
-    }).eq('id',taskId).eq('owner_id',ownerId).eq('status','running');
+    }).eq('id',taskId).eq('owner_id',ownerId).eq('status','running').select('id').maybeSingle();
     if(error){console.warn('MESSINHO task finalization failed:',error.message);return null;}
+    if(!isMessinhoTaskWriteConfirmed(data,taskId)){console.warn('MESSINHO task finalization did not update the expected owner/task.');return null;}
     return {status,pending_capabilities:pending};
   }catch(error){console.warn('MESSINHO task finalization failed:',error.message);return null;}
 }
@@ -1455,11 +1458,13 @@ app.post('/api/messinho/development/hypotheses',messinhoDevelopmentLimiter,async
 app.get('/api/agent/tasks',async(req,res)=>{
   try{
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
-    await db.from('messinho_agent_tasks').update({status:'partial',lease_until:null,updated_at:new Date().toISOString()})
-      .eq('owner_id',actor.user.id).eq('status','running').lt('lease_until',new Date().toISOString());
+    const staleTaskNow=new Date();
+    const {error:staleTaskError}=await db.from('messinho_agent_tasks').update(buildMessinhoStaleTaskQuarantinePatch(staleTaskNow))
+      .eq('owner_id',actor.user.id).eq('status','running').lt('lease_until',staleTaskNow.toISOString());
+    if(staleTaskError)throw staleTaskError;
     const {data,error}=await db.from('messinho_agent_tasks')
       .select('id,goal,status,pending_capabilities,attempt_count,created_at,updated_at,expires_at')
-      .eq('owner_id',actor.user.id).in('status',['queued','partial','running','waiting_for_input'])
+      .eq('owner_id',actor.user.id).in('status',['queued','partial','running','waiting_for_input','failed'])
       .gt('expires_at',new Date().toISOString()).order('updated_at',{ascending:false}).limit(20);
     if(error){if(error.code==='42P01')return res.json({tasks:[],persistence_ready:false});throw error;}
     return res.json({tasks:data||[],persistence_ready:true});
@@ -1475,15 +1480,13 @@ app.post('/api/agent/tasks/:taskId/resume',async(req,res)=>{
     if(!task)return res.status(404).json({error:'Diese Aufgabe wurde nicht gefunden.'});
     if(Date.parse(task.expires_at)<=Date.now())return res.status(410).json({error:'Diese gespeicherte Aufgabe ist abgelaufen.'});
     if(task.status==='running'){
-      const leaseTime=Date.parse(task.lease_until||'');
-      if(Number.isFinite(leaseTime)&&leaseTime<=Date.now()){
+      if(isMessinhoTaskLeaseExpired(task)){
         // A stale run may have completed a side effect immediately before its last checkpoint.
         // Never replay it automatically: quarantine it for explicit review instead.
-        const {data:stale,error:staleError}=await db.from('messinho_agent_tasks').update({
-          status:'failed',lease_until:null,last_error:'Laufunterbrechung erkannt. Vor einer Wiederholung müssen die letzten Arbeitsschritte geprüft werden.',updated_at:new Date().toISOString()
-        }).eq('id',task.id).eq('owner_id',actor.user.id).eq('status','running').lte('lease_until',new Date().toISOString()).select('id').maybeSingle();
+        const {data:stale,error:staleError}=await db.from('messinho_agent_tasks').update(buildMessinhoStaleTaskQuarantinePatch())
+          .eq('id',task.id).eq('owner_id',actor.user.id).eq('status','running').lte('lease_until',new Date().toISOString()).select('id').maybeSingle();
         if(staleError)throw staleError;
-        if(stale)return res.status(409).json({error:'Die Aufgabe war unterbrochen. Sie wurde aus Sicherheitsgründen angehalten und wird nicht automatisch erneut ausgeführt. Bitte zuerst den letzten Ausführungsstand prüfen.'});
+        if(isMessinhoTaskWriteConfirmed(stale,task.id))return res.status(409).json({error:'Die Aufgabe war unterbrochen. Sie wurde aus Sicherheitsgründen angehalten und wird nicht automatisch erneut ausgeführt. Bitte zuerst den letzten Ausführungsstand prüfen.'});
       }
       return res.status(409).json({error:'Diese Aufgabe wird noch ausgeführt. Bitte warte, bis der aktuelle Lauf abgeschlossen ist.'});
     }
