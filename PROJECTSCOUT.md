@@ -2997,3 +2997,55 @@ Zuerst den aktuellen GitHub-Branch-HEAD und die jüngsten CI-Workflows prüfen, 
 
 ### Nächste konkrete Aktion
 Zuerst den neuen GitHub-Workflow-Lauf und den aktuellen Branch-HEAD verifizieren. Den Admin-/Scout-E2E-Test nicht umgehen. Bis diese beiden Gates bestanden sind, bleiben STAGING-Deployment und Wissensimport gesperrt.
+
+
+## Projektcheckpoint — 2026-11-26 (Fehlerdiagnose: MESSINHO verwendet externe Quellen statt Wissensbestand)
+
+### Nutzerbeobachtung / reproduzierter Hinweis
+- Nutzer hat auf der STAGING-App die Frage „Was ist VO2max?“ gestellt.
+- Screenshot zeigt eine Antwort mit der Formulierung „Ich habe mehrere unabhängige Quellen gefunden“ und externen Verweisen.
+- Das ist kein Nachweis für die Wiederverwendung freigegebenen Wissens. Der Screenshot zeigt eine externe Rechercheantwort.
+
+### Read-only-Datenbankprüfung
+- Supabase STAGING: nwqwnrhupbyhshsprxjt.
+- Zum Prüfzeitpunkt: messinho_knowledge_concepts = 0, messinho_domain_knowledge = 0, messinho_knowledge_reviews = 0, messinho_knowledge_links = 0.
+- Damit existiert derzeit kein dauerhaft gespeichertes und freigegebenes Wissen, das MESSINHO für die Antwort hätte abrufen können.
+- Keine Datensätze geschrieben oder verändert.
+
+### Gefundene Programmfehler
+1. **Einzelbegriff-Suche wurde grundsätzlich verworfen:** Der Ranking-Code des hierarchischen Wissensgraphen und des Domänenwissens verlangte mindestens zwei relevante Tokens. Bei „Was ist VO2max?“ bleibt nach Stopwort-Bereinigung nur „vo2max“ übrig. Selbst ein vorhandener aktiver Eintrag wäre nicht gefunden worden.
+2. **Falsche Fachgebietsklassifizierung:** VO2max/maximale Sauerstoffaufnahme wurde nicht zuverlässig der Domäne sports_science zugeordnet. Die Suche konnte daher im falschen Wissensbereich landen.
+3. **Stiller Fallback nach fehlgeschlagener Grundlagenaufnahme:** Wenn die spezielle genehmigte Grundlagenpipeline keinen Kandidaten erstellte oder ein Fehler auftrat, fiel der Chat in die allgemeine externe Recherche zurück. Dadurch sah die Antwort wie ein normaler Wissensabruf aus, obwohl kein freigegebener Wissenskandidat gespeichert worden war.
+
+### Korrekturen im Feature-Branch
+- Single-term-Retrieval ergänzt: Ein einzelner eindeutiger Fachbegriff darf einen aktiven Wissenseintrag finden; weiterhin nur bei exakter Token-Übereinstimmung und aktivem Status. Mehrwort-Schwellen bleiben unverändert.
+- Fachgebietsklassifizierung erweitert: VO2max, VO2 max, maximale Sauerstoffaufnahme, cardiorespiratory fitness und kardiorespiratorische Fitness werden sports_science zugeordnet.
+- Fehlerverhalten der Grundlagenpipeline geändert: Ein erkannter Foundation-Topic, dessen Quellenprüfung, Belegprüfung oder Speicherung scheitert, darf nicht stillschweigend durch allgemeine externe Recherche ersetzt werden. MESSINHO meldet stattdessen ausdrücklich, dass der Grundlagenimport blockiert ist und kein freigegebenes Wissen nachgewiesen wurde.
+- Bei bereits vorhandenem Kandidaten wird ebenfalls keine parallele externe Ersatzantwort gestartet; der bestehende Freigabestatus muss geprüft werden.
+- Ausnahme: Nicht erkannte Foundation-Themen dürfen weiterhin die allgemeine Recherche verwenden. Erfolgreich erstellte Kandidaten werden weiterhin als inaktiv und freigabepflichtig angezeigt.
+
+### Neue Regressionstests
+- VO2max wird als sports_science klassifiziert.
+- Eine aktive VO2max-Domänenwissenseinheit wird bei „Was ist VO2max?“ mit nur einem Fachbegriff gefunden.
+- Ein aktiver VO2max-Eintrag im hierarchischen Wissensgraphen wird mit derselben Ein-Begriff-Frage gefunden.
+- Fehlerzustände der genehmigten Grundlagenpipeline blockieren den stillen Fallback zur allgemeinen Recherche.
+
+### Git / Deployment / Teststatus
+- Alle Änderungen liegen ausschließlich auf feature/messinho-unified-ai-integration.
+- Letzter Commit zum Checkpoint: 8c6eadf0e170894e4477335b7642d4bf9edf1dfe.
+- PR #47 bleibt Draft/offen/unmerged.
+- GitHub-Statusabfrage und verfügbare PR-Workflow-Abfrage zeigen für diesen Commit noch keine Checks/Runs. Die neuen Tests sind deshalb noch nicht als bestanden zu bezeichnen.
+- Render-STAGING läuft weiterhin auf Commit 4155705ba7d52942e7455df6bb644c7040808a7d. Die neuen Korrekturen sind nicht deployed.
+- Render Auto-Deploy bleibt deaktiviert. Kein Deploy wurde ausgelöst.
+- Produktion, main, PFMS/PFSS und produktive Daten bleiben unangetastet.
+
+### Verbindliche nächste Schritte
+1. Vollständigen Node-Testlauf, Syntaxprüfungen und Vite-Build für den aktuellen Feature-Branch-HEAD ausführen; neue Regressionstests müssen nachweislich grün sein.
+2. Falls Tests fehlschlagen: korrigieren, Regressionstest beibehalten und erneut vollständig ausführen.
+3. Erst nach bestandenem Code-/CI-Gate und dokumentierter Freigabe kontrolliert ausschließlich auf den dedizierten STAGING-Dienst deployen.
+4. Danach den VO2max-Admin-Pilot durchführen: Kandidatenerstellung, Rechte, unabhängige Quellen, Inaktivität vor Freigabe, Admin-Freigabe, persistente Version und aktive Abfrage in einem neuen Chat.
+5. Scout-Zugriff auf Admin-Review-Funktionen und Organisationsisolation authentifiziert prüfen.
+6. Erst wenn der freigegebene VO2max-Eintrag nachweislich ohne externe Ersatzrecherche wiederverwendet wird, ist der erste Grundlagenpilot bestanden und der größere Wissensimport darf beginnen.
+
+### Klare Statusregel
+Eine externe Recherche ist kein Wissensimport. Ein Kandidat ist noch kein aktives Wissen. Nur ein dauerhaft gespeicherter, geprüfter, freigegebener und anschließend erfolgreich wiederverwendeter Wissenseintrag zählt als abgeschlossener Grundlagenpilot.
