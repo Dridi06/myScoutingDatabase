@@ -1590,6 +1590,29 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         console.error('MESSINHO contextual evidence loading failed:',error.message);
         return res.status(500).json({error:'Die zugehörigen Scouting-Daten konnten nicht vollständig und sicher geladen werden. Bitte versuche es erneut.'});
       }
+      const researchSubject=player.name||player.player_name||'';
+      if(messinhoNeeds(automaticPlan,MESSINHO_EVIDENCE_CAPABILITIES)&&!capabilityContext.sources.length&&
+        researchSubject&&researchSubject!=='Kader- und Talentpool'){
+        try{
+          const externalResearch=await researchMessinhoPlayerProfile(researchSubject);
+          const discoveredSources=Array.isArray(externalResearch.sources)?externalResearch.sources:[];
+          capabilityContext.sources=discoveredSources.map(source=>({
+            title:source.title||null,url:source.url||null,publisher:source.publisher||null,
+            content:source.snippet||source.content||'',published_date:source.published_date||null,
+            verification_status:'unverified',identity_status:'pending',review_status:'pending'
+          })).filter(source=>source.url);
+          capabilityContext._trusted_source_bundle=false;
+          capabilityContext.claims=[];
+          capabilityContext.external_research_status=externalResearch.status||'unknown';
+          capabilityContext.research_profile=externalResearch.profile||null;
+          capabilityContext.data_context={...(capabilityContext.data_context||{}),
+            external_search_sources:capabilityContext.sources.length,
+            external_search_status:externalResearch.status||'unknown'};
+        }catch(error){
+          console.error('MESSINHO autonomous source recovery failed:',error.message);
+          capabilityContext.external_research_status='failed';
+        }
+      }
       capabilityContext.model_profiles=activeModel?.configuration?.profiles||null;
       capabilityContext.squad=players.filter(item=>item.player_id);
       capabilityContext.candidates=players;
