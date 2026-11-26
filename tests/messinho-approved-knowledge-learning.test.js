@@ -13,7 +13,7 @@ function mockFetch(url){
  return Promise.resolve({ok:false,status:404});
 }
 function mockMathFetch(url){
- if(url.includes('math.libretexts.org'))return Promise.resolve({ok:true,text:async()=>'<html><body><p>Matrix multiplication is defined when the number of columns of the first matrix equals the number of rows of the second matrix. If A is m by n and B is n by p, then their product AB is an m by p matrix.</p></body></html>'});
+ if(url.includes('math.libretexts.org'))return Promise.resolve({ok:true,text:async()=>'<html><body><p>For matrix A and matrix B, matrix multiplication is defined when the number of columns of the first matrix equals the number of rows of the second matrix. If A is m by n and B is n by p, then their product AB is an m by p matrix.</p></body></html>'});
  if(url.includes('understandinglinearalgebra.org'))return Promise.resolve({ok:true,text:async()=>'<html><body><p>For matrix multiplication, the number of columns of the first matrix must equal the number of rows of the second matrix. The resulting product has the row count of the first matrix and the column count of the second matrix.</p></body></html>'});
  return Promise.resolve({ok:false,status:404});
 }
