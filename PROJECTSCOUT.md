@@ -2186,3 +2186,5 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 
 
 - First release attempt exposed three outdated/incomplete regression assertions after the stricter topic windows were introduced (coach-source fixture still used a 42-day-old source, missing helper import, and an old generic 90-day wording assertion). These were test-fixture issues; the implementation was retained and the tests corrected. The failed build did not replace the prior live STAGING deployment.
+
+- Second release attempt isolated one missing wording variant in the 30-day coach freshness classifier (`trainiert`); the classifier now recognizes direct German verb phrasing. No code was deployed from either failed build.
