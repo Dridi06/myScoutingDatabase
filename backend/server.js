@@ -22,7 +22,7 @@ import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './me
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
 import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 import { planMessinhoAutonomously } from './messinho-autonomy.js';
-import { classifyMessinhoProviderFailure, getMessinhoSocialReply, resolveMessinhoLiveQuestion, buildMessinhoKnowledgeApplicationFollowUp } from './messinho-conversation.js';
+import { classifyMessinhoProviderFailure, getMessinhoSocialReply, resolveMessinhoLiveQuestion, buildMessinhoKnowledgeApplicationFollowUp, isMessinhoVo2maxApplicationDataReply } from './messinho-conversation.js';
 import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
 import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
@@ -1838,7 +1838,13 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     // Route explicit questions about known canonical foundations before the
     // scouting planner, player-name extractor, or generic conversational fallback.
     // This prevents a valid knowledge question from being answered with the bot intro.
-    const canonicalConceptKey=getMessinhoCanonicalConceptKey(interpretedMessage);
+    const currentCanonicalConceptKey=getMessinhoCanonicalConceptKey(interpretedMessage);
+    const lastHistoryItem=history.at(-1);
+    const pendingVo2AssistantPrompt=lastHistoryItem?.role==='assistant'&&lastHistoryItem.text.includes('Für eine konkrete Einordnung eines Spielers brauche ich');
+    const priorVo2UserQuestion=[...history].reverse().find(item=>item.role==='user'&&getMessinhoCanonicalConceptKey(item.text)==='sports_science.physiology.vo2max');
+    const continuingVo2Application=Boolean(!currentCanonicalConceptKey&&pendingVo2AssistantPrompt&&priorVo2UserQuestion&&isMessinhoVo2maxApplicationDataReply(interpretedMessage));
+    const canonicalConceptKey=currentCanonicalConceptKey||(continuingVo2Application?'sports_science.physiology.vo2max':null);
+    const knowledgeApplicationQuestion=continuingVo2Application?priorVo2UserQuestion.text+' '+interpretedMessage:interpretedMessage;
     if(canonicalConceptKey){
       const canonicalResult=await findMessinhoKnowledgeConcepts(db,interpretedMessage,{limit:8});
       const canonicalItems=(canonicalResult.items||[]).filter(item=>item.concept_key===canonicalConceptKey);
@@ -1851,7 +1857,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
           formatMessinhoKnowledgeValue(item.limitations)?'Grenzen: '+formatMessinhoKnowledgeValue(item.limitations):'',
           formatMessinhoKnowledgeValue(item.prerequisites)?'Voraussetzungen: '+formatMessinhoKnowledgeValue(item.prerequisites):''
         ].filter(Boolean).join('\n\n'));
-        const applicationFollowUp=buildMessinhoKnowledgeApplicationFollowUp(interpretedMessage,{conceptKey:canonicalConceptKey});
+        const applicationFollowUp=buildMessinhoKnowledgeApplicationFollowUp(knowledgeApplicationQuestion,{conceptKey:canonicalConceptKey,knowledgeLevel:first.knowledge_level});
         return respond({
           reply:'Ich habe das freigegebene Grundlagenwissen direkt aus meinem Wissensnetz abgerufen.\\n\\n'+sections.join('\\n\\n')+(applicationFollowUp?'\\n\\n'+applicationFollowUp.reply:''),
           intent:applicationFollowUp?'knowledge_application_clarification':'structured_knowledge_graph_hit',
