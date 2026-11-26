@@ -1875,8 +1875,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       }
       if(!player)return respond({reply:'Ich kann die passende Funktion automatisch ausführen. Dafür benötige ich noch einen konkreten Spieler oder ausreichend zugeordnete Kandidatendaten. Bitte nenne den Spielernamen oder starte eine Spielersuche.',intent:'capability_clarification',pending:true,items:[],planned_capabilities:automaticPlan.steps});
       const activeModel=await getActiveMessinhoModel();
+      const domainKnowledge=await findMessinhoDomainKnowledge(db,interpretedMessage+' '+(automaticPlan.steps||[]).join(' '),{limit:5});
       const agentInput={player,players:players.length?players:[player],model_profiles:activeModel?.configuration?.profiles||null,
-        sources:Array.isArray(player.sources)?player.sources:[],claims:[],user_preferences:agentMemory.user_preferences};
+        sources:Array.isArray(player.sources)?player.sources:[],claims:[],user_preferences:agentMemory.user_preferences,
+        _messinho_domain_knowledge:(domainKnowledge.items||[]).map(item=>({id:item.id,domain:item.domain,question:item.question,content:item.content,claims:item.claims,sources:item.sources,verified_at:item.verified_at,rights:item.rights,confidence:item.confidence,relevance:item.relevance}))};
       const taskRecord=await createMessinhoAgentTask(ownerId,interpretedMessage,automaticPlan,agentInput,profile.role);
       const agentCycle=await executeMessinhoAgentPlan({plan:automaticPlan,input:agentInput,goal:interpretedMessage,role:profile.role,
         onStep:checkpoint=>taskRecord?checkpointMessinhoAgentTask(taskRecord.id,ownerId,checkpoint.completed_results,checkpoint.pending_capabilities):undefined});
