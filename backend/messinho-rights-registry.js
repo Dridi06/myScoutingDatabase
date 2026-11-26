@@ -36,7 +36,7 @@ export function isMessinhoRegisteredSourceUrl(sourceId, url) {
 
 export function getMessinhoVerifiedSourceRightsForUrl(url) {
   if (typeof url !== 'string' || !/^https:\/\//i.test(url)) return null;
-  const entry = VERIFIED_SOURCE_RIGHTS.find(item => item.status === 'verified_permitted' && Array.isArray(item.source_url_prefixes) && item.source_url_prefixes.some(prefix => typeof prefix === 'string' && isWithinRegisteredSourceScope(url,prefix)));
+  const entry = VERIFIED_SOURCE_RIGHTS.find(item => item.status === 'verified_permitted' && Array.isArray(item.source_url_prefixes) && item.source_url_prefixes.some(prefix => typeof prefix === 'string' && isMessinhoSourceUrlWithinPrefix(url,prefix)));
   return entry ? { ...entry, source_url_prefixes: [...entry.source_url_prefixes] } : null;
 }
 
