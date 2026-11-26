@@ -2334,3 +2334,29 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - **Deployment:** Kein Render-Deploy ausgelöst. Staging-Bereitstellung muss nach erfolgreicher CI und nach expliziter Auswahl des Render-Workspaces geprüft werden. Produktion/`main`, PFMS/PFSS und PR-Merge blieben unangetastet.
 - **Nächste Schritte:** (1) CI für den aktuellen Branch-HEAD nachweisen und Fehler beheben; (2) dedizierten STAGING-Workspace/Service verifizieren und erst nach Freigabe gezielt deployen; (3) 94 bisherige Handler fachlich und datenbezogen auditieren, ohne 100/100 End-to-End zu behaupten; (4) 100 Quellen einzeln auf Werk-, Lizenz-, AI/TDM-, kommerzielle und Bearbeitungsrechte prüfen; nur tatsächlich belegte Werke in die Allowlist aufnehmen; (5) danach Import-/Extraktions-, Versions-/Konflikt- und Backup/Restore-Tests durchführen.
 
+
+
+## 2026-11-26 — Umsetzungsschritt 3c: Katalogstatus korrigiert und Quellenregister begonnen
+
+### Capability-Katalog
+- Zusätzlicher Auditbefund: 16 Fähigkeiten hatten in `backend/messinho-capabilities.js` den Status `requires_new_integration`, obwohl die Runtime bereits explizite Fachhandler dafür besitzt.
+- Diese 16 Einträge wurden in `PARTIAL_IMPLEMENTATIONS` aufgenommen. Sie gelten damit nicht als neu zu implementierende Funktionen, bleiben aber bis zu Datenvertrags- und Ende-zu-Ende-Nachweisen ausdrücklich teilweise/offen.
+- Betroffene IDs: `game_intelligence_analysis`, `running_performance_analysis`, `creativity_analysis`, `decision_quality_analysis`, `availability_history_analysis`, `video_event_analysis`, `mental_score`, `coach_fit_score`, `market_value_assessment`, `value_for_money`, `development_projection`, `transfer_priority`, `country_learning`, `availability_outcome_learning`, `video_source_research`, `new_talent_monitoring`.
+- Erwartete Katalogzählung nach Korrektur: 100 Einträge; 27 `implemented_existing_core`; 73 `partial_or_requires_validation`; 0 `requires_new_integration`. Die 27 sind keine Behauptung einer vollständigen Ende-zu-Ende-Verifikation; der Runtime-Abschlusszähler bleibt 0.
+- Commit Katalogkorrektur: `9774f8121606e41dd7debd7b9154b09f4e839b72`.
+- Commit Katalog-Regressionstest: `2b4124ecc5f98ca7bb36e1f48f72459355704bb7`.
+
+### Quellenrechte
+- Neues Dokument `docs/MESSINHO_CROSS_DOMAIN_SOURCE_REGISTER.md` angelegt.
+- Es enthält fünf initiale Kandidaten/Quellenressourcen aus Risikomanagement, Finanzbildung und Wissenschaftsrecherche. Das PMC-OA-Element ist ausdrücklich nur ein Discovery-Pool, kein einzelnes Werk.
+- Alle Einträge bleiben `quarantined` bzw. `discovery_only`, weil insbesondere die internationale kommerzielle AI/TDM-/Bearbeitungsrechtslage und Drittmaterial pro Werk noch geprüft werden muss.
+- Freigegebene Werke: 0. Die Allowlist bleibt absichtlich leer; es wurden keine Bücher/PDFs/Volltexte heruntergeladen oder dauerhaft gespeichert.
+- Dokument-Commit: `8e849760b0e73dabbfa76a1e38abc2d53f1fd7cb`.
+
+### Gesamtstatus / Verifikation
+- Codeklassifizierung: 100/100 Speziallogik, 0 generische Fallbacks; Katalogstatus: 27 bestehende Kernimplementierungen und 73 teilweise/Validierung ausstehend; E2E-Abschlussnachweise: 0.
+- Tests wurden ergänzt, aber ein vollständiger CI-Lauf ist über die aktuell verfügbaren GitHub-Status-/Workflow-Abfragen noch nicht nachgewiesen. Leere Statuslisten sind kein erfolgreicher CI-Nachweis.
+- Keine Supabase-Migration, keine Datenbankabfrage/-änderung, keine Änderung an Nutzerdaten, Spielerakten, Scoutdaten, Wissensbestand oder Modellgewichten.
+- Kein Render-Deploy; PR #47 bleibt Draft/offen/unmerged. Produktion/`main`, PFMS/PFSS bleiben unangetastet.
+- Nächste Schritte: CI-Ausführung nachweisen; danach den dedizierten Render-STAGING-Service und Supabase-STAGING-Zugang verifizieren; dann die 100 individuellen Quellenrechte und die 100 Handlerverträge/E2E-Nachweise systematisch vervollständigen.
+
