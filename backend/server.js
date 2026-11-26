@@ -6,7 +6,7 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { createClient } from '@supabase/supabase-js';
-import { parseMessinhoScoutingRequest, matchesPosition, sourceSupportsRegion } from './messinho-validation.js';
+import { parseMessinhoScoutingRequest, matchesPosition, matchesPreferredFoot, sourceSupportsRegion } from './messinho-validation.js';
 import { correctMessinhoInput } from './messinho-input-correction.js';
 import { rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFollowUp, extractMessinhoPlayerSearchTerm, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
@@ -905,7 +905,7 @@ Antworte ausschließlich als JSON-Objekt {"players":[{ "name":"", "birth_year":n
         const evidenceAssessment=assessMessinhoEvidence(candidateSources);
         const supportedPositions=(Array.isArray(player.positions)?player.positions:[]).filter(value=>messinhoValueSupported(value,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence));
         const supportedPreferredFoot=messinhoValueSupported(player.preferred_foot,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence)?String(player.preferred_foot).trim().toLowerCase():null;
-        const footMatches=preferredFoot==='left'?/left|links/i.test(supportedPreferredFoot||''):preferredFoot==='right'?/right|rechts/i.test(supportedPreferredFoot||''):preferredFoot==='both'?/both|beid/i.test(supportedPreferredFoot||''):true;
+        const footMatches=matchesPreferredFoot(preferredFoot,supportedPreferredFoot);
         if(position&&!matchesPosition(position,supportedPositions))return null;
         if(preferredFoot&&(!supportedPreferredFoot||!footMatches))return null;
         const supportedClub=messinhoValueSupported(player.current_club,candidateEvidence.supporting_source_urls,discoverySources,verifiedEvidence)?player.current_club:null;
