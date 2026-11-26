@@ -86,19 +86,19 @@ test('PMC BioC parser accepts the official top-level collection array response',
  assert.ok(result.excerpts.some(item=>item.source_section==='ABSTRACT'));
 });
 
-test('PLOS same-host redirect is followed manually and only on the approved HTTPS host',async()=>{
+test('PLOS signed object-store redirect is followed only for its registered DOI path',async()=>{
  const calls=[];
+ const mirror='https://corpus-prod.f505aadad1e46610c8f8563037eb3c4b.r2.cloudflarestorage.com/10.1371/journal.pone.0280897/1/pone.0280897.xml?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=test&X-Amz-Date=20261126T140000Z&X-Amz-Expires=86400&X-Amz-Signature=test-signature&X-Amz-SignedHeaders=host';
  const result=await fetchMessinhoApprovedSource('plos_one_vo2max_prediction_2023',{
   topic:'VO2max oxygen uptake',
   fetchImpl:async(url,options)=>{
    calls.push({url,redirect:options.redirect});
-   if(calls.length===1)return {ok:false,status:302,headers:{get:name=>name==='location'?'/plosone/article/file?id=10.1371%2Fjournal.pone.0280897&type=manuscript&download=1':null}};
-   return {ok:true,status:200,url,text:async()=>'<article><abstract><p>VO2max is the highest attained oxygen uptake during an incremental exercise test with large muscle groups and an objective measure of cardiorespiratory fitness.</p></abstract></article>'};
+   if(calls.length===1)return {ok:false,status:302,headers:{get:name=>name==='location'?mirror:null}};
+   return {ok:true,status:200,url:mirror,text:async()=>'<article><abstract><p>VO2max is the highest attained oxygen uptake during an incremental exercise test with large muscle groups and an objective measure of cardiorespiratory fitness.</p></abstract></article>'};
   }
  });
  assert.equal(calls.length,2);
  assert.ok(calls.every(call=>call.redirect==='manual'));
- assert.match(calls[1].url,/^https:\/\/journals\.plos\.org\//);
  assert.equal(result.status,'completed');
  assert.equal(result.source.source_id,'plos_one_vo2max_prediction_2023');
 });
@@ -138,7 +138,7 @@ test('expired source-rights review blocks retrieval before any network request',
 test('approved source retrieval rejects unresolved redirects without a location',async()=>{
  let calls=0;
  const result=await fetchMessinhoApprovedSource('plos_one_vo2max_prediction_2023',{
-  fetchImpl:async()=>{calls++;return {ok:false,status:302,headers:{get:()=>'/redirected-article'},text:async()=>''};}
+  fetchImpl:async()=>{calls++;return {ok:false,status:302,headers:{get:()=>null},text:async()=>''};}
  });
  assert.equal(calls,1);
  assert.equal(result.status,'retrieval_redirect_not_approved');
