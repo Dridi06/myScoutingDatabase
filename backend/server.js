@@ -22,7 +22,7 @@ import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './me
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
 import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 import { planMessinhoAutonomously } from './messinho-autonomy.js';
-import { classifyMessinhoProviderFailure, getMessinhoSocialReply, resolveMessinhoLiveQuestion, buildMessinhoKnowledgeApplicationFollowUp, isMessinhoVo2maxApplicationDataReply } from './messinho-conversation.js';
+import { classifyMessinhoProviderFailure, getMessinhoSocialReply, resolveMessinhoLiveQuestion, buildMessinhoKnowledgeApplicationFollowUp, buildMessinhoVo2maxApplicationQuery, isMessinhoVo2maxApplicationDataReply } from './messinho-conversation.js';
 import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
 import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
