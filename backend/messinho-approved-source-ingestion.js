@@ -52,6 +52,19 @@ function extractHtmlParagraphs(html){
   .map(match=>({text:stripMarkup(match[1]),section:'html_paragraph'}))
   .filter(item=>item.text.length>=80);
 }
+function isAllowedPublisherRedirect(url,expectedHost,rights){
+ try{
+  const candidate=new URL(url);
+  if(candidate.protocol!=='https:'||candidate.username||candidate.password||candidate.port&&candidate.port!=='443')return false;
+  if(candidate.hostname===expectedHost)return true;
+  if(!Array.isArray(rights.redirect_hosts)||!rights.redirect_hosts.includes(candidate.hostname))return false;
+  const pathPrefix=rights.redirect_path_prefixes?.[candidate.hostname];
+  if(typeof pathPrefix!=='string'||!candidate.pathname.startsWith(pathPrefix))return false;
+  return ['X-Amz-Algorithm','X-Amz-Credential','X-Amz-Date','X-Amz-Expires','X-Amz-Signature','X-Amz-SignedHeaders']
+   .every(key=>Boolean(candidate.searchParams.get(key)));
+ }catch{return false;}
+}
+
 function extractBioCParagraphs(payload){
  // NCBI BioC JSON is a list of collections, each containing documents/passages.
  // Some mirrors/fixtures return a single collection object; accept both shapes.
@@ -84,7 +97,7 @@ export async function fetchMessinhoApprovedSource(sourceId,{topic='',fetchImpl=g
   for(let redirectCount=0;redirectCount<=3;redirectCount++){
    response=await fetchImpl(currentUrl,fetchOptions);
    if(response?.url){
-    try{if(new URL(response.url).hostname!==expectedHost)return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};}
+    try{if(!isAllowedPublisherRedirect(response.url,expectedHost,rights))return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};}
     catch{return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};}
    }
    const status=Number(response?.status)||0;
@@ -93,7 +106,7 @@ export async function fetchMessinhoApprovedSource(sourceId,{topic='',fetchImpl=g
    if(!location||redirectCount===3)return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};
    let nextUrl;
    try{nextUrl=new URL(location,currentUrl);}catch{return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};}
-   if(nextUrl.protocol!=='https:'||nextUrl.hostname!==expectedHost||nextUrl.username||nextUrl.password||nextUrl.port&&nextUrl.port!=='443')
+   if(!isAllowedPublisherRedirect(nextUrl.toString(),expectedHost,rights))
     return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};
    currentUrl=nextUrl.toString();
   }
