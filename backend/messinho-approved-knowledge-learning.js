@@ -15,6 +15,7 @@ const FOUNDATION_CONFIGS=Object.freeze([
   title:'VO₂max (maximale Sauerstoffaufnahme)',
   search_topic:'VO2max maximal oxygen uptake cardiorespiratory fitness',
   match:VO2MAX_TOPIC,
+  aliases:['vo2max','vo₂max','maximale sauerstoffaufnahme','kardiorespiratorische fitness','cardiorespiratory fitness'],
   claim:'VO2max is maximal oxygen uptake and an objective measure of cardiorespiratory fitness.',
   answer:'VO₂max bezeichnet die maximale Sauerstoffaufnahme des Körpers unter intensiver Belastung. Sie ist ein objektiver Messwert und gilt als Goldstandard zur Beurteilung der kardiorespiratorischen Fitness. Im Fußball-Scouting ist sie ein Baustein zur Einordnung der aeroben Leistungsfähigkeit, aber kein alleiniger Maßstab für die Gesamtqualität eines Spielers. Geschätzte Werte sind nicht mit einer direkten Spiroergometrie/CPET-Messung gleichzusetzen.',
   definition:'VO₂max bezeichnet die maximale Sauerstoffaufnahme des Körpers unter intensiver Belastung. Sie ist ein objektiver Messwert der kardiorespiratorischen Fitness und wird in der Fachliteratur als deren Goldstandard-Messgröße verwendet.',
@@ -36,6 +37,7 @@ const FOUNDATION_CONFIGS=Object.freeze([
   title:'Matrixmultiplikation',
   search_topic:'matrix multiplication matrix product matrices columns rows linear algebra',
   match:MATRIX_TOPIC,
+  aliases:['matrixmultiplikation','matrix multiplication','matrix product','matrizenmultiplikation'],
   claim:'Matrix multiplication is defined when the number of columns in the first matrix equals the number of rows in the second; the product has the first matrix row count and the second matrix column count.',
   answer:'Matrixmultiplikation ist die Verknüpfung zweier Matrizen. Sie ist genau dann definiert, wenn die Spaltenzahl der ersten Matrix der Zeilenzahl der zweiten entspricht. Hat A die Größe m×n und B die Größe n×p, dann besitzt das Produkt A·B die Größe m×p. Jeder Eintrag entsteht aus dem Skalarprodukt einer Zeile von A mit einer Spalte von B. Wichtig: Im Allgemeinen gilt A·B ≠ B·A.',
   definition:'Für das Produkt A·B muss die Spaltenzahl von A mit der Zeilenzahl von B übereinstimmen. Hat A die Dimension m×n und B die Dimension n×p, dann hat A·B die Dimension m×p. Jeder Eintrag entsteht als Summe der Produkte aus der passenden Zeile von A und Spalte von B.',
@@ -66,10 +68,11 @@ function resolveConfig(question){
  if(!text||EXCLUDED_CONTEXT.test(text))return null;
  const config=FOUNDATION_CONFIGS.find(item=>item.match.test(text));
  if(!config)return null;
- if(!GENERAL_QUESTION.test(text)&&!new RegExp('^'+config.match.source.replace(/\\b/g,'')+'[?.! ]*$','i').test(text))return null;
+ const normalized=text.toLocaleLowerCase('de-DE').replace(/[?.! ]+$/,'').trim();
+ const directTopic=config.aliases.includes(normalized);
+ if(!GENERAL_QUESTION.test(text)&&!directTopic)return null;
  return config;
 }
-
 export function isMessinhoApprovedFoundationTopic(question){
  return Boolean(resolveConfig(question));
 }
