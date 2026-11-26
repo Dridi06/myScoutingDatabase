@@ -12,3 +12,7 @@ test('ignores ordinary conversation',()=>{assert.equal(calculateMessinhoMathQues
 
 test('Wilson confidence interval for scouting conversion rates',()=>{const r=calculateMessinhoMathQuestion('Wilson Konfidenzintervall n=100 k=20');assert.equal(r.kind,'probability');assert.equal(r.unit,'%');assert.ok(r.confidence_interval.lower<0.2&&r.confidence_interval.upper>0.2);});
 test('additional physics formulas',()=>{assert.equal(calculateMessinhoMathQuestion('Hooke Federkraft k=100 x=0.2').value,20);assert.equal(calculateMessinhoMathQuestion('Ohm Widerstand u=12 i=2').value,6);assert.equal(calculateMessinhoMathQuestion('Mechanische Arbeit kraft=10 s=5').value,50);});
+
+test('normal distribution cumulative probability',()=>{const r=calculateMessinhoMathQuestion('Normalverteilung mu=0 sigma=1 x=1.96');assert.ok(Math.abs(r.value-97.5)<0.02);});
+test('hypergeometric probability without replacement',()=>{const r=calculateMessinhoMathQuestion('Hypergeometrische Wahrscheinlichkeit population=10 successes=4 draws=3 k=2');assert.ok(Math.abs(r.value-30)<1e-8);});
+test('combinations count',()=>{assert.equal(calculateMessinhoMathQuestion('Kombination n=5 k=2').value,10);});
