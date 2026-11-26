@@ -323,3 +323,39 @@
 .messinho-workspace .messinho-feedback-review-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .messinho-workspace .messinho-feedback-review-actions{display:flex;flex-wrap:wrap;gap:7px}
 @media(max-width:560px){.messinho-workspace .messinho-feedback-review-fields{grid-template-columns:1fr}.messinho-workspace .messinho-feedback-admin{padding:10px}}
+
+/* Admin-only quality intelligence: aggregate signals, never expose raw user text. */
+.messinho-workspace .messinho-quality-intelligence{
+  display:grid;gap:12px;min-width:0;padding:14px;
+  border:1px solid rgba(190,160,94,.24);border-radius:13px;
+  background:linear-gradient(145deg,rgba(17,29,44,.88),rgba(9,18,29,.88));
+}
+.messinho-workspace .messinho-quality-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.messinho-workspace .messinho-quality-heading .messinho-learning-summary{min-width:0}
+.messinho-workspace .messinho-quality-heading button{flex:0 0 auto;font-size:11px;padding:8px 11px}
+.messinho-workspace .messinho-quality-muted{font-size:10px;line-height:1.5;color:#93a7bf}
+.messinho-workspace .messinho-quality-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.messinho-workspace .messinho-quality-metrics article{display:grid;gap:4px;min-width:0;padding:10px;border:1px solid rgba(165,185,210,.14);border-radius:9px;background:rgba(255,255,255,.025)}
+.messinho-workspace .messinho-quality-metrics small,.messinho-workspace .messinho-quality-metrics span{font-size:10px;line-height:1.4;color:#9eafc5}
+.messinho-workspace .messinho-quality-metrics strong{font-size:21px;line-height:1.1;color:#e8edf5;font-variant-numeric:tabular-nums}
+.messinho-workspace .messinho-quality-meta{display:flex;flex-wrap:wrap;gap:7px}
+.messinho-workspace .messinho-quality-meta span,.messinho-workspace .messinho-quality-themes span{padding:5px 8px;border:1px solid rgba(165,185,210,.14);border-radius:999px;background:rgba(255,255,255,.025);font-size:10px;color:#aebed2}
+.messinho-workspace .messinho-quality-distribution,.messinho-workspace .messinho-quality-groups,.messinho-workspace .messinho-quality-themes,.messinho-workspace .messinho-quality-hypotheses{display:grid;gap:8px;min-width:0}
+.messinho-workspace .messinho-quality-distribution>strong,.messinho-workspace .messinho-quality-groups>strong,.messinho-workspace .messinho-quality-themes>strong,.messinho-workspace .messinho-quality-hypotheses>strong{font-size:11px;color:#e1e9f3}
+.messinho-workspace .messinho-quality-distribution>div,.messinho-workspace .messinho-quality-themes>div{display:flex;flex-wrap:wrap;gap:7px}
+.messinho-workspace .messinho-quality-distribution span{padding:6px 9px;border-radius:8px;background:rgba(255,255,255,.035);font-size:10px;color:#b8c6d8}
+.messinho-workspace .messinho-quality-distribution b{margin-left:5px;color:#e8c77e}
+.messinho-workspace .messinho-quality-groups>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;padding:8px 10px;border-bottom:1px solid rgba(165,185,210,.1)}
+.messinho-workspace .messinho-quality-groups>div span{font-size:11px;color:#dce5f0;overflow-wrap:anywhere}
+.messinho-workspace .messinho-quality-groups>div b{font-size:11px;color:#e8c77e;font-variant-numeric:tabular-nums}
+.messinho-workspace .messinho-quality-groups>div small{grid-column:1/-1;font-size:9px;color:#93a7bf}
+.messinho-workspace .messinho-quality-hypotheses article{display:grid;gap:5px;padding:10px;border:1px solid rgba(165,185,210,.14);border-radius:9px;background:rgba(255,255,255,.025)}
+.messinho-workspace .messinho-quality-hypotheses article>div{display:grid;gap:3px}
+.messinho-workspace .messinho-quality-hypotheses article b{font-size:11px;color:#e4ebf5}
+.messinho-workspace .messinho-quality-hypotheses article small{font-size:9px;color:#a2b3c8}
+.messinho-workspace .messinho-quality-hypotheses article p{margin:0;font-size:11px;line-height:1.5;color:#c5d1df}
+@media(max-width:620px){
+ .messinho-workspace .messinho-quality-heading{align-items:flex-start;flex-direction:column}
+ .messinho-workspace .messinho-quality-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .messinho-workspace .messinho-quality-intelligence{padding:10px}
+}
