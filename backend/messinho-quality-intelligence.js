@@ -14,7 +14,7 @@ const REVIEWED_REQUEST_STATUSES=new Set(['reviewed','applied']);
 
 const THEMES=[
  ['factual_accuracy',/fakt|quelle|beleg|stimmt nicht|falsch|halluzin|erfunden|incorrect|inaccurate|source|evidence/],
- ['completeness',/vollstandig|fehlt|unvollstandig|erganz|mehr detail|complete|missing|omitted/],
+ ['completeness',/vollst[aä]ndig|fehlt|unvollst[aä]ndig|erg[aä]nz|mehr detail|complete|missing|omitted/],
  ['relevance',/relevant|passend|thema|ziel|frage verfehlt|irrelevant|off topic/],
  ['tactical_analysis',/taktik|formation|spielsystem|position|pressing|raum|tactical|role/],
  ['player_data',/spieler|statistik|daten|alter|verein|marktwert|player|stats|profile/],
@@ -48,6 +48,19 @@ function buildGroupSummaries(records,keyFn){
   return {key,...summary};
  }).sort((a,b)=>(a.average??6)-(b.average??6)||b.count-a.count||a.key.localeCompare(b.key));
 }
+function groupByCapabilityOrIntent(records){
+ const groups=new Map();
+ for(const row of records){
+  const capabilities=[...new Set((Array.isArray(row.capability_ids)?row.capability_ids:[]).map(value=>clean(value,80)).filter(Boolean))];
+  const keys=capabilities.length?capabilities:[clean(row.intent,80)];
+  for(const key of keys){if(!key)continue;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(row);}
+ }
+ return groups;
+}
+function summarizeCapabilityGroups(records){
+ return [...groupByCapabilityOrIntent(records)].map(([key,rows])=>({key,...summarizeRatings(rows)}))
+  .sort((a,b)=>(a.average??6)-(b.average??6)||b.count-a.count||a.key.localeCompare(b.key));
+}
 function trendSummary(ratings,now){
  const currentStart=now.getTime()-30*86400000,previousStart=now.getTime()-60*86400000;
  const current=ratings.filter(row=>{const date=validDate(row.created_at);return date&&date.getTime()>=currentStart;});
@@ -61,12 +74,13 @@ function createHypotheses(records){
  const ratings=records.filter(row=>row.feedback_type==='quality_rating'&&RATING_STATUSES.has(row.status)&&Number.isInteger(Number(row.rating))&&Number(row.rating)>=1&&Number(row.rating)<=5);
  const corrections=records.filter(row=>row.feedback_type==='factual_correction'&&VERIFIED_CORRECTION_STATUSES.has(row.status));
  const hypotheses=[];
- for(const group of buildGroupSummaries(ratings,row=>(row.capability_ids||[])[0]||row.intent||'')){
+ for(const [key,rows] of groupByCapabilityOrIntent(ratings)){
+  const group={key,...summarizeRatings(rows)};
   if(group.count<MIN_GROUP_SAMPLE||group.average===null||group.average>3)continue;
   hypotheses.push({id:'low_rating:'+group.key,type:'repeated_low_quality',group_by:'capability_or_intent',group:group.key,sample_size:group.count,average_rating:group.average,
    priority:group.average<=2?'high':'medium',proposal:'Critic-Prüfkriterien und Evidenzabdeckung dieser Aufgabenklasse untersuchen; vor Änderungen gezielte Regressionstests ergänzen.'});
  }
- const correctionGroups=groupBy(corrections,row=>(row.capability_ids||[])[0]||row.intent||'');
+ const correctionGroups=groupByCapabilityOrIntent(corrections);
  for(const [key,rows] of correctionGroups){
   if(rows.length<3)continue;
   hypotheses.push({id:'verified_corrections:'+key,type:'repeated_verified_corrections',group_by:'capability_or_intent',group:key,sample_size:rows.length,
@@ -93,7 +107,7 @@ export function buildMessinhoQualityIntelligence(input=[],options={}){
  const reviewedCorrections=records.filter(row=>row.feedback_type==='factual_correction'&&VERIFIED_CORRECTION_STATUSES.has(row.status));
  const reviewedBugs=records.filter(row=>row.feedback_type==='bug_report'&&REVIEWED_REQUEST_STATUSES.has(row.status));
  const reviewedFeatures=records.filter(row=>row.feedback_type==='feature_request'&&REVIEWED_REQUEST_STATUSES.has(row.status));
- const byCapability=buildGroupSummaries(ratings,row=>(row.capability_ids||[])[0]||'');
+ const byCapability=summarizeCapabilityGroups(ratings);
  const byIntent=buildGroupSummaries(ratings,row=>row.intent||'');
  const themes=new Map();
  for(const row of records){
