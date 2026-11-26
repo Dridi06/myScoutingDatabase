@@ -9,7 +9,7 @@ test('rejects incomplete, oversized, secret-bearing and protected proposals',()=
  assert.equal(normalizeMyKiTicketProposal({}).ok,false);
  assert.equal(normalizeMyKiTicketProposal({...valid,diff:'x'.repeat(24001)}).ok,false);
  assert.equal(normalizeMyKiTicketProposal({...valid,diff:'const x=process.env.SUPABASE_SERVICE_ROLE_KEY'}).ok,false);
- assert.equal(normalizeMyKiTicketProposal({...valid,files:['supabase/migrations/unsafe.sql']}).ok,false);
+ assert.equal(normalizeMyKiTicketProposal({...valid,files:['supabase/migrations/unsafe.sql']}).ok,false);\n assert.equal(normalizeMyKiTicketProposal({...valid,files:['backend/server.js']}).ok,false);\n assert.equal(normalizeMyKiTicketProposal({...valid,diff:'fetch(\"https://example.com\")'}).ok,false);
 });
 test('creates immutable server-side ticket identifier',()=>{const r=createMyKiTicketRecord(valid,{now:new Date('2026-11-27T12:00:00Z'),id:'abcdef123456'});assert.equal(r.ok,true);assert.equal(r.ticket.ticket_id,'MYKI-2026-ABCDEF123456');assert.equal(r.ticket.status,'submitted');});
 test('requires approved Admin and rejects premature integration',()=>{
