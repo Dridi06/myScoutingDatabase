@@ -2306,3 +2306,5 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 2. Capability-Audit der 94 Spezialhandler: Fachlogik, reale Datenabhängigkeiten, Rollenrechte, Quellen-/Provider-Abhängigkeit, Fehlerfälle und echte automatische Chat-End-to-End-Ausführung nachweisen.
 3. Sechs generische Fallbacks einzeln vervollständigen oder als bewusst nicht verfügbar belassen; keine falsche Fertigmeldung.
 4. Danach Import-/Extraktionspipeline, Versions-/Konfliktmanagement und Backup/Restore-Tests aufbauen.
+
+- Nachträgliche Härtung im selben Umsetzungsschritt: registrierte Rechte werden zusätzlich an erlaubte HTTPS-Quell-URL-Präfixe gebunden. Eine registrierte Lizenz-ID kann damit nicht für beliebige fremde URLs wiederverwendet werden. Diese URL-Scope-Prüfung ist ebenfalls fail-closed; mangels freigegebener Werke bleibt der Allowlist-Zähler 0.
