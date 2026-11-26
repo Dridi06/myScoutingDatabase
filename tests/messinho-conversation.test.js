@@ -89,3 +89,62 @@ test('unknown general questions are not falsely answered by the live clock resol
   assert.equal(resolveMessinhoLiveQuestion('Warum ist der Himmel blau?'), null);
   assert.equal(resolveMessinhoLiveQuestion('Wie spielt ein inverser Außenverteidiger?'), null);
 });
+
+
+test('VO2max application questions trigger a focused player-data follow-up, not a fabricated rating', async () => {
+  const { buildMessinhoKnowledgeApplicationFollowUp } = await import('../backend/messinho-conversation.js');
+  const result = buildMessinhoKnowledgeApplicationFollowUp(
+    'Wie kann ich die VO2max eines Fußballspielers für die Leistungsbewertung nutzen? Welche zusätzlichen Informationen benötigst du?',
+    { conceptKey: 'sports_science.physiology.vo2max' }
+  );
+  assert.ok(result);
+  assert.match(result.reply, /Messwert mit Einheit/);
+  assert.match(result.reply, /Testverfahren/);
+  assert.match(result.reply, /Spielposition/);
+  assert.equal(result.follow_up.kind, 'vo2max_player_application');
+  assert.equal(result.follow_up.score_created, false);
+  assert.equal(result.follow_up.estimated_value_created, false);
+});
+
+test('basic VO2max definition questions do not cause unnecessary follow-up prompts', async () => {
+  const { buildMessinhoKnowledgeApplicationFollowUp } = await import('../backend/messinho-conversation.js');
+  assert.equal(buildMessinhoKnowledgeApplicationFollowUp('Was bedeutet VO2max?', {
+    conceptKey: 'sports_science.physiology.vo2max'
+  }), null);
+});
+
+test('provided estimated VO2max stays explicitly estimated and asks only for missing context', async () => {
+  const { buildMessinhoKnowledgeApplicationFollowUp } = await import('../backend/messinho-conversation.js');
+  const result = buildMessinhoKnowledgeApplicationFollowUp(
+    'Wie ordne ich VO2max 55 ml/kg/min ein? Der Wert ist geschätzt aus einem Feldtest vom 12.05.2026.',
+    { conceptKey: 'sports_science.physiology.vo2max', player: { age: 19, positions: ['Flügel'] } }
+  );
+  assert.equal(result.follow_up.method_classification, 'estimated_or_field_test');
+  assert.ok(!result.follow_up.required_inputs.includes('vo2max_value'));
+  assert.ok(!result.follow_up.required_inputs.includes('test_method'));
+  assert.ok(!result.follow_up.required_inputs.includes('test_date'));
+  assert.ok(!result.follow_up.required_inputs.includes('player_age'));
+  assert.ok(!result.follow_up.required_inputs.includes('playing_position'));
+  assert.ok(result.follow_up.required_inputs.includes('training_context'));
+  assert.match(result.reply, /Schätzung bzw. Feldtestwert/);
+  assert.equal(result.follow_up.score_created, false);
+});
+
+test('direct CPET values are distinguished from estimates', async () => {
+  const { buildMessinhoKnowledgeApplicationFollowUp } = await import('../backend/messinho-conversation.js');
+  const result = buildMessinhoKnowledgeApplicationFollowUp(
+    'Wie bewerte ich VO2max 58 ml/kg/min, direkt gemessen per Spiroergometrie/CPET am 2026-10-20?',
+    { conceptKey: 'sports_science.physiology.vo2max', player: { age: 21, positions: ['Mittelfeld'], training_status: 'Profi' } }
+  );
+  assert.equal(result.follow_up.method_classification, 'direct_cpet');
+  assert.deepEqual(result.follow_up.required_inputs, []);
+  assert.match(result.reply, /direkte CPET/);
+  assert.equal(result.follow_up.estimated_value_created, false);
+});
+
+test('VO2max follow-up helper ignores unrelated knowledge concepts', async () => {
+  const { buildMessinhoKnowledgeApplicationFollowUp } = await import('../backend/messinho-conversation.js');
+  assert.equal(buildMessinhoKnowledgeApplicationFollowUp('Wie nutze ich das?', {
+    conceptKey: 'mathematics.probability.bayes'
+  }), null);
+});
