@@ -339,6 +339,7 @@ function learningHandler(id,input){
  return result(id,proposal.status==='proposal_ready'?'proposal_ready':'no_reliable_improvement',{proposal,training_performed:true,activation:'blocked_until_admin_review'});
 }
 function researchHandler(id,input){
+ const sources=sourceBundle(input),now=input.now||Date.now();
  const candidates=asArray(input.candidates||input.players).filter(item=>item&&typeof item==='object');
  if(id==='automated_talent_search'){
    const criteria=input.filters||input.criteria||{},filtered=candidates.filter(candidate=>{
@@ -374,7 +375,7 @@ function researchHandler(id,input){
    return result(id,'completed',{threshold,underdogs:eligible.sort((a,b)=>b.sporting_score-a.sporting_score),interpretation:'Geringe dokumentierte Sichtbarkeit bei vorhandenen Leistungswerten; kein Marktwerturteil.'});
  }
  if(id==='hidden_gem_detection'){
-   const eligible=candidates.map(candidate=>({player:playerName(candidate),score:scoreMessinhoPlayer(candidate).score,value:finite(candidate.market_value??candidate.estimated_value)})).filter(candidate=>candidate.score!==null&&candidate.value!==null&&candidate.value>0);
+   const eligible=candidates.map(candidate=>({player:playerName(candidate),score:scoreMessinhoPlayer(candidate).score,value:finite(candidate.market_value??candidate.estimated_value)})).filter(candidate=>candidate.score!==null&&candidate.score>0&&candidate.value!==null&&candidate.value>0);
    if(eligible.length<2)return missingResult(id,['player_metrics','comparable_market_values']);
    const meanValue=avg(eligible.map(item=>item.value)),meanScore=avg(eligible.map(item=>item.score));
    return result(id,'completed',{candidates:eligible.map(item=>({...item,value_per_score:round(item.value/item.score,2),below_group_value:item.value<meanValue&&item.score>=meanScore})).sort((a,b)=>a.value_per_score-b.value_per_score),group_mean_value:round(meanValue),group_mean_score:round(meanScore),estimate_only:true});
@@ -411,7 +412,6 @@ function researchHandler(id,input){
    if(!ranked.length)return missingResult(id,['target_player_metrics','candidate_pool_metrics']);
    return result(id,'completed',{target:playerName(target),comparables:ranked.slice(0,20),similarity_basis:'shared performance dimensions',market_or_identity_equivalence:false});
 
- const sources=sourceBundle(input),now=input.now||Date.now();
  const audited=sourceAudit(sources,now);
  const claims=asArray(input.claims||input.evidence);
  if(id==='identity_verification'||id==='birth_year_verification'||id==='position_verification'){
