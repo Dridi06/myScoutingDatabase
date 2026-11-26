@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults, getMessinhoCapabilityDiscovery } from '../backend/messinho-orchestrator.js';
+import { buildMessinhoCapabilityContext } from '../backend/messinho-data-context.js';
 
 test('MESSINHO composes all matching analysis intents from a natural-language goal', () => {
   const plan = planMessinhoCapabilities('Bitte analysiere das Potenzial und die Entwicklung von Spieler X', 'scout');
@@ -245,4 +246,87 @@ test('contract research requires a source bundle when no structured contract rec
   const result = executeMessinhoCapability('contract_research', {});
   assert.equal(result.status, 'insufficient_data');
   assert.ok(result.missing_inputs.includes('contract_sources'));
+});
+
+test('capability context flattens recorded observation metrics without losing provenance', () => {
+  const context = buildMessinhoCapabilityContext({
+    player: { player_id: 7, name: 'Test Player', positions: ['Stürmer'], ratings: { technical: 60 } },
+    observations: [
+      { observed_on: '2025-08-01', ratings: { technical: 72, minutes: 90 }, source_type: 'scout_observation' },
+      { observed_on: '2026-02-01', ratings: { technical: 81, minutes: 75 }, source_type: 'scout_observation' }
+    ],
+    now: '2026-11-26T12:00:00.000Z'
+  });
+  assert.equal(context.history.length, 2);
+  assert.equal(context.history[0].technical, 72);
+  assert.equal(context.history[0].minutes, 90);
+  assert.equal(context.history[0].score, context.history[0].overall_score);
+  assert.equal(context.seasonal_metrics[0].season, '2025');
+  assert.equal(context.seasonal_metrics[1].season, '2026');
+});
+
+test('only fully reviewed, identity-matched, legally cleared evidence becomes trusted claims', () => {
+  const trusted = {
+    id: 'e1', source_id: 's1', source_url: 'https://club.example/player',
+    claim_text: 'Player joined Club A', claim_title: 'Official player announcement',
+    verification_status: 'confirmed', identity_status: 'matched',
+    legal_review_status: 'not_required', data_classification: 'ordinary',
+    review_status: 'approved', reviewed_by: 'admin-1'
+  };
+  const pending = { ...trusted, id: 'e2', source_url: 'https://other.example/player', review_status: 'pending' };
+  const context = buildMessinhoCapabilityContext({
+    player: { player_id: 7, name: 'Test Player' },
+    evidence: [trusted, pending],
+    sourceRegistry: [{ id: 's1', license_status: 'approved', permitted_purposes: ['video_analysis'] }],
+    now: '2026-11-26T12:00:00.000Z'
+  });
+  assert.equal(context._trusted_source_bundle, true);
+  assert.equal(context.claims.length, 1);
+  assert.equal(context.claims[0].source_url, trusted.source_url);
+  assert.equal(context.sources.length, 1);
+  assert.equal(context.sources[0].license_status, 'licensed');
+});
+
+test('video events require verified event status and a permitted source licence', () => {
+  const evidence = [{
+    source_id: 'video-1', source_url: 'https://video.example/match',
+    verification_status: 'confirmed', identity_status: 'matched',
+    legal_review_status: 'approved', data_classification: 'ordinary',
+    review_status: 'approved', reviewed_by: 'admin-1'
+  }];
+  const context = buildMessinhoCapabilityContext({
+    player: { player_id: 7, name: 'Test Player' },
+    evidence,
+    events: [
+      { source_url: 'https://video.example/match', verification_status: 'verified', event_type: 'key_pass' },
+      { source_url: 'https://video.example/match', verification_status: 'pending', event_type: 'shot' }
+    ],
+    sourceRegistry: [{ id: 'video-1', license_status: 'approved', permitted_purposes: ['video_analysis'] }]
+  });
+  assert.equal(context.events.length, 1);
+  assert.equal(context.events[0].license_status, 'licensed');
+  assert.equal(context._trusted_video_bundle, true);
+});
+
+test('learning context includes only verified outcomes and preserves approval provenance', () => {
+  const context = buildMessinhoCapabilityContext({
+    player: { player_id: 7, name: 'Test Player' },
+    calibration: [
+      { player_id: 7, verification_status: 'verified', verified_by: 'admin-1', verified_outcome: 84, scout_rating: 80, outcome_metric: 'performance' },
+      { player_id: 8, verification_status: 'rejected', verified_by: 'admin-1', verified_outcome: 20, scout_rating: 40, outcome_metric: 'performance' }
+    ],
+    playerDirectory: [{ player_id: 7, year: 2006, national_team_country: 'Germany' }],
+    predictions: [{ id: 'p1', player_id: 7, predicted_value: 80, model_version: '1.0' }],
+    predictionOutcomes: [
+      { prediction_id: 'p1', player_id: 7, observed_value: 82, verification_status: 'verified', verified_by: 'admin-1' },
+      { prediction_id: 'p2', player_id: 8, observed_value: 10, verification_status: 'rejected', verified_by: 'admin-1' }
+    ],
+    now: '2026-11-26T12:00:00.000Z'
+  });
+  assert.equal(context.outcomes.length, 2);
+  assert.equal(context.outcomes.every(row => row.verification_status === 'verified' && row.verified_by), true);
+  assert.equal(context.outcomes[0].age_group, '20-24');
+  assert.equal(context.outcomes[0].country, 'Germany');
+  assert.equal(context.predictions[0].actual_score, 82);
+  assert.equal(context.verified_scout_feedback.length, 1);
 });
