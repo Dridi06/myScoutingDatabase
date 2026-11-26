@@ -39,7 +39,7 @@ export function normalizeMessinhoGeneralSources(results=[]){
  return rows.slice(0,8);
 }
 export function isMessinhoTimeSensitiveQuestion(question){
- return /\\b(aktuell|heute|jetzt|derzeit|momentan|zurzeit|neueste[nr]?|aktuellste[nr]?|diese woche|diesen monat|gestern|morgen|live|stand heute|202[6-9])\\b/i.test(String(question||''));
+ return /\b(aktuell|heute|jetzt|derzeit|momentan|zurzeit|neueste[nr]?|aktuellste[nr]?|diese woche|diesen monat|gestern|morgen|live|stand heute|202[6-9])\b/i.test(String(question||''));
 }
 export function assessMessinhoGeneralEvidence(sources=[],question='',now=new Date()){
  const domains=[...new Set(sources.map(source=>source.publisher).filter(Boolean))];
