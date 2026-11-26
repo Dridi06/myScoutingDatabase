@@ -165,14 +165,12 @@ drop policy if exists asi_evidence_reviews_admin_all on public.asi_evidence_revi
 create policy asi_evidence_reviews_admin_all on public.asi_evidence_reviews
 for all to authenticated using ((select private.is_admin())) with check ((select private.is_admin()));
 
-grant select on public.asi_research_runs to authenticated;
-grant select on public.asi_external_evidence to authenticated;
-grant select on public.asi_contract_snapshots to authenticated;
-grant select on public.asi_evidence_reviews to authenticated;
-grant insert, update, delete on public.asi_research_runs to authenticated;
-grant insert, update, delete on public.asi_external_evidence to authenticated;
-grant insert, update, delete on public.asi_contract_snapshots to authenticated;
-grant insert, update, delete on public.asi_evidence_reviews to authenticated;
+revoke all on public.asi_research_runs, public.asi_external_evidence,
+  public.asi_contract_snapshots, public.asi_evidence_reviews from anon, authenticated;
+grant select, insert, update, delete on public.asi_research_runs to authenticated;
+grant select, insert, update, delete on public.asi_external_evidence to authenticated;
+grant select, insert, update, delete on public.asi_contract_snapshots to authenticated;
+grant select, insert, update, delete on public.asi_evidence_reviews to authenticated;
 
 comment on table public.asi_external_evidence is 'Atomic, source-attributed external claims. External ingestion is disabled until provider and legal approval.';
 comment on table public.asi_contract_snapshots is 'Versioned contract-state observations; retain source and verification status. Do not infer undisclosed contract terms.';
