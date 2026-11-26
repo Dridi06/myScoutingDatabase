@@ -9,3 +9,6 @@ test('Bayes posterior',()=>{const r=calculateMessinhoMathQuestion('Bayes a=0.2 b
 test('physics formulas',()=>{assert.equal(calculateMessinhoMathQuestion('Newton Kraft m=80 a=3').value,240);assert.equal(calculateMessinhoMathQuestion('Kinetische Energie m=2 v=3').value,9);assert.equal(calculateMessinhoMathQuestion('Dichte m=100 volumen=2').value,50);});
 test('rejects division by zero and executable-looking input',()=>{assert.equal(calculateMessinhoMathQuestion('Berechne 1 / 0').status,'invalid_input');assert.equal(calculateMessinhoMathQuestion('Berechne process.exit()'),null);});
 test('ignores ordinary conversation',()=>{assert.equal(calculateMessinhoMathQuestion('Wie geht es dir?'),null);});
+
+test('Wilson confidence interval for scouting conversion rates',()=>{const r=calculateMessinhoMathQuestion('Wilson Konfidenzintervall n=100 k=20');assert.equal(r.kind,'probability');assert.equal(r.unit,'%');assert.ok(r.confidence_interval.lower<0.2&&r.confidence_interval.upper>0.2);});
+test('additional physics formulas',()=>{assert.equal(calculateMessinhoMathQuestion('Hooke Federkraft k=100 x=0.2').value,20);assert.equal(calculateMessinhoMathQuestion('Ohm Widerstand u=12 i=2').value,6);assert.equal(calculateMessinhoMathQuestion('Mechanische Arbeit kraft=10 s=5').value,50);});
