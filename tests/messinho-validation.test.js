@@ -8,7 +8,7 @@ test('parses a complete scouting request and caps the requested result count', (
   assert.deepEqual(result.missing, []);
   assert.equal(result.needsTargetLevel, false);
   assert.deepEqual(result.request, {
-    quantity: 15, yearFrom: 2004, yearTo: 2004, position: 'linker Verteidiger',
+    quantity: 15, yearFrom: 2004, yearTo: 2004, ageGroup: null, position: 'linker Verteidiger',
     region: 'deutschland', targetLevel: 'Regionalliga'
   });
 });
@@ -16,7 +16,7 @@ test('parses a complete scouting request and caps the requested result count', (
 test('asks only for missing scouting criteria', () => {
   const result = parseMessinhoScoutingRequest('Ich suche 8 Talente in Deutschland', [], 2026);
   assert.equal(result.shouldHandle, true);
-  assert.deepEqual(result.missing, ['Geburtsjahrgang', 'Position']);
+  assert.deepEqual(result.missing, ['Geburtsjahrgang oder Altersklasse', 'Position']);
 });
 
 test('retains criteria across a follow-up answer for target level', () => {
@@ -84,4 +84,34 @@ test('a new scouting request does not inherit filters from the previous request'
   assert.equal(result.request.region, 'spanien');
   assert.equal(result.request.targetLevel, '3. Liga');
   assert.equal(result.request.quantity, 5);
+});
+
+
+test('autonomously parses the exact U19 midfield scouting request without follow-up questions', () => {
+  const result = parseMessinhoScoutingRequest(
+    'Identifiziere drei interessante U19-Mittelfeldspieler aus Deutschland für den leistungsorientierten Vereinsfußball',
+    [],
+    2026
+  );
+  assert.equal(result.shouldHandle, true);
+  assert.deepEqual(result.missing, []);
+  assert.equal(result.needsTargetLevel, false);
+  assert.deepEqual(result.request, {
+    quantity: 3, yearFrom: null, yearTo: null, ageGroup: 'U19',
+    position: 'Mittelfeldspieler', region: 'deutschland', targetLevel: ''
+  });
+});
+
+test('generic midfielder filter matches central, defensive and attacking midfield roles', () => {
+  assert.equal(matchesPosition('Mittelfeldspieler', ['Central Midfielder']), true);
+  assert.equal(matchesPosition('Mittelfeldspieler', ['Defensive Midfielder']), true);
+  assert.equal(matchesPosition('Mittelfeldspieler', ['Attacking Midfielder']), true);
+  assert.equal(matchesPosition('Mittelfeldspieler', ['Centre Back']), false);
+});
+
+test('U19 age group is sufficient without an exact birth year and league level is optional', () => {
+  const result = parseMessinhoScoutingRequest('Suche U19-Mittelfeldspieler aus Deutschland', [], 2026);
+  assert.deepEqual(result.missing, []);
+  assert.equal(result.request.ageGroup, 'U19');
+  assert.equal(result.needsTargetLevel, false);
 });
