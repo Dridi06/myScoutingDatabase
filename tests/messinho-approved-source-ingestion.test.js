@@ -9,7 +9,7 @@ test('PLOS source retrieval uses the approved JATS endpoint and returns only com
   fetchImpl:async(url,options)=>{
    requested=url;
    assert.equal(options.headers.accept,'application/xml,text/xml;q=0.9');
-   assert.equal(options.redirect,'follow');
+   assert.equal(options.redirect,'manual');
    return {ok:true,text:async()=>'<article><abstract><p>VO2max is the highest attained oxygen uptake during an incremental exercise test with large muscle groups.</p></abstract><body><p>VO2max is an important parameter to objectively assess cardiorespiratory fitness in healthy people.</p><p>Prediction models require external validation.</p></body></article>'};
   }
  });
@@ -86,17 +86,19 @@ test('PMC BioC parser accepts the official top-level collection array response',
  assert.ok(result.excerpts.some(item=>item.source_section==='ABSTRACT'));
 });
 
-test('PLOS same-host redirect is followed and final official host is accepted',async()=>{
- let optionsSeen;
+test('PLOS same-host redirect is followed manually and only on the approved HTTPS host',async()=>{
+ const calls=[];
  const result=await fetchMessinhoApprovedSource('plos_one_vo2max_prediction_2023',{
   topic:'VO2max oxygen uptake',
-  fetchImpl:async(_url,options)=>{
-   optionsSeen=options;
-   return {ok:true,status:200,url:'https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0280897&type=manuscript&download=1',
-    text:async()=>'<article><abstract><p>VO2max is the highest attained oxygen uptake during an incremental exercise test with large muscle groups and an objective measure of cardiorespiratory fitness.</p></abstract></article>'};
+  fetchImpl:async(url,options)=>{
+   calls.push({url,redirect:options.redirect});
+   if(calls.length===1)return {ok:false,status:302,headers:{get:name=>name==='location'?'/plosone/article/file?id=10.1371%2Fjournal.pone.0280897&type=manuscript&download=1':null}};
+   return {ok:true,status:200,url,text:async()=>'<article><abstract><p>VO2max is the highest attained oxygen uptake during an incremental exercise test with large muscle groups and an objective measure of cardiorespiratory fitness.</p></abstract></article>'};
   }
  });
- assert.equal(optionsSeen.redirect,'follow');
+ assert.equal(calls.length,2);
+ assert.ok(calls.every(call=>call.redirect==='manual'));
+ assert.match(calls[1].url,/^https:\/\/journals\.plos\.org\//);
  assert.equal(result.status,'completed');
  assert.equal(result.source.source_id,'plos_one_vo2max_prediction_2023');
 });
@@ -133,7 +135,7 @@ test('expired source-rights review blocks retrieval before any network request',
 });
 
 
-test('approved source retrieval never follows redirects, including same-host redirects',async()=>{
+test('approved source retrieval rejects unresolved redirects without a location',async()=>{
  let calls=0;
  const result=await fetchMessinhoApprovedSource('plos_one_vo2max_prediction_2023',{
   fetchImpl:async()=>{calls++;return {ok:false,status:302,headers:{get:()=>'/redirected-article'},text:async()=>''};}
