@@ -15,7 +15,7 @@ const SAFE_OPERATIONS = new Set([
   'basic_arithmetic',
   'unit_conversion'
 ]);
-const SENSITIVE_INTENTS = /\\b(delete|loesche|lösche|send|sende|kontaktier|ueberweise|überweise|kaufe|buche|aktiviere|veroeffentliche|veröffentliche|passwort|zugang|konto|modellgewicht|scoringmodell)\\b/i;
+const SENSITIVE_INTENTS = /\b(delete|loesche|lösche|send|sende|kontaktier|ueberweise|überweise|kaufe|buche|aktiviere|veroeffentliche|veröffentliche|passwort|zugang|konto|modellgewicht|scoringmodell)\b/i;
 
 function cleanText(value, max = 500) {
   return typeof value === 'string' ? value.normalize('NFKC').trim().slice(0, max) : '';
@@ -25,7 +25,7 @@ function slug(value) {
 }
 function normalize(value) {
   return cleanText(value, MAX_EVOLUTION_QUESTION_LENGTH).toLocaleLowerCase('de-DE')
-    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/ß/g, 'ss')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss')
     .replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
