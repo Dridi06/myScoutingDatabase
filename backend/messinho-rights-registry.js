@@ -66,7 +66,7 @@ export function verifyMessinhoSourceRights(rights = {}) {
   if (!rights || typeof rights !== 'object' || !rights.source_id) return false;
   const entry = VERIFIED_SOURCE_RIGHTS.find(item => item.source_id === rights.source_id);
   if (!entry || entry.status !== 'verified_permitted') return false;
-  for (const key of ['license', 'license_url', 'rights_holder', 'evidence_url']) {
+  for (const key of ['license', 'license_url', 'rights_holder', 'evidence_url', 'attribution']) {
     if (!entry[key] || entry[key] !== rights[key]) return false;
   }
   if (!/^https:\/\//i.test(entry.evidence_url)||!/^https:\/\//i.test(entry.license_url)) return false;
