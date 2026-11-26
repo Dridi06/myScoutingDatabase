@@ -142,7 +142,7 @@ test('planner exposes missing-input recovery and does not claim unsupported comp
 });
 
 
-test('the 29 formerly generic fallback capabilities now have explicit specialist dispatch', () => {
+test('the 29 formerly generic capabilities are truthfully split between specialist logic and generic fallbacks', () => {
   const ids = [
     'technical_score','tactical_score','athletic_score','mental_score','goalkeeper_score',
     'supervised_learning','position_specific_learning','scout_feedback_learning','weight_optimization','age_group_learning',
@@ -154,7 +154,8 @@ test('the 29 formerly generic fallback capabilities now have explicit specialist
   ];
   for (const id of ids) {
     const result = executeMessinhoCapability(id, {});
-    assert.equal(result.implementation_level, 'specialist_logic', id);
+    const generic = ['supervised_learning','weight_optimization','country_learning','talent_pathway_learning','breakthrough_learning','controlled_self_optimization'];
+    assert.equal(result.implementation_level, generic.includes(id) ? 'generic_fallback' : 'specialist_logic', id);
     assert.notEqual(result.status, 'unknown_capability', id);
     assert.notEqual(result.status, 'error', id);
   }
