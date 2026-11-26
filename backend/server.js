@@ -27,7 +27,7 @@ import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMe
 import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
 import { findMessinhoDomainKnowledge } from './messinho-domain-knowledge.js';
-import { findMessinhoKnowledgeConcepts, reviewMessinhoKnowledgeConcept } from './messinho-knowledge-graph.js';
+import { findMessinhoKnowledgeConcepts, getMessinhoCanonicalConceptKey, reviewMessinhoKnowledgeConcept } from './messinho-knowledge-graph.js';
 import { learnMessinhoKnowledgeFromResearch } from './messinho-knowledge-learning.js';
 
 import { calculateMessinhoMathQuestion } from './messinho-math.js';
@@ -1835,6 +1835,37 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(liveAnswer)return respond({reply:liveAnswer.reply,intent:liveAnswer.intent,tool:liveAnswer.tool,verified_at:liveAnswer.verified_at,time_zone:liveAnswer.time_zone,items:[]});
     const smallTalkReply=getMessinhoSocialReply(interpretedMessage,history);
     if(smallTalkReply)return respond({reply:smallTalkReply,intent:'small_talk',items:[]});
+    // Route explicit questions about known canonical foundations before the
+    // scouting planner, player-name extractor, or generic conversational fallback.
+    // This prevents a valid knowledge question from being answered with the bot intro.
+    const canonicalConceptKey=getMessinhoCanonicalConceptKey(interpretedMessage);
+    if(canonicalConceptKey){
+      const canonicalResult=await findMessinhoKnowledgeConcepts(db,interpretedMessage,{limit:8});
+      const canonicalItems=(canonicalResult.items||[]).filter(item=>item.concept_key===canonicalConceptKey);
+      if(canonicalItems.length){
+        const first=canonicalItems[0];
+        const sections=canonicalItems.map(item=>[
+          item.title+': '+item.definition,
+          item.applicability?.length?'Anwendung: '+item.applicability.join('; '):'',
+          item.formula?'Formel: '+item.formula:'',
+          item.limitations?.length?'Grenzen: '+item.limitations.join('; '):'',
+          item.prerequisites?.length?'Voraussetzungen: '+item.prerequisites.join('; '):''
+        ].filter(Boolean).join('\n\n'));
+        return respond({
+          reply:'Ich habe das freigegebene Grundlagenwissen direkt aus meinem Wissensnetz abgerufen.\n\n'+sections.join('\n\n'),
+          intent:'structured_knowledge_graph_hit',
+          items:canonicalItems.map((item,index)=>({id:'knowledge-concept-'+index,name:item.title,kind:item.domain+' · '+item.knowledge_level,sources:item.sources||[]})),
+          sources:canonicalItems.flatMap(item=>item.sources||[]),
+          knowledge_memory:{reused:true,kind:'hierarchical_knowledge_graph',domain:first.domain,matched_entries:canonicalItems.length,versions:canonicalItems.map(item=>item.version)}
+        });
+      }
+      console.warn('MESSINHO canonical foundation lookup did not return an active concept:',canonicalConceptKey,canonicalResult.status||'unknown');
+      return respond({
+        reply:'Ich habe deine Frage als Grundlagenfrage erkannt, konnte aber gerade keinen aktiven, freigegebenen Wissenseintrag dazu abrufen. Ich werde dir deshalb keine allgemeine Begrüßung oder ungesicherte Ersatzantwort geben. Bitte prüfe den Freigabestatus des Grundlagenwissens und versuche es erneut.',
+        intent:'canonical_knowledge_unavailable',items:[],sources:[],
+        knowledge_memory:{reused:false,kind:'hierarchical_knowledge_graph',status:canonicalResult.status||'miss'}
+      });
+    }
     const isPlayerFollowUp=Boolean(resolveMessinhoPlayerFollowUp(interpretedMessage,history));
     const help=/\b(hilfe|befehle|funktionen)\b/.test(normalized)||(/\bwas kannst du\b/.test(normalized)&&!isPlayerFollowUp);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
