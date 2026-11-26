@@ -130,6 +130,12 @@ test('canonical VO2max lookup recovers active knowledge when broad lexical ranki
  assert.equal(result.items[0].concept_key,row.concept_key);
 });
 
+test('recognizes canonical VO2max knowledge questions including Unicode subscript aliases',()=>{
+ assert.equal(getMessinhoCanonicalConceptKey('Was ist VO₂max? Erkläre mir den Wert, seine physiologische Bedeutung und seine Grenzen.'),'sports_science.physiology.vo2max');
+ assert.equal(getMessinhoCanonicalConceptKey('Erkläre die maximale Sauerstoffaufnahme.'),'sports_science.physiology.vo2max');
+ assert.equal(getMessinhoCanonicalConceptKey('Analysiere die kardiorespiratorische Fitness.'),'sports_science.physiology.vo2max');
+ assert.equal(getMessinhoCanonicalConceptKey('Wie ist die Technik eines Innenverteidigers?'),null);
+});
 test('knowledge graph does not persist or retrieve without a database',async()=>{
   assert.deepEqual(await storeMessinhoKnowledgeConcept(null,draft),{persisted:false,reason:'storage_unavailable'});
   assert.deepEqual(await findMessinhoKnowledgeConcepts(null,'Bayes theorem'),{status:'unavailable',items:[]});
