@@ -1535,3 +1535,16 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - `a7c55a30845939bb90bb649f50f5121f3c487c7d` — responsive regression tests.
 
 **Deployment status at checkpoint:** Code committed to the STAGING feature branch. Render STAGING manual deployment and build verification are pending. Do not call it live until the exact deployment commit is confirmed live and health is checked.
+
+
+### Responsive UX pass — STAGING build and deployment verification (2026-11-26)
+
+- Render STAGING service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`).
+- Manual deployment: `dep-dc3stkp7lnhs73eo1hu0`.
+- Deployed commit: `69cf085aae71b4de5b7c0c0afc16e4ac19910d3e`.
+- Render deployment status: **live**, finished `2026-11-26T06:17:26.097Z`.
+- Render build executed `npm run build`: **174 tests passed, 0 failed** (169 existing + 5 responsive layout regression tests); backend syntax checks passed; Vite transformed 1,636 modules and completed the build successfully.
+- Runtime started `node backend/server.js`, API listened on port 10000, and STAGING Supabase Data API returned HTTP 200. Render confirmed the service live at the dedicated STAGING URL.
+- No database migrations or persistent user/player/scout data changes were made.
+- No authenticated browser screenshot/visual QA was available; CSS regression tests and deployment health are verified, but exact rendering/scroll behavior on physical iPhone/Android/desktop browsers still requires interactive visual confirmation.
+- Production `main`, production Render, production Supabase, PFMS and PFSS remain unchanged. STAGING auto-deploy remains disabled; PR #47 remains Draft/unmerged.
