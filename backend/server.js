@@ -635,6 +635,81 @@ async function saveMessinhoAgentTrace(ownerId,goal,plan,run,durationMs){
     if(error&&error.code!=='42P01')console.warn('MESSINHO trace write unavailable:',error.message);
   }catch(error){console.warn('MESSINHO trace write failed:',error.message);}
 }
+async function saveMessinhoAgentTask(ownerId,goal,plan,input,run,role){
+  const pending=Array.isArray(run?.deferred_capabilities)?run.deferred_capabilities:[];
+  if(!db||!pending.length)return null;
+  try{
+    const context={
+      ...(input?.player?{player:input.player}:{}),
+      ...(Array.isArray(input?.players)?{players:input.players.slice(0,80)}:{}),
+      user_preferences:input?.user_preferences&&typeof input.user_preferences==='object'?input.user_preferences:{}
+    };
+    if(JSON.stringify(context).length>64000){
+      context.players=(context.players||[]).slice(0,20);
+      if(JSON.stringify(context).length>64000)delete context.players;
+    }
+    const storedPlan={
+      goal:String(goal||'').slice(0,1200),label:plan?.label||'MESSINHO-Aufgabe',
+      matched_intents:plan?.matched_intents||[],discovered_capabilities:plan?.discovered_capabilities||[],
+      blocked_capabilities:plan?.blocked_capabilities||[],mode:plan?.mode||null,role
+    };
+    const {data,error}=await db.from('messinho_agent_tasks').insert({
+      owner_id:ownerId,goal:storedPlan.goal,status:'partial',plan:storedPlan,context,
+      completed_results:(run.results||[]).slice(0,20),pending_capabilities:pending.slice(0,100),
+      expires_at:new Date(Date.now()+30*86400000).toISOString()
+    }).select('id,status,pending_capabilities,expires_at').single();
+    if(error){if(error.code!=='42P01')console.warn('MESSINHO task checkpoint unavailable:',error.message);return null;}
+    return data;
+  }catch(error){console.warn('MESSINHO task checkpoint failed:',error.message);return null;}
+}
+
+
+app.get('/api/agent/tasks',async(req,res)=>{
+  try{
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    const {data,error}=await db.from('messinho_agent_tasks')
+      .select('id,goal,status,pending_capabilities,attempt_count,created_at,updated_at,expires_at')
+      .eq('owner_id',actor.user.id).in('status',['queued','partial','waiting_for_input'])
+      .gt('expires_at',new Date().toISOString()).order('updated_at',{ascending:false}).limit(20);
+    if(error){if(error.code==='42P01')return res.json({tasks:[],persistence_ready:false});throw error;}
+    return res.json({tasks:data||[],persistence_ready:true});
+  }catch(error){console.error('MESSINHO task list failed:',error.message);return res.status(500).json({error:'Offene MESSINHO-Aufgaben konnten nicht geladen werden.'});}
+});
+app.post('/api/agent/tasks/:taskId/resume',async(req,res)=>{
+  try{
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    const {data:task,error:loadError}=await db.from('messinho_agent_tasks').select('*')
+      .eq('id',req.params.taskId).eq('owner_id',actor.user.id).maybeSingle();
+    if(loadError){if(loadError.code==='42P01')return res.status(503).json({error:'Die Aufgabenablage ist noch nicht eingerichtet. Bitte zuerst die Staging-Migration ausführen.'});throw loadError;}
+    if(!task)return res.status(404).json({error:'Diese Aufgabe wurde nicht gefunden.'});
+    if(Date.parse(task.expires_at)<=Date.now())return res.status(410).json({error:'Diese gespeicherte Aufgabe ist abgelaufen.'});
+    if(task.status==='waiting_for_input')return res.status(409).json({error:'Für diese Aufgabe fehlen Eingabedaten. Ergänze sie bitte zuerst im Chat.'});
+    if(task.status!=='partial'||!Array.isArray(task.pending_capabilities)||!task.pending_capabilities.length)
+      return res.status(409).json({error:'Diese Aufgabe enthält keine fortsetzbaren Arbeitsschritte.'});
+    const pending=task.pending_capabilities.slice(0,100);
+    const resumePlan={...(task.plan||{}),goal:task.goal,steps:pending.slice(0,20),deferred_capabilities:pending.slice(20),blocked_capabilities:[]};
+    const cycle=executeMessinhoAgentPlan({plan:resumePlan,input:task.context||{},role:actor.profile.role});
+    const newRun=cycle.run;
+    const oldResults=Array.isArray(task.completed_results)?task.completed_results:[];
+    const byId=new Map([...oldResults,...(newRun.results||[])].map(item=>[item.capability_id,item]));
+    const mergedResults=[...byId.values()];
+    const stillPending=Array.isArray(newRun.deferred_capabilities)?newRun.deferred_capabilities:[];
+    const status=stillPending.length?'partial':(newRun.missing_inputs?.length?'waiting_for_input':'completed');
+    const {error:updateError}=await db.from('messinho_agent_tasks').update({
+      status,completed_results:mergedResults.slice(0,100),pending_capabilities:stillPending.slice(0,100),
+      attempt_count:(Number(task.attempt_count)||0)+1,updated_at:new Date().toISOString(),
+      last_error:newRun.results?.some(item=>item.status==='error')?'Ein oder mehrere Arbeitsschritte meldeten einen Fehler.':null
+    }).eq('id',task.id).eq('owner_id',actor.user.id);
+    if(updateError)throw updateError;
+    const mergedRun={...newRun,results:mergedResults,total_steps:mergedResults.length,
+      completed_steps:mergedResults.filter(item=>['completed','verified','proposal_ready'].includes(item.status)).length,
+      deferred_capabilities:stillPending,status:status==='completed'?'completed':status==='partial'?'partial':'insufficient_data'};
+    await saveMessinhoAgentTrace(actor.user.id,task.goal,resumePlan,mergedRun,cycle.state.elapsed_ms||0);
+    return res.json({ok:true,task:{id:task.id,status,pending_capabilities:stillPending,attempt_count:(Number(task.attempt_count)||0)+1},
+      reply:formatMessinhoCapabilityResults(mergedRun),agent:{state:cycle.state,validation:cycle.validation,results:mergedResults,
+        completed_steps:mergedRun.completed_steps,total_steps:mergedRun.total_steps,next_action:stillPending.length?'resume_deferred_steps':status==='waiting_for_input'?'ask_user_for_missing_inputs':'report_result'}});
+  }catch(error){console.error('MESSINHO task resume failed:',error.message);return res.status(500).json({error:'Die gespeicherte Aufgabe konnte nicht fortgesetzt werden.'});}
+});
 app.get('/api/messinho/capabilities',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
@@ -1137,6 +1212,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       };
       const agentCycle=executeMessinhoAgentPlan({plan,input,role:profile.role});
       const run=agentCycle.run;
+      const taskCheckpoint=await saveMessinhoAgentTask(ownerId,message,plan,input,run,profile.role);
       const reply=formatMessinhoCapabilityResults(run,selectedPlayer?.name||null);
       const preferences={...agentMemory.user_preferences};
       const formation=message.match(/\b(4-\d-\d|3-\d-\d|5-\d-\d)\b/);
@@ -1161,7 +1237,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         agent:{status:run.status,label:run.label,state:agentCycle.state,validation:agentCycle.validation,next_action:run.next_action,planned_capabilities:plan.steps,discovered_capabilities:plan.discovered_capabilities,
           completed_steps:run.completed_steps,total_steps:run.total_steps,missing_inputs:run.missing_inputs,
           blocked_capabilities:run.blocked_capabilities,deferred_capabilities:run.deferred_capabilities,
-          replan_recommended:run.replan_recommended,results:run.results},
+          replan_recommended:run.replan_recommended,results:run.results,task_checkpoint:taskCheckpoint},
         memory:{active_player_ids:nextMemory.active_player_ids,preferences:nextMemory.user_preferences,persisted:true},
         execution_policy:run.execution_policy
       });
