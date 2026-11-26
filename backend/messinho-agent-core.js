@@ -2,7 +2,7 @@
  * MESSINHO Agent Core — bounded plan / execute / validate state machine.
  * Provider-independent and read-only: no database writes, model activation or external calls.
  */
-import { runMessinhoCapabilityPlan } from './messinho-orchestrator.js';
+import { runMessinhoCapabilityPlanAsync } from './messinho-orchestrator.js';
 export const MESSINHO_AGENT_CORE_VERSION='1.0.0';
 export const MAX_AGENT_EXECUTION_BUDGET_MS=8000;
 const VALID_STATUSES=new Set(['completed','verified','proposal_ready','insufficient_data','error','denied','invalid_input','unknown_capability','unverified','needs_review','no_reliable_improvement']);
@@ -34,12 +34,12 @@ export async function executeMessinhoAgentPlan({plan,input={},role='scout',budge
      state,validation:{valid:true,expected_steps:0,returned_steps:0}};
  }
  state={...state,phase:'executing',trace:addEvent(state.trace,'execution_started',{budget_ms:budget,max_steps:plan.steps.length})};
- let run=await runMessinhoCapabilityPlan(plan,input,role,{budgetMs,onStep});
+ let run=await runMessinhoCapabilityPlanAsync(plan,input,role,{budgetMs,onStep});
  state.trace=addEvent(state.trace,'execution_finished',{status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,elapsed_ms:run.execution_trace?.elapsed_ms||Date.now()-started});
  const failed=(run.results||[]).filter(item=>item.status==='error').map(item=>item.capability_id);
  const remaining=budget-(Date.now()-started);
  if(failed.length&&remaining>=500){
-   const retry=await runMessinhoCapabilityPlan({...plan,steps:failed,blocked_capabilities:[],deferred_capabilities:[]},input,role,{budgetMs:Math.min(2000,remaining)});
+   const retry=await runMessinhoCapabilityPlanAsync({...plan,steps:failed,blocked_capabilities:[],deferred_capabilities:[]},input,role,{budgetMs:Math.min(2000,remaining)});
    const replacements=new Map((retry.results||[]).map(item=>[item.capability_id,item]));
    const retried=run.results.map(item=>replacements.get(item.capability_id)||item);
    const unresolved=retry.results.filter(item=>item.status==='error').map(item=>item.capability_id);
