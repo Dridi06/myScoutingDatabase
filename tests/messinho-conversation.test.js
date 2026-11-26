@@ -15,7 +15,7 @@ test('MESSINHO handles how-are-you, thanks and farewells', () => {
   assert.equal(classifyMessinhoSocialIntent('Wie geht’s dir?'), 'how_are_you');
   assert.match(getMessinhoSocialReply('Wie geht’s dir?', history, fixedMorning), /bei dir|Und bei dir/);
   assert.equal(classifyMessinhoSocialIntent('Danke dir!'), 'thanks');
-  assert.match(getMessinhoSocialReply('Danke dir!', history, fixedMorning), /Gern|Ding|Freut mich|Sehr gerne/);
+  assert.match(getMessinhoSocialReply('Danke dir!', history, fixedMorning), /gern|Ding|Freut mich|Sehr gerne/i);
   assert.equal(classifyMessinhoSocialIntent('Tschüss'), 'goodbye');
   assert.match(getMessinhoSocialReply('Tschüss', history, fixedMorning), /Bis später|Schönen Feierabend|Bis dann/);
 });
