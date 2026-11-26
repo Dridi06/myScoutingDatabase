@@ -1,0 +1,409 @@
+{
+  "package_id": "messinho.technical_intelligence.foundation",
+  "version": "1.0.0",
+  "domain": "computer_science",
+  "status": "candidate_package_not_imported",
+  "rights_policy": "Reference URLs only. Rights for each exact work/edition are pending review. No full text copied. Do not import or activate until the exact source, license, attribution, AI/TDM, commercial and derivative rights are verified in the MESSINHO rights registry.",
+  "concepts": [
+    {
+      "concept_key": "computer_science.foundations.computational_thinking",
+      "domain": "computer_science",
+      "topic": "Grundlagen",
+      "title": "Computational Thinking",
+      "definition": "Probleme in Eingaben, Ausgaben, Regeln, Randfälle und Teilprobleme zerlegen; Muster erkennen und passende Abstraktionen bilden.",
+      "knowledge_level": "foundational",
+      "knowledge_type": "concept",
+      "prerequisites": [],
+      "applicability": "Probleme systematisch analysieren und vor dem Coden überprüfbare Lösungspläne erstellen.",
+      "limitations": [
+        "Ein Modell kann relevante Randbedingungen auslassen und muss am echten Anwendungsfall geprüft werden."
+      ],
+      "claims": [
+        {
+          "text": "Probleme in Eingaben, Ausgaben, Regeln, Randfälle und Teilprobleme zerlegen; Muster erkennen und passende Abstraktionen bilden.",
+          "source_urls": [
+            "https://docs.python.org/3/tutorial/"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://docs.python.org/3/tutorial/",
+          "title": "Official documentation / reference",
+          "source_id": null,
+          "edition": "verify during rights review",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "unassessed",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.foundations.algorithms",
+      "domain": "computer_science",
+      "topic": "Grundlagen",
+      "title": "Algorithmen",
+      "definition": "Ein Algorithmus ist eine endliche, eindeutige Schrittfolge zur Lösung einer Aufgabe für definierte Eingaben.",
+      "knowledge_level": "foundational",
+      "knowledge_type": "concept",
+      "prerequisites": [],
+      "applicability": "Korrektheit über Vorbedingungen, Nachbedingungen, Invarianten und Randfälle prüfen; Laufzeit und Speicherbedarf berücksichtigen.",
+      "limitations": [
+        "Logisch korrekte Algorithmen können für große Datenmengen zu langsam oder speicherintensiv sein."
+      ],
+      "claims": [
+        {
+          "text": "Ein Algorithmus ist eine endliche, eindeutige Schrittfolge zur Lösung einer Aufgabe für definierte Eingaben.",
+          "source_urls": [
+            "https://docs.python.org/3/tutorial/"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://docs.python.org/3/tutorial/",
+          "title": "Official documentation / reference",
+          "source_id": null,
+          "edition": "verify during rights review",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "unassessed",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.foundations.data_structures",
+      "domain": "computer_science",
+      "topic": "Grundlagen",
+      "title": "Datenstrukturen",
+      "definition": "Datenstrukturen organisieren Werte für bestimmte Zugriffs- und Änderungsmuster: Listen, Maps, Sets, Stacks, Queues, Bäume und Graphen.",
+      "knowledge_level": "foundational",
+      "knowledge_type": "concept",
+      "prerequisites": [],
+      "applicability": "Passende Repräsentationen für Spieler, Quellen, Beziehungen, Aufgaben und Suchindizes wählen.",
+      "limitations": [
+        "Die Wahl beeinflusst Laufzeit, Speicher, Reihenfolge, Duplikate und Konsistenz."
+      ],
+      "claims": [
+        {
+          "text": "Datenstrukturen organisieren Werte für bestimmte Zugriffs- und Änderungsmuster: Listen, Maps, Sets, Stacks, Queues, Bäume und Graphen.",
+          "source_urls": [
+            "https://docs.python.org/3/tutorial/datastructures.html"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://docs.python.org/3/tutorial/datastructures.html",
+          "title": "Official documentation / reference",
+          "source_id": null,
+          "edition": "verify during rights review",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "unassessed",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.languages.python",
+      "domain": "computer_science",
+      "topic": "Programmier- und Systemgrundlagen",
+      "title": "Python",
+      "definition": "Python ist eine universell einsetzbare Programmiersprache mit dynamischer Typisierung, umfangreichen Standardbibliotheken und klarer Syntax.",
+      "knowledge_level": "specialized",
+      "knowledge_type": "concept",
+      "prerequisites": [],
+      "applicability": "Datenanalyse, Automatisierung, Prototypen, Tests und KI-nahe Datenpipelines entwickeln.",
+      "limitations": [
+        "Dynamische Typisierung verlagert Fehlererkennung stärker in Laufzeitprüfungen und Tests; Abhängigkeiten müssen kontrolliert werden."
+      ],
+      "claims": [
+        {
+          "text": "Python ist eine universell einsetzbare Programmiersprache mit dynamischer Typisierung, umfangreichen Standardbibliotheken und klarer Syntax.",
+          "source_urls": [
+            "https://docs.python.org/3/tutorial/"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://docs.python.org/3/tutorial/",
+          "title": "Official documentation / reference",
+          "source_id": null,
+          "edition": "verify during rights review",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "unassessed",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.languages.javascript_typescript",
+      "domain": "computer_science",
+      "topic": "Programmier- und Systemgrundlagen",
+      "title": "JavaScript und TypeScript",
+      "definition": "JavaScript läuft im Browser und in Node.js; TypeScript ergänzt JavaScript um statische Typprüfung und Typmodellierung.",
+      "knowledge_level": "specialized",
+      "knowledge_type": "concept",
+      "prerequisites": [],
+      "applicability": "Bestehendes myScoutingDatabase-Frontend und Backend verstehen und sicher erweitern.",
+      "limitations": [
+        "TypeScript-Typen ersetzen keine Laufzeitvalidierung externer Daten; asynchrone Abläufe können Race Conditions erzeugen."
+      ],
+      "claims": [
+        {
+          "text": "JavaScript läuft im Browser und in Node.js; TypeScript ergänzt JavaScript um statische Typprüfung und Typmodellierung.",
+          "source_urls": [
+            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+          "title": "Official documentation / reference",
+          "source_id": null,
+          "edition": "verify during rights review",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "unassessed",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.databases.relational_model",
+      "domain": "computer_science",
+      "topic": "Programmier- und Systemgrundlagen",
+      "title": "Relationale Datenbanken",
+      "definition": "Relationale Daten organisieren Informationen in Tabellen mit Schlüsseln, Beziehungen und Integritätsregeln.",
+      "knowledge_level": "specialized",
+      "knowledge_type": "concept",
+      "prerequisites": [],
+      "applicability": "Spieler-, Team-, Organisations- und Wissensbeziehungen konsistent modellieren.",
+      "limitations": [
+        "Ein korrektes Schema verhindert keine unberechtigten Zugriffe; Berechtigungen und RLS sind zusätzlich erforderlich."
+      ],
+      "claims": [
+        {
+          "text": "Relationale Daten organisieren Informationen in Tabellen mit Schlüsseln, Beziehungen und Integritätsregeln.",
+          "source_urls": [
+            "https://www.postgresql.org/docs/current/tutorial.html"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://www.postgresql.org/docs/current/tutorial.html",
+          "title": "Official documentation / reference",
+          "source_id": null,
+          "edition": "verify during rights review",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "unassessed",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.web.http_apis",
+      "domain": "computer_science",
+      "topic": "Programmier- und Systemgrundlagen",
+      "title": "HTTP und APIs",
+      "definition": "HTTP definiert Request/Response-Kommunikation; APIs legen maschinenlesbare Verträge für Ressourcen, Aktionen und Fehler fest.",
+      "knowledge_level": "specialized",
+      "knowledge_type": "concept",
+      "prerequisites": [],
+      "applicability": "Frontend-Backend-Kommunikation und externe Datenquellen zuverlässig integrieren.",
+      "limitations": [
+        "HTTPS ersetzt weder Autorisierung noch Eingabevalidierung oder sichere Protokollierung."
+      ],
+      "claims": [
+        {
+          "text": "HTTP definiert Request/Response-Kommunikation; APIs legen maschinenlesbare Verträge für Ressourcen, Aktionen und Fehler fest.",
+          "source_urls": [
+            "https://developer.mozilla.org/en-US/docs/Web/HTTP"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP",
+          "title": "Official documentation / reference",
+          "source_id": null,
+          "edition": "verify during rights review",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "unassessed",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.software.testing",
+      "domain": "computer_science",
+      "topic": "Engineering und Sicherheit",
+      "title": "Automatisierte Tests",
+      "definition": "Unit-, Integrations-, Vertrags- und End-to-End-Tests prüfen Verhalten unter kontrollierten Bedingungen und machen Regressionen reproduzierbar.",
+      "knowledge_level": "specialized",
+      "knowledge_type": "concept",
+      "prerequisites": [],
+      "applicability": "Änderungen am Wissensabruf, Agenten und Datenzugriffen absichern.",
+      "limitations": [
+        "Grüne Tests beweisen nur das Verhalten der tatsächlich abgedeckten Fälle."
+      ],
+      "claims": [
+        {
+          "text": "Unit-, Integrations-, Vertrags- und End-to-End-Tests prüfen Verhalten unter kontrollierten Bedingungen und machen Regressionen reproduzierbar.",
+          "source_urls": [
+            "https://nodejs.org/en/learn"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://nodejs.org/en/learn",
+          "title": "Official documentation / reference",
+          "source_id": null,
+          "edition": "verify during rights review",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "unassessed",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.security.secure_development",
+      "domain": "computer_science",
+      "topic": "Engineering und Sicherheit",
+      "title": "Sichere Softwareentwicklung",
+      "definition": "Sichere Entwicklung berücksichtigt Bedrohungen, Vertrauensgrenzen, Least Privilege, sichere Defaults, Geheimnisse, Eingabevalidierung und Abhängigkeiten.",
+      "knowledge_level": "specialized",
+      "knowledge_type": "concept",
+      "prerequisites": [],
+      "applicability": "Admin-/Scout-Trennung, RLS, API-Schutz und kontrollierte Agentenwerkzeuge absichern.",
+      "limitations": [
+        "Sicherheit ist kein einzelner Check und kann nicht allein durch einen erfolgreichen Build nachgewiesen werden."
+      ],
+      "claims": [
+        {
+          "text": "Sichere Entwicklung berücksichtigt Bedrohungen, Vertrauensgrenzen, Least Privilege, sichere Defaults, Geheimnisse, Eingabevalidierung und Abhängigkeiten.",
+          "source_urls": [
+            "https://owasp.org/www-project-top-ten/"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://owasp.org/www-project-top-ten/",
+          "title": "Official documentation / reference",
+          "source_id": null,
+          "edition": "verify during rights review",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "unassessed",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    },
+    {
+      "concept_key": "computer_science.ai.retrieval_rag_agents",
+      "domain": "computer_science",
+      "topic": "KI-Systeme",
+      "title": "Retrieval, RAG und Agenten",
+      "definition": "RAG verbindet generative Antworten mit abgerufenem Wissen; Agenten ergänzen Zielklärung, Planung, Zustand, Werkzeuge, Beobachtung und Bewertung.",
+      "knowledge_level": "specialized",
+      "knowledge_type": "concept",
+      "prerequisites": [],
+      "applicability": "MESSINHOs Wissensnetz und spätere kontrollierte Entwicklungsagenten konzipieren.",
+      "limitations": [
+        "Retrieval kann relevante Einträge übersehen; Agenten benötigen begrenzte Berechtigungen, Protokollierung und Freigaben für irreversible Aktionen."
+      ],
+      "claims": [
+        {
+          "text": "RAG verbindet generative Antworten mit abgerufenem Wissen; Agenten ergänzen Zielklärung, Planung, Zustand, Werkzeuge, Beobachtung und Bewertung.",
+          "source_urls": [
+            "https://www.nist.gov/itl/ai-risk-management-framework"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://www.nist.gov/itl/ai-risk-management-framework",
+          "title": "Official documentation / reference",
+          "source_id": null,
+          "edition": "verify during rights review",
+          "rights_status": "pending_review"
+        }
+      ],
+      "rights": {
+        "status": "pending_legal_review",
+        "ai_tdm": null,
+        "commercial_use": null,
+        "derivative_use": null
+      },
+      "evidence_grade": "unassessed",
+      "confidence": 0.5,
+      "knowledge_status": "candidate"
+    }
+  ]
+}
