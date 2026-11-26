@@ -17,23 +17,93 @@ export function classifyMessinhoProviderFailure(status, payload = {}) {
   return { code: 'provider_request_failed', status: 502, userMessage: 'Die KI konnte die Anfrage momentan nicht verarbeiten. Bitte versuche es erneut.' };
 }
 
-export function getMessinhoSmallTalkReply(message) {
-  const text = String(message || '').normalize('NFKC').toLocaleLowerCase('de-DE')
-    .replace(/[’']/g, '').replace(/ü/g, 'u').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
-  if (/^(hallo|hi|hey|guten morgen|guten tag|guten abend|moin|servus)( messinho)?$/.test(text)) {
-    return 'Hallo! Schön, dass du da bist. Wie geht es dir?';
-  }
-  if (/^(wie geht es dir|wie gehts dir|wie gehts|wie gehts messinho|wie geht es dir messinho)$/.test(text)) {
-    return 'Mir geht es gut, danke! Und wie geht es dir?';
-  }
-  if (/^(danke|vielen dank|danke dir|besten dank)$/.test(text)) {
-    return 'Sehr gern! Wenn du noch etwas brauchst, bin ich da.';
-  }
-  if (/^(tschuss|auf wiedersehen|bis bald|bis dann|ciao)$/.test(text)) {
-    return 'Bis bald! Ich wünsche dir einen schönen Tag.';
-  }
-  if (/^(gut und dir|mir gehts gut und dir|mir geht es gut und dir)$/.test(text)) {
-    return 'Das freut mich! Mir geht es ebenfalls gut, danke. Was steht bei dir heute an?';
-  }
+function normalizeSocialText(value) {
+  return String(value || '').normalize('NFKC').toLocaleLowerCase('de-DE')
+    .replace(/[’']/g, '').replace(/[^\\p{L}\\p{N}\\s]/gu, ' ').replace(/\\s+/g, ' ').trim();
+}
+
+const SOCIAL_POOLS = {
+  greeting: [
+    hour => `Moin! Schön, dass du da bist. Wie startet ${hour} bei dir?`,
+    () => 'Servus! Im Scouting-Büro ist alles startklar. Was liegt heute an?',
+    () => 'Hey! Da bist du ja. Womit legen wir los?',
+    () => 'Grüß dich! Erst kurz durchatmen oder direkt an die nächste Analyse?'
+  ],
+  how_are_you: [
+    () => 'Bestens, danke der Nachfrage! Ich bin bereit. Wie läuft es bei dir?',
+    () => 'Alles im grünen Bereich bei mir – ich bin startklar. Und bei dir?',
+    () => 'Kann nicht klagen! Was steht bei dir heute an?'
+  ],
+  thanks: [
+    () => 'Immer gern! Dafür bin ich als dein Scouting-Partner da.',
+    () => 'Kein Ding, gehört zum Job. Sag Bescheid, wenn wir tiefer einsteigen sollen.',
+    () => 'Freut mich, wenn es hilft! Was nehmen wir uns als Nächstes vor?',
+    () => 'Sehr gerne! Gemeinsam behalten wir den Überblick.'
+  ],
+  goodbye: [
+    () => 'Alles klar, mach’s gut! Bis später und einen erfolgreichen Tag.',
+    () => 'Schönen Feierabend dir! Wir machen hier weiter, wenn du wieder da bist.',
+    () => 'Bis dann! Erhol dich gut. Unser Gesprächsstand bleibt erhalten.'
+  ],
+  apology: [
+    () => 'Alles gut, überhaupt kein Problem. Wo waren wir stehengeblieben?',
+    () => 'Kein Stress! Sag mir einfach, was wir korrigieren oder anders machen sollen.',
+    () => 'Halb so wild. Wir schauen es uns gemeinsam an.'
+  ],
+  coffee_break: [
+    () => 'Guter Punkt – gönn dir in Ruhe eine Pause. Wir machen danach genau hier weiter.',
+    () => 'Klingt nach einer verdienten Pause. Ich bin bereit, wenn du zurück bist.',
+    () => 'Mach ganz entspannt. Der nächste Schritt läuft uns nicht weg.'
+  ],
+  weekend_smalltalk: [
+    (hour, weekday) => weekday >= 4 ? 'Spieltag-Stimmung! Hast du ein Spiel besonders im Blick?' : 'Ein guter Zeitpunkt, um die Spiele vom Wochenende auszuwerten. Hast du etwas Interessantes gesehen?',
+    () => 'Fußball bietet immer Gesprächsstoff. Welches Spiel hast du verfolgt?'
+  ],
+  bot_identity: [
+    () => 'Ich bin MESSINHO – dein digitaler Scouting- und Analysepartner. Ich bin eine KI, die dich bei Recherche, Bewertung und Transferentscheidungen unterstützt.',
+    () => 'Ich bin MESSINHO, eine KI für professionelles Fußballscouting. Ich verbinde deine Gesprächsziele mit den Daten und Analysefunktionen der Plattform.'
+  ]
+};
+
+const INTENT_PATTERNS = [
+  ['bot_identity', /\\b(wer bist du|wie heisst du|bist du ein mensch|bist du eine ki)\\b/],
+  ['goodbye', /\\b(tschuess|tschuss|ciao|bis dann|bis spaeter|schoenen abend|schoenes wochenende|feierabend|mach es gut|machs gut|haut rein)\\b/],
+  ['apology', /\\b(sorry|entschuldigung|tut mir leid|mein fehler|ups)\\b/],
+  ['coffee_break', /\\b(kaffee|pause|mittagessen|mittagspause|hunger|muede)\\b/],
+  ['thanks', /\\b(danke|dankeschoen|vielen dank|merci|top arbeit|super gemacht|stark)\\b/],
+  ['how_are_you', /\\b(wie geht es dir|wie gehts dir|alles klar|alles fit|was geht|wie laeuft es bei dir|alles gut bei dir)\\b/],
+  ['weekend_smalltalk', /\\b(wochenende|montag|freitag|spieltag|bundesliga|champions league)\\b/],
+  ['greeting', /\\b(hallo|hi|hey|moin|servus|guten morgen|guten tag|guten abend|nabend|grue\u00df dich|na)\\b/]
+];
+
+function detectSocialIntent(text) {
+  const normalized = normalizeSocialText(text);
+  if (!normalized || normalized.length > 180) return null;
+  // Do not intercept requests that contain a clear work/scouting action.
+  if (/\\b(suche|such|scoute|recherchiere|analysiere|vergleiche|bewerte|erstelle|berechne|finde|spieler|talent|kandidat|transfer|marktwert|shortlist|datenbank|position|jahrgang|u\\s?\\d{1,2})\\b/.test(normalized)) return null;
+  for (const [intent, pattern] of INTENT_PATTERNS) if (pattern.test(normalized)) return intent;
   return null;
+}
+
+export function classifyMessinhoSocialIntent(message) {
+  return detectSocialIntent(message) || 'scouting_work';
+}
+
+export function getMessinhoSocialReply(message, history = [], now = new Date()) {
+  const intent = detectSocialIntent(message);
+  if (!intent) return null;
+  const pool = SOCIAL_POOLS[intent];
+  const hour = now.getHours() < 11 ? 'der Morgen' : now.getHours() < 17 ? 'der Tag' : 'der Abend';
+  const weekday = now.getDay() === 0 ? 6 : now.getDay() - 1;
+  const used = new Set((Array.isArray(history) ? history : [])
+    .filter(item => item?.role === 'assistant' && typeof item.text === 'string')
+    .slice(-20).map(item => item.text));
+  const fresh = pool.filter(reply => !used.has(reply(hour, weekday)));
+  const candidates = fresh.length ? fresh : pool;
+  const selected = candidates[Math.floor(Math.random() * candidates.length)];
+  return selected(hour, weekday);
+}
+
+export function getMessinhoSmallTalkReply(message) {
+  return getMessinhoSocialReply(message);
 }
