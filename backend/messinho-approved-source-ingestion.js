@@ -3,6 +3,7 @@ import {
   verifyMessinhoSourceRights
 } from './messinho-rights-registry.js';
 
+const MAX_SOURCE_BYTES=2_000_000;
 const clean=value=>String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/[₀₁₂₃₄₅₆₇₈₉]/g,d=>String('₀₁₂₃₄₅₆₇₈₉'.indexOf(d))).replace(/\s+/g,' ').trim();
 const decodeXml=value=>String(value??'')
   .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
@@ -71,25 +72,36 @@ export async function fetchMessinhoApprovedSource(sourceId,{topic='',fetchImpl=g
   const url=new URL(rights.retrieval_url);
   const expectedHost=({plos_jats_xml:'journals.plos.org',pmc_bioc_json:'www.ncbi.nlm.nih.gov',libretexts_html:'math.libretexts.org',austin_html:'understandinglinearalgebra.org'})[rights.retrieval_method];
   if(url.hostname!==expectedHost)return {status:'retrieval_host_not_approved',source_id:sourceId,excerpts:[]};
-  const fetchOptions={headers:{accept:rights.retrieval_method==='pmc_bioc_json'?'application/json':rights.retrieval_method.endsWith('_html')?'text/html,application/xhtml+xml;q=0.9':'application/xml,text/xml;q=0.9'},redirect:'follow'};
+  const fetchOptions={headers:{accept:rights.retrieval_method==='pmc_bioc_json'?'application/json':rights.retrieval_method.endsWith('_html')?'text/html,application/xhtml+xml;q=0.9':'application/xml,text/xml;q=0.9'},redirect:'manual'};
   if(typeof AbortSignal?.timeout==='function')fetchOptions.signal=AbortSignal.timeout(12000);
   const response=await fetchImpl(rights.retrieval_url,fetchOptions);
   if(response?.url){
    try{if(new URL(response.url).hostname!==expectedHost)return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};}
    catch{return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};}
   }
+  if(Number(response?.status)>=300&&Number(response?.status)<400)return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};
+  const declaredLength=Number(response?.headers?.get?.('content-length')||0);
+  if(declaredLength>MAX_SOURCE_BYTES)return {status:'source_payload_rejected',source_id:sourceId,excerpts:[]};
   if(!response?.ok)return {status:'source_fetch_failed',source_id:sourceId,http_status:response?.status||null,excerpts:[]};
   let paragraphs=[];
   if(rights.retrieval_method==='plos_jats_xml'){
    const xml=await response.text();
-   if(typeof xml!=='string'||xml.length>2_000_000)return {status:'source_payload_rejected',source_id:sourceId,excerpts:[]};
+   if(typeof xml!=='string'||Buffer.byteLength(xml,'utf8')>MAX_SOURCE_BYTES)return {status:'source_payload_rejected',source_id:sourceId,excerpts:[]};
    paragraphs=extractPlosParagraphs(xml);
   }else if(rights.retrieval_method==='pmc_bioc_json'){
-   const payload=await response.json();
+   let payload;
+   if(typeof response.text==='function'){
+    const body=await response.text();
+    if(typeof body!=='string'||Buffer.byteLength(body,'utf8')>MAX_SOURCE_BYTES)return {status:'source_payload_rejected',source_id:sourceId,excerpts:[]};
+    try{payload=JSON.parse(body);}catch{return {status:'source_payload_rejected',source_id:sourceId,excerpts:[]};}
+   }else{
+    payload=await response.json();
+    if(Buffer.byteLength(JSON.stringify(payload??null),'utf8')>MAX_SOURCE_BYTES)return {status:'source_payload_rejected',source_id:sourceId,excerpts:[]};
+   }
    paragraphs=extractBioCParagraphs(payload);
   }else{
    const html=await response.text();
-   if(typeof html!=='string'||html.length>2_000_000)return {status:'source_payload_rejected',source_id:sourceId,excerpts:[]};
+   if(typeof html!=='string'||Buffer.byteLength(html,'utf8')>MAX_SOURCE_BYTES)return {status:'source_payload_rejected',source_id:sourceId,excerpts:[]};
    paragraphs=extractHtmlParagraphs(html);
   }
   const excerpts=selectRelevantExcerpts(paragraphs,topic,Math.max(500,Math.min(10000,Number(maxChars)||7000)));
