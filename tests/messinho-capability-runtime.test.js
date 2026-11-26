@@ -3,13 +3,19 @@ import assert from 'node:assert/strict';
 import { getMessinhoCapabilityCatalog } from '../backend/messinho-capabilities.js';
 import { executeMessinhoCapability, getMessinhoRuntimeSummary, listExecutableMessinhoCapabilities } from '../backend/messinho-capability-runtime.js';
 
-test('all 100 catalogue functions have unique executable runtime handlers',()=>{
+test('runtime diagnostics distinguish catalogue dispatch from specialist implementations',()=>{
  const summary=getMessinhoRuntimeSummary();
+ const functions=listExecutableMessinhoCapabilities().flatMap(g=>g.functions);
  assert.equal(summary.total_catalogue_entries,100);
- assert.equal(summary.registered_handlers,100);
- assert.equal(summary.unique_handlers,100);
- assert.equal(summary.all_registered,true);
- assert.equal(listExecutableMessinhoCapabilities().flatMap(g=>g.functions).filter(x=>x.execution_handler_available).length,100);
+ assert.equal(summary.dispatched_entries,100);
+ assert.equal(summary.specialist_handler_count,76);
+ assert.equal(summary.generic_fallback_count,24);
+ assert.equal(summary.registered_handlers,76);
+ assert.equal(summary.all_registered,false);
+ assert.equal(functions.filter(x=>x.dispatch_available).length,100);
+ assert.equal(functions.filter(x=>x.execution_handler_available).length,76);
+ assert.equal(functions.filter(x=>x.implementation_status==='not_implemented').length,24);
+ assert.equal(summary.seasonal_learning_handler,'reachable');
 });
 test('every capability executes safely and reports missing data rather than inventing it',()=>{
  for(const fn of getMessinhoCapabilityCatalog().flatMap(g=>g.functions)){
@@ -68,4 +74,24 @@ test('match analysis capabilities use structured phase events and enforce video 
  assert.equal(video.status,'insufficient_data');
  const trustedVideo=executeMessinhoCapability('video_event_analysis',{player:{name:'Test'},events,_trusted_video_bundle:true});
  assert.equal(trustedVideo.status,'completed');
+});
+
+test('dimension scoring capabilities use observed values only',()=>{
+ const input={player:{name:'Test',ratings:{Technik:4,Taktik:3,Athletik:5,Mental:4,Torwart:4}}};
+ for(const [id,expected] of [['technical_score',80],['tactical_score',60],['athletic_score',100],['mental_score',80],['goalkeeper_score',80]]){
+   const result=executeMessinhoCapability(id,input);
+   assert.equal(result.status,'completed',id);
+   assert.equal(result.result.score,expected,id);
+ }
+ const missing=executeMessinhoCapability('technical_score',{player:{name:'No metrics'}});
+ assert.equal(missing.status,'insufficient_data');
+});
+test('seasonal learning is reachable and compares seasons without training',()=>{
+ const result=executeMessinhoCapability('seasonal_learning',{seasonal_metrics:[
+   {season:'2024/25',score:61},{season:'2025/26',score:74}
+ ]});
+ assert.equal(result.status,'completed');
+ assert.equal(result.result.change,13);
+ assert.equal(result.result.training_performed,false);
+ assert.equal(result.result.model_weights_changed,false);
 });
