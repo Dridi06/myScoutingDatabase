@@ -45,7 +45,10 @@ export function normalizeMessinhoGeneralSources(results=[]){
  return rows.slice(0,8);
 }
 export function isMessinhoTimeSensitiveQuestion(question){
- return /\b(aktuell|heute|jetzt|derzeit|momentan|zurzeit|neueste[nr]?|aktuellste[nr]?|diese woche|diesen monat|gestern|morgen|live|stand heute|202[6-9])\b/i.test(String(question||''));
+ const text=String(question||'');
+ if(/\b(früher|frueher|damals|historisch|rückblick|rueckblick|im jahr 19\d{2}|saison 20\d{2}\/\d{2})\b/i.test(text))return false;
+ if(/\b(aktuell|heute|jetzt|derzeit|momentan|zurzeit|neueste[nr]?|aktuellste[nr]?|diese woche|diesen monat|gestern|morgen|live|stand heute|202[6-9])\b/i.test(text))return true;
+ return /\b(wer trainiert|trainer (?:von|bei)|cheftrainer|head coach (?:of|at)|tabellenstand|tabellenplatz|spielplan (?:für|der|von)|kader (?:von|des|bei)|transfernews|transfergerüchte|aktueller marktwert)\b/i.test(text);
 }
 export function assessMessinhoGeneralEvidence(sources=[],question='',now=new Date()){
  const domains=[...new Set(sources.map(source=>source.publisher).filter(Boolean))];
