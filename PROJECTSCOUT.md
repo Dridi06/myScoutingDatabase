@@ -1639,3 +1639,9 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Corrected the scenario so it tests a non-pending conversational year clarification, and updated the sanitizer test to expect all 13 valid messages from its 13-message fixture under the new 20-message cap.
 - The first build therefore failed (179 passed, 2 failed). A corrected build is required; do not treat the context-continuity change as live until that build succeeds.
 - Follow-up test commits: `af1088f51634de7f389866f0f8ba810b83a31efa`, `f3c40ec646d7c02458347cbdcf70174e3ac24195`.
+
+
+**Second build feedback (2026-11-26):**
+- The sanitizer expectation now passes. One context test still used an assistant sentence containing the explicit pending clarification keyword `Geburtsjahrgang`, correctly activating the pre-existing clarification flow.
+- Adjusted the fixture's assistant response to a neutral acknowledgement so the test isolates a terse follow-up without an outstanding clarification. No production behavior was weakened.
+- Test fixture correction: `92e347c46d7247c628fd176c8bd4fb1963d2fdf4`. The second build also failed; next build is required before release.
