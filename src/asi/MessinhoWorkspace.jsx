@@ -42,7 +42,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   async function send(text=draft){
     const value=String(text||'').trim();
     if(!value||busy)return;
-    setDraft('');setError('');
+    setDraft(current=>current===text||current===draft?'':current);setError('');
     setMessages(prev=>[...prev,{id:'u-'+Date.now(),role:'user',text:value}]);
     setBusy(true);
     try{
@@ -53,7 +53,10 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       if(!response.ok)throw new Error(payload.error||'Messinho konnte nicht antworten.');
       const next={id:'a-'+Date.now(),role:'assistant',text:payload.reply||'Ich habe die Anfrage verarbeitet.',intent:payload.intent,items:Array.isArray(payload.items)?payload.items:[],metrics:payload.metrics||null,engineVersion:payload.engine_version||payload.engineVersion||null,modelVersion:typeof payload.active_model==='string'?payload.active_model:payload.active_model?.version||payload.model_version||null,capabilityIds:Array.isArray(payload.capability_ids)?payload.capability_ids:Array.isArray(payload.capabilities)?payload.capabilities.map(item=>typeof item==='string'?item:item?.capability_id).filter(Boolean):[],researchContext:payload.researchContext||((payload.sources?.length||payload.profile)?{player:payload.player||null,profile:payload.profile||null,sources:payload.sources||[],researched_at:payload.researched_at||null}:null),correction:payload.input_correction?.applied?payload.input_correction:null};
       setMessages(prev=>[...prev,next]);
-    }catch(e){setError(e.message||'Verbindung zu Messinho fehlgeschlagen.');}
+    }catch(e){
+      setDraft(current=>current.trim()?current:value);
+      setError(e.message||'Verbindung zu Messinho fehlgeschlagen.');
+    }
     finally{setBusy(false);}
   }
 
@@ -270,10 +273,20 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
         {busy&&<div className="messinho-thinking"><LoaderCircle className="messinho-spin" size={17}/> Messinho verarbeitet deine Anfrage …</div>}
       </div>
       {error&&<p className="messinho-error" role="alert">{error}</p>}
-      <form className="messinho-composer" onSubmit={e=>{e.preventDefault();send();}}>
-        <input value={draft} onChange={e=>setDraft(e.target.value)} placeholder="Schreibe deine Nachricht an Messinho …" maxLength={1200} aria-label="Nachricht an Messinho"/>
-        <button type="submit" className="messinho-send" disabled={busy||!draft.trim()} aria-label="Nachricht senden"><Send size={18}/></button>
-      </form>
+      <div className="messinho-composer">
+        <textarea
+          value={draft}
+          onChange={e=>setDraft(e.target.value)}
+          placeholder="Schreibe deine Nachricht an Messinho …"
+          maxLength={1200}
+          rows={2}
+          aria-label="Nachricht an Messinho"
+          aria-describedby="messinho-composer-hint"
+          disabled={false}
+        />
+        <span id="messinho-composer-hint" className="messinho-composer-hint">Zeilenumbruch mit Enter · Senden nur über den Pfeil</span>
+        <button type="button" className="messinho-send" disabled={busy||!draft.trim()} onClick={()=>send()} aria-label="Nachricht senden" title="Nachricht senden"><Send size={18}/></button>
+      </div>
     </section>
     <details className="messinho-help-bundle">
       <summary><span><strong>Hilfe, Erklärungen & Agentenfunktionen</strong><small>Gebündelte Informationen, Lernwerkzeuge, Entwicklungszyklus und Status</small></span><span className="messinho-help-chevron">⌄</span></summary>
