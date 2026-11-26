@@ -8,6 +8,7 @@ const clean=(value,max=1400)=>String(value??'').replace(/[\u0000-\u001f\u007f]/g
 const safeUrl=value=>{try{const url=new URL(value);return url.protocol==='https:'?url.toString():null;}catch{return null;}};
 const normalize=value=>String(value??'').normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 import { runMessinhoQualityLoop } from './messinho-quality-control.js';
+import { getMessinhoVerifiedSourceRightsForUrl } from './messinho-rights-registry.js';
 const STOP=new Set(['aber','auch','dass','diese','dieser','einer','eines','eine','einem','einen','oder','wenn','warum','wieso','weshalb','welche','welcher','welches','kannst','bitte','mir','mich','sich','über','unter','the','and','for','with','from','that','this','what','when','where','which','how']);
 export function isMessinhoGeneralClaimSupported(claim,sources=[]){
  const tokens=normalize(claim).split(' ').filter(token=>token.length>=4&&!STOP.has(token));
@@ -40,7 +41,11 @@ export function normalizeMessinhoGeneralSources(results=[]){
   if(!host||/(^|\.)fussball\.de$/i.test(host))continue;
   const title=clean(item.title,220),snippet=clean(item.content||item.snippet,1400);
   if(!title||snippet.length<50)continue;
-  seen.add(url);rows.push({title,url,publisher:host,published_date:clean(item.published_date||item.publishedDate,40)||null,snippet,license:clean(item.license,120)||null,rights_holder:clean(item.rights_holder||item.rightsHolder,180)||null,rights_status:clean(item.rights_status||item.rightsStatus,40)||null,ai_tdm_allowed:item.ai_tdm_allowed===true||item.aiTdmAllowed===true,commercial_use_allowed:item.commercial_use_allowed===true||item.commercialUseAllowed===true,derivative_use_allowed:item.derivative_use_allowed===true||item.derivativeUseAllowed===true,rights_evidence_url:safeUrl(item.rights_evidence_url||item.rightsEvidenceUrl)});
+  const approvedRights=getMessinhoVerifiedSourceRightsForUrl(url);
+  seen.add(url);rows.push({title,url,publisher:host,published_date:clean(item.published_date||item.publishedDate,40)||null,snippet,
+   source_id:approvedRights?.source_id||null,rights:approvedRights,
+   license:approvedRights?.license||null,rights_holder:approvedRights?.rights_holder||null,rights_status:approvedRights?'verified_permitted':'not_verified',
+   ai_tdm_allowed:approvedRights?.ai_tdm===true,commercial_use_allowed:approvedRights?.commercial_use===true,derivative_use_allowed:approvedRights?.derivative_use===true,rights_evidence_url:approvedRights?.evidence_url||null});
  }
  return rows.slice(0,8);
 }
