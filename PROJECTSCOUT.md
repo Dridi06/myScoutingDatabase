@@ -2684,7 +2684,7 @@ Im nächsten Chat direkt mit Punkt 1 und 2 fortfahren: aktuellen Feature-HEAD un
 - Latest feature HEAD: `6a76f6be03f39e477f1262707d0921c161311470`.
 - GitHub CI: **299 tests passed, 0 failed**; backend syntax check passed.
 - Dedicated STAGING Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`).
-- Deployment: `dep-dc485f6i0phs739e3r2g`, exact commit `6a76f6be03f39e477f1262707d0921c161311470`, status **live**, finished `2026-11-26T19:05:09Z`.
+- Latest active deployment: `dep-dc485ff5hvus73dg1svg`, exact commit `6a76f6be03f39e477f1262707d0921c161311470`, status **live**, finished `2026-11-26T19:05:55Z`. A duplicate deployment of the same commit (`dep-dc485f6i0phs739e3r2g`) was superseded/deactivated; no different code was deployed.
 - Runtime logs confirm `node backend/server.js` started, API listening on port 10000, Supabase Data API HTTP 200, and configured Tavily/OpenAI presence. No secret values were logged.
 - No new migration was required for this application-code deployment. STAGING knowledge concepts, links, versions, conflicts and review rows remain empty until an authenticated learning request is made. No full source text/PDF was imported.
 - Authenticated end-to-end chat, candidate review UI and approval/retrieval after activation have **not** yet been exercised. Do not claim the candidate is already stored or active.
