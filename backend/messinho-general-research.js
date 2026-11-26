@@ -62,7 +62,7 @@ export function filterMessinhoRelevantGeneralSources(sources=[],question=''){
  if(q.includes('himmel')&&q.includes('blau')){
   return (Array.isArray(sources)?sources:[]).filter(source=>{
    const text=normalize([source.title,source.snippet].join(' '));
-   return text.includes('blue light')||text.includes('rayleigh scattering')||text.includes('atmospheric scattering');
+   return text.includes('blue light')||text.includes('blaues licht')||text.includes('himmel erscheint blau')||text.includes('rayleigh scattering')||text.includes('rayleigh streuung')||text.includes('atmospheric scattering');
   });
  }
  const anchors=[...new Set(q.split(' ').filter(token=>token.length>=4&&!GENERAL_QUERY_STOP.has(token)))];
