@@ -3428,7 +3428,7 @@ The knowledge foundation is being retrieved and displayed correctly, and its bas
 All existing branch, staging-only, security, approval, no-repeat, black/navy-and-gold design, and PROJECTSCOUT documentation requirements remain binding. Production, `main`, PFMS, and PFSS remain untouched.
 
 
-## MESSINHO VO2max application follow-up — implementation and CI checkpoint — 2026-11-26 22:xx CET
+## MESSINHO VO2max application follow-up — implementation and CI checkpoint — 2026-11-26 22:32 CET
 
 ### Implemented on the feature branch
 - Added the provider-independent helper `buildMessinhoKnowledgeApplicationFollowUp` in `backend/messinho-conversation.js`.
@@ -3441,7 +3441,7 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 
 ### Regression coverage and verification
 - Added five targeted tests covering: application clarification, basic-definition non-interception, estimated value classification, direct CPET distinction, and unrelated knowledge-domain isolation.
-- The final code commit tested by GitHub Actions is `413882077570878aa52494b0e79c66619ca90b31`.
+- The first application implementation commit tested by GitHub Actions was `413882077570878aa52494b0e79c66619ca90b31`; the continuation and exact-age safeguards below supersede it.
 - GitHub Actions: all four checks **success** (combined tests/backend syntax/build, dedicated backend syntax, test suite, and health).
 - Node suite: **326 passed, 0 failed**.
 - Backend JavaScript syntax: passed.
@@ -3474,3 +3474,15 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - No Render production service, `main`, PFMS, or PFSS was changed.
 - The Draft PR remains unmerged. No merge or production release is authorised.
 - Continue on `feature/messinho-unified-ai-integration`; retain the black/navy/gold design and all existing approval, provenance, and no-fabrication rules.
+
+
+### Follow-up continuation and exact-age hardening — 2026-11-26 22:32 CET
+- The clarification is now resumable on the immediately following chat turn: only when the latest assistant message is the VO2max clarification and the new user message contains a plausible VO2max data field does the canonical VO2max route reuse the prior user question and approved concept. Unrelated messages are not intercepted.
+- Each follow-up answer is checked against the missing fields again; already supplied value, modality, date, age, position, and training context are not asked for again.
+- A birth year alone is no longer treated as an exact age because the birthday may not yet have occurred. MESSINHO requests the actual age unless an age value is explicitly supplied.
+- When all fields are present, the response is limited to descriptive/methodological context. The active STAGING knowledge graph currently contains one active VO2max concept at foundational level (version 3) and no approved comparative reference dataset. The response therefore explicitly withholds norm ranking, percentile and player score.
+- Added regression coverage for birth-year ambiguity and continuation of the user's supplied VO2max data across the next chat turn.
+- Latest code commit: `d5c327e3238741016df920f6609cc497fa6ec73f`.
+- Latest code CI: all four checks **success**; Node suite **328 passed, 0 failed**; backend syntax passed; Vite production build passed with 1,637 modules transformed.
+- This code is still not deployed: Render auto-deploy is disabled and the current LIVE deployment remains `dep-dc4a3nc9v7es73eahqh0` on `cf396444ab831d5c3f41f79aee0e5cab52bb6e0e`.
+- Next: after the documentation-only commit's CI succeeds, manually deploy the tested feature-branch head to the dedicated STAGING service, verify LIVE SHA/health/logs, then complete the Admin live retest and authenticated Scout/Admin isolation acceptance. The VO2max pilot and systematic knowledge import remain gated until those checks pass.
