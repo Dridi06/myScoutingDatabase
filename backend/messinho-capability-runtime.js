@@ -490,7 +490,26 @@ export function executeMessinhoCapability(id,input={}){
  else if(researchIds.has(id))output=researchHandler(id,input);
  else output=missingResult(id,meta.required_inputs);
  const specialist=specialistCapabilityIds.has(id);
- return {...output,name:meta.name,domain:allCatalog.find(g=>g.functions.some(f=>f.id===id))?.id||null,description:meta.description,implementation_level:specialist?'specialist_logic':'generic_fallback',specialist_logic_available:specialist,completion_verified:false};
+ const knowledge=asArray(input._messinho_domain_knowledge).filter(item=>item&&typeof item==='object'&&item.rights?.status==='verified_permitted'&&item.rights?.ai_tdm===true&&item.rights?.commercial_use===true&&item.rights?.derivative_use===true&&Array.isArray(item.sources)&&item.sources.length);
+ const scoreCapability=/^(?:overall_score|position_score|potential_score|talent_score|technical_score|tactical_score|athletic_score|mental_score|goalkeeper_score|risk_score|development_score|consistency_score|league_fit_score|system_fit_score|coach_fit_score|club_fit_score|value_for_money|transfer_priority|weight_optimization|supervised_learning|controlled_self_optimization)$/.test(id);
+ const knowledgeContext=scoreCapability?[]:knowledge.filter(item=>{
+   const domain=String(item.domain||'');
+   const text=norm([meta.name,meta.description,id,input.goal||''].join(' '));
+   if(domain==='medicine')return /medizin|verletz|orthopaed|rehabil|gesundheit|return to play|sportmedizin/.test(text);
+   if(domain==='sports_science')return /sportwissenschaft|training|belastung|regeneration|biomechan|laufleist|geschwindigkeit/.test(text);
+   if(domain==='mathematics')return /mathemat|berechn|statistik|wahrscheinlich|prognos|score|analyse/.test(text);
+   if(domain==='physics')return /physik|biomechan|kraft|bewegung|energie|geschwindigkeit/.test(text);
+   if(domain==='biology')return /biolog|anatom|stoffwechsel|physiolog|medizin|sportwissenschaft/.test(text);
+   if(domain==='risk_management')return /risiko|risk|unsicher|stresstest|verlust/.test(text);
+   if(domain==='banking')return /bank|kredit|liquid|eigenkapital|zins/.test(text);
+   if(domain==='financial_markets')return /markt|börse|aktie|anleihe|volatil|derivat/.test(text);
+   if(domain==='statistics')return /statistik|regression|korrelation|prognos|wahrscheinlich|analyse/.test(text);
+   if(domain==='football')return /spieler|scout|spiel|fußball|fussball|transfer|mannschaft|verein/.test(text);
+   if(domain==='computer_science')return /software|algorithm|datenbank|informat|programmier|ki/.test(text);
+   return false;
+ }).slice(0,3);
+ return {...output,name:meta.name,domain:allCatalog.find(g=>g.functions.some(f=>f.id===id))?.id||null,description:meta.description,implementation_level:specialist?'specialist_logic':'generic_fallback',specialist_logic_available:specialist,completion_verified:false,
+  ...(knowledgeContext.length?{knowledge_context:{mode:'verified_reference_context',applied_to_explanation_only:true,score_or_model_weights_changed:false,entries:knowledgeContext.map(item=>({domain:item.domain,question:item.question,knowledge:item.content,claims:item.claims,sources:item.sources,verified_at:item.verified_at,confidence:item.confidence}))}}:{})};
 }
 export function getMessinhoRuntimeSummary(){
  const ids=[...analysisIds,...evaluationIds,...learningIds,...researchIds];
