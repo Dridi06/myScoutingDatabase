@@ -482,7 +482,7 @@ function researchHandler(id,input){
    if(value===null||value===undefined)return missingResult(id,[field]);
    const text=String(Array.isArray(value)?value.join(' '):value);
    const supported=input._trusted_source_bundle===true&&messinhoValueSupported(text,evidenceUrls(input),sources,claims);
-   return result(id,supported?'verified':'unverified',{field,value,supported,source_count:sources.length,source_origin:safeInput._trusted_source_bundle===true?'server_retrieved_ASI':'untrusted_request_payload',rule:'Verification requires a matching claim in server-retrieved HTTPS source text.'});
+   return result(id,supported?'verified':'unverified',{field,value,supported,source_count:sources.length,source_origin:input._trusted_source_bundle===true?'server_retrieved_ASI':'untrusted_request_payload',rule:'Verification requires a matching claim in server-retrieved HTTPS source text.'});
  }
  if(id==='video_source_research'){
    const licensed=sources.filter(s=>s.license_status==='licensed'||s.license_status==='owned'||s.usage_rights==='confirmed');
