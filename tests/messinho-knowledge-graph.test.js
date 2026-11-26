@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   getMessinhoCanonicalConceptKey,
+  formatMessinhoKnowledgeValue,
   buildMessinhoKnowledgeConcept,
   findMessinhoKnowledgeConcepts,
   linkMessinhoKnowledgeConcepts,
@@ -131,6 +132,12 @@ test('canonical VO2max lookup recovers active knowledge when broad lexical ranki
  assert.equal(result.items[0].concept_key,row.concept_key);
 });
 
+test('formats stored knowledge fields whether strings, arrays, or structured objects',()=>{
+ assert.equal(formatMessinhoKnowledgeValue('Leistungsdiagnostik und Ausdauer'),'Leistungsdiagnostik und Ausdauer');
+ assert.equal(formatMessinhoKnowledgeValue(['Laborwert','Feldtest']),'Laborwert; Feldtest');
+ assert.equal(formatMessinhoKnowledgeValue({protocol:'CPET',unit:'ml/kg/min'}),'protocol: CPET; unit: ml/kg/min');
+ assert.equal(formatMessinhoKnowledgeValue(null),'');
+});
 test('recognizes canonical VO2max knowledge questions including Unicode subscript aliases',()=>{
  assert.equal(getMessinhoCanonicalConceptKey('Was ist VO₂max? Erkläre mir den Wert, seine physiologische Bedeutung und seine Grenzen.'),'sports_science.physiology.vo2max');
  assert.equal(getMessinhoCanonicalConceptKey('Erkläre die maximale Sauerstoffaufnahme.'),'sports_science.physiology.vo2max');
