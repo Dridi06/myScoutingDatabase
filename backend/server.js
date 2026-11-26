@@ -1910,7 +1910,12 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         return respond({reply:cached.answer,intent:'general_knowledge_memory_hit',items:sourceItems,sources:cached.sources,evidence:cached.evidence_summary,answer_mode:cached.answer_mode,
           claims:cached.claims||[],researched_at:cached.last_verified_at,knowledge_memory:{reused:true,match:remembered.match,similarity:remembered.similarity||null,verification_status:'corroborated',source_count:cached.source_count,distinct_domains:cached.distinct_domains,expires_at:cached.expires_at}});
       }
-      const research=await researchMessinhoGeneralQuestion(interpretedMessage);
+      let research;
+      try{research=await researchMessinhoGeneralQuestion(interpretedMessage);}
+      catch(researchError){
+        console.warn('MESSINHO general research temporarily unavailable:',researchError.message);
+        return respond({reply:'Ich kann die externe Recherche gerade nicht zuverlässig erreichen. Ich möchte dir keine veralteten oder ungesicherten Informationen geben. Bitte versuche es gleich noch einmal.',intent:'general_knowledge_research_limited',items:[],sources:[],evidence:null,limitations:['Rechercheanbieter vorübergehend nicht erreichbar.']});
+      }
       const sourceItems=(research.sources||[]).map((source,index)=>({id:'general-source-'+index,name:source.title||source.publisher||source.url,kind:'Recherchequelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
       if(research.status==='completed'){
         const learning=await storeMessinhoKnowledge(db,ownerId,interpretedMessage,research);
