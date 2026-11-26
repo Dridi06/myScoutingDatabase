@@ -133,3 +133,12 @@ export async function learnMessinhoApprovedFoundationConcept(db,question,{fetchI
   storage_policy:'compact_original_knowledge_only'
  };
 }
+
+
+/**
+ * A recognized foundation topic must not silently fall through to generic
+ * external research when the approved-source learning path fails.
+ */
+export function shouldBlockMessinhoFoundationResearchFallback(result){
+ return Boolean(result&&result.status!=='not_applicable'&&result.status!=='candidate_created');
+}
