@@ -30,9 +30,9 @@ test('protected learning capabilities are discovered but not executable by scout
   assert.ok(!plan.steps.some(id=>['prediction_audit','weight_optimization','controlled_self_optimization'].includes(id)));
 });
 
-test('execution remains deterministic, bounded, provider-independent and non-mutating',()=>{
+test('execution remains deterministic, bounded, provider-independent and non-mutating',async()=>{
   const plan=planMessinhoCapabilities('Analysiere Spieler X','scout');
-  const run=runMessinhoCapabilityPlan(plan,{player:{name:'Spieler X'}},'scout');
+  const run=await runMessinhoCapabilityPlan(plan,{player:{name:'Spieler X'}},'scout');
   assert.equal(run.provider_independent,true);
   assert.equal(run.model_weights_changed,false);
   assert.ok(run.total_steps<=20);
@@ -40,16 +40,16 @@ test('execution remains deterministic, bounded, provider-independent and non-mut
   assert.ok(['completed','partial','insufficient_data'].includes(run.status));
 });
 
-test('missing data is reported instead of being invented',()=>{
+test('missing data is reported instead of being invented',async()=>{
   const plan=planMessinhoCapabilities('Analysiere Spieler X','scout');
-  const run=runMessinhoCapabilityPlan(plan,{},'scout');
+  const run=await runMessinhoCapabilityPlan(plan,{},'scout');
   assert.ok(run.results.some(item=>item.status==='insufficient_data'));
   assert.equal(run.model_weights_changed,false);
 });
 
-test('formatted answer stays conversational and hides internal implementation keys',()=>{
+test('formatted answer stays conversational and hides internal implementation keys',async()=>{
   const plan=planMessinhoCapabilities('Analysiere Spieler X','scout');
-  const run=runMessinhoCapabilityPlan(plan,{player:{name:'Spieler X'}},'scout');
+  const run=await runMessinhoCapabilityPlan(plan,{player:{name:'Spieler X'}},'scout');
   const reply=formatMessinhoCapabilityResults(run,'Spieler X');
   assert.match(reply,/Arbeitsbereiche/);
   assert.doesNotMatch(reply,/capability_id|player_metrics|holistic_player_analysis/);
@@ -57,4 +57,15 @@ test('formatted answer stays conversational and hides internal implementation ke
 
 test('ordinary small talk does not trigger a fake analysis plan',()=>{
   assert.equal(planMessinhoCapabilities('Guten Abend Messinho','scout'),null);
+});
+
+test('capability execution awaits durable per-step checkpoint callbacks',async()=>{
+ const plan=planMessinhoCapabilities('Analysiere Spieler X','scout');
+ const checkpoints=[];
+ const run=await runMessinhoCapabilityPlan(plan,{player:{name:'Spieler X'}},'scout',{
+   onStep:async checkpoint=>{await Promise.resolve();checkpoints.push(checkpoint);}
+ });
+ assert.equal(checkpoints.length,run.results.length);
+ assert.ok(checkpoints.every(item=>Array.isArray(item.completed_results)&&Array.isArray(item.pending_capabilities)));
+ assert.equal(checkpoints.at(-1).completed_results.length,run.results.length);
 });
