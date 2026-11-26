@@ -1608,3 +1608,27 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - `34ad2add7ea49ee8311f6c21c62c608693c63c65` — chat formatting regression test.
 
 **Deployment status at checkpoint:** Code is committed to the STAGING feature branch. Render build and deployment are pending. Do not call the fix live until the exact deployed commit is verified live and the health check succeeds. Production, PFMS/PFSS and production Supabase remain untouched. STAGING auto-deploy remains disabled.
+
+
+## 2026-11-26 — MESSINHO conversation continuity and birth-year context (STAGING)
+
+**Owner request:** MESSINHO must remember the preceding conversation so a short follow-up such as `2004-2006` is interpreted in the context of a discussion about player birth years/year groups, rather than as arithmetic subtraction or as an isolated phrase.
+
+**Implemented on the STAGING feature branch:**
+- Increased the recent conversation window passed by the chat UI from 10 to 20 messages.
+- Increased backend history sanitization to retain the latest 20 safe user/assistant messages.
+- Increased the scouting dialog parser and general OpenAI conversational context to use up to 20 recent messages.
+- The scouting parser now recognizes a terse year or year-range follow-up when the recent conversation discussed `Jahrgang`, `Geburtsjahr`, `Geburtsjahrgang`, `Geburtsdatum` or `Altersklasse`.
+- In that case, it carries the prior user context into the parser without automatically launching a scouting search merely because the user clarified a year.
+- A subsequent explicit scouting request can reuse the recently discussed birth-year criteria.
+- Added `tests/messinho-context.test.js` covering contextual year ranges, carry-forward into a new scouting request, and the 20-message history limit.
+- Existing deterministic math guard still distinguishes a bare year range from explicitly requested arithmetic.
+
+**Commits:**
+- `a830a04d32d980c69f9b7a8a011d35c4efabb9ce` — retain 20 safe chat messages.
+- `d0bbd6531bcba88c4dd6bdb70f0a01246b327006` — contextual year follow-ups in scouting parser.
+- `31a4fa59a385c35f5234b2252eb53556ffcab054` — 20-message context for general AI fallback.
+- `7d062dd7bdc2d949c70f0e65445c724d265330d6` — send 20 recent messages from chat UI.
+- `827e740daf6fddadbd3412356f03a683eb6bb1bd` — contextual continuity regression tests.
+
+**Deployment status:** Source changes are committed to `feature/messinho-unified-ai-integration`. STAGING build/deploy and test verification are pending. Do not call this live until Render reports the exact current commit live. Production, PFMS/PFSS and production Supabase remain untouched. STAGING auto-deploy remains disabled.
