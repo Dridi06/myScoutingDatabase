@@ -2738,3 +2738,33 @@ Im nächsten Chat direkt mit Punkt 1 und 2 fortfahren: aktuellen Feature-HEAD un
 4. Approve the candidate as Admin; confirm the version and audit row are appended and active retrieval works in a subsequent chat. Also test rejection and a deliberately conflicting candidate.
 5. Expand the same approved-source retrieval pattern to mathematics, statistics, physics, biology, medicine, computer science/AI, risk management, banking and financial markets only when exact rights-cleared works exist.
 6. Production/main, production Supabase, player/scout data, model weights, PFMS/PFSS and PR merge state remain untouched. PR #47 remains Draft/open/unmerged.
+
+
+## 2026-11-26 — VO₂max source-rights expiry guard and E2E gate
+
+### Completed on the feature branch
+- Added a mandatory `review_due_at` date to all four currently approved source-rights entries. Current review deadline: `2027-11-26`.
+- `verifyMessinhoSourceRights` now fails closed when the review date is invalid, mismatched or expired. The approved retrieval adapter checks this before making a network request.
+- The compact source provenance now carries both `reviewed_at` and `review_due_at`; the Admin knowledge review panel displays the review deadline.
+- Added regression tests proving that a source remains valid through the due date, becomes invalid after it, and triggers no fetch after expiry.
+- Corrected the HTML fixture assertion for the linear-algebra source (matrix/matrices wording). Added timeout and cross-host redirect checks to approved source retrieval.
+
+### CI status
+- Verified code commit: `67314ee04e3af960fb488e1cb996b3b7184edd9e`.
+- GitHub Node tests: **304 passed, 0 failed**.
+- Backend syntax workflow: **success**.
+- The latest follow-up branch commits also have successful Node and syntax checks. This documentation entry does not authorize deployment of the additional mathematics sources.
+
+### Deployment and sequencing
+- Current live STAGING remains `dep-dc48781aekrs73cj27mg`, deployed code commit `4155705ba7d52942e7455df6bb644c7040808a7d`. It contains the VO₂max foundation path and Admin knowledge-review interface.
+- The newer branch-only rights-expiry guard, expanded four-source registry and linear-algebra retrieval additions are **not yet deployed**. Keep them on the feature branch until the VO₂max authenticated E2E gate is completed; do not activate the next domain early.
+- Supabase STAGING schema is unchanged; no migration is required for these source-registry and UI changes. Do not manually insert candidate records.
+
+### Immediate next action — authenticated E2E
+1. Owner signs in to the dedicated STAGING application using the existing approved Admin account and asks MESSINHO: `Was ist VO2max?`.
+2. Verify one compact candidate, two independent VO₂max source records, exact source provenance and no stored excerpts/full text.
+3. Verify pending candidates are absent from active retrieval; approve and reject through the Admin knowledge-review panel and verify the audit/version history.
+4. Owner signs in with the existing approved Scout account; verify the Admin panel is absent and candidate/conflict/review API routes return 403. Also verify organization and user isolation.
+5. Only after those authenticated checks pass may the newer feature-branch rights-expiry and next-domain work be promoted to STAGING.
+
+No Admin/Scout credentials, passwords or session tokens were accessed, generated or stored. Real authenticated E2E remains pending the owner's existing STAGING sessions. PR #47 remains open/Draft/unmerged; `main`, production, production Supabase and PFMS/PFSS remain untouched.
