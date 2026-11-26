@@ -3484,5 +3484,31 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Added regression coverage for birth-year ambiguity and continuation of the user's supplied VO2max data across the next chat turn.
 - Latest code commit: `d5c327e3238741016df920f6609cc497fa6ec73f`.
 - Latest code CI: all four checks **success**; Node suite **328 passed, 0 failed**; backend syntax passed; Vite production build passed with 1,637 modules transformed.
-- This code is still not deployed: Render auto-deploy is disabled and the current LIVE deployment remains `dep-dc4a3nc9v7es73eahqh0` on `cf396444ab831d5c3f41f79aee0e5cab52bb6e0e`.
+- At the time of this implementation checkpoint the code was not yet deployed; the manual STAGING deployment is recorded in the deployment confirmation below.
 - Next: after the documentation-only commit's CI succeeds, manually deploy the tested feature-branch head to the dedicated STAGING service, verify LIVE SHA/health/logs, then complete the Admin live retest and authenticated Scout/Admin isolation acceptance. The VO2max pilot and systematic knowledge import remain gated until those checks pass.
+
+
+### Manual STAGING deployment confirmation — 2026-11-26 22:34 CET
+- Documentation/branch commit deployed: `fd742a27352d88e9de9b666227761de297c0071e` on `feature/messinho-unified-ai-integration`. It contains the follow-up continuation and exact-age safeguards from code commit `d5c327e3238741016df920f6609cc497fa6ec73f`.
+- Render deployment: `dep-dc4ab6t6e07s73ekq74g`.
+- Render status: **LIVE**. The prior deployment was deactivated only on this dedicated STAGING service.
+- Render build logs confirm **328 tests, 328 passed, 0 failed**, successful Vite production build (1,637 modules transformed), and the Render message **Your service is live**.
+- Post-deploy Render error-level log query returned no error entries. Render did not provide request logs in the queried interval; therefore this confirms deployment/startup status, not an authenticated chat acceptance test.
+- Dedicated STAGING URL remains: `https://myscoutingdatabase-messinho-staging.onrender.com`.
+- Production, `main`, PFMS and PFSS remain untouched.
+
+### Required live Admin acceptance after deployment
+1. In the STAGING chat, repeat the player-application question from the preceding acceptance checkpoint. Expected: the approved VO2max explanation is retained and MESSINHO explicitly requests the missing value/unit, test modality, date, age, position and training context.
+2. In the immediate next turn, provide clearly labelled test data, for example: `56 ml/kg/min, direkt per CPET am 26.11.2026 gemessen; Spieler 19 Jahre, Mittelfeld, Profi.`
+3. Expected continuation: MESSINHO carries forward the previous question, does not ask again for fields already supplied, and reports that only descriptive/methodological context is available. Since the active knowledge graph currently contains foundational VO2max knowledge only and no approved comparative norm dataset, it must not invent a percentile, norm ranking, or player score.
+4. Confirm that a reply unrelated to VO2max is not intercepted by the pending clarification logic.
+5. Repeat with an approved Scout account and confirm that Scout access is limited to its own player data; verify that only an approved Admin can open the knowledge-review queue or approve/reject knowledge.
+6. Record the screenshots/results and then decide whether the VO2max pilot can be accepted. Do not begin the systematic knowledge import until the live follow-up and authenticated role/tenant checks pass.
+
+### Current gate — after deployment
+- Application follow-up code, continuation handling, and exact-age safeguard: **implemented, regression-tested, deployed to STAGING**.
+- CI: **all four checks green**; Node suite **328/328**; backend syntax and Vite build successful.
+- Render: dedicated STAGING deployment **LIVE**.
+- Live authenticated Admin/Scout acceptance and cross-tenant UI verification: **still outstanding**.
+- VO2max pilot: **not yet fully accepted**.
+- Systematic knowledge import: **still blocked pending the acceptance checks above**.
