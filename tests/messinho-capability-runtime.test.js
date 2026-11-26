@@ -85,3 +85,12 @@ test('unverified or incomplete knowledge records are never passed into capabilit
  const result=executeMessinhoCapability('holistic_player_analysis',{player:{name:'Test',ratings:{Technik:4}},goal:'medizin',_messinho_domain_knowledge:[bad]});
  assert.equal(result.knowledge_context,undefined);
 });
+
+test('capability runtime does not label generic fallbacks as specialist logic',()=>{
+ const summary=getMessinhoRuntimeSummary();
+ assert.equal(summary.total_catalogue_entries,100);
+ assert.equal(summary.completion_verified_count,0);
+ const rows=listExecutableMessinhoCapabilities().flatMap(group=>group.functions);
+ const generic=rows.filter(row=>row.implementation_level==='generic_fallback');
+ assert.deepEqual(generic.map(row=>row.id).sort(),['breakthrough_learning','controlled_self_optimization','country_learning','supervised_learning','talent_pathway_learning','weight_optimization'].sort());
+});
