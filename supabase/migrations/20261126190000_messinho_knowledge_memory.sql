@@ -57,6 +57,6 @@ create policy messinho_knowledge_memory_delete_own
   on public.messinho_knowledge_memory for delete to authenticated
   using ((select auth.uid()) = owner_id);
 
-revoke all on table public.messinho_knowledge_memory from anon;
+revoke all on table public.messinho_knowledge_memory from anon, authenticated, service_role;
 grant select, insert, update, delete on table public.messinho_knowledge_memory to authenticated;
 grant select, insert, update, delete on table public.messinho_knowledge_memory to service_role;
