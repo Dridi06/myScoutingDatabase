@@ -6,7 +6,7 @@ create table if not exists public.messinho_agent_tasks (
   owner_id uuid not null references auth.users(id) on delete cascade,
   goal text not null check (char_length(goal) <= 1200),
   status text not null default 'queued'
-    check (status in ('queued','partial','waiting_for_input','completed','failed','cancelled')),
+    check (status in ('queued','partial','running','waiting_for_input','completed','failed','cancelled')),
   plan jsonb not null default '{}'::jsonb,
   context jsonb not null default '{}'::jsonb
     check (octet_length(context::text) <= 65536),
@@ -15,6 +15,7 @@ create table if not exists public.messinho_agent_tasks (
   pending_capabilities text[] not null default '{}',
   attempt_count integer not null default 0 check (attempt_count >= 0),
   last_error text,
+  lease_until timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   expires_at timestamptz not null default (now() + interval '30 days')
