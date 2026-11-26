@@ -683,25 +683,25 @@ async function createMessinhoAgentTask(ownerId,goal,plan,input,role){
 async function checkpointMessinhoAgentTask(taskId,ownerId,completedResults,pendingCapabilities,priorResults=[]){
   if(!db||!taskId)return false;
   try{
-    const completed=[...priorResults,...completedResults].slice(-100).map(compactMessinhoTaskResult);
+    const completed=[...priorResults,...completedResults].slice(-20).map(compactMessinhoTaskResult);
     const {error}=await db.from('messinho_agent_tasks').update({
-      completed_results:completed.slice(0,20),pending_capabilities:(pendingCapabilities||[]).slice(0,100),
+      completed_results:completed,pending_capabilities:(pendingCapabilities||[]).slice(0,100),
       updated_at:new Date().toISOString(),lease_until:new Date(Date.now()+120000).toISOString()
     }).eq('id',taskId).eq('owner_id',ownerId).eq('status','running');
     if(error){console.warn('MESSINHO task checkpoint update failed:',error.message);return false;}
     return true;
   }catch(error){console.warn('MESSINHO task checkpoint failed:',error.message);return false;}
 }
-async function finalizeMessinhoAgentTask(taskId,ownerId,run,priorResults=[]){
+async function finalizeMessinhoAgentTask(taskId,ownerId,run,priorResults=[],attemptCount=0){
   if(!db||!taskId)return null;
   const pending=Array.isArray(run?.deferred_capabilities)?run.deferred_capabilities:[];
   const status=pending.length?'partial':run?.missing_inputs?.length?'waiting_for_input':
     (run?.results||[]).some(item=>item.status==='error')?'failed':'completed';
   try{
-    const combined=[...priorResults,...(run?.results||[])].slice(-100).map(compactMessinhoTaskResult);
+    const combined=[...priorResults,...(run?.results||[])].slice(-20).map(compactMessinhoTaskResult);
     const {error}=await db.from('messinho_agent_tasks').update({
-      status,completed_results:combined.slice(0,20),pending_capabilities:pending.slice(0,100),
-      attempt_count:0,updated_at:new Date().toISOString(),lease_until:null,
+      status,completed_results:combined,pending_capabilities:pending.slice(0,100),
+      attempt_count:attemptCount,updated_at:new Date().toISOString(),lease_until:null,
       last_error:(run?.results||[]).some(item=>item.status==='error')?'Ein oder mehrere Arbeitsschritte meldeten einen Fehler.':null
     }).eq('id',taskId).eq('owner_id',ownerId).eq('status','running');
     if(error){console.warn('MESSINHO task finalization failed:',error.message);return null;}
@@ -748,14 +748,15 @@ app.post('/api/agent/tasks/:taskId/resume',async(req,res)=>{
     const newRun=cycle.run;
     const byId=new Map([...oldResults,...(newRun.results||[]).map(compactMessinhoTaskResult)].map(item=>[item.capability_id,item]));
     const mergedResults=[...byId.values()];
-    const finalized=await finalizeMessinhoAgentTask(task.id,actor.user.id,newRun,oldResults);
+    const nextAttempt=(Number(task.attempt_count)||0)+1;
+    const finalized=await finalizeMessinhoAgentTask(task.id,actor.user.id,newRun,oldResults,nextAttempt);
     if(!finalized)throw new Error('Task checkpoint finalization failed');
     const stillPending=finalized.pending_capabilities,status=finalized.status;
     const mergedRun={...newRun,results:mergedResults,total_steps:mergedResults.length,
       completed_steps:mergedResults.filter(item=>['completed','verified','proposal_ready'].includes(item.status)).length,
       deferred_capabilities:stillPending,status:status==='completed'?'completed':status==='partial'?'partial':'insufficient_data'};
     await saveMessinhoAgentTrace(actor.user.id,task.goal,resumePlan,mergedRun,cycle.state.elapsed_ms||0);
-    return res.json({ok:true,task:{id:task.id,status,pending_capabilities:stillPending,attempt_count:(Number(task.attempt_count)||0)+1},
+    return res.json({ok:true,task:{id:task.id,status,pending_capabilities:stillPending,attempt_count:nextAttempt},
       reply:formatMessinhoCapabilityResults(mergedRun),agent:{state:cycle.state,validation:cycle.validation,results:mergedResults,
         completed_steps:mergedRun.completed_steps,total_steps:mergedRun.total_steps,next_action:stillPending.length?'resume_deferred_steps':status==='waiting_for_input'?'ask_user_for_missing_inputs':'report_result'}});
   }catch(error){
