@@ -243,46 +243,67 @@ function isIncompleteStatus(status) {
   return ['insufficient_data','error','denied','invalid_input','unknown_capability','unverified','needs_review','no_reliable_improvement'].includes(status);
 }
 
-export function runMessinhoCapabilityPlan(plan,input={},role='scout') {
+export async function runMessinhoCapabilityPlan(plan,input={},role='scout',options={}) {
+  const started=Date.now();
+  const budgetMs=Math.max(250,Math.min(8000,Number(options.budgetMs)||8000));
   if (!plan || plan.denied) return {
     status:'denied',results:[],blocked_capabilities:plan?.blocked_capabilities||[],
-    model_weights_changed:false,provider_independent:true,replan_recommended:false
+    model_weights_changed:false,provider_independent:true,replan_recommended:false,
+    execution_policy:{budget_ms:budgetMs,max_steps:MAX_CAPABILITY_STEPS}
   };
   const results=[];
   const baseInput={...(input&&typeof input==='object'&&!Array.isArray(input)?input:{})};
   let chainedInput={...baseInput};
-  const steps=(plan.steps||[]).slice(0,MAX_CAPABILITY_STEPS);
-  for (const id of steps) {
-    if (ADMIN_ONLY.has(id)&&role!=='admin') {
-      results.push({capability_id:id,status:'denied',missing_permissions:['admin']});
-      continue;
+  const requested=(plan.steps||[]).slice(0,MAX_CAPABILITY_STEPS);
+  const deferred=[...(plan.deferred_capabilities||[])];
+  for (let index=0;index<requested.length;index++) {
+    const id=requested[index];
+    if(Date.now()-started>=budgetMs){
+      deferred.push(...requested.slice(index));
+      break;
     }
-    try {
-      const output=executeMessinhoCapability(id,chainedInput);
-      results.push(output);
-      // Preserve original facts. Previous outputs are exposed as trace/context, never silently
-      // promoted to source records, verified evidence, player metrics or training outcomes.
-      chainedInput={...baseInput,_previous_capability_results:results.slice(-MAX_CAPABILITY_STEPS),
-        _previous_capability_result:output,_capability_execution_index:results.length};
-    } catch (error) {
-      results.push({capability_id:id,status:'error',error:'Der Arbeitsschritt konnte nicht abgeschlossen werden.',
-        error_code:error?.code||'CAPABILITY_EXECUTION_ERROR'});
+    let output;
+    if (ADMIN_ONLY.has(id)&&role!=='admin') {
+      output={capability_id:id,status:'denied',missing_permissions:['admin']};
+    } else {
+      try {
+        output=executeMessinhoCapability(id,chainedInput);
+      } catch (error) {
+        output={capability_id:id,status:'error',error:'Der Arbeitsschritt konnte nicht abgeschlossen werden.',
+          error_code:error?.code||'CAPABILITY_EXECUTION_ERROR'};
+      }
+    }
+    // This is execution provenance, not a claim that generated output is factual evidence.
+    if(output&&typeof output==='object'&&!['denied','invalid_input','unknown_capability'].includes(output.status)){
+      output={...output,provenance:{...(output.provenance||{}),capability_id:id,
+        execution_source:'messinho_capability_runtime',runtime_version:output.engine_version||null}};
+    }
+    results.push(output);
+    // Preserve original facts. Previous outputs remain untrusted context and are never
+    // promoted to source records, verified evidence, player metrics or training outcomes.
+    chainedInput={...baseInput,_previous_capability_results:results.slice(-MAX_CAPABILITY_STEPS),
+      _previous_capability_result:output,_capability_execution_index:results.length};
+    if(typeof options.onStep==='function'){
+      await options.onStep({capability_id:id,result:output,completed_results:results.slice(),
+        pending_capabilities:[...requested.slice(index+1),...deferred]});
     }
   }
   const completed=results.filter(item=>isUsefulStatus(item.status)).length;
   const incomplete=results.filter(item=>isIncompleteStatus(item.status));
   const replanRecommended=incomplete.some(item=>item.status==='insufficient_data'||item.status==='error');
-  const status=completed===0?(incomplete.length?'insufficient_data':'completed'):
-    incomplete.length||plan.blocked_capabilities?.length||plan.deferred_capabilities?.length?'partial':'completed';
+  const pending=[...new Set(deferred)];
+  const status=pending.length?'partial':completed===0?(incomplete.length?'insufficient_data':'completed'):
+    incomplete.length||plan.blocked_capabilities?.length?'partial':'completed';
   const missingInputs=unique(results.flatMap(item=>item.missing_inputs||[]));
   return {
     status,label:plan.label,goal:plan.goal,matched_intents:plan.matched_intents||[],
     discovered_capabilities:plan.discovered_capabilities||plan.steps||[],results,
     completed_steps:completed,total_steps:results.length,blocked_capabilities:plan.blocked_capabilities||[],
-    deferred_capabilities:plan.deferred_capabilities||[],missing_inputs:missingInputs,
-    replan_recommended:replanRecommended,provider_independent:true,model_weights_changed:false,
-    execution_policy:{max_steps:MAX_CAPABILITY_STEPS,admin_guard_enforced:true,source_data_mutated:false,
-      model_weights_mutated:false,previous_results_used_as_untrusted_context:true}
+    deferred_capabilities:pending,missing_inputs:missingInputs,
+    replan_recommended:replanRecommended||pending.length>0,provider_independent:true,model_weights_changed:false,
+    execution_policy:{budget_ms:budgetMs,elapsed_ms:Date.now()-started,max_steps:MAX_CAPABILITY_STEPS,
+      admin_guard_enforced:true,source_data_mutated:false,model_weights_mutated:false,
+      previous_results_used_as_untrusted_context:true}
   };
 }
 
