@@ -75,6 +75,7 @@ create policy player_deletion_logs_admin_read on public.player_deletion_logs for
 using ((select private.is_admin()));
 
 grant usage on schema public, private to authenticated, service_role;
+revoke all on public.profiles, public.players, public.player_deletion_logs from anon, authenticated;
 grant select on public.profiles to authenticated;
 revoke update on public.profiles from authenticated;
 grant update (last_login_at,last_seen_at) on public.profiles to authenticated;
