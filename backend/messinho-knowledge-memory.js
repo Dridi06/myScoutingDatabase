@@ -4,6 +4,7 @@
  * This is retrieval memory, not model-weight training or self-modifying code.
  */
 import { createHash } from 'node:crypto';
+import { isMessinhoTimeSensitiveQuestion } from './messinho-general-research.js';
 
 const clean=(value,max=6000)=>String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
 const normalize=value=>clean(value,700).normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
@@ -21,6 +22,7 @@ export function isMessinhoKnowledgePersistable(question,research){
  if(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/.test(text)||/\b\+?\d[\d\s()./-]{7,}\b/.test(text))return false;
  if(research?.status!=='completed'||research?.evidence?.can_answer!==true)return false;
  if(research?.quality_control?.passed!==true)return false;
+ if(isMessinhoTimeSensitiveQuestion(text)&&!(research?.evidence?.freshness?.required===true&&research.evidence.freshness.status==='current_sources'&&research.evidence.freshness.fresh_source_count>=2&&research.evidence.freshness.fresh_distinct_domains>=2))return false;
  if(!Array.isArray(research.sources)||research.sources.length<2)return false;
  const usable=research.sources.filter(source=>safeUrl(source.url)&&clean(source.snippet,1400).length>=120);
  const domains=new Set(usable.map(source=>{try{return new URL(source.url).hostname.replace(/^www\./i,'').toLowerCase();}catch{return ''}}).filter(Boolean));
@@ -37,7 +39,15 @@ export function buildMessinhoKnowledgeRecord(ownerId,question,research,now=new D
  const allowed=new Set(sources.map(source=>source.url));
  const claims=(Array.isArray(research.claims)?research.claims:[]).filter(claim=>clean(claim.text,700)&&Array.isArray(claim.source_urls)&&claim.source_urls.length&&claim.source_urls.every(url=>allowed.has(url))).slice(0,30).map(claim=>({text:clean(claim.text,700),source_urls:claim.source_urls}));
  const domains=[...new Set(sources.map(source=>{try{return new URL(source.url).hostname.replace(/^www\./i,'').toLowerCase();}catch{return '';}}).filter(Boolean))];
- const verifiedAt=new Date(now),expiresAt=new Date(verifiedAt.getTime()+14*24*60*60*1000);
+ const verifiedAt=new Date(now);
+ let expiryTimestamp=verifiedAt.getTime()+14*24*60*60*1000;
+ if(isMessinhoTimeSensitiveQuestion(question)){
+  const dated=sources.map(source=>Date.parse(source.published_date||'')).filter(timestamp=>Number.isFinite(timestamp)&&timestamp<=verifiedAt.getTime()&&verifiedAt.getTime()-timestamp<=90*24*60*60*1000);
+  if(dated.length<2)return null;
+  expiryTimestamp=Math.min(expiryTimestamp,Math.min(...dated)+90*24*60*60*1000);
+ }
+ const expiresAt=new Date(expiryTimestamp);
+ if(expiresAt<=verifiedAt)return null;
  return {
   owner_id:ownerId,question:clean(question,700),question_fingerprint:fingerprint,
   answer:clean(research.answer,6000),answer_mode:research.answer_mode==='evidence_synthesized'&&claims.length?'evidence_synthesized':'source_digest',
