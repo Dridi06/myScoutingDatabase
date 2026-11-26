@@ -50,19 +50,25 @@ export function isMessinhoTimeSensitiveQuestion(question){
  if(/\b(aktuell|heute|jetzt|derzeit|momentan|zurzeit|neueste[nr]?|aktuellste[nr]?|diese woche|diesen monat|gestern|morgen|live|stand heute|202[6-9])\b/i.test(text))return true;
  return /\b(wer trainiert|trainer (?:von|bei)|cheftrainer|head coach (?:of|at)|tabellenstand|tabellenplatz|spielplan (?:für|der|von)|kader (?:von|des|bei)|transfernews|transfergerüchte|aktueller marktwert)\b/i.test(text);
 }
+export function messinhoFreshnessWindowDays(question){
+ const text=String(question||'');
+ if(/\\b(tabellenstand|tabellenplatz|spielplan|spieltermine|ergebnisse|resultate|live|heute|gestern|morgen|diese woche)\\b/i.test(text))return 7;
+ if(/\\b(trainer|cheftrainer|head coach|kader|transfer|marktwert|verletzt|verletzung)\\b/i.test(text))return 30;
+ return 90;
+}
 export function assessMessinhoGeneralEvidence(sources=[],question='',now=new Date()){
  const domains=[...new Set(sources.map(source=>source.publisher).filter(Boolean))];
  const substantial=sources.filter(source=>source.snippet.length>=120);
- const fresh=sources.filter(source=>{
+ const maxAgeDays=messinhoFreshnessWindowDays(question);\n const fresh=sources.filter(source=>{
   const timestamp=Date.parse(source.published_date||'');
   if(!Number.isFinite(timestamp))return false;
   const age=(new Date(now).getTime()-timestamp)/86400000;
-  return age>=0&&age<=90;
+  return age>=0&&age<=maxAgeDays;
  });
  const stale=sources.filter(source=>{
   const timestamp=Date.parse(source.published_date||'');
   if(!Number.isFinite(timestamp))return false;
-  return (new Date(now).getTime()-timestamp)/86400000>90;
+  return (new Date(now).getTime()-timestamp)/86400000>maxAgeDays;
  });
  const freshDomains=[...new Set(fresh.map(source=>source.publisher).filter(Boolean))];
  const freshnessRequired=isMessinhoTimeSensitiveQuestion(question);
@@ -71,9 +77,9 @@ export function assessMessinhoGeneralEvidence(sources=[],question='',now=new Dat
  const freshnessStatus=!freshnessRequired?'not_required':enoughFresh?'current_sources':fresh.length||stale.length?'insufficient_current_sources':'undated_sources';
  return {status:sufficient?'cross_checked':freshnessRequired&&!enoughFresh?'stale':sources.length?'limited':'unusable',
   source_count:sources.length,distinct_domains:domains.length,substantial_source_count:substantial.length,
-  freshness:{required:freshnessRequired,status:freshnessStatus,fresh_source_count:fresh.length,fresh_distinct_domains:freshDomains.length,stale_source_count:stale.length,undated_source_count:Math.max(0,sources.length-fresh.length-stale.length),max_age_days:90},
+  freshness:{required:freshnessRequired,status:freshnessStatus,fresh_source_count:fresh.length,fresh_distinct_domains:freshDomains.length,stale_source_count:stale.length,undated_source_count:Math.max(0,sources.length-fresh.length-stale.length),max_age_days:maxAgeDays},
   can_answer:sufficient,
-  limitations:[...(sources.length<2?['Weniger als zwei geeignete Quellen.']:[]),...(domains.length<2?['Keine unabhängigen Domains zum Gegencheck.']:[]),...(substantial.length<2?['Zu wenige ausführliche Quellenauszüge.']:[]),...(freshnessRequired&&!enoughFresh?['Für diese aktuelle Frage fehlen mindestens zwei datierte, höchstens 90 Tage alte Quellen aus unabhängigen Domains.']:[])]};
+  limitations:[...(sources.length<2?['Weniger als zwei geeignete Quellen.']:[]),...(domains.length<2?['Keine unabhängigen Domains zum Gegencheck.']:[]),...(substantial.length<2?['Zu wenige ausführliche Quellenauszüge.']:[]),...(freshnessRequired&&!enoughFresh?['Für diese aktuelle Frage fehlen mindestens zwei datierte, innerhalb des zulässigen Aktualitätsfensters datierte Quellen aus unabhängigen Domains.']:[])]};
 }
 function sourceOnlyDigest(sources,assessment){
  if(!assessment.can_answer)return 'Ich habe recherchiert, aber die Quellenlage reicht für eine verlässliche Antwort noch nicht aus. '+assessment.limitations.join(' ');
