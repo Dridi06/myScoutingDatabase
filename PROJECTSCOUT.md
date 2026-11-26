@@ -2923,3 +2923,77 @@ Die technische Grundlage ist weit fortgeschritten, aber es ist noch nicht nachge
 
 Zuerst den aktuellen GitHub-Branch-HEAD und die jüngsten CI-Workflows prüfen, ohne bereits erfolgreich erledigte Arbeiten zu wiederholen. Danach die fehlende CI-Ausführung für den neuen Commit klären und die Regressionstests nachweislich laufen lassen. Der Admin-/Scout-E2E-Test bleibt das nächste nicht automatisierbare Gate. Bis beide Gates bestanden sind: kein Wissensimport und kein Deployment.
 
+
+## Projektcheckpoint — 2026-11-26 (CI-Gate, Promptkorrektur und STAGING-Sicherheitsprüfung)
+
+### Arbeitsregeln bleiben unverändert
+- Ausschließlich myScoutingDatabase und feature/messinho-unified-ai-integration.
+- Ziel bleibt ausschließlich der dedizierte Render-Dienst myscoutingdatabase-messinho-staging und das Supabase-Projekt nwqwnrhupbyhshsprxjt.
+- Kein Push nach main, kein Merge, keine Produktionsänderung, kein PFMS/PFSS-Eingriff.
+- Kein Wissensimport und kein Kandidaten-Write vor bestandenem Admin-/Scout-E2E-Gate.
+- Keine Passwörter oder Session-Tokens im Chat anfordern.
+
+### In dieser Fortsetzung tatsächlich erledigt
+
+1. **Render-STAGING-Baseline geprüft**
+   - Dienst-ID: srv-dc3chlqjnfac73acd6ig.
+   - Branch: feature/messinho-unified-ai-integration.
+   - Auto-Deploy: deaktiviert (autoDeploy=no, Trigger off).
+   - Aktiver Deploy: dep-dc48781aekrs73cj27mg, Commit 4155705ba7d52942e7455df6bb644c7040808a7d, Status live.
+   - STAGING-URL: https://myscoutingdatabase-messinho-staging.onrender.com
+   - Kein neuer Deploy wurde ausgelöst.
+
+2. **Build- und Regressionsergebnis des aktuell laufenden STAGING-Codes aus den Render-Build-Logs nachgewiesen**
+   - Build-Command: npm install --no-audit --no-fund && npm run build.
+   - npm run build führt npm test, Backend-node --check für alle Backend-JavaScript-Dateien und anschließend vite build aus.
+   - Nachweis im Build des Commits 4155705ba7d52942e7455df6bb644c7040808a7d: **299 Tests bestanden, 0 fehlgeschlagen**; Vite-Build erfolgreich.
+   - Weil der Build die Befehle mit && verkettet und Vite erfolgreich gebaut wurde, liefen auch die vorherigen Syntaxprüfungen erfolgreich durch.
+   - Dieser Nachweis gilt für den dort gebauten Runtime-Commit, nicht automatisch für die nachfolgenden neuen Commits.
+
+3. **Fehlende dauerhafte GitHub-CI-Konfiguration ergänzt**
+   - Neue Datei: .github/workflows/messinho-staging-ci.yml.
+   - Workflow läuft bei Push auf den vereinbarten Feature-Branch, bei Pull Requests gegen main und manuell über workflow_dispatch.
+   - Prüft mit Node 24: Dependency-Installation und npm run build (Regressionstests, Backend-Syntax und Vite-Build).
+   - Commit: 013e2e4512e02404db34e0fcc2ff1fff04b3abf7.
+   - **Offen:** Für diesen Workflow-Commit wurde über die verfügbaren Status-/PR-Workflow-Abfragen noch kein frischer GitHub-Check nachgewiesen. Der Render-Build oben ersetzt nicht den Nachweis, dass der neue GitHub-Workflow selbst gestartet und erfolgreich beendet wurde.
+
+4. **Tatsächlichen Promptfehler gefunden und korrigiert**
+   - In backend/server.js wurde der Block für freigegebenes hierarchisches MESSINHO-Fachwissen zweimal hintereinander in den Systemprompt eingefügt.
+   - Den doppelten Block entfernt. Das spart unnötige Prompt-Tokens und verhindert doppelte Wissenskontext-Wiederholung.
+   - Commit: afe255a8d9d4aec0858fa5a69b3a33daf3ee3570.
+   - Regressionstest ergänzt: tests/messinho-prompt-context.test.js; er verlangt exakt einen Eintrag des hierarchischen Wissensblocks.
+   - Testdatei-Commit: a2550501d007d86018c67af57de009bfae8bd70a.
+   - **Offen:** Dieser neue Regressionstest wurde noch nicht in einem Build ausgeführt. Die 299/0 gelten für den älteren Runtime-Commit vor dieser Korrektur.
+
+5. **Supabase-STAGING-Sicherheitsprüfung read-only durchgeführt**
+   - Projekt myScoutingDatabase-staging, ID nwqwnrhupbyhshsprxjt, Status ACTIVE_HEALTHY, PostgreSQL 17.12.
+   - Die fünf Knowledge-Graph-Tabellen haben RLS aktiviert.
+   - Für anon und authenticated wurden auf den geprüften Knowledge-Graph-Tabellen keine direkten Tabellenrechte gefunden; die beobachteten Zugriffsrechte liegen bei service_role (sowie den administrativen Datenbankrollen).
+   - Keine RLS-Policies auf diesen Tabellen ist in dieser konkreten Konfiguration nicht automatisch eine Datenfreigabe: Ohne Tabellenrechte für anon/authenticated bleibt direkter API-Zugriff gesperrt. Serverzugriff erfolgt kontrolliert über den Service-Key und die Admin-Prüfungen der App. Keine pauschalen Policies hinzufügen.
+   - Supabase Security Advisor meldet sieben Tabellen mit RLS ohne Policies (INFO), eine SECURITY-DEFINER-Funktion admin_set_scout_approval(uuid,boolean) mit EXECUTE-Recht für authenticated (WARN) und deaktivierten Schutz gegen kompromittierte Passwörter (WARN).
+   - Die Funktionsdefinition prüft im Funktionskörper auth.uid() und private.is_admin(), bevor sie einen Scout ändert. Das ist ein vorhandener Schutz, ersetzt aber nicht die Prüfung, ob der direkte EXECUTE-Grant noch benötigt wird. Grant nicht unüberlegt entziehen, bevor alle App-Aufrufer geprüft sind.
+   - Schutz gegen kompromittierte Passwörter sollte vor breiterem Produktivbetrieb in Supabase Auth aktiviert werden; diese Einstellung wurde hier nicht geändert.
+   - Keine Daten, Tabellen, Policies, Rollen oder Migrationen wurden geändert. Keine Wissenseinträge erzeugt.
+
+### Aktueller Stand nach diesen Arbeiten
+
+- **GitHub-Feature-Branch:** letzte von uns erzeugte Commits in Reihenfolge:
+  1. 013e2e4512e02404db34e0fcc2ff1fff04b3abf7 — CI-Workflow ergänzt.
+  2. afe255a8d9d4aec0858fa5a69b3a33daf3ee3570 — doppelten Wissenskontext im Prompt entfernt.
+  3. a2550501d007d86018c67af57de009bfae8bd70a — Regressionstest ergänzt.
+- Die neuen Branch-Änderungen sind noch nicht im Render-STAGING deployed.
+- GitHub-Statusabfragen liefern bisher keine Checks. Den Workflow-Run für den neuen Commit noch nachweisen.
+- Das Supabase-STAGING-Projekt ist gesund; die Wissens-Tabellen sind vorhanden und bleiben unangetastet.
+- Die verfügbaren Werkzeuge stellen keine angemeldete Browser-Sitzung des Projektinhabers bereit. Admin-/Scout-E2E-Tests dürfen daher nicht als erledigt behauptet werden.
+
+### Noch offene Freigabeschritte — verbindliche Reihenfolge
+
+1. **GitHub-CI für den aktuellen Feature-Branch-HEAD nachweisen.** Falls der Push-Workflow nicht startet, den Grund ermitteln und den Workflow über GitHub Actions manuell auslösen; nicht mit alten Render-Tests verwechseln.
+2. **Neuen Regressionstest und vollständigen Build ausführen.** Bei Fehlern korrigieren und wiederholen, bis der aktuelle Commit grün ist.
+3. **Authentifizierter Admin-/Scout-E2E-Test auf STAGING:** Admin fragt 'Was ist VO2max?'; Kandidat, Quellen, Rechte, Belege, Inaktivität vor Freigabe, Admin-Freigabe und Ablehnung samt Review-Historie prüfen; Scout muss Admin-Endpunkte mit 403 nicht erreichen können. Nutzer-/Organisationsisolation ebenfalls prüfen.
+4. **Erst danach kontrolliertes STAGING-Deployment** auf den exakt geprüften Feature-Branch-Commit. Vorher Auto-Deploy-off, Dienst-ID und Branch erneut verifizieren. Danach Deploy-Commit, Build, Logs und Health prüfen.
+5. **VO2max-Pilot als einzelner Wissensbereich:** Kandidatenerstellung, unabhängige Belege, Rechte, Provenienz, Versionen, Links, Konflikte und aktive Abfrage nach Freigabe testen.
+6. Erst wenn der Pilot vollständig bestanden ist, den strukturierten Grundlagenimport beginnen und anschließend die Wissensgebiete hierarchisch erweitern.
+
+### Nächste konkrete Aktion
+Zuerst den neuen GitHub-Workflow-Lauf und den aktuellen Branch-HEAD verifizieren. Den Admin-/Scout-E2E-Test nicht umgehen. Bis diese beiden Gates bestanden sind, bleiben STAGING-Deployment und Wissensimport gesperrt.
