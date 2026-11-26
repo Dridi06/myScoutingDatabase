@@ -664,87 +664,44 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 
 
 
-## 19. Session checkpoint — 2026-11-26 — MESSINHO capability integration and scoped evidence context
+## 19. Session checkpoint — 2026-11-26 — MESSINHO 100-skill orchestration and live-data context
 
-### Main branch / release baseline
+### Main branch / current release baseline
 - Repository: `Dridi06/myScoutingDatabase`, branch `main`.
-- Main capability integration commit: `88b65f16134eb79bb6451bf5d9b449f2ea394245`.
-- Main release checkpoint commit: `ac1db576073d94aedb4a0a06edf1e9788526852a`; Render deployment `dep-dc3oacutlv9c73f91jm0` was reported `live`.
-- The 100-capability autonomous planner and specialist runtime are merged. Runtime still reports `completion_verified_count: 0`; specialist registration is not the same as end-to-end proof.
-- Main's last verified CI for the 100-capability merge: MESSINHO Node tests and ASI quality checks passed; the validation workflow passed on the preceding PR commit.
+- The 100-capability autonomous planner/runtime was merged in commit `88b65f16134eb79bb6451bf5d9b449f2ea394245`.
+- Main Render service is live on commit `fa0d4dfbdd779f280bb3caf44c6cc70be8dcb5b6`, deployment `dep-dc3od7t6iffs73co8ec0`.
+- The latest main commit only removed an unused helper that was briefly created on main by mistake; the feature work described below remains isolated to the feature branch.
+- The main runtime has 100 catalog capabilities with specialist dispatch. This is not equivalent to end-to-end completion proof: keep `completion_verified_count: 0` until each capability is tested against real staging inputs and verified outputs.
 
-### Current feature branch — not merged / not deployed
+### Current feature branch — PR #46, not merged or deployed
 - Branch: `feature/messinho-live-data-context`.
 - Open PR: #46 — Connect MESSINHO autonomous capabilities to scoped live scouting data.
-- Current branch checkpoint at time of writing: `f0ca65ad905d574611182560485431fd75ee5b7d`.
-- This branch is deliberately not merged or deployed. Keep the staging-only workflow; do not deploy this branch to the main Render service.
-- `backend/messinho-data-context.js` extracts a testable, pure context builder.
-- `backend/server.js` now loads owner-scoped observations, verified video events, external evidence, contract snapshots, prediction records/outcomes, scout calibration records, player directory metadata and source-license registry metadata.
-- Scouts are constrained through `scopeMessinhoOwner`; administrator learning reads use the existing admin role path.
-- Global learning records retain their actual `player_id`; age groups and national-team country are enriched only from existing player fields. No league is inferred when no league field exists.
-- External evidence becomes trusted only when its real database states support it: confirmed/corroborated, approved review, reviewed_by, matched/confirmed identity, approved/not-required legal review, ordinary classification, HTTPS and non-expired validity. Sensitive/restricted or unresolved evidence remains untrusted.
-- Contract analysis consumes structured snapshots with confirmed/corroborated status and leaves unconfirmed records in `needs_review`.
-- Video source rights are only mapped to licensed/confirmed when the source registry is approved for video analysis.
-- When trusted sources are absent, the agent can recover untrusted source leads through the existing ASI/Tavily research provider. Those leads are explicitly not treated as verified identity or facts.
-- Roster and candidate pools are supplied to squad, talent-pool and cross-league skills. Player-specific capabilities require a named player; the planner no longer silently chooses an arbitrary first player.
-- Club research does not claim completion from a club name alone; it requires source evidence.
+- Current branch HEAD: `10b18c50d2f37c23392f3159207ea4ba6da8c02a`.
+- PR is open, unmerged and not deployed. Preserve staging-only rollout; do not merge to main or deploy to the main Render service.
+- Added `backend/messinho-data-context.js`, a separately testable context builder.
+- `backend/server.js` loads owner-scoped player observations, verified video events, reviewed external evidence, contract snapshots, global prediction/calibration records, player directory metadata and external source-license registry records.
+- Scout reads remain filtered through `scopeMessinhoOwner`; admin learning reads use the existing administrator permission gate.
+- Learning records retain the true `player_id`; age group and country are only derived from existing birth-year/national-team fields. League is not inferred when unavailable.
+- External evidence is trusted only when the real database states permit it: confirmed/corroborated, approved review, reviewer present, matched/confirmed identity, approved/not-required legal review, ordinary classification, HTTPS and not expired. Sensitive, restricted or unresolved evidence remains untrusted.
+- Video events require verified event tags and source-registry permission explicitly approved for video analysis. HTTPS alone is never treated as a licence.
+- Contract analysis uses confirmed/corroborated structured snapshots; unconfirmed records remain in `needs_review`.
+- When trusted sources are absent, MESSINHO can recover additional untrusted source leads through the existing ASI/Tavily player research function. These leads are not promoted to verified facts or player identity.
+- Roster/candidate pools feed squad, talent-pool and cross-league analysis. Player-specific skills require a named player; the system does not silently select an arbitrary first player.
+- Natural-language filters extract positions, age ranges and birth-year ranges from scouting goals. Platform position aliases map terms such as Stürmer to stored positions such as 9er. Candidates without position data do not pass a position filter.
+- Club research requires actual source evidence and cannot report completion from a club name alone.
 
-### Tests and verification
-- At commit `257cad509a5e082384c4c0af6af41433c5773cf7`, GitHub Actions reported 118/118 MESSINHO Node tests passing, plus MESSINHO validation and ASI quality/build passing.
-- Additional source recovery and club-research safeguards were added afterward. CI for the current head `f0ca65ad905d574611182560485431fd75ee5b7d` is pending at checkpoint time; do not claim the current head is green until all three workflows finish successfully.
-- No Supabase migrations, database writes, user/scout/player data changes, training writes or model-weight changes were made.
-- The context loader is read-only and all scout-scoped reads are owner-filtered.
-
-### Next steps
-1. Verify CI for current branch head `f0ca65ad905d574611182560485431fd75ee5b7d`; fix any failures and rerun.
-2. Add targeted tests for source recovery status, club context selection, and owner-scope behavior.
-3. Run staging-only API smoke tests using a dedicated non-production test account and test player records; verify actual capability results and data-context counters.
-4. Verify the staging Render service and staging Supabase project references before any deployment. Do not use the main Render service or production data for these tests.
-5. Expand end-to-end completion verification per capability. Keep all 100 `completion_verified` flags false until each capability has evidence-based integration tests and a real staging smoke test.
-
-
-## 20. Session checkpoint — 2026-11-26 — MESSINHO live-context integration and filter-aware execution
-
-### Branch and review state
-- Repository: `Dridi06/myScoutingDatabase`.
-- Feature branch: `feature/messinho-live-data-context`.
-- Pull request: #46 — Connect MESSINHO autonomous capabilities to scoped live scouting data.
-- PR URL: https://github.com/Dridi06/myScoutingDatabase/pull/46
-- Latest verified feature-branch commit at checkpoint: `10b18c50d2f37c23392f3159207ea4ba6da8c02a`.
-- Main branch at the time of the check: `fa0d4dfbdd779f280bb3caf44c6cc70be8dcb5b6`.
-- PR #46 is still open. It has not been merged and this feature branch has not been deployed to production.
-- The production Render service remains on the main branch; no production deploy was triggered by this feature work.
-
-### Implemented on the feature branch
-1. Added a read-only MESSINHO context builder in `backend/messinho-data-context.js`.
-2. Connected the agent chat path to owner-scoped reads for player observations, verified video event tags, external evidence, candidate evidence, contract snapshots, scout calibration records, prediction records and prediction outcomes.
-3. Scout reads are explicitly filtered by authenticated `owner_id`; administrator reads retain the existing admin scope.
-4. Trusted evidence is accepted only when the real database states support it: confirmed/corroborated evidence, approved review with reviewer, matched/confirmed identity, approved/not-required legal review, ordinary classification, HTTPS source and non-expired validity.
-5. Video events require verified event status and an approved source registry entry whose permitted purposes include video analysis. Unlicensed events do not become trusted video inputs.
-6. Contract analysis prefers structured contract snapshots with confirmed/corroborated status. Unconfirmed snapshots remain in `needs_review`; text-extracted dates remain leads, not verified facts.
-7. Historical observation ratings are flattened into dated metrics without losing original observation fields, enabling metric-specific analyses. Metric analyses now return `insufficient_data` instead of reporting completion when the requested numeric measurements are absent.
-8. Natural-language goals are parsed for explicit position, age and birth-year filters. Automated talent search requires at least one meaningful filter and will not silently return the entire roster.
-9. Planner and search handling guard against candidates without position metadata matching a requested position.
-10. No model training, model-weight changes, database writes, schema migrations or user/scout/player data changes were performed.
-
-### Tests and verification
-- Latest checked feature-branch head: `10b18c50d2f37c23392f3159207ea4ba6da8c02a`.
-- MESSINHO Node tests: **130/130 passed**, 0 failed.
-- MESSINHO validation: passed, including frontend build.
-- ASI quality checks: passed, including frontend build.
-- All three GitHub Actions workflows completed successfully for the latest checked head.
-- These are automated code/unit/build checks, not a live authenticated browser smoke test or proof that every capability has end-to-end completion verification.
-- Runtime catalogue still must not claim end-to-end completion merely because a specialist handler exists; keep `completion_verified_count=0` until actual integration evidence exists.
-
-### Data audit
-- Read-only Supabase schema/constraint inspection confirmed the allowed evidence statuses and legal/review states used by the context builder.
-- A read-only aggregate status check found one rejected calibration record and no other rows in the inspected evidence/contract/video/calibration tables at the time of the query. No row contents were retrieved or changed.
-- No Supabase migration was applied and no records were inserted, updated or deleted.
+### Verification
+- Current head `10b18c50d2f37c23392f3159207ea4ba6da8c02a`:
+  - MESSINHO Node tests: **130 passed, 0 failed**.
+  - MESSINHO validation: success, including frontend build.
+  - ASI quality checks: success, including frontend build.
+- No Supabase migrations, database writes, user/scout/player data changes, training writes or active model-weight changes were made.
+- All new context reads are read-only; scout data access is owner-scoped.
+- No capability is to be marked end-to-end verified merely because it has specialist dispatch.
 
 ### Next steps
-1. Keep PR #46 separate from production until the user explicitly authorizes release or the correct staging service is identified.
-2. Reconcile the PR branch with the latest main head before any merge; the PR base was behind main at the last status check.
-3. Identify and verify the dedicated staging Render service and matching staging Supabase project. Do not use the production service or production data for smoke tests.
-4. Run authenticated staging tests with a dedicated non-production test account and isolated test records: named-player analysis, historical metrics, licensed video events, contract review, candidate filtering, and admin-only learning.
-5. Add integration tests for owner isolation and context-loader failure behavior.
-6. Keep all capability end-to-end completion flags false until each capability family has verified staging evidence.
+1. Confirm the exact staging Render service and staging Supabase project references before any deployment. Do not use the main Render service or production data for smoke tests.
+2. Run staging-only API smoke tests with a dedicated non-production account and test players; verify owner scoping, evidence trust, license checks, natural-language filters and per-capability outputs.
+3. Add targeted route-level tests for the data loader's owner-scoping and failure behavior.
+4. Continue capability-by-capability end-to-end tests and only then raise `completion_verified_count`.
+5. Keep PR #46 open and isolated until the staging verification is complete and rollout is explicitly approved.
