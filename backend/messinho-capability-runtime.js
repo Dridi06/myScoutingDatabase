@@ -438,7 +438,7 @@ function researchHandler(id,input){
  }
  if(id==='contract_expiry_monitor'||id==='contract_research'){
    const records=asArray(input.contract_records);
-   const items=asArray(input.verified_insights).filter(x=>row&&['verified','confirmed','corroborated'].includes(row.verification_status)&&row.source_url&&/^https:\/\//i.test(row.source_url));
+   const verified=records.filter(row=>row&&['verified','confirmed','corroborated'].includes(row.verification_status)&&row.source_url&&/^https:\/\//i.test(x.source_url));
    if(verified.length){
      const today=new Date(now).toISOString().slice(0,10);
      const assessed=verified.map(row=>{
