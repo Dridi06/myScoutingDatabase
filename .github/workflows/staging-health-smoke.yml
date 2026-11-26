@@ -1,0 +1,30 @@
+name: Staging health smoke test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/messinho-unified-ai-integration
+    paths:
+      - '.github/workflows/staging-health-smoke.yml'
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Probe Staging health endpoint
+        env:
+          STAGING_HEALTH_URL: https://myscoutingdatabase-messinho-staging.onrender.com/api/health
+        run: |
+          node --input-type=module <<'NODE'
+          const response = await fetch(process.env.STAGING_HEALTH_URL, {
+            headers: { accept: 'application/json', 'cache-control': 'no-cache' },
+            signal: AbortSignal.timeout(20000)
+          });
+          const body = await response.json();
+          console.log(JSON.stringify({ http_status: response.status, ...body }, null, 2));
+          if (!response.ok || body.ok !== true || body.dependencies?.database !== 'ok') {
+            process.exitCode = 1;
+          }
+          NODE
