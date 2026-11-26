@@ -1963,3 +1963,37 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Build event: `succeeded`. The service build command invokes `npm run build`, which runs `npm test`, backend JavaScript syntax checks and `vite build` before deployment.
 - Latest GitHub branch head after this documentation checkpoint: `034cfa0e43fb4c093d8deb0f7e76349542364188`; the only commit after the deployed runtime SHA is this documentation checkpoint, not a runtime code change.
 - STAGING only; auto-deploy remains off. Production, PFMS/PFSS and main remain untouched.
+
+
+### MESSINHO Quality Intelligence — STAGING release — 2026-11-26 15:52 UTC
+
+#### Implemented
+- Added `backend/messinho-quality-intelligence.js`: deterministic and privacy-preserving aggregation of feedback. It returns counts, 1–5 rating distribution, average and low-rating rate, confidence by sample size, 30-day trend comparison, group summaries by capability, intent, engine version and model version, and recurring feedback themes.
+- Added conservative improvement hypotheses: at least 5 reviewed low ratings in a capability/intent group, at least 3 admin-verified factual corrections in a group, or at least 3 reviewed repeated theme matches. Hypotheses are bounded, sorted by priority and explicitly non-causal.
+- Ratings count only after admin review (`reviewed` / `applied`). Factual corrections count only after verification (`verified` / `applied`). Bug reports and feature requests count only after review (`reviewed` / `applied`). Pending and rejected signals are excluded from quality calculations.
+- Capability IDs are all attributed (not just the first one). If no capability is attached, grouping falls back to intent.
+- No raw question, answer, comment, user ID or personal information is returned in the aggregate report.
+- Added `GET /api/messinho/quality-intelligence`: authenticated, approved-admin-only, rate-limited to 20 requests/hour, server-side query limited to the latest 1,000 feedback records.
+- Added a compact administrator-only Quality Intelligence panel inside the existing collapsed Help / Explanations bundle. It shows metrics, confidence, trend, rating distribution, capability performance, themes and hypotheses.
+- No database migration required. The implementation reuses the existing feedback and append-only review ledger.
+
+#### Tests and deployment
+- Added `tests/messinho-quality-intelligence.test.js` for reviewed-only aggregation, verified corrections, minimum sample thresholds, privacy of aggregate output, bounded record count, multi-capability attribution and engine/model version segmentation.
+- Render STAGING deployment `dep-dc45b6kipgvc738m8gl0` reached `live` on runtime SHA `76d39c4ed34fc16e8cc3700f09bd19d4c096f9a7` at 2026-11-26 15:52 UTC.
+- Full Node test suite: **225 passed, 0 failed**.
+- Backend JavaScript syntax checks passed as part of the configured build; Vite production build succeeded with **1,636 modules transformed**.
+- Runtime logs confirm `myScoutingDatabase API listening on 10000`.
+- Render STAGING auto-deploy remains disabled. No production/PFMS/PFSS deployment or database change.
+
+#### Governance and remaining validation
+- Quality feedback is not player outcome data and is not included in supervised weight training.
+- The quality-intelligence module never changes prompts, agent capabilities, memory, knowledge or model weights. It creates reviewable hypotheses only.
+- There are currently no user-generated feedback records in STAGING; the panel will therefore show an empty/insufficient-sample state until real reviewed feedback is collected. No synthetic feedback was inserted.
+- Authenticated Scout/Admin end-to-end testing is still pending a controlled login session. Validate Scout rating and correction submission, duplicate rejection, non-admin denial, admin queue/review, HTTPS evidence requirement and audit-history immutability. Then load the Quality Intelligence panel and confirm it counts only eligible reviewed records.
+- PR #47 remains Draft/open/unmerged. The latest runtime code is live on STAGING; subsequent commits are documentation only.
+
+#### Next development step
+1. Complete the authenticated Scout/Admin smoke tests with the user's own controlled sessions.
+2. Collect real reviewed feedback and evaluate whether the initial thresholds produce useful, stable patterns.
+3. Add a human-approved hypothesis lifecycle (accepted / rejected / test-created / validated) before allowing any quality hypothesis to influence Critic checks or capability behavior.
+4. Keep automatic prompt, capability and model changes disabled until a hypothesis has a regression test, measurable before/after result and explicit admin approval.
