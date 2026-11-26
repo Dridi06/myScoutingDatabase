@@ -1749,7 +1749,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       if(research.status==='completed'){
         const learning=await storeMessinhoKnowledge(db,ownerId,interpretedMessage,research);
         return respond({reply:research.answer,intent:'general_knowledge_research',items:sourceItems,sources:research.sources,evidence:research.evidence,answer_mode:research.answer_mode,claims:research.claims,researched_at:research.researched_at,
-          learning:{...research.learning,...learning,reused:false,verification_status:learning.persisted?'corroborated':null}});
+          learning:{...research.learning,...learning,reused:false,verification_status:learning.persisted?'corroborated':null},quality_control:research.quality_control||{passed:false,iterations:0,score:0}});
       }
       return respond({reply:research.answer||research.message||'Ich kann diese Frage gerade nicht zuverlässig recherchieren. Bitte versuche es später erneut oder grenze die Frage etwas ein.',intent:'general_knowledge_research_limited',items:sourceItems,sources:research.sources||[],evidence:research.evidence||null,limitations:research.evidence?.limitations||[]});
     }
