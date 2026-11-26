@@ -53,7 +53,7 @@ export function isMessinhoTimeSensitiveQuestion(question){
 export function messinhoFreshnessWindowDays(question){
  const text=String(question||'');
  if(/\b(tabellenstand|tabellenplatz|spielplan|spieltermine|ergebnisse|resultate|live|heute|gestern|morgen|diese woche)\b/i.test(text))return 7;
- if(/\b(trainer|cheftrainer|head coach|kader|transfer|marktwert|verletzt|verletzung)\b/i.test(text))return 30;
+ if(/\b(trainer|trainiert|cheftrainer|head coach|kader|transfer|marktwert|verletzt|verletzung)\b/i.test(text))return 30;
  return 90;
 }
 export function assessMessinhoGeneralEvidence(sources=[],question='',now=new Date()){
