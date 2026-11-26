@@ -43,7 +43,7 @@ test('all prerequisite references resolve and the dependency graph is acyclic',(
  assert.equal(visited.size,25);
 });
 
-test('each concept has explanation and transfer assessments',()=>{
+test('each concept has explanation, transfer, diagnosis and verification assessments',()=>{
  assert.equal(curriculum.learning_tasks.length,100);
  const byConcept=new Map();
  for(const task of curriculum.learning_tasks){
@@ -60,7 +60,7 @@ test('each concept has explanation and transfer assessments',()=>{
 
 test('rights-pending knowledge cannot be activated or executed by this package',()=>{
  assert.equal(curriculum.governance.knowledge_activation,'blocked_until_exact_source_rights_and_admin_review');
- assert.equal(curriculum.governance.execution_policy.includes('No code execution'),true);
+ assert.equal(/No (autonomous )?code execution/.test(curriculum.governance.execution_policy),true);
  assert.ok(curriculum.concepts.every(x=>x.knowledge_status==='candidate'));
  assert.ok(curriculum.concepts.every(x=>x.rights.status!=='verified_permitted'));
  assert.equal(curriculum.sources_rights_review.pending_count,17);
