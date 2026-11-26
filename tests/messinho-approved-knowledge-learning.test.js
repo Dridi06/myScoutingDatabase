@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { learnMessinhoApprovedFoundationConcept } from '../backend/messinho-approved-knowledge-learning.js';
+import { learnMessinhoApprovedFoundationConcept, isMessinhoApprovedFoundationTopic } from '../backend/messinho-approved-knowledge-learning.js';
 
 const plosXml='<article><abstract><p>VO2max is the highest attained oxygen uptake during an incremental exercise test with large muscle groups. VO2max is an important parameter to objectively assess cardiorespiratory fitness.</p></abstract><body><p>Direct measurement is performed during cardiopulmonary exercise testing.</p></body></article>';
 const pmcJson={collection:{documents:[{passages:[
@@ -41,6 +41,14 @@ test('VO2max foundation learning requires both exact approved sources and create
  assert.ok(record.claims[0].source_urls.length===2);
  assert.equal(record.sources.some(source=>'snippet' in source),false);
  assert.equal(record.sources.some(source=>'full_text' in source),false);
+});
+
+test('VO2max curriculum adapter accepts general definitions but rejects player-specific requests',()=>{
+ assert.equal(isMessinhoApprovedFoundationTopic('Was ist VO2max?'),true);
+ assert.equal(isMessinhoApprovedFoundationTopic('VO2max'),true);
+ assert.equal(isMessinhoApprovedFoundationTopic('Vergleiche die VO2max zweier Spieler'),false);
+ assert.equal(isMessinhoApprovedFoundationTopic('Welche VO2max hat mein Spieler?'),false);
+ assert.equal(isMessinhoApprovedFoundationTopic('Was bedeutet VO2max bei mir?'),false);
 });
 
 test('foundation learning does not run for unrelated questions',async()=>{
