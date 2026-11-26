@@ -1343,3 +1343,43 @@ Before the next staging deployment, the general research path was hardened:
 - Seven isolated knowledge-memory tests passed locally; the full repository suite and authenticated live chat test are not yet verified.
 - The staging deployment includes the memory lookup/write integration. It is not yet proven through a real authenticated user conversation because no staging test account has been authorized/created.
 - Production remains untouched; PR #47 remains Draft and unmerged.
+
+
+## 2026-11-26 — MESSINHO mathematics, scouting probability and physics
+
+**Owner requirement:** MESSINHO must independently calculate basic and advanced mathematics, probability/statistics for scouting, and physics formulas. Calculations must be reproducible and must not depend on an LLM doing arithmetic.
+
+**Implementation on the STAGING feature branch:**
+- Added `backend/messinho-math.js`, a deterministic calculation module with a restricted arithmetic parser. It does not use `eval`, `Function`, or execute user-supplied code.
+- Integrated the calculation module into `POST /api/agent/chat` immediately after live-question/small-talk handling and before general LLM fallback. The user does not select a tool; MESSINHO recognizes supported calculation questions and invokes the engine automatically.
+- Basic arithmetic supports addition, subtraction, multiplication, division, parentheses, powers and modulo, with division-by-zero and invalid-input handling.
+- Added percentage calculations, fractions, and proportional rule-of-three calculations.
+- Probability/statistics currently include exact/at-least/at-most binomial probabilities, Poisson probabilities, Bayes updates, and 95% Wilson confidence intervals for observed scouting conversion/success rates.
+- Physics currently includes Newton's second law, average speed, acceleration, kinetic and potential energy, mechanical work, power, density, pressure, momentum, Hooke's law, Ohm's law, electrical power, wave speed, circle circumference and circle area.
+- Results return a formula, calculation steps, units, and relevant assumptions. Probability results explicitly distinguish an observed statistical rate from a guaranteed individual player outcome.
+- Added `tests/messinho-math.test.js` for arithmetic, percentages, fractions, rule of three, binomial/Poisson/Bayes/Wilson calculations, and physics formula cases.
+- The math engine returns a clarification result when a calculation is recognized but required parameters are missing; unsupported non-math messages continue through the existing chat path.
+
+**Knowledge memory improvement:**
+- Exact normalized-question matching remains the first lookup.
+- Added owner-scoped high-confidence lexical paraphrase retrieval over at most 40 recent, unexpired, corroborated records.
+- Candidate matching requires at least three meaningful shared terms, high overlap/containment, and no detected polarity/negation conflict. Near-ties are rejected rather than guessed.
+- Retrieval still filters by the authenticated owner, corroborated status, and expiry. Similarity matching does not extend the verification timestamp or expiry.
+- Chat response metadata distinguishes exact reuse from high-confidence lexical reuse.
+- Added regression tests for positive paraphrase matching and superficially similar but different/contrasting questions.
+
+**Current source head:** `708244293c7e539e837a253a48fd64ced9d2bc95` (math expression parser update; later commits update tests and project record).
+
+**Verification and release status:**
+- Test cases have been added, but the complete repository Node test suite has **not yet been executed** on this branch.
+- GitHub Actions workflow runs and combined status returned no checks for the latest test commit.
+- Render STAGING has **not yet been redeployed** with the mathematics and paraphrase changes. Do not call these features live until the exact deployed commit is verified.
+- No new Supabase schema or data migration was required for these code changes.
+- Production branch, production Render service, production Supabase and PR merge state remain untouched. PR #47 remains Draft/unmerged.
+
+**Known limitations / next steps:**
+1. Validate all new math tests and run the full existing Node suite plus backend syntax checks.
+2. Expand physics/statistics coverage after test validation (e.g. normal distribution, hypergeometric probability, confidence calibration, additional mechanics/electrical formulas).
+3. Add scouting-specific interpretation using real verified player/event denominators; never infer an individual player's success probability from a small or biased sample.
+4. Consider semantic/embedding retrieval only after the conservative lexical approach is validated; do not serve uncertain memory matches.
+5. Deploy only the verified feature branch to the dedicated STAGING Render service and perform authenticated chat checks. Keep production unchanged.
