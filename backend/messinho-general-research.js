@@ -52,11 +52,11 @@ export function normalizeMessinhoGeneralSources(results=[]){
 const GENERAL_QUERY_STOP=new Set(['aber','auch','auf','aus','bei','das','dass','dem','den','der','des','die','ein','eine','einem','einen','einer','eines','für','im','in','ist','mit','oder','und','von','warum','weshalb','wieso','wie','was','welche','welcher','welches','erkläre','erklaere','erklären','mir','mich','seine','seiner','seinen','wert','bedeutung','grenzen','faktoren','muss','müssen','muessen','berücksichtigen','beruecksichtigen','aussagen','ableiten','ordne','anhand','eines','einer','ein','the','and','for','with','from','that','this','what','when','where','which','how','explain']);
 export function filterMessinhoRelevantGeneralSources(sources=[],question=''){
  const q=normalize(question);
- const vo2Topic=/\\b(vo\\s*[₂2]\\s*max|vo2max|vo₂max|maximale sauerstoffaufnahme|cardiorespiratory fitness|kardiorespiratorische fitness)\\b/i.test(q);
+ const vo2Topic=/\b(vo\s*[₂2]\s*max|vo2max|vo₂max|maximale sauerstoffaufnahme|cardiorespiratory fitness|kardiorespiratorische fitness)\b/i.test(q);
  if(vo2Topic){
   return (Array.isArray(sources)?sources:[]).filter(source=>{
    const text=normalize([source.title,source.snippet].join(' '));
-   return /\\b(vo2max|vo₂max|maximale sauerstoffaufnahme|oxygen uptake|cardiorespiratory fitness|kardiorespiratorische fitness)\\b/i.test(text);
+   return /\b(vo2max|vo₂max|maximale sauerstoffaufnahme|oxygen uptake|cardiorespiratory fitness|kardiorespiratorische fitness)\b/i.test(text);
   });
  }
  const anchors=[...new Set(q.split(' ').filter(token=>token.length>=4&&!GENERAL_QUERY_STOP.has(token)))];
