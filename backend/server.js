@@ -31,7 +31,7 @@ import { findMessinhoKnowledgeConcepts, reviewMessinhoKnowledgeConcept } from '.
 import { learnMessinhoKnowledgeFromResearch } from './messinho-knowledge-learning.js';
 
 import { calculateMessinhoMathQuestion } from './messinho-math.js';
-import { learnMessinhoApprovedFoundationConcept } from './messinho-approved-knowledge-learning.js';
+import { learnMessinhoApprovedFoundationConcept, shouldBlockMessinhoFoundationResearchFallback } from './messinho-approved-knowledge-learning.js';
 import { startMessinhoBackgroundWorker, MESSINHO_BACKGROUND_READ_ONLY } from './messinho-background-worker.js';
 
 const app=express();
@@ -2020,7 +2020,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       }
       let foundationLearning;
       try{foundationLearning=await learnMessinhoApprovedFoundationConcept(db,interpretedMessage);}
-      catch(foundationError){console.warn('MESSINHO approved foundation learning unavailable:',foundationError.message);}
+      catch(foundationError){
+        console.warn('MESSINHO approved foundation learning unavailable:',foundationError.message);
+        foundationLearning={status:'pipeline_error'};
+      }
       if(foundationLearning?.status==='candidate_created'){
         const references=foundationLearning.source_references||[];
         return respond({
@@ -2030,6 +2033,21 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
           sources:references,
           durable_knowledge:foundationLearning,
           knowledge_governance:{status:'candidate',active:false,approval_required:true}
+        });
+      }
+      if(shouldBlockMessinhoFoundationResearchFallback(foundationLearning)){
+        const status=foundationLearning.status;
+        const message=status==='already_present'
+          ?'Zu diesem Grundlagengebiet existiert bereits ein Wissenseintrag oder Kandidat. Ich starte keine parallele externe Ersatzrecherche. Bitte prüfe den Admin-Wissensbereich auf den bestehenden Eintrag und dessen Freigabestatus.'
+          :'Die geprüfte Grundlagenaufnahme ist noch nicht erfolgreich abgeschlossen ('+status+'). Ich verwende deshalb keine externe Ersatzantwort und behaupte nicht, dieses Wissen bereits dauerhaft gespeichert zu haben.';
+        return respond({
+          reply:message,
+          intent:'approved_foundation_knowledge_blocked',
+          items:[],
+          sources:[],
+          durable_knowledge:{status,active:false,persisted:false},
+          knowledge_governance:{status:'blocked',active:false,approval_required:true},
+          limitations:['Kein freigegebener Wissenseintrag wurde für diese Anfrage nachgewiesen.']
         });
       }
       let research;
