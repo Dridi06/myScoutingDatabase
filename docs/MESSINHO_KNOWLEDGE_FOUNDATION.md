@@ -108,5 +108,7 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 
 - OpenIntro's official licensing page says most Statistics textbooks are CC BY-SA 3.0, which permits commercial reuse with attribution and ShareAlike; exceptions and third-party figures/files still require exact edition/file review. It remains quarantined pending that review.
 - OpenStax's current textbook library uses CC BY-NC-SA 4.0 by default and disallows commercial use. It is excluded unless OpenStax grants written commercial and AI-project permission.
+- Grinstead and Snell's Dartmouth/CHANCE GNU FDL version of *Introduction to Probability* explicitly permits commercial redistribution and modification, but GNU FDL copyleft can apply to adapted versions. It remains quarantined until legal review determines how the share-alike terms apply to compact concepts in this product. The exact GNU version and its no-invariant-sections notice must be retained.
+- Book of Proof (CC BY-NC-ND) and MIT OCW 6.042J (CC BY-NC-SA) are excluded under their current non-commercial/no-derivatives terms.
 - U.S. federal/NIST works may be public domain in the United States, but official government guidance warns that third-party content may remain protected and that U.S. public-domain status alone does not settle international rights. NIST candidates therefore remain quarantined for the Germany-based product.
 - No source was promoted into the rights allowlist. The allowlist remains empty; no source content was imported.
