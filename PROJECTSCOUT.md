@@ -1067,3 +1067,52 @@ Die vorhandene Migrationsfolge auf `feature/messinho-agent-workspace` ist in ihr
 - Render-STAGING-Verbindung mit Supabase-STAGING: noch nicht eingerichtet/verifiziert.
 - Authentifizierte DB-/Agent-E2E: noch nicht durchgeführt.
 - Produktion und Produktionsdaten: unverändert.
+
+
+## 25. Fresh STAGING schema installed and security-hardened — 2026-11-26
+
+### Canonical schema repair
+- **Branch runtime/migration commit:** `e9e5157abf38b9f98514a5020bf910bfbb7fbeb0`.
+- The original fresh-install chain was inconsistent: migration 002 renamed columns that migration 001 had never created; migration 003 duplicated a position constraint; migration 005 depended on an absent deletion-log table; and ASI/MESSINHO migrations depended on core tables absent from the repository.
+- Reworked migration 001 into the canonical current application baseline: profiles, approval state, scout numbers, player schema, performance/metrics JSON, photo path, deletion audit, sequences and indexes.
+- Reworked migration 002 to provide private admin/approved-scout helpers, safe signup trigger, tenant RLS, player RPCs, presence RPCs and narrow profile permissions.
+- Made migration 003 idempotent, repaired sequence initialization in 005, made 015 safe on a fresh install, and added `20261125030000_asi_core_schema.sql` for ASI calibration, prediction, model, training, evaluation, analysis and external-source prerequisites.
+- Hardened the health-sensitive evidence gate: sensitive evidence cannot be approved/stored as eligible without legal review status `approved`.
+- Added explicit service-role policies, owner-policy initplan fixes, foreign-key indexes, narrow profile presence grants and default API grant revocations in migrations `20261126150000`, `20261126151000` and `20261126152000`.
+- The profile API now denies anon access, prevents authenticated users from inserting profiles or changing roles/approval state, and permits only the intended authenticated presence fields. Player CRUD remains protected by owner/admin RLS. Admin profile/Scout changes are handled through the server-side service-role API.
+- ASI owner/admin policies remain the authorization boundary; MESSINHO memory, traces, tasks, support tickets and sensitive learning tables are server-managed.
+
+### Applied database state — dedicated Supabase STAGING only
+- Project: `myScoutingDatabase-staging`; ref `nwqwnrhupbyhshsprxjt`; region Frankfurt (`eu-central-1`); PostgreSQL 17.12; status `ACTIVE_HEALTHY`.
+- Applied migrations: **27**. Public application tables: **21**. RLS enabled: **21/21**.
+- Tables include profiles, players, deletion logs, support tickets/messages, ASI external sources/evidence/research/contracts/candidates/calibration/predictions/model versions/training/evaluations/player analyses, and MESSINHO memory/traces/task ledger.
+- Data check: profiles 0, players 0, candidates 0, memory 0, traces 0, tasks 0, support tickets 0. One active model row exists: `messinho_position_weights` version `1.1.0`, family `deterministic_rules`, baseline `code_default`, `trained=false`. No user/scout/player/test data was copied or created.
+- Database checks confirm: anon cannot read players; authenticated users cannot insert profiles or update roles; authenticated presence-column update is allowed; admin approval RPC is not executable by authenticated clients. RLS is enabled for every public application table.
+- Supabase Security Advisor: **no findings**. Health Advisor: **no findings**. Performance Advisor: no remaining unindexed-FK, RLS-initplan or multiple-permissive-policy warnings. It reports unused indexes because the staging database is intentionally empty; reassess after representative test traffic.
+- No production Supabase project, production data, production credentials or PFSS/PFMS resources were modified.
+
+### CI and Render STAGING
+- GitHub Actions on exact commit `e9e5157abf38b9f98514a5020bf910bfbb7fbeb0`:
+  - MESSINHO validation run `45742494636`: success; unit tests and frontend build passed.
+  - MESSINHO staging validation run `45742494624`: success; automated tests and frontend build passed.
+- Render STAGING deployment: `dep-dc3pi5p7lnhs73eesla0`; commit `e9e5157abf38b9f98514a5020bf910bfbb7fbeb0`; status `live`; build succeeded; API process started on port 10000.
+- Set only the new STAGING Supabase URL and publishable key in the STAGING Render environment. No production credentials were copied.
+- Fresh startup logs still report `SUPABASE_SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY` missing. They also report Tavily=false and OpenAI=false. Therefore the Render process is live, but its server-side database client and provider-dependent integrations are not yet operational. The service-role secret must be entered directly by the owner in the Render STAGING Environment page; do not paste it into chat. Tavily/OpenAI remain optional/provider-specific and can be configured there if desired.
+- The API process started, but authenticated API/browser E2E, task persistence, interruption/resume and owner-isolation tests have **not** yet been run.
+
+### Next actions
+1. Add the dedicated STAGING project's service-role/secret key directly to the Render STAGING environment as `SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY`. Do not use the production key and do not send the secret through chat.
+2. After Render restarts, confirm fresh logs no longer report the missing Supabase secret and call the staging health endpoint; require `database=ok` and authentication ready.
+3. Create disposable staging-only admin and scout test accounts with explicit test credentials; verify signup/approval/login, player CRUD, support tickets, and RLS owner isolation.
+4. Verify MESSINHO memory/trace writes and task ledger list/resume, including interrupted SSE recovery, lease expiry and cross-owner denial.
+5. Keep all 100 capabilities marked partial until their real integration contracts and E2E evidence are complete. No production go-live decision is implied by this database setup.
+
+### Status
+- Fresh STAGING schema: **installed**.
+- Migration chain: **repaired for fresh install** and applied to the isolated STAGING project.
+- RLS/grants/security review: **passed static database checks**.
+- GitHub tests/build: **passed**.
+- Render STAGING code deploy: **live**.
+- Server-side Supabase secret: **still required**.
+- Authenticated agent E2E and browser smoke tests: **pending**.
+- Production: **untouched**.
