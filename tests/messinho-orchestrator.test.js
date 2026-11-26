@@ -85,8 +85,8 @@ test('runtime summary separates dispatch, specialist logic, generic fallback and
   assert.equal(summary.total_catalogue_entries, 100);
   assert.equal(summary.all_dispatched, true);
   assert.ok(summary.specialist_logic_count > 0);
-  assert.equal(summary.generic_fallback_count, 6);
-  assert.equal(summary.specialist_logic_count, 94);
+  assert.equal(summary.generic_fallback_count, 0);
+  assert.equal(summary.specialist_logic_count, 100);
   assert.equal(summary.completion_verified_count, 0);
   assert.equal(summary.specialist_logic_count + summary.generic_fallback_count, summary.dispatched_capabilities);
 });
@@ -99,7 +99,8 @@ test('admin capability catalogue exposes honest implementation levels', () => {
   assert.equal(seasonal.specialist_logic_available, true);
   assert.equal(seasonal.implementation_level, 'specialist_logic');
   assert.equal(seasonal.completion_verified, false);
-  assert.equal(all.filter(item => item.implementation_level === 'generic_fallback').length, 6);
+  assert.equal(all.filter(item => item.implementation_level === 'generic_fallback').length, 0);
+  assert.equal(all.filter(item => item.specialist_logic_available).length, 100);
 });
 
 
@@ -154,8 +155,8 @@ test('the 29 formerly generic capabilities are truthfully split between speciali
   ];
   for (const id of ids) {
     const result = executeMessinhoCapability(id, {});
-    const generic = ['supervised_learning','weight_optimization','country_learning','talent_pathway_learning','breakthrough_learning','controlled_self_optimization'];
-    assert.equal(result.implementation_level, generic.includes(id) ? 'generic_fallback' : 'specialist_logic', id);
+    assert.equal(result.implementation_level, 'specialist_logic', id);
+    assert.equal(result.specialist_logic_available, true, id);
     assert.notEqual(result.status, 'unknown_capability', id);
     assert.notEqual(result.status, 'error', id);
   }
