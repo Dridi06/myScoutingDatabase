@@ -12,7 +12,7 @@ import { rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFoll
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
-import { getMessinhoCapabilityCatalog, getMessinhoCapabilitySummary } from './messinho-capabilities.js';
+import { getMessinhoCapabilitySummary } from './messinho-capabilities.js';
 import { executeMessinhoCapability, listExecutableMessinhoCapabilities, getMessinhoRuntimeSummary } from './messinho-capability-runtime.js';
 import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainableAssessment, generateMessinhoHypotheses } from './messinho-development.js';
 import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './messinho-research.js';
@@ -1013,79 +1013,20 @@ app.get('/api/messinho/capabilities',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    if(actor.profile.role!=='admin')return res.status(403).json({error:'Die interne Kompetenzübersicht ist Administratoren vorbehalten.'});
     const summary=getMessinhoCapabilitySummary();
     res.set('Cache-Control','no-store');
     return res.json({ok:true,registry_version:summary.registry_version,summary,runtime:getMessinhoRuntimeSummary(),groups:listExecutableMessinhoCapabilities(),role:actor.profile.role,
-      note:'Alle 100 IDs besitzen einen ausführbaren Runtime-Handler. Das Ergebnis kann bei fehlenden Daten, Quellen oder Providerzugriff bewusst insufficient_data melden. Provider- und Datenbankaktionen bleiben zusätzlich abgesichert.'});
+      note:'Interne Diagnoseübersicht für Administratoren. MESSINHO wählt und kombiniert diese Fähigkeiten selbstständig anhand des Nutzerziels; Einzelfunktionen werden nicht manuell ausgeführt.'});
   }catch(error){console.error('MESSINHO capability catalog failed:',error.message);return res.status(500).json({error:'Funktionsübersicht konnte nicht geladen werden.'});}
 });
 const messinhoCapabilityLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele MESSINHO-Funktionsaufrufe. Bitte später erneut versuchen.'}});
 const messinhoLearningCapabilityIds=new Set(['supervised_learning','position_specific_learning','scout_feedback_learning','prediction_audit','error_pattern_detection','weight_optimization','age_group_learning','league_learning','country_learning','talent_pathway_learning','false_positive_learning','breakthrough_learning','scout_accuracy_analysis','scout_calibration','model_benchmarking','regression_guard','dataset_quality_improvement','data_error_learning','position_change_learning','availability_outcome_learning','probability_calibration','seasonal_learning','verified_long_term_memory','model_versioning','controlled_self_optimization']);
 app.post('/api/messinho/capabilities/:capabilityId/execute',messinhoCapabilityLimiter,async(req,res)=>{
-  try{
-    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
-    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
-    const capabilityId=String(req.params.capabilityId||'');
-    if(messinhoLearningCapabilityIds.has(capabilityId)&&actor.profile.role!=='admin')return res.status(403).json({error:'Lern- und Modellfunktionen sind Administratoren vorbehalten.'});
-    const supplied=req.body?.input;
-    if(!supplied||typeof supplied!=='object'||Array.isArray(supplied))return res.status(400).json({error:'Bitte ein Eingabeobjekt übermitteln.'});
-    const input={...supplied};
-    // Client payloads are never accepted as verified training outcomes, player records or source evidence.
-    for(const key of ['outcomes','predictions','sources','evidence','verified_insights','training_dataset','scout_assessments','market_comparables','player','candidate','players','_trusted_video_bundle'])delete input[key];
-    const playerId=Number(req.body?.player_id??input.player_id);
-    if(Number.isSafeInteger(playerId)&&playerId>0){
-      const playerQuery=scopeMessinhoOwner(db.from('players').select('*').eq('player_id',playerId),actor);
-      const {data:player,error}=await playerQuery.maybeSingle();
-      if(error)return res.status(500).json({error:'Spielerdaten konnten nicht geladen werden.'});
-      if(!player)return res.status(404).json({error:'Spieler nicht gefunden oder keine Zugriffsberechtigung.'});
-      input.player=player;
-    }else if(req.body?.player_id!==undefined||input.player_id!==undefined){
-      return res.status(400).json({error:'Ungültige Spieler-ID.'});
-    }
-    delete input.player_id;
-    if(messinhoLearningCapabilityIds.has(capabilityId)){
-      const {data:records,error}=await db.from('asi_scout_calibration_records')
-        .select('player_id,verified_outcome,messinho_position_group,messinho_dimension_scores,verification_status,verified_by')
-        .eq('verification_status','verified').eq('outcome_metric',MESSINHO_CALIBRATION_METRIC).not('verified_outcome','is',null)
-        .not('messinho_position_group','is',null).limit(5000);
-      if(error)return res.status(500).json({error:'Verifizierte Lern-Daten konnten nicht geladen werden.'});
-      input.outcomes=(records||[]).map(row=>({player_id:row.player_id,target_score:row.verified_outcome,position_group:row.messinho_position_group,dimension_scores:row.messinho_dimension_scores,verification_status:row.verification_status,verified_by:row.verified_by}));
-      const active=await getActiveMessinhoModel();
-      input.baseline_profiles=active?.configuration?.profiles||MESSINHO_DEFAULT_WEIGHTS;
-    }
-    if(['peer_comparison_analysis','competition_comparison','transfer_priority'].includes(capabilityId)){
-      let peerQuery=db.from('players').select('*').limit(300);
-      peerQuery=scopeMessinhoOwner(peerQuery,actor);
-      const {data:players,error}=await peerQuery;
-      if(error)return res.status(500).json({error:'Vergleichsdaten konnten nicht geladen werden.'});
-      input.players=players||[];
-    }
-    const researchCapabilityIds=new Set(['source_trust_score','automated_talent_search','international_research','cross_league_research','youth_talent_discovery','underdog_detection','hidden_gem_detection','club_research','squad_research','contract_research','contract_expiry_monitor','rumour_verification','market_monitoring','source_cross_check','identity_verification','birth_year_verification','position_verification','statistics_research','video_source_research','match_report_research','competition_monitoring','club_need_research','comparable_player_research','player_data_refresh','new_talent_monitoring','research_report_generation']);
-    if(researchCapabilityIds.has(capabilityId)&&!['market_monitoring','player_data_refresh','new_talent_monitoring','competition_monitoring'].includes(capabilityId)){
-      const filters=input.filters&&typeof input.filters==='object'?input.filters:{};
-      const query=typeof input.query==='string'?input.query.trim().slice(0,400):'';
-      const discoveryIds=new Set(['automated_talent_search','youth_talent_discovery','underdog_detection','hidden_gem_detection']);
-      if(discoveryIds.has(capabilityId)&&Object.keys(filters).length){
-        const origin=req.protocol+'://'+req.get('host');
-        const research=await fetch(origin+'/api/asi/player-search',{method:'POST',signal:AbortSignal.timeout(65000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+actor.token},body:JSON.stringify({mode:'discover',filters})});
-        const payload=await research.json().catch(()=>({}));
-        if(!research.ok)return res.status(research.status).json({error:payload.error||'Die MESSINHO-Talentsuche konnte nicht ausgeführt werden.'});
-        const ranked=rankMessinhoPlayers(Array.isArray(payload.candidates)?payload.candidates:[]);
-        return res.json({ok:true,output:{capability_id:capabilityId,status:'completed',result:{candidate_count:ranked.length,candidates:ranked,sources:payload.sources||[],limitations:payload.limitations||[],provider:payload.provider||null,underfilled:!!payload.underfilled},execution:'ASI provider research + independent MESSINHO ranking'},actor_role:actor.profile.role});
-      }
-      if(!query)return res.status(400).json({error:'Für diese Recherchefunktion bitte einen konkreten Suchbegriff oder Suchfilter angeben.'});
-      const tavilyKey=process.env.TAVILY_API_KEY;
-      if(!tavilyKey)return res.status(503).json({error:'Externe Recherche ist noch nicht freigeschaltet: TAVILY_API_KEY fehlt in der Staging-Umgebung.'});
-      const searchResponse=await fetch('https://api.tavily.com/search',{method:'POST',signal:AbortSignal.timeout(30000),headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:tavilyKey,query,search_depth:'advanced',max_results:10,include_answer:false,include_raw_content:false,topic:'general'})});
-      if(!searchResponse.ok)return res.status(502).json({error:'Der externe Rechercheanbieter hat die Anfrage nicht erfolgreich beantwortet.'});
-      const searchPayload=await searchResponse.json();
-      input.sources=(Array.isArray(searchPayload.results)?searchPayload.results:[]).filter(source=>typeof source.url==='string'&&/^https:\/\//i.test(source.url)).map(source=>({title:String(source.title||'').slice(0,240),url:source.url,published_date:source.published_date||null,content:String(source.content||'').slice(0,5000)}));
-      input._trusted_source_bundle=true;
-      if(!input.sources.length)return res.status(502).json({error:'Die Recherche lieferte keine verwertbaren HTTPS-Quellen.'});
-    }
-    const output=executeMessinhoCapability(capabilityId,input);
-    return res.json({ok:true,output,actor_role:actor.profile.role});
-  }catch(error){console.error('MESSINHO capability execution failed:',req.params?.capabilityId,error.message);return res.status(500).json({error:'MESSINHO-Funktion konnte nicht ausgeführt werden.'});}
+  const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+  return res.status(410).json({
+    error:'Einzelfunktionen werden nicht mehr direkt ausgeführt. Beschreibe dein Ziel im MESSINHO-Chat; der Agent wählt die passenden Fähigkeiten automatisch aus.'
+  });
 });
 const messinhoTacticalFitLimiter=rateLimit({windowMs:60*60*1000,limit:30,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele taktische Abgleiche. Bitte später erneut versuchen.'}});
 app.post('/api/messinho/tactical-fit',messinhoTacticalFitLimiter,async(req,res)=>{
