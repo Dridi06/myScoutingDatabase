@@ -675,7 +675,8 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 ### Current feature branch — PR #46, not merged or deployed
 - Branch: `feature/messinho-live-data-context`.
 - Open PR: #46 — Connect MESSINHO autonomous capabilities to scoped live scouting data.
-- Current branch checkpoint: `7a8f30849b60a10ff2ae103cf2a591cce1c212b2`.
+- Current branch HEAD: `d92e9aec124d1e86a0a1d74599fab889fdb14bfc` (documentation-only checkpoint after the tested code commit).
+- Last tested code commit: `7a8f30849b60a10ff2ae103cf2a591cce1c212b2`.
 - PR remains open, unmerged and not deployed. Preserve staging-only rollout; do not merge to main or deploy to the main Render service.
 - `backend/messinho-data-context.js` is a testable, pure builder for evidence, observation, event, contract and learning context.
 - `backend/messinho-data-loader.js` is the separately testable read-only Supabase loader. It applies `scopeMessinhoOwner` to every user-owned table read and leaves only the global external-source registry unscoped.
