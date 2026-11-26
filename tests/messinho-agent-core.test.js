@@ -27,3 +27,10 @@ test('execution budget is capped and exposed',()=>{
  assert.ok(cycle.run.execution_policy.budget_ms<=8000);
  assert.equal(cycle.run.model_weights_changed,false);
 });
+
+test('agent validation rejects useful results without matching provenance',()=>{
+ const plan={steps:['overall_score']};
+ const validation=validateMessinhoAgentRun(plan,{results:[{capability_id:'overall_score',status:'completed'}]});
+ assert.equal(validation.valid,false);
+ assert.deepEqual(validation.missing_provenance_capabilities,['overall_score']);
+});
