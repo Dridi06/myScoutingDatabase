@@ -149,3 +149,15 @@ test('recognizes German nationality adjective as Germany',()=>{
  assert.equal(result.request.age,21);
  assert.equal(result.request.region,'deutschland');
 });
+
+
+test('parses and validates an explicitly requested left-footed player',()=>{
+ const result=parseMessinhoScoutingRequest('Finde einen 21-jährigen linksfüßigen Mittelfeldspieler als 6er in Deutschland',[],2026);
+ assert.equal(result.request.preferredFoot,'left');
+ assert.equal(result.request.position,'defensiver Mittelfeldspieler');
+ assert.equal(matchesPreferredFoot('left','left-footed'),true);
+ assert.equal(matchesPreferredFoot('left','linksfüßig'),true);
+ assert.equal(matchesPreferredFoot('left','right-footed'),false);
+ assert.equal(matchesPreferredFoot('left',null),false);
+ assert.equal(matchesPreferredFoot('both','beidfüßig'),true);
+});
