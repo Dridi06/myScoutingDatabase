@@ -2247,3 +2247,17 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Keep general financial education/analysis distinct from individualized investment advice, credit decisions or regulated financial services. No trade execution or financial account side effects without separate explicit authorization and legal/security review.
 - Detailed requirements added to `docs/MESSINHO_FREE_LEGAL_MEDICAL_KNOWLEDGE_PLAN.md`. This is a knowledge-domain and architecture decision only; no financial data feed, paid service, trading integration, code, database migration or deployment was added.
 - Continue on feature/messinho-unified-ai-integration and dedicated STAGING only. Production/main, PFMS/PFSS and PR #47 merge state untouched; Render auto-deploy disabled.
+
+
+## 2026-11-26 — Umsetzungsschritt 1: persistenter domänenübergreifender Wissenskern
+
+- Neue Datei `backend/messinho-domain-knowledge.js`: Domänenklassifizierung und kompakter persistenter Wissensspeicher für Mathematik, Physik, Biologie, Medizin, Risikomanagement, Banken, Finanzmärkte, Statistik, Sportwissenschaft, Fußball, Informatik und allgemeines Wissen.
+- Dauerhafte Aufnahme ist fail-closed und nur bei explizit verifiziertem Wiederverwendungsrecht zulässig: Lizenz, Rechteinhaber, HTTPS-Rechtebeleg, AI/TDM, kommerzielle Nutzung und Bearbeitungsrecht müssen dokumentiert sein. Unbekannte Lizenz bedeutet Quarantäne/keine Aufnahme. Quellen-Volltexte/PDFs werden nicht gespeichert.
+- Recherche normalisiert bereitgestellte Rechte-Metadaten; der normale Suchanbieter liefert diese nicht automatisch. Daher ist die dauerhafte Aufnahme im Regelfall noch gesperrt, bis der Quellen-/Rechtekatalog die Angaben verlässlich bestätigt. Keine Lizenz wird erfunden.
+- Der bestehende MESSINHO-Chat ruft passende Wissenseinträge automatisch ab und verwendet sie bei einem Treffer; vorhandene 14-Tage-Owner-Memory bleibt getrennt davon bestehen.
+- Supabase STAGING Migration `20261126230000_messinho_domain_knowledge.sql` angewendet und verifiziert: Tabelle vorhanden, RLS aktiv, service_role SELECT true, authenticated SELECT false, gespeicherte Einträge derzeit 0.
+- Tests/Build: **258 passed, 0 failed**; Backend-Syntax und Vite-Build erfolgreich.
+- Render STAGING Deployment `dep-dc474gc9v7es73e2msdg` ist **live**, Commit `5db7f60006eda1c1c02e2254b4af22ae43aa73fc`, 2026-11-26 17:54:43 UTC.
+- Geänderte Dateien: `backend/messinho-domain-knowledge.js`, `backend/messinho-general-research.js`, `backend/server.js`, `tests/messinho-domain-knowledge.test.js`, `supabase/migrations/20261126230000_messinho_domain_knowledge.sql`.
+- Noch offen für das Gesamtziel: 100 Rechte-geprüfte Quellen, Backups/Restore-Tests, capability-weite automatische Wissensübergabe inkl. Mathematik/Physik/Finanzprognosen, Konflikt-/Versionsreview, Forecast Backtesting und authentifizierte End-to-End-Tests. Dieser Zwischenstand ist nicht mit vollständiger Fertigstellung gleichzusetzen.
+- Staging-only bleibt verbindlich: Auto-Deploy off; Produktion/main, PFMS/PFSS unberührt; PR #47 Draft/offen/unmerged.
