@@ -24,4 +24,5 @@ test('technical languages and tools route to computer_science',()=>{
 test('football and sports-science questions keep their dedicated domains',()=>{
  assert.equal(classifyMessinhoKnowledgeDomain('Wie trainiere ich VO2max?'),'sports_science');
  assert.equal(classifyMessinhoKnowledgeDomain('Wie analysiere ich einen Fußballspieler?'),'football');
+ assert.equal(classifyMessinhoKnowledgeDomain('Wie bewerte ich einen Innenverteidiger im Fußball-Scouting?'),'football');
 });
