@@ -3426,3 +3426,51 @@ The knowledge foundation is being retrieved and displayed correctly, and its bas
 
 ### Rules unchanged
 All existing branch, staging-only, security, approval, no-repeat, black/navy-and-gold design, and PROJECTSCOUT documentation requirements remain binding. Production, `main`, PFMS, and PFSS remain untouched.
+
+
+## MESSINHO VO2max application follow-up — implementation and CI checkpoint — 2026-11-26 22:xx CET
+
+### Implemented on the feature branch
+- Added the provider-independent helper `buildMessinhoKnowledgeApplicationFollowUp` in `backend/messinho-conversation.js`.
+- Connected the helper to the existing canonical approved-knowledge response path in `backend/server.js`. It runs only when the approved VO2max concept is the matched canonical concept and the question expresses an application/assessment intent.
+- The response now keeps the approved knowledge explanation and adds a targeted follow-up rather than merely listing factors.
+- Missing information is requested by field: measured VO2max and unit, test modality (direct CPET/spiroergometry vs estimate/field test), measurement date, age, playing position, and training context. Already supplied values/player context are not requested again.
+- Direct measurement and estimated/field-test values are explicitly distinguished. If an absolute L/min value is supplied, body mass is identified as needed for relative normalization.
+- The helper explicitly prohibits creating a score or inventing a missing VO2max value. A single fitness metric is not converted into an overall, positional, or talent rating.
+- Basic definition questions do not trigger an unnecessary follow-up. The helper does not execute a medical diagnosis or ask for unrelated sensitive health information.
+
+### Regression coverage and verification
+- Added five targeted tests covering: application clarification, basic-definition non-interception, estimated value classification, direct CPET distinction, and unrelated knowledge-domain isolation.
+- The final code commit tested by GitHub Actions is `413882077570878aa52494b0e79c66619ca90b31`.
+- GitHub Actions: all four checks **success** (combined tests/backend syntax/build, dedicated backend syntax, test suite, and health).
+- Node suite: **326 passed, 0 failed**.
+- Backend JavaScript syntax: passed.
+- Vite production build: passed; 1,637 modules transformed.
+- Intermediate failures during development (regex escaping and two German inflection variants) were diagnosed from CI logs, corrected on the same feature branch, and are not present in the final tested commit.
+
+### Current staging and database audit
+- Dedicated Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`), branch `feature/messinho-unified-ai-integration`, auto-deploy disabled.
+- Currently deployed version before this follow-up: `cf396444ab831d5c3f41f79aee0e5cab52bb6e0e`, deployment `dep-dc4a3nc9v7es73eahqh0`, status **LIVE**. The new application-follow-up code has not yet been deployed; manual STAGING deployment is required after the documentation checkpoint CI passes.
+- Supabase target audited: `myScoutingDatabase-staging` (`nwqwnrhupbyhshsprxjt`), status **ACTIVE_HEALTHY**, region `eu-central-1`. Latest applied migration: `20261126184821_messinho_knowledge_conflict_episode_state`.
+- Player-table RLS policies enforce Admin visibility and approved Scout owner-only visibility; UPDATE policies include both USING and WITH CHECK.
+- Candidate-table policies enforce owner access or the database's private Admin predicate. MESSINHO agent memory/tasks/traces are owner-scoped or service-mediated. Knowledge review/approval endpoints require an authenticated, approved Admin.
+- Seven MESSINHO knowledge/diagnostic tables have RLS enabled, no direct policies, and no anon/authenticated table grants; access is intentionally restricted to the server's service-role path. This explains the informational `rls_enabled_no_policy` advisor finding and is not an open client-access grant.
+- The per-user `messinho_knowledge_memory` table has owner-bound authenticated policies (auth.uid() = owner_id).
+- Remaining Supabase advisor notices: the legacy `admin_set_scout_approval(uuid,boolean)` SECURITY DEFINER function is executable by authenticated users, but its body checks non-null auth.uid() and `private.is_admin()` before updating; the Auth leaked-password protection setting is disabled. These were audited but not changed as part of this VO2max task.
+- No authenticated live Scout/Admin browser session was available in this execution, so end-to-end UI permission tests remain distinct from the static code, CI, RLS, and grants checks.
+
+### Acceptance status and next steps
+1. Application clarification logic: **implemented and CI-verified**.
+2. Direct CPET versus estimated value handling: **implemented and regression-tested**.
+3. Fabricated values/ratings: **explicitly blocked by helper contract and regression-tested**.
+4. New application behaviour on Render STAGING: **pending manual deployment and live Admin retest**.
+5. Mobile response/source-card visual check: **pending after deployment**.
+6. Authenticated Admin/Scout end-to-end and cross-tenant tests: **pending controlled sessions**; database RLS/grants and server role gates have been inspected.
+7. VO2max pilot: **not yet fully accepted**. Keep the systematic knowledge import blocked until the live staging response and authenticated role/tenant tests pass.
+8. After this documentation commit's CI succeeds, manually deploy only to the dedicated Render STAGING service; verify deployment SHA, LIVE state, health, and runtime logs. Then request the concise Admin application retest and complete the remaining permission/tenant acceptance.
+
+### Safety boundaries reaffirmed
+- No Supabase schema/data changes were made during this audit.
+- No Render production service, `main`, PFMS, or PFSS was changed.
+- The Draft PR remains unmerged. No merge or production release is authorised.
+- Continue on `feature/messinho-unified-ai-integration`; retain the black/navy/gold design and all existing approval, provenance, and no-fabrication rules.
