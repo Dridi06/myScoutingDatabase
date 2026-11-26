@@ -1,5 +1,5 @@
 const ACTIONS=new Set(['create','accept','reject','create_test','validate','rollback']);
-const clean=(value,max)=>String(value??'').replace(/[\\u0000-\\u001f\\u007f]/g,' ').replace(/\\s+/g,' ').trim().slice(0,max);
+const clean=(value,max)=>String(value??'').replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
 const isObject=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 const transitions={
   proposed:new Set(['accept','reject']),
@@ -9,6 +9,7 @@ const transitions={
   rejected:new Set(),
   rolled_back:new Set()
 };
+const isHttps=value=>String(value||'').toLowerCase().startsWith('https://');
 export function normalizeMessinhoHypothesisCreate(input={}){
   const value=input.hypothesis||input;
   if(!isObject(value))return {ok:false,error:'Verbesserungshypothese fehlt.'};
@@ -34,10 +35,10 @@ export function normalizeMessinhoHypothesisTransition(input={}){
   const evidence_url=clean(input.evidence_url,2048);
   const evaluation=isObject(input.evaluation)?input.evaluation:{};
   if(action==='create_test'&&test_plan.length<20)return {ok:false,error:'Vor dem Test muss ein konkreter Testplan hinterlegt werden.'};
-  if(action==='validate'&&(!/^https:\\/\\//i.test(evidence_url)||input.evaluation?.passed!==true||clean(input.evaluation?.summary,1200).length<12)){
+  if(action==='validate'&&(!isHttps(evidence_url)||input.evaluation?.passed!==true||clean(input.evaluation?.summary,1200).length<12)){
     return {ok:false,error:'Zur Validierung sind ein HTTPS-Beleg und ein bestandenes, erläutertes Testergebnis erforderlich.'};
   }
-  if(evidence_url&&!/^https:\\/\\//i.test(evidence_url))return {ok:false,error:'Belege müssen über HTTPS erreichbar sein.'};
+  if(evidence_url&&!isHttps(evidence_url))return {ok:false,error:'Belege müssen über HTTPS erreichbar sein.'};
   return {ok:true,value:{action,reason,test_plan:test_plan||null,evidence_url:evidence_url||null,evaluation}};
 }
 export function canTransitionMessinhoHypothesis(status,action){
