@@ -2076,3 +2076,12 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Added regression coverage for parsing and evidence matching of left/right/two-footed descriptions.
 - No schema migration is required; the value is retained in the existing candidate analysis JSON.
 - Full build/test gate and manual STAGING deployment are pending for this addition. Production remains untouched; auto-deploy remains disabled.
+
+
+#### Preferred-foot filter — STAGING verification — 2026-11-26 16:58 UTC
+- Render deployment dep-dc46a5mq1p3s73d24jc0 reached live; exact deployed SHA: e66fd682b5807a0e1830fbeb183871f0456fd812.
+- Full Node suite: **235 passed, 0 failed, 0 cancelled, 0 skipped**.
+- Backend JavaScript syntax checks passed and Vite production build completed successfully (1,636 modules transformed).
+- The discovery pipeline now filters out candidates whose left/right/two-footed preference is not explicitly supported by the supplied source evidence.
+- The user should test the original requirement again in STAGING. Exact-age verification still requires a full date of birth; birth-year-only sources are reported with that limitation.
+- STAGING only; auto-deploy disabled. Production/main and PFMS/PFSS untouched. PR #47 remains Draft/open/unmerged.
