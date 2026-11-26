@@ -65,6 +65,23 @@ test('one rights-cleared source can persist only an inactive foundation candidat
   assert.ok(result.record.sources[0].attribution);
 });
 
+test('one-source candidates cannot be promoted to active knowledge',async()=>{
+  const url='https://assets.openstax.org/oscms-prodcms/media/documents/College-Algebra-2e-WEB.pdf';
+  const rights=getMessinhoVerifiedSourceRightsForUrl(url);
+  const row={
+    id:'candidate-1',domain:'mathematics',knowledge_status:'candidate',
+    parent_concept_key:null,prerequisites:[],
+    sources:[{source_id:rights.source_id,url}],
+    claims:[{text:'Linear equation concept',source_urls:[url]}],
+    rights:{status:'verified_permitted',ai_tdm:true,commercial_use:true,derivative_use:true,source_rights:[rights]}
+  };
+  const query={select(){return this;},eq(){return this;},async maybeSingle(){return {data:row,error:null};}};
+  const db={from(){return query;}};
+  const result=await reviewMessinhoKnowledgeConcept(db,{concept_id:'candidate-1',decision:'approve',reason:'Review the evidence before activation',reviewer_id:'admin-1'});
+  assert.equal(result.reviewed,false);
+  assert.equal(result.reason,'candidate_rights_or_corroboration_incomplete');
+});
+
 test('knowledge graph does not persist or retrieve without a database',async()=>{
   assert.deepEqual(await storeMessinhoKnowledgeConcept(null,draft),{persisted:false,reason:'storage_unavailable'});
   assert.deepEqual(await findMessinhoKnowledgeConcepts(null,'Bayes theorem'),{status:'unavailable',items:[]});
