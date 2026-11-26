@@ -1842,9 +1842,9 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const lastHistoryItem=history.at(-1);
     const pendingVo2AssistantPrompt=lastHistoryItem?.role==='assistant'&&lastHistoryItem.text.includes('Für eine konkrete Einordnung eines Spielers brauche ich');
     const priorVo2UserQuestion=[...history].reverse().find(item=>item.role==='user'&&getMessinhoCanonicalConceptKey(item.text)==='sports_science.physiology.vo2max');
-    const continuingVo2Application=Boolean(!currentCanonicalConceptKey&&pendingVo2AssistantPrompt&&priorVo2UserQuestion&&isMessinhoVo2maxApplicationDataReply(interpretedMessage));
+    const knowledgeApplicationQuestion=buildMessinhoVo2maxApplicationQuery(priorVo2UserQuestion?.text,interpretedMessage,lastHistoryItem?.text);
+    const continuingVo2Application=Boolean(!currentCanonicalConceptKey&&pendingVo2AssistantPrompt&&knowledgeApplicationQuestion);
     const canonicalConceptKey=currentCanonicalConceptKey||(continuingVo2Application?'sports_science.physiology.vo2max':null);
-    const knowledgeApplicationQuestion=continuingVo2Application?priorVo2UserQuestion.text+' '+interpretedMessage:interpretedMessage;
     if(canonicalConceptKey){
       const canonicalResult=await findMessinhoKnowledgeConcepts(db,knowledgeApplicationQuestion,{limit:8});
       const canonicalItems=(canonicalResult.items||[]).filter(item=>item.concept_key===canonicalConceptKey);
