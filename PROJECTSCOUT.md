@@ -2097,3 +2097,16 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Added regression tests for nationality-vs-location separation, alias matching, and multi-league alternatives.
 - Initial build attempts exposed an outdated regression expectation that treated the adjective “deutsch” as a Germany location filter. The intended behavior is to keep nationality and location separate; the test now asserts that distinction. The failed attempts did not replace the previously live STAGING deployment.
 - Release gate: latest branch tip must pass the complete Node suite, backend syntax checks and Vite build before the next manual STAGING deploy. Production/main and PFMS/PFSS remain untouched; auto-deploy stays disabled; PR #47 stays Draft/open/unmerged.
+
+
+## 2026-11-26 – Time-sensitive research freshness gate
+
+- Added explicit detection of time-sensitive general questions (e.g. aktuell, heute, derzeit, neueste, live, 2026).
+- For time-sensitive questions, the evidence gate now requires at least two substantial sources from two independent domains with explicit publication dates no older than 90 days.
+- Old, undated or otherwise insufficient current sources are returned as insufficient evidence. MESSINHO does not ask the synthesis model to turn stale results into a current answer.
+- Stable knowledge questions retain the existing cross-domain evidence requirement without an unnecessary 90-day freshness constraint.
+- Freshness metadata is exposed in the evidence assessment: fresh/stale/undated counts, independent fresh domains, freshness status and limitations.
+- Because owner-scoped knowledge memory already requires evidence.can_answer=true and passed quality control, stale current-event results are automatically excluded from persistent memory.
+- Added unit and integration tests for current source thresholds, stale/undated source rejection, stable knowledge behavior, and early return before synthesis.
+- No schema migration. No prompts, agent capabilities or model weights are automatically changed by this evidence gate.
+- Release pending full test/syntax/build gate and manual STAGING deploy. Production remains untouched; Render auto-deploy remains disabled; PR #47 remains Draft/open/unmerged.
