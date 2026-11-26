@@ -1049,3 +1049,14 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - Corrected intent detection to avoid intercepting explicit scouting/work requests.
 - Latest code head: `dd545fbc35d97ce4eeb06a84384e31a57f75fcaf`.
 - Tests were expanded, but automated Node/syntax/build results for this exact head have not yet been returned by GitHub Actions. Staging deployment is therefore pending verification; do not claim live yet.
+
+### Verification update — 2026-11-26
+
+- Fixed a flaky case-sensitive assertion in `tests/messinho-conversation.test.js`; the social reply pool legitimately contains “Immer gern!” and the assertion now accepts case variants.
+- Exact code commit `8d28ec5df4e06855279f04b6264ff0059091335c` passed:
+  - MESSINHO Node tests — run 45754963679
+  - MESSINHO backend syntax (including `node --check backend/server.js` and `npm test`) — run 45754963508
+  - ASI quality checks / frontend build — run 45754963515
+  - MESSINHO validation — run 45754963454
+  - Staging health smoke — run 45754963477
+- All five checks are green. Manual Staging deployment is the next step; verify exact deployed SHA before announcing LIVE.
