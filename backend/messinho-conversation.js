@@ -154,7 +154,7 @@ export function buildMessinhoKnowledgeApplicationFollowUp(question, { conceptKey
   if (conceptKey !== 'sports_science.physiology.vo2max') return null;
   const text = normalizeSocialText(question);
   if (!text || text.length > 1200) return null;
-  const asksApplication = /\\b(nutzen|anwenden|anwend|einordnen|interpretieren|leistungsbewertung|bewerten|beurteilen|einschaetzen|einschätzen|ausdauerleistungsfaehigkeit|ausdauerleistungsfähigkeit|welche informationen|welche daten|was benoetigst|was benötigst|was brauche ich|zusaetzlich|zusätzlich)\\b/.test(text);
+  const asksApplication = /\\b(nutzen|anwenden|anwend|ordne|einordnen|interpretieren|leistungsbewertung|bewerten|beurteilen|einschaetzen|einschätzen|ausdauerleistungsfaehigkeit|ausdauerleistungsfähigkeit|welche informationen|welche daten|was benoetigst|was benötigst|was brauche ich|zusaetzlich|zusätzlich)\\b/.test(text);
   if (!asksApplication) return null;
 
   const raw = String(question || '');
