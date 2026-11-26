@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 
 const STATUSES = new Set(['submitted','reviewing','ready_for_staging','integrating','integration_failed','integrated','deleted']);
 const MAX_DIFF = 24000;
-const cleanText = (value, max=1600) => String(value ?? '').replace(/[\\u0000-\\u001f\\u007f]/g,' ').replace(/\\s+/g,' ').trim().slice(0,max);
+const cleanText = (value, max=1600) => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
 const isObject = value => value && typeof value === 'object' && !Array.isArray(value);
 
 export function normalizeMyKiTicketProposal(input={}) {
@@ -22,7 +22,7 @@ export function normalizeMyKiTicketProposal(input={}) {
   const candidateId=cleanText(input.candidate_id,100);
   if(!title||!explanation||!rationale||!diff.trim()||diff.length>MAX_DIFF||!files.length||!tests.length||!rollback||!baselineId||!candidateId)
     return {ok:false,error:'Der Vorschlag ist unvollständig oder überschreitet die zulässige Größe.'};
-  if(files.some(path=>path.startsWith('/')||path.includes('..')||path.includes('\\')||/^(supabase\\/migrations|\\.github|infra|deploy)(\\/|$)/i.test(path)||/\\.(sql|env|pem|key|crt)$/i.test(path)))
+  if(files.some(path=>path.startsWith('/')||path.includes('..')||path.includes('\\')||/^(supabase\/migrations|\.github|infra|deploy)(\/|$)/i.test(path)||/\.(sql|env|pem|key|crt)$/i.test(path)))
     return {ok:false,error:'Der Vorschlag enthält einen geschützten oder nicht zulässigen Dateipfad.'};
   if(/(?:OPENAI_API_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|JWT_SECRET|BEGIN (?:RSA|OPENSSH|EC) PRIVATE KEY)/i.test(diff))
     return {ok:false,error:'Der Vorschlag enthält möglicherweise geheime Zugangsdaten.'};
