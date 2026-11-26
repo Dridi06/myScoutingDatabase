@@ -1020,3 +1020,24 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - Render Staging deploy `dep-dc3r306c6qcc73blp3a0` reached status `live` at 2026-11-26 04:12:17 UTC on exact commit `e8c50cd`.
 - Production untouched. Open PR #47 remains draft/unmerged.
 - Remaining validation: authenticated UI test “Hallo” → greeting; “Wie geht’s?” → natural reply; quota-exhausted discovery → clear user-facing explanation. Full autonomous scouting remains blocked until OpenAI API quota is replenished.
+
+---
+
+## 2026-11-26 — Expand MESSINHO into a natural everyday conversation agent
+
+- **Source:** User-uploaded Word specification (4 pages), fully reviewed.
+- **Requirements extracted:** intent recognition for greeting, how-are-you, thanks, goodbye, apology, coffee/breaks, weekend/football small talk, and bot identity; varied response pools; time/day-aware wording; avoid immediate repeated replies; route normal scouting work to the existing scouting agent.
+- **Implemented on candidate branch:**
+  - Replaced the small fixed greeting shortcuts with a modular social intent engine in `backend/messinho-conversation.js`.
+  - Added all eight intent groups from the document and natural German variants/normalization.
+  - Added time-of-day greeting and weekday-aware weekend/football phrasing.
+  - Added recent assistant-history awareness to avoid repeating the same reply in the current conversation.
+  - Protected scouting/work requests from social interception so normal player searches and analysis continue through the existing MESSINHO/ASI path.
+  - Bot identity answers explicitly state that MESSINHO is an AI; no false human identity.
+  - Connected the engine to the existing authenticated `/api/agent/chat` route; no separate chat or new UI.
+  - Expanded tests in `tests/messinho-conversation.test.js` to cover all intents, repetition avoidance, work routing and provider error classification.
+- **Files:** `backend/messinho-conversation.js`, `backend/server.js`, `tests/messinho-conversation.test.js`.
+- **Current head:** `1d132747ada1f1fef1091a1147e935839eeaf2b1`.
+- **Staging health smoke:** passed (run `45754793292`). Full test/syntax/build CI for this exact commit is still to be confirmed.
+- **Release boundary:** not yet deployed. Production untouched. PR #47 remains draft/unmerged.
+- **Next:** verify all CI checks; fix any failures; then manually deploy only to the Staging Render service and verify the exact deployed commit. Authenticated in-app tests still required.
