@@ -619,3 +619,44 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - **Live-Start:** Build erfolgreich, `node backend/server.js` gestartet, API meldete Listening auf Port 10000; Render meldete Service live.
 - **Datenbank:** Keine Migration und keine Änderung an Spieler-, Nutzer-, Scout- oder Lerndaten.
 - **Nächster Schritt:** Laufzeitübersicht und MESSINHO-Admin-Diagnose gegen Live-API prüfen; danach die 29 generischen Fallbacks einzeln nach Datenvertrag, Berechtigung, Fachlogik, Persistenz und Tests aufarbeiten. Die 71 als Speziallogik markierten Fähigkeiten sind damit nicht automatisch vollständig end-to-end verifiziert.
+
+
+## 18. Session checkpoint — 2026-11-26 — Fortsetzungspunkt nach Runtime-Coverage-Livegang
+
+### Verifizierter Repository- und Live-Stand
+- Repository: `Dridi06/myScoutingDatabase`, Branch `main`.
+- Main-HEAD bei Checkpoint-Erstellung: `62d3e7e13141fa6ede0d38dc60d87e6d2aa9d0c6`.
+- Letzte produktive Implementierung: `817a9571755fc9a87729cf8bfc85ea95a9af1f63`.
+- Letztes Render-Produktionsdeployment: `dep-dc3o48u0tbcc73c4d83g`, Commit `62d3e7e13141fa6ede0d38dc60d87e6d2aa9d0c6`, Status bei letzter Abfrage `live`.
+- Supabase-Projekt bleibt `vxtybjaabtfhxfwctnyj`; in dieser Session wurden keine Datenbankänderungen vorgenommen.
+- Die Aktualisierung dieses Checkpoints ist eine Dokumentationsänderung; Render kann dafür einen neuen Dokumentations-Deploy starten. Dessen Status muss separat geprüft werden.
+
+### Inhaltlicher Stand MESSINHO
+- MESSINHO arbeitet als autonomer interner Agent über den bestehenden Chat. Es gibt keine manuelle Funktionsauswahl und keine zweite Chat-Oberfläche.
+- Runtime-Diagnostik unterscheidet 100 Dispatch-Einträge, 71 Einträge mit expliziter Speziallogik und 29 generische Fallbacks.
+- `seasonal_learning` ist dem Lern-Handler zugeordnet und vergleicht mindestens zwei Saisons mit vorhandenen Messwerten; keine Trainings- oder Modellgewichtsänderung.
+- Admin-Diagnostik stellt Dispatch, Speziallogik und Fallback getrennt dar.
+- Node-CI wurde eingerichtet; der verifizierte Testlauf `45731353854` endete erfolgreich mit 98 bestandenen und 0 fehlgeschlagenen Tests.
+- Die Zahlen 71/29 sind Klassifizierungen auf Codeebene, keine Aussage über 71 vollständig end-to-end geprüfte Fähigkeiten. End-to-End-Verifikation aller Fähigkeiten ist weiterhin offen.
+
+### Nächste konkrete Arbeitsschritte
+1. Live-API und Admin-Diagnose gegen die laufende Produktionsversion prüfen; Diagnoseantwort auf erwartete Felder und Werte kontrollieren, ohne Nutzer-/Spielerdaten zu verändern.
+2. Runtime-Verträge der 29 generischen Fallbacks aus dem Katalog erfassen: benötigte Eingaben, Datenquellen, Berechtigungen, erwartete Ausgabe, Fehlerfälle.
+3. Fallbacks einzeln nach fachlichem Nutzen priorisieren und echte Speziallogik implementieren; keine generische Funktion als Spezialfähigkeit deklarieren.
+4. Pro Fähigkeit Tests für gültige Daten, fehlende Daten, fehlerhafte Daten, Berechtigungen und Nicht-Manipulation von Modellen/Nutzerdaten ergänzen.
+5. Danach den autonomen Planner über die bisherigen sechs Intent-Bereiche hinaus systematisch erweitern; Multi-Intent-Planung, Ausführungsrechte, Nachweise, Abbruch und Re-Planung berücksichtigen.
+6. Gesprächsqualität und Kontext über alle Chatpfade hinweg verbessern; OpenAI bleibt optional, nicht Voraussetzung für die Kernfunktionalität.
+7. Nach jedem sinnvollen Implementierungsschritt PROJECTSCOUT aktualisieren, Commit/CI/Render getrennt verifizieren und keine Live-Erfolgsmeldung ohne tatsächlichen Statusbeleg geben.
+
+### Sicherheits- und Änderungsgrenzen
+- Ausschließlich `myScoutingDatabase` bearbeiten. PFMS/PFSS und deren Deployments/Datenbanken bleiben unberührt.
+- Keine Schema-, Nutzer-, Spieler-, Scout- oder Lerndatenänderung ohne gesonderten Grund und sichere Prüfung.
+- Keine Modellgewichtsänderung oder selbstständiges Training durch saisonale Auswertung.
+- Kritische Aktionen, externe Kontaktaufnahme und irreversible Änderungen benötigen Rechte und/oder ausdrückliche Freigabe.
+- Keine Aussage „vollständig implementiert“ allein aufgrund einer Katalogregistrierung oder eines erfolgreichen Builds.
+
+### Status zum Sitzungsende
+- Runtime-Coverage-Korrektur: in `main` integriert und produktiv live.
+- Tests: 98/98 im verifizierten CI-Lauf bestanden.
+- Browser-/manueller End-to-End-Test der Benutzeroberfläche und aller 100 Fähigkeiten: nicht durchgeführt.
+- Nächster Startpunkt: Schritt 1 — Live-API/Admin-Diagnose prüfen, danach Fallback-Verträge systematisch aufarbeiten.
