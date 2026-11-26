@@ -1428,6 +1428,13 @@ async function loadMessinhoCapabilityContext({player,players,plan,actor}){
     review_status:row.review_status||'pending',legal_review_status:row.legal_review_status||'pending',
     license_id:row.license_id||null,metadata:row.metadata||{}
   }));
+  if(!context.sources.length&&Array.isArray(player?.sources)){
+    context.sources=player.sources.filter(source=>source&&typeof source==='object').slice(0,100).map(source=>({
+      title:source.title||source.name||null,url:source.url||source.source_url||null,
+      publisher:source.publisher||source.domain||null,content:source.snippet||source.content||'',
+      verification_status:'unverified',identity_status:'unknown',review_status:'pending'
+    })).filter(source=>source.url);
+  }
   context.claims=trustedEvidence.map(row=>({
     claim:row.claim_text||row.claim_title||null,source_url:row.source_url,
     verified:true,verification_status:'verified',verified_by:row.reviewed_by,
@@ -1617,7 +1624,6 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         const roster=rosterResult.data||[],candidatePool=candidateResult.data||[];
         const seen=new Set(players.map(item=>String(item.player_id||item.id)));
         players=[...players,...roster.filter(item=>!seen.has(String(item.player_id||item.id))),...candidatePool.filter(item=>!seen.has(String(item.player_id||item.id)))];
-        if(!player&&automaticPlan.steps.some(id=>MESSINHO_PLAYER_CAPABILITIES.has(id)))player=roster[0]||candidatePool[0]||null;
       }
       const requiresNamedPlayer=automaticPlan.steps.some(id=>MESSINHO_PLAYER_CAPABILITIES.has(id));
       if(!player&&!requiresNamedPlayer){
