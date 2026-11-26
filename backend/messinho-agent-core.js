@@ -17,7 +17,7 @@ export function validateMessinhoAgentRun(plan,run) {
  const missingResults=expected.filter(id=>!ids.includes(id));
  const malformed=results.filter(item=>!item||typeof item!=='object'||typeof item.capability_id!=='string');
  const missingProvenance=results.filter(item=>!['denied','invalid_input','unknown_capability'].includes(item?.status)&&(!item?.provenance||item.provenance.capability_id!==item.capability_id)).map(item=>item?.capability_id||'unknown');
- return {valid:duplicates.length===0&&unknownStatuses.length===0&&malformed.length===0&&missingProvenance.length===0,
+ return {valid:duplicates.length===0&&unknownStatuses.length===0&&malformed.length===0&&missingProvenance.length===0&&missingResults.length===0,
    expected_steps:expected.length,returned_steps:results.length,duplicate_capabilities:[...new Set(duplicates)],
    unknown_status_capabilities:unknownStatuses,missing_provenance_capabilities:missingProvenance,missing_results:missingResults,
    missing_inputs:[...new Set(results.flatMap(item=>Array.isArray(item?.missing_inputs)?item.missing_inputs:[]))],
