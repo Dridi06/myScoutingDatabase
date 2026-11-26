@@ -871,3 +871,19 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - Execution traces persist compact provenance; resumable task checkpoints retain bounded provenance and prior results as untrusted context.
 - No external source is labelled verified merely because it is HTTPS or present in a request. Dedicated verification remains required.
 - **Verification:** Both CI workflows passed on `84bf7c658e4eb207b0740ff8d50dbffd2a94a5a2`; Node tests and frontend build succeeded.
+
+
+### Live progress streaming and per-step recovery — 2026-11-26
+- Converted the capability orchestrator and agent lifecycle to awaited asynchronous execution so each completed capability can be checkpointed before the next step begins.
+- The authenticated chat route creates an owner-scoped task before execution, updates its compact result history and pending step list after each capability, and finalizes the task only after validation.
+- If execution is interrupted, the task remains recoverable. Expired two-minute execution leases are reset to `partial` on the next task-list request; a resume uses an atomic claim to prevent concurrent execution.
+- Added optional Server-Sent Events to the existing chat endpoint. The UI receives start, per-step progress and completion events, while ordinary clarification/small-talk responses retain JSON compatibility.
+- If the client stream disconnects, the backend continues to checkpoint while the process remains alive; if the process stops, the last completed checkpoint remains available after lease expiry.
+- **Verification:** both GitHub Actions workflows passed Node tests and frontend build on source commit `9009f8d0c5a73c87f0b1d95872ea04e58dc63e8b`. The current branch head is `f3da1dc8c0f036b4cc791997a81021489f14be91`; the last commit adds only explicit least-privilege grants and RLS refinements to the migration.
+
+### Staging database boundary
+- Supabase project discovery returned one project named `myScoutingDatabase` and no separate `myScoutingDatabase-staging` project. The other available test project belongs to the separate PFFS/PFMS work and must not be reused.
+- Therefore `20261126_messinho_agent_task_ledger.sql` is committed but **not applied**. Applying it to the only myScoutingDatabase project could alter production, which is expressly out of scope.
+- Migration now enables RLS, grants owner-only authenticated read policy as defense in depth, revokes direct `anon`/`authenticated` table access, and grants CRUD only to backend `service_role`. This follows Supabase's 2026 Data API guidance that new public tables are not automatically exposed and require explicit grants.
+- Render staging remains configured with auto-deploy disabled. No Render deployment or production change has been made.
+- **Required before staging end-to-end test:** provide or create a dedicated myScoutingDatabase staging Supabase project and configure its credentials only in the staging Render service; then apply the migration to that staging project and verify the task list/resume flow.
