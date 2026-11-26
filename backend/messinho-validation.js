@@ -29,6 +29,7 @@ const POSITION_ALIASES = {
   striker: ['mittelstürmer', 'stürmer', 'striker', 'centre forward', 'center forward', 'cf', 'st'],
   defensive_midfielder: ['defensiver mittelfeldspieler', 'defensives mittelfeld', 'defensive midfielder', 'holding midfielder', 'dm', 'cdm', 'zdm'],
   central_midfielder: ['zentraler mittelfeldspieler', 'zentrales mittelfeld', 'central midfielder', 'cm', 'zm'],
+  midfielder: ['mittelfeldspieler', 'mittelfeld', 'midfielder', 'midfield'],
   attacking_midfielder: ['offensiver mittelfeldspieler', 'offensives mittelfeld', 'attacking midfielder', 'am', 'cam', 'om'],
   winger: ['flügelspieler', 'winger', 'left winger', 'right winger', 'lw', 'rw', 'lf', 'rf']
 };
@@ -54,6 +55,13 @@ export function matchesPosition(requested, positions) {
   const accepted = requestedGroup ? POSITION_ALIASES[requestedGroup] : [requested];
   const values = (Array.isArray(positions) ? positions : [positions])
     .filter(value => typeof value === 'string').map(normalize);
+  if (requestedGroup === 'midfielder') {
+    const midfieldGroups = ['defensive_midfielder','central_midfielder','attacking_midfielder'];
+    return values.some(value => midfieldGroups.some(group => POSITION_ALIASES[group].some(alias => {
+      const needle=normalize(alias);
+      return value===needle || (' '+value+' ').includes(' '+needle+' ');
+    })) || /\\b(mittelfeld|midfield)\\b/.test(value));
+  }
   return accepted.some(alias => {
     const needle = normalize(alias);
     return values.some(value => value === needle || (' ' + value + ' ').includes(' ' + needle + ' '));
@@ -83,6 +91,8 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
     .map(match => Number(match[1])).filter(year => year >= 1990 && year <= currentYear);
   const yearFrom = yearMatches.length ? Math.min(...yearMatches) : null;
   const yearTo = yearMatches.length ? Math.max(...yearMatches) : null;
+  const ageGroupMatch = context.match(/\\bU\\s*([1-2]\\d)\\b/i);
+  const ageGroup = ageGroupMatch ? `U${Number(ageGroupMatch[1])}` : null;
 
   const positionPattern = /\b(linker\s+verteidiger|linksverteidiger|left[- ]back|left fullback|lv|lb|rechter\s+verteidiger|rechtsverteidiger|right[- ]back|right fullback|rv|rb|innenverteidiger|center[- ]back|centre[- ]back|iv|cb|mittelstürmer|stürmer|striker|torwart|goalkeeper|keeper|tw|gk|zentraler?\s+mittelfeldspieler|defensives?\s+mittelfeld|zdm|cdm|zm|cm|om|cam|flügelspieler|winger|lw|rw|lf|rf)\b/i;
   const positionMatch = context.match(positionPattern);
@@ -105,17 +115,19 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
   const quantity = quantityMatch ? Math.max(1, Math.min(15, Number(quantityMatch[1]))) : 10;
 
   const scoutingIntent = /\b(benötige|brauche|suche|such|finde|scoute|recherchiere|spieler|talent|kandidaten|scouting)\b/i.test(latest);
-  const hasCriteria = !!(yearFrom || position || region);
+  const hasCriteria = !!(yearFrom || ageGroup || position || region);
   const shouldHandle = pending || (scoutingIntent && (hasCriteria || !!quantityMatch));
   const missing = [];
   if (shouldHandle) {
-    if (!yearFrom) missing.push('Geburtsjahrgang');
+    if (!yearFrom && !ageGroup) missing.push('Geburtsjahrgang oder Altersklasse');
     if (!position) missing.push('Position');
     if (!region) missing.push('Land bzw. Liga-Standort');
   }
-  const needsTargetLevel = shouldHandle && missing.length === 0 && !targetLevel;
+  // A target league is optional context, not a mandatory clarification. Broad scouting
+  // requests such as 'leistungsorientierter Vereinsfußball' must proceed autonomously.
+  const needsTargetLevel = false;
   return {
     shouldHandle, missing, needsTargetLevel,
-    request: { quantity, yearFrom, yearTo, position, region, targetLevel }
+    request: { quantity, yearFrom, yearTo, ageGroup, position, region, targetLevel }
   };
 }
