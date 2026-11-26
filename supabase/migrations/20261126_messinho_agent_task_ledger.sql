@@ -30,7 +30,13 @@ alter table public.messinho_agent_tasks enable row level security;
 drop policy if exists "messinho_agent_tasks_select_own" on public.messinho_agent_tasks;
 create policy "messinho_agent_tasks_select_own"
   on public.messinho_agent_tasks for select
-  using (auth.uid() = owner_id);
+  to authenticated
+  using ((select auth.uid()) = owner_id);
+
+-- This table is server-only. Explicit grants are required on newer projects
+-- where newly created public tables are no longer automatically exposed.
+revoke all on table public.messinho_agent_tasks from anon, authenticated;
+grant select, insert, update, delete on table public.messinho_agent_tasks to service_role;
 
 -- Server-side service-role access performs inserts and updates.
 -- No client-side write policy is granted.
