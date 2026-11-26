@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {isMessinhoGeneralResearchQuestion,normalizeMessinhoGeneralSources,assessMessinhoGeneralEvidence,researchMessinhoGeneralQuestion} from '../backend/messinho-general-research.js';
+import {isMessinhoGeneralResearchQuestion,normalizeMessinhoGeneralSources,assessMessinhoGeneralEvidence,isMessinhoGeneralClaimSupported,researchMessinhoGeneralQuestion} from '../backend/messinho-general-research.js';
 
 test('detects open knowledge questions but leaves greetings and scouting commands alone',()=>{
  assert.equal(isMessinhoGeneralResearchQuestion('Warum ist der Himmel blau?'),true);
@@ -47,4 +47,10 @@ test('does not call search for non-research messages',async()=>{
  const result=await researchMessinhoGeneralQuestion('Hallo MESSINHO',{TAVILY_API_KEY:'test'},async()=>{called=true;});
  assert.equal(result.status,'not_applicable');
  assert.equal(called,false);
+});
+
+test('rejects generated claims that do not overlap the cited source excerpt',()=>{
+ const sources=[{title:'Atmospheric scattering',snippet:'Blue light is scattered more strongly by atmospheric molecules because it has a shorter wavelength.'}];
+ assert.equal(isMessinhoGeneralClaimSupported('Blue light is scattered more strongly by atmospheric molecules.',sources),true);
+ assert.equal(isMessinhoGeneralClaimSupported('The moon is made of cheese and contains many minerals.',sources),false);
 });
