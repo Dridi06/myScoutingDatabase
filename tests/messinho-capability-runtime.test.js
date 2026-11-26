@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getMessinhoCapabilityCatalog } from '../backend/messinho-capabilities.js';
+import { getMessinhoCapabilityCatalog, getMessinhoCapabilitySummary } from '../backend/messinho-capabilities.js';
 import { executeMessinhoCapability, getMessinhoRuntimeSummary, listExecutableMessinhoCapabilities } from '../backend/messinho-capability-runtime.js';
 
 test('all 100 catalogue functions have unique executable runtime handlers',()=>{
@@ -136,4 +136,12 @@ test('the six learning handlers execute their existing verified-data logic witho
  assert.equal(breakthrough.result.breakthrough_count,1);
  assert.equal(breakthrough.result.training_performed,false);
  assert.equal(breakthrough.result.model_weights_changed,false);
+});
+
+test('capability catalogue does not report existing specialist handlers as requiring new integration',()=>{
+ const summary=getMessinhoCapabilitySummary();
+ assert.equal(summary.total,100);
+ assert.equal(summary.by_status.implemented_existing_core,27);
+ assert.equal(summary.by_status.partial_or_requires_validation,73);
+ assert.equal(summary.by_status.requires_new_integration,0);
 });
