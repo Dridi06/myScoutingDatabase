@@ -88,7 +88,7 @@ test('verified structured contract snapshots power contract expiry analysis',()=
 
 test('unverified structured contract snapshots are surfaced for review, never treated as verified',()=>{
  const out=executeMessinhoCapability('contract_research',{
-   contract_records:[{contract_end:'2026-08-01',verification_status:'pending',source_url:'https://club.example/contract'}]
+   contract_records:[{contract_end:'2026-08-01',verification_status:'unconfirmed',source_url:'https://club.example/contract'}]
  });
  assert.equal(out.status,'needs_review');
  assert.equal(out.result.unverified_contract_records,1);
