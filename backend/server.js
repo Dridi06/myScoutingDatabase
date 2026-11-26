@@ -12,7 +12,7 @@ import { rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFoll
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
-import { buildMessinhoCapabilityContext } from './messinho-data-context.js';
+import { loadMessinhoCapabilityContext, messinhoNeeds, MESSINHO_PLAYER_CAPABILITIES, MESSINHO_ROSTER_CAPABILITIES, MESSINHO_EVIDENCE_CAPABILITIES } from './messinho-data-loader.js';
 import { getMessinhoCapabilitySummary } from './messinho-capabilities.js';
 import { executeMessinhoCapability, listExecutableMessinhoCapabilities, getMessinhoRuntimeSummary } from './messinho-capability-runtime.js';
 import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainableAssessment, generateMessinhoHypotheses } from './messinho-development.js';
@@ -1315,127 +1315,6 @@ app.post('/api/messinho/development/hypotheses',messinhoDevelopmentLimiter,async
 });
 
 
-const MESSINHO_PLAYER_CAPABILITIES=new Set([
- 'holistic_player_analysis','player_profile_synthesis','position_analysis','multi_position_analysis',
- 'play_style_detection','strength_weakness_analysis','potential_analysis','performance_development',
- 'form_curve_analysis','game_intelligence_analysis','tactical_behaviour_analysis','game_phase_analysis',
- 'duel_analysis','running_performance_analysis','speed_analysis','technical_detail_analysis',
- 'creativity_analysis','decision_quality_analysis','consistency_analysis','peer_comparison_analysis',
- 'age_relative_analysis','availability_history_analysis','minutes_analysis','video_event_analysis',
- 'anomaly_detection','overall_score','position_score','potential_score','talent_score','technical_score',
- 'tactical_score','athletic_score','mental_score','goalkeeper_score','development_score','consistency_score',
- 'league_fit_score','system_fit_score','coach_fit_score','club_fit_score','market_value_assessment',
- 'value_for_money','risk_score','development_projection','competition_comparison','transfer_priority',
- 'scout_rating_agreement','explainable_rating','identity_verification','birth_year_verification',
- 'position_verification','contract_research','contract_expiry_monitor','source_cross_check',
- 'rumour_verification','research_report_generation','statistics_research','video_source_research',
- 'match_report_research','player_data_refresh','comparable_player_research'
-]);
-const MESSINHO_ROSTER_CAPABILITIES=new Set([
- 'squad_research','club_need_research','club_research','automated_talent_search','hidden_gem_detection',
- 'underdog_detection','comparable_player_research','cross_league_research'
-]);
-const MESSINHO_HISTORY_CAPABILITIES=new Set([
- 'performance_development','form_curve_analysis','potential_analysis','potential_score','talent_score',
- 'development_score','consistency_score','consistency_analysis','seasonal_learning','talent_pathway_learning',
- 'breakthrough_learning','availability_history_analysis','minutes_analysis','anomaly_detection'
-]);
-const MESSINHO_EVIDENCE_CAPABILITIES=new Set([
- 'identity_verification','birth_year_verification','position_verification','source_cross_check',
- 'rumour_verification','research_report_generation','international_research','contract_research',
- 'contract_expiry_monitor','video_source_research','statistics_research','match_report_research','player_data_refresh'
-]);
-const MESSINHO_EVENT_CAPABILITIES=new Set([
- 'video_event_analysis','creativity_analysis','decision_quality_analysis','game_phase_analysis',
- 'tactical_behaviour_analysis','duel_analysis','match_report_research'
-]);
-const MESSINHO_LEARNING_CAPABILITIES=new Set([
- 'supervised_learning','position_specific_learning','scout_feedback_learning','prediction_audit',
- 'error_pattern_detection','weight_optimization','age_group_learning','league_learning','country_learning',
- 'talent_pathway_learning','false_positive_learning','breakthrough_learning','scout_accuracy_analysis',
- 'scout_calibration','model_benchmarking','regression_guard','dataset_quality_improvement',
- 'data_error_learning','position_change_learning','availability_outcome_learning','probability_calibration',
- 'seasonal_learning','verified_long_term_memory','model_versioning','controlled_self_optimization'
-]);
-function messinhoNeeds(plan,set){return (plan?.steps||[]).some(id=>set.has(id));}
-async function messinhoScopedRows(table,columns,playerId,actor,limit=250,orderBy='created_at'){
-  let query=db.from(table).select(columns).eq('player_id',playerId);
-  query=scopeMessinhoOwner(query,actor).limit(limit);
-  if(orderBy)query=query.order(orderBy,{ascending:true});
-  const {data,error}=await query;
-  if(error)throw new Error('MESSINHO context read failed for '+table+': '+error.message);
-  return data||[];
-}
-async function messinhoScopedOwnerRows(table,columns,actor,limit=2000,orderBy='created_at'){
-  let query=db.from(table).select(columns);
-  query=scopeMessinhoOwner(query,actor).limit(limit);
-  if(orderBy)query=query.order(orderBy,{ascending:false});
-  const {data,error}=await query;
-  if(error)throw new Error('MESSINHO owner-scoped read failed for '+table+': '+error.message);
-  return data||[];
-}
-async function loadMessinhoCapabilityContext({player,players,plan,actor}){
-  const context={player,players:Array.isArray(players)?players:[],candidates:Array.isArray(players)?players:[]};
-  const playerId=Number.isFinite(Number(player?.player_id))?Number(player.player_id):null;
-  const candidateId=player?.player_id?null:(player?.id||null);
-  const tasks={};
-  if(!playerId){
-    if(candidateId&&messinhoNeeds(plan,MESSINHO_EVIDENCE_CAPABILITIES)){
-      tasks.candidateEvidence=(async()=>{
-        let q=db.from('asi_candidate_evidence').select('id,provider,source_name,source_type,source_url,publisher,license_id,attribution,claim_type,claim_title,claim_text,evidence_excerpt,published_at,identity_status,identity_confidence,fact_confidence,verification_status,data_classification,legal_review_status,review_status,reviewed_by,reviewed_at,metadata,created_at').eq('candidate_id',candidateId);
-        q=scopeMessinhoOwner(q,actor).limit(200);
-        const {data,error}=await q.order('created_at',{ascending:true});
-        if(error)throw new Error('Candidate evidence read failed: '+error.message);
-        return data||[];
-      })();
-    }
-  }else{
-    if(messinhoNeeds(plan,MESSINHO_HISTORY_CAPABILITIES)||messinhoNeeds(plan,MESSINHO_EVENT_CAPABILITIES)){
-      tasks.observations=messinhoScopedRows('asi_player_observations','player_id,observed_on,ratings,observation,source_type,created_at',playerId,actor,300,'observed_on');
-    }
-    if(messinhoNeeds(plan,MESSINHO_EVENT_CAPABILITIES)){
-      tasks.events=messinhoScopedRows('asi_video_event_tags','player_id,match_date,competition,opponent,minute,event_type,zone,outcome,source_url,verification_status,notes,created_at,detection_confidence,detection_metadata',playerId,actor,500,'match_date');
-    }
-    if(messinhoNeeds(plan,MESSINHO_EVIDENCE_CAPABILITIES)||messinhoNeeds(plan,MESSINHO_LEARNING_CAPABILITIES)){
-      tasks.evidence=messinhoScopedRows('asi_external_evidence','id,source_id,claim_type,claim_title,claim_text,event_date,published_at,source_url,publisher,source_category,evidence_excerpt,identity_status,identity_confidence,fact_confidence,verification_status,data_classification,legal_review_status,review_status,reviewed_by,reviewed_at,last_verified_at,valid_until,metadata,created_at',playerId,actor,300,'published_at');
-    }
-    if((plan?.steps||[]).some(id=>id==='contract_research'||id==='contract_expiry_monitor')){
-      tasks.contracts=messinhoScopedRows('asi_contract_snapshots','id,evidence_id,contract_status,club_name,parent_club_name,contract_start,contract_end,option_type,option_details,effective_date,confidence,verification_status,source_url,source_checked_at,is_current,recorded_by,created_at',playerId,actor,100,'created_at');
-    }
-  }
-  if(messinhoNeeds(plan,MESSINHO_LEARNING_CAPABILITIES)){
-    tasks.calibration=messinhoScopedOwnerRows('asi_scout_calibration_records','player_id,scout_id,scout_rating,outcome_metric,verified_outcome,outcome_observed_on,outcome_source_url,verification_status,verified_by,verified_at,messinho_position_group,messinho_dimension_scores,created_at',actor,2000,'created_at');
-    tasks.predictions=messinhoScopedOwnerRows('asi_prediction_records','id,player_id,target_metric,prediction_horizon_days,predicted_value,probability,model_version,input_cutoff_at,status,explanation,created_at',actor,2000,'created_at');
-    tasks.playerDirectory=messinhoScopedOwnerRows('players','player_id,year,national_team_country,positions',actor,2000,'created_at');
-  }
-  const entries=await Promise.all(Object.entries(tasks).map(async([key,promise])=>[key,await promise]));
-  const loaded=Object.fromEntries(entries);
-  const predictionRecords=loaded.predictions||[];
-  const predictionIds=predictionRecords.map(row=>row.id);
-  let predictionOutcomes=[];
-  if(predictionIds.length){
-    let q=db.from('asi_prediction_outcomes').select('id,prediction_id,player_id,observed_metric,observed_value,observed_on,outcome_source,verification_status,verification_source_url,verified_by,verified_at,verification_reason').in('prediction_id',predictionIds);
-    q=scopeMessinhoOwner(q,actor);
-    const {data,error}=await q.limit(2000);
-    if(error)throw new Error('MESSINHO prediction outcome read failed: '+error.message);
-    predictionOutcomes=data||[];
-  }
-  const evidenceRows=[...(loaded.evidence||[]),...(loaded.candidateEvidence||[])];
-  const sourceIds=[...new Set(evidenceRows.map(row=>row.source_id).filter(Boolean))];
-  let sourceRegistry=[];
-  if(sourceIds.length){
-    const {data,error}=await db.from('asi_external_sources').select('id,license_status,permitted_purposes,source_type,source_name,metadata').in('id',sourceIds).limit(200);
-    if(error)throw new Error('MESSINHO source registry read failed: '+error.message);
-    sourceRegistry=data||[];
-  }
-  return buildMessinhoCapabilityContext({
-    player,players:Array.isArray(players)?players:[],observations:loaded.observations||[],
-    events:loaded.events||[],evidence:loaded.evidence||[],candidateEvidence:loaded.candidateEvidence||[],
-    contracts:loaded.contracts||[],calibration:loaded.calibration||[],playerDirectory:loaded.playerDirectory||[],
-    predictions:predictionRecords,predictionOutcomes,sourceRegistry,goal:plan?.goal||'',now:Date.now()
-  });
-}
-
 const agentChatLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:true,legacyHeaders:false,message:{error:'Messinho wurde in kurzer Zeit zu häufig angesprochen. Bitte später erneut versuchen.'}});
 app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
   try{
@@ -1585,7 +1464,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const activeModel=await getActiveMessinhoModel();
       let capabilityContext;
       try{
-        capabilityContext=await loadMessinhoCapabilityContext({player,players:players.length?players:[player],plan:automaticPlan,actor});
+        capabilityContext=await loadMessinhoCapabilityContext({db,player,players:players.length?players:[player],plan:automaticPlan,actor});
       }catch(error){
         console.error('MESSINHO contextual evidence loading failed:',error.message);
         return res.status(500).json({error:'Die zugehörigen Scouting-Daten konnten nicht vollständig und sicher geladen werden. Bitte versuche es erneut.'});
