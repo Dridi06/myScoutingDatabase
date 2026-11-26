@@ -12,34 +12,33 @@ jobs:
   source-probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe exact approved source endpoints
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Run real approved-source ingestion against publishers
         run: |
           node --input-type=module <<'NODE'
+          import { fetchMessinhoApprovedSource } from './backend/messinho-approved-source-ingestion.js';
           const sources = [
-            { id: 'plos_one_vo2max_prediction_2023', url: 'https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0280897&type=manuscript', accept: 'application/xml,text/xml;q=0.9', kind: 'xml' },
-            { id: 'pmc_cardiorespiratory_fitness_2022', url: 'https://www.ncbi.nlm.nih.gov/research/bionlp/RESTful/pmcoa.cgi/BioC_json/PMC11269081/unicode', accept: 'application/json', kind: 'json' }
+            ['plos_one_vo2max_prediction_2023', 'VO2max maximal oxygen uptake cardiorespiratory fitness'],
+            ['pmc_cardiorespiratory_fitness_2022', 'cardiorespiratory fitness maximal oxygen uptake']
           ];
           let failed = false;
-          for (const source of sources) {
-            try {
-              const response = await fetch(source.url, { headers: { accept: source.accept, 'user-agent': 'MESSINHO-approved-source-probe/1.0' }, redirect: 'manual', signal: AbortSignal.timeout(20000) });
-              const body = await response.text();
-              let detail = {};
-              if (source.kind === 'xml') {
-                detail = { location: response.headers.get('location'), bytes: Buffer.byteLength(body), abstract_count: (body.match(/<abstract\\b/gi) || []).length, paragraph_count: (body.match(/<p\\b/gi) || []).length, has_vo2max: /vo.?2.?max|oxygen uptake/i.test(body) };
-              } else {
-                let parsed;
-                try { parsed = JSON.parse(body); } catch {}
-                const docs = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.documents) ? parsed.documents : Array.isArray(parsed?.collection?.documents) ? parsed.collection.documents : [];
-                const passages = docs.flatMap(doc => Array.isArray(doc?.passages) ? doc.passages : []);
-                detail = { payload_type: Array.isArray(parsed) ? 'array' : typeof parsed, payload_keys: parsed && !Array.isArray(parsed) ? Object.keys(parsed).slice(0,20) : [], sample_keys: docs[0] ? Object.keys(docs[0]).slice(0,20) : [], bytes: Buffer.byteLength(body), json_valid: !!parsed, document_count: docs.length, passage_count: passages.length, has_vo2max: /oxygen uptake|maximal oxygen/i.test(passages.map(p => p.text || '').join(' ')) };
-              }
-              console.log(JSON.stringify({ id: source.id, status: response.status, ok: response.ok, redirected: response.status >= 300 && response.status < 400, content_type: response.headers.get('content-type'), final_url: response.url, ...detail }));
-              if (!response.ok || (source.kind === 'xml' ? !detail.paragraph_count : !detail.json_valid || !detail.passage_count)) failed = true;
-            } catch (error) {
-              console.log(JSON.stringify({ id: source.id, error: error.name + ': ' + error.message }));
-              failed = true;
-            }
+          for (const [source_id, topic] of sources) {
+            const result = await fetchMessinhoApprovedSource(source_id, { topic });
+            const summary = {
+              source_id,
+              status: result.status,
+              excerpt_count: result.excerpts?.length || 0,
+              sections: [...new Set((result.excerpts || []).map(item => item.source_section))],
+              publisher_host: result.source ? new URL(result.source.url).hostname : null,
+              storage_policy: result.storage_policy || null
+            };
+            console.log(JSON.stringify(summary));
+            if (result.status !== 'completed' || !result.excerpts?.length) failed = true;
           }
           if (failed) process.exitCode = 1;
           NODE
