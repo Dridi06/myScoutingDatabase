@@ -27,7 +27,7 @@ import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMe
 import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
 import { findMessinhoDomainKnowledge } from './messinho-domain-knowledge.js';
-import { findMessinhoKnowledgeConcepts, getMessinhoCanonicalConceptKey, reviewMessinhoKnowledgeConcept } from './messinho-knowledge-graph.js';
+import { findMessinhoKnowledgeConcepts, getMessinhoCanonicalConceptKey, formatMessinhoKnowledgeValue, reviewMessinhoKnowledgeConcept } from './messinho-knowledge-graph.js';
 import { learnMessinhoKnowledgeFromResearch } from './messinho-knowledge-learning.js';
 
 import { calculateMessinhoMathQuestion } from './messinho-math.js';
@@ -1846,10 +1846,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         const first=canonicalItems[0];
         const sections=canonicalItems.map(item=>[
           item.title+': '+item.definition,
-          item.applicability?.length?'Anwendung: '+item.applicability.join('; '):'',
-          item.formula?'Formel: '+item.formula:'',
-          item.limitations?.length?'Grenzen: '+item.limitations.join('; '):'',
-          item.prerequisites?.length?'Voraussetzungen: '+item.prerequisites.join('; '):''
+          formatMessinhoKnowledgeValue(item.applicability)?'Anwendung: '+formatMessinhoKnowledgeValue(item.applicability):'',
+          formatMessinhoKnowledgeValue(item.formula)?'Formel: '+formatMessinhoKnowledgeValue(item.formula):'',
+          formatMessinhoKnowledgeValue(item.limitations)?'Grenzen: '+formatMessinhoKnowledgeValue(item.limitations):'',
+          formatMessinhoKnowledgeValue(item.prerequisites)?'Voraussetzungen: '+formatMessinhoKnowledgeValue(item.prerequisites):''
         ].filter(Boolean).join('\n\n'));
         return respond({
           reply:'Ich habe das freigegebene Grundlagenwissen direkt aus meinem Wissensnetz abgerufen.\n\n'+sections.join('\n\n'),
