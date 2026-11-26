@@ -95,7 +95,7 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 
 - Candidate concept plus initial version snapshot is written through the transactional database function `messinho_create_knowledge_candidate`; the operation rolls back as one transaction if either insert fails.
 - Candidate records remain inactive. Only active concepts are available to normal knowledge retrieval.
-- Admin review uses `POST /api/messinho/knowledge/:id/review`; the backend verifies an authenticated, approved admin and rechecks the source allowlist, exact URL scopes, independent source domains, claim corroboration, active prerequisites and open conflicts before approval.
+- Admin review queue uses `GET /api/messinho/knowledge-concepts` (defaults to candidate records; supports status/domain/limit filters). Admin review uses `POST /api/messinho/knowledge/:id/review`; the backend verifies an authenticated, approved admin and rechecks the source allowlist, exact URL scopes, independent source domains, claim corroboration, active prerequisites and open conflicts before approval.
 - Approval/rejection/conflict decisions are written through `messinho_review_knowledge_concept`, which updates the concept, appends a version snapshot and records the reviewer decision atomically.
 - Competing source-backed proposals are retained in `messinho_knowledge_conflicts`; they are never silently overwritten. Admin-only routes list and decide open conflicts:
   - `GET /api/messinho/knowledge-conflicts`
