@@ -43,6 +43,7 @@ test('unapproved rights claims and URL scope escalation fail closed',()=>{
   assert.equal(isMessinhoRegisteredSourceUrl('unapproved',collegeAlgebra.evidence_url),false);
   assert.equal(isMessinhoRegisteredSourceUrl(collegeAlgebra.source_id,'http://assets.openstax.org/oscms-prodcms/media/documents/College-Algebra-2e-WEB.pdf'),false);
   assert.equal(isMessinhoRegisteredSourceUrl(collegeAlgebra.source_id,'https://example.com/College-Algebra-2e-WEB.pdf'),false);
+  assert.equal(isMessinhoRegisteredSourceUrl(collegeAlgebra.source_id,'https://openstax.org/books/college-algebra-2e/pages/preface'),false);
 });
 
 test('rights verification rejects incomplete attribution and licence evidence',()=>{
