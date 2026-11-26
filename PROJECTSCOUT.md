@@ -3094,3 +3094,39 @@ Eine externe Recherche ist kein Wissensimport. Ein Kandidat ist noch kein aktive
 - Exact probe result: HTTP **200**, `ok: true`; database **ok**, authentication **ready**, MESSINHO core **provider_independent**, external research **ready**, optional AI analysis **ready**.
 - The workflow commit is `6e4ccc871cda337d44db3a8392e729ac7d14b330`. All four GitHub checks for this branch commit completed successfully: staging health smoke, Node tests, backend syntax and staging branch CI.
 - This confirms service health and dependencies, not an authenticated chat conversation or knowledge-record reuse. The knowledge tables remain empty until the Admin starts and approves the VO2max pilot.
+
+
+## MESSINHO approved-source failure diagnosis and fix — 2026-11-26 20:06 UTC
+
+### User-visible defect
+- Admin asked the foundation question `Was ist VO₂max?`; MESSINHO returned `insufficient_approved_sources`.
+- This was a real ingestion integration defect, not a missing source-rights approval. The pipeline correctly failed closed and did not persist unverified knowledge.
+
+### Proven root causes from live publisher responses
+1. PLOS ONE JATS endpoint returned HTTP 302 with a time-limited signed redirect to the publisher's Cloudflare R2 article object. The ingestion client used `redirect: manual` but rejected all redirects, including this publisher-authorized article delivery.
+2. NCBI BioC JSON returned HTTP 200 and a valid payload, but the actual response root is an array of BioC collections. The parser only handled a single collection object / nested object and therefore extracted zero passages.
+
+### Code changes on the staging feature branch
+- `backend/messinho-approved-source-ingestion.js`: manually follows a bounded maximum of three HTTPS redirects; only the exact publisher host or source-specific allowlisted mirror host/path is accepted. For the PLOS mirror, the signed AWS query parameters must be present and the object path must match the exact DOI/article object. Cross-host/unapproved redirects still fail closed.
+- BioC extraction now normalizes the official array-of-collections response and flattens documents/passages while preserving section provenance.
+- `backend/messinho-rights-registry.js`: records the exact PLOS signed object-store redirect host and DOI-specific path. No broad wildcard host or arbitrary redirect was added.
+- `backend/server.js`: logs structured source failure statuses for Admin diagnosis and returns clear German user-facing explanations instead of exposing internal status codes in normal chat.
+- Tests added for official BioC collection arrays, signed PLOS object-store redirects, and rejection of unresolved/cross-host redirects.
+- Dedicated workflow `.github/workflows/messinho-approved-source-probe.yml` now runs the actual production ingestion module against both live publishers (not a simplified duplicate implementation).
+
+### Live source probe evidence
+GitHub Action run `45888336042` completed successfully on commit `685cbbc82836b56803c16f1ac3570eac989feaa6`:
+- PLOS ONE `plos_one_vo2max_prediction_2023`: completed; 8 compact excerpts extracted.
+- PMC `pmc_cardiorespiratory_fitness_2022`: completed; 6 compact excerpts extracted across ABSTRACT, INTRO, FIG and CONCL.
+- Both use `transient_excerpts_only`; full article texts are not stored.
+
+### Regression and deployment evidence
+- Commit `46c3537cfd5280c9459ef901f8aa1c4f4185d9d8`: Node tests passed; backend syntax passed; full Vite production build passed; STAGING health check HTTP 200 passed; actual approved-source probe passed on the preceding code commit `685cbbc...`.
+- Render STAGING deployment `dep-dc4926s9v7es73e7n8og` deployed commit `46c3537...` and reached status `live` at `2026-11-26T20:06:25Z`.
+- Dedicated STAGING service only; no production/main/PFMS/PFSS changes.
+
+### Remaining pilot gate (not yet completed)
+- The live source ingestion now works, but the actual Admin chat candidate creation, independent claim-corroboration, candidate persistence, Admin approval, and fresh-chat retrieval have not yet been executed.
+- Knowledge tables remain unpopulated until a real candidate is created and reviewed. Do not mark the first knowledge pilot passed based only on source retrieval.
+- Next action: sign in to STAGING as an existing approved Admin, ask `Was ist VO₂max?`, confirm candidate creation and two-source evidence, approve it in Admin review, then verify retrieval in a fresh chat without external research.
+- Preserve all role and organization boundaries; do not seed the database with synthetic test records.
