@@ -782,7 +782,7 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - Memory/trace migration: `2ec2349118893d1598ef76520d9b240272dce375`
 - Orchestrator tests: `907a124e692ad1cea45b500377679aaf94484281`
 - Chat route integration: `302bbb68da263f862e9330a75507d1efd9e3dedc`
-- Explicit player-context precedence fix: `PENDING`
+- Explicit player-context precedence fix: `69fa8cdc1e5cd257b72a70cd0366c751308cefbe`
 
 ### Verification and limitations
 - The code changes were committed to the staging branch only. No production code or deployment was changed.
