@@ -1387,7 +1387,7 @@ app.get('/api/admin/myki/tickets/:ticketId',myKiTicketLimiter,async(req,res)=>{
     if(!await requireMyKiTable(res))return;
     const {data,error}=await db.from('messinho_myki_tickets').select('*').eq('id',req.params.ticketId).maybeSingle();
     if(error||!data||data.status==='deleted')return res.status(404).json({error:'myKI-Ticket wurde nicht gefunden.'});
-    const {data:events,eventError}=await db.from('messinho_myki_ticket_events').select('actor_type,action,from_status,to_status,error_code,safe_message,created_at').eq('ticket_id',data.id).order('created_at',{ascending:true}).limit(100);
+    const {data:events,error:eventError}=await db.from('messinho_myki_ticket_events').select('actor_type,action,from_status,to_status,error_code,safe_message,created_at').eq('ticket_id',data.id).order('created_at',{ascending:true}).limit(100);
     if(eventError)console.warn('myKI event history unavailable:',eventError.code||eventError.message);
     return res.json({ok:true,ticket:data,events:events||[]});
   }catch(error){console.error('myKI ticket detail failed:',error.message);return res.status(500).json({error:'myKI-Ticket konnte nicht geladen werden.'});}
