@@ -59,9 +59,9 @@ function extractBioCParagraphs(payload){
   .filter(p=>p.text.length>=80));
 }
 
-export async function fetchMessinhoApprovedSource(sourceId,{topic='',fetchImpl=globalThis.fetch,maxChars=7000}={}){
+export async function fetchMessinhoApprovedSource(sourceId,{topic='',fetchImpl=globalThis.fetch,maxChars=7000,now=new Date()}={}){
  const rights=getMessinhoVerifiedSourceRightsById(sourceId);
- if(!rights||!verifyMessinhoSourceRights({...rights,status:'verified_permitted',ai_tdm:true,commercial_use:true,derivative_use:true}))
+ if(!rights||!verifyMessinhoSourceRights({...rights,status:'verified_permitted',ai_tdm:true,commercial_use:true,derivative_use:true},now))
   return {status:'source_not_approved',source_id:sourceId||null,excerpts:[]};
  if(typeof fetchImpl!=='function')return {status:'fetch_unavailable',source_id:sourceId,excerpts:[]};
  const allowedMethods=new Set(['plos_jats_xml','pmc_bioc_json','libretexts_html','austin_html']);
@@ -100,7 +100,7 @@ export async function fetchMessinhoApprovedSource(sourceId,{topic='',fetchImpl=g
     source_id:rights.source_id,title:rights.title,edition:rights.edition,
     url:rights.source_url_prefixes[0],license:rights.license,license_url:rights.license_url,
     rights_holder:rights.rights_holder,evidence_url:rights.evidence_url,tdm_evidence_url:rights.tdm_evidence_url,
-    reviewed_at:rights.reviewed_at,attribution:rights.attribution,retrieval_method:rights.retrieval_method,retrieval_url:rights.retrieval_url,status:rights.status,ai_tdm:true,commercial_use:true,derivative_use:true
+    reviewed_at:rights.reviewed_at,review_due_at:rights.review_due_at,attribution:rights.attribution,retrieval_method:rights.retrieval_method,retrieval_url:rights.retrieval_url,status:rights.status,ai_tdm:true,commercial_use:true,derivative_use:true
    },
    retrieval_method:rights.retrieval_method,
    excerpts,
