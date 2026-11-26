@@ -7,9 +7,9 @@ Umgebung: ausschließlich dediziertes STAGING
 
 ## Verbindliche Entscheidung
 
-Der medizinisch-wissenschaftliche Wissensaufbau ist vollständig kostenlos und rechtmäßig umzusetzen. Keine Bücher, Kapitel, Abbildungen, Tabellen oder Datensätze werden kopiert, indexiert, eingebettet oder zum Training verwendet, solange die konkreten Rechte diese Nutzung nicht eindeutig erlauben.
+Der medizinisch-wissenschaftliche Wissensaufbau ist vollständig kostenlos und rechtmäßig umzusetzen. **Der Eigentümer möchte ausdrücklich keine vollständigen Bücher, PDFs oder Buchsammlungen importieren oder dauerhaft speichern.** Ziel ist, das daraus gewonnene Wissen ressourcenschonend nutzbar zu machen.
 
-Ziel: mindestens 100 einzeln geprüfte, frei zugängliche Fachwerke bzw. wissenschaftliche Referenzwerke. Die Zahl ist ein Beschaffungsziel, kein Grund, ungeklärte Werke aufzunehmen. Wenn 100 passende Werke nicht kostenlos und rechtmäßig gefunden werden, bleibt der Bestand zunächst kleiner.
+Ziel: mindestens 100 einzeln geprüfte Fachwerke als Wissens- und Quellenbasis. Die Zahl bezeichnet die geprüfte Quellenabdeckung, nicht 100 gespeicherte Bücher. MESSINHO soll aus rechtmäßig nutzbaren Quellen kompakte, eigenständig formulierte Wissenseinträge und strukturierte Fakten ableiten. Es werden nur die dafür erforderlichen Metadaten, kurzen Zusammenfassungen/Fakten, Evidenzbelege und Quellenlinks dauerhaft gespeichert. Volltexte werden – sofern rechtlich zulässig – nur temporär verarbeitet und danach verworfen; kein PDF-Archiv, kein Volltext-Dump und keine unnötige Medienkopie.
 
 ## Lizenz-Gate
 
@@ -99,12 +99,12 @@ Zielverteilung (flexibel und abhängig von rechtmäßig verfügbaren Werken):
 
 ## Zielarchitektur
 
-Die Literatur wird nicht als 100 auswählbare Funktionen oder lose PDF-Sammlung eingebaut, sondern als zentrale, automatisch genutzte Evidenz-Wissensschicht:
+Die Literatur wird weder als 100 auswählbare Funktionen noch als dauerhaft gespeicherte Buch-/PDF-Sammlung eingebaut, sondern dient als geprüfte Quellenbasis für eine zentrale, automatisch genutzte, kompakte Evidenz-Wissensschicht:
 1. Quellen- und Lizenzregister; Quarantäne bis Rechteprüfung abgeschlossen.
-2. Rechtmäßiger Importadapter mit Rate Limits und Quellbedingungen.
-3. Parser für PDF/HTML/XML mit Kapitel-/Abschnittsstruktur; Rechte an Tabellen/Bildern getrennt.
-4. Fachliche Metadaten und kontrolliertes medizinisches Vokabular.
-5. Retrieval/Index mit Quelle, Lizenz, Version, Aktualität und Fachgebiet.
+2. Rechtmäßiger, speichersparender Quellenadapter mit Rate Limits und Quellbedingungen; bevorzugt Abruf gezielter Abschnitte statt kompletter Werke.
+3. Temporäre Verarbeitung zulässiger PDF/HTML/XML-Abschnitte; Rohdateien und Volltexte nach Extraktion verwerfen, sofern keine ausdrücklich erlaubte und notwendige Zwischenspeicherung besteht.
+4. Kompakte, eigenständig formulierte Wissensbausteine mit fachlichen Metadaten und kontrolliertem medizinischem Vokabular.
+5. Schlanker Retrieval-Index nur für notwendige Wissensbausteine, Quellen-IDs, Links, Lizenz, Version, Aktualität und Fachgebiet; keine Volltext- oder Bildersammlung.
 6. Claim-Level Evidence: medizinische Aussagen verweisen auf konkrete Stellen.
 7. Konflikt- und Evidenzbewertung; keine Diagnose aus unzureichenden Angaben.
 8. Automatische Agenten-Anbindung: Spielerbewertung, Belastungs-/Leistungsanalyse, Präventionshinweise, Konversation und Recherche.
@@ -167,3 +167,17 @@ Phase 4 — Qualitätssicherung und STAGING:
 - OpenStax Anatomy & Physiology 2e bleibt bis zur schriftlichen Genehmigung vom KI-Import ausgeschlossen.
 - NCBI Bookshelf wird nur werkbezogen nach Rechteprüfung genutzt.
 - Alle nächsten Änderungen ausschließlich in STAGING und nach erfolgreicher vollständiger Test-/Build-Prüfung.
+
+
+## Verbindliche Speicher- und Kostenoptimierung — Eigentümerpräzisierung 2026-11-26
+
+- Keine vollständigen Bücher, Buch-PDFs, Kapitelarchive oder umfangreichen Volltextkorpora dauerhaft in Supabase, Render-Dateisystem, GitHub oder Objekt-Storage ablegen.
+- Die 100 Werke sind eine geprüfte externe Quellenbasis, nicht 100 lokal gespeicherte Bücher.
+- Nur kompakte, eigenständig formulierte Wissenseinträge speichern: Kernaussage, fachlicher Kontext, Evidenzgrad/Limitierungen, Quellen-ID/URL, Werk-/Kapitelreferenz, Lizenznachweis, Versions-/Prüfdatum und Ablauf-/Reviewdatum.
+- Inhalte nur dann dauerhaft speichern, wenn Lizenz und Nutzungsrechte genau diese Verarbeitung und Speicherung gestatten. Keine unzulässigen Ersatzkopien oder umfangreichen abgeleiteten Textsammlungen erzeugen.
+- Zulässige Quellenabschnitte nach Möglichkeit gezielt abrufen und temporär verarbeiten; Rohdateien, OCR-Ausgaben und temporäre Volltexte nach erfolgreicher Extraktion löschen. Temporäre Verarbeitung ist ebenfalls nur zulässig, wenn die Quellenbedingungen sie erlauben.
+- Embeddings sind kein rechtlicher oder technischer Freibrief. Nur erforderliche, rechtlich zulässige Embeddings erzeugen; Speicherbedarf begrenzen, Duplikate deduplizieren und veraltete Einträge kontrolliert ersetzen.
+- Kein separates Vektor-DB-/Storage-Angebot oder kostenpflichtiger Dienst ohne ausdrückliche Kosten-/Architekturprüfung. Vorhandene Datenbank und Infrastruktur bevorzugen, sofern sie technisch geeignet sind.
+- Retrieval bevorzugt: gespeicherte kompakte Wissensnotizen plus Quellenlinks; bei aktuellen oder fehlenden Fakten gezielte Live-Recherche. Antwort immer mit Herkunft und Aktualität.
+- Keine vollständigen Bücher zum Modelltraining und keine automatische Veränderung der MESSINHO-Scoring-Gewichte durch extrahierte medizinische Inhalte.
+- Speicherbudget, maximale Textlänge je Wissensbaustein, TTL, Deduplizierung und Cleanup-Tests vor Implementierung festlegen.
