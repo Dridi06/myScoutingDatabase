@@ -827,8 +827,10 @@ app.post('/api/asi/player-search',playerSearchLimiter,async(req,res)=>{
     if(mode==='discover'){
       const ageMin=Math.max(16,Math.min(30,Number.isInteger(Number(filters.ageMin))?Number(filters.ageMin):18));
       const ageMax=Math.max(ageMin,Math.min(30,Number.isInteger(Number(filters.ageMax))?Number(filters.ageMax):23));
-      const birthYearFrom=Number.isInteger(Number(filters.birthYearFrom))?Number(filters.birthYearFrom):new Date().getFullYear()-ageMax;
-      const birthYearTo=Number.isInteger(Number(filters.birthYearTo))?Number(filters.birthYearTo):new Date().getFullYear()-ageMin;
+      const hasBirthYearFrom=filters.birthYearFrom!==null&&filters.birthYearFrom!==undefined&&filters.birthYearFrom!==''&&Number.isInteger(Number(filters.birthYearFrom));
+      const hasBirthYearTo=filters.birthYearTo!==null&&filters.birthYearTo!==undefined&&filters.birthYearTo!==''&&Number.isInteger(Number(filters.birthYearTo));
+      const birthYearFrom=hasBirthYearFrom?Number(filters.birthYearFrom):new Date().getFullYear()-ageMax-1;
+      const birthYearTo=hasBirthYearTo?Number(filters.birthYearTo):new Date().getFullYear()-ageMin;
       const position=typeof filters.position==='string'?filters.position.trim().slice(0,80):'';
       const nationality=typeof filters.nationality==='string'?filters.nationality.trim().slice(0,80):'';
       const region=typeof filters.region==='string'?filters.region.trim().slice(0,80):'';
