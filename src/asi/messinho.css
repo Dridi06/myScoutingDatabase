@@ -365,3 +365,31 @@
 .messinho-workspace .messinho-hypothesis-controls strong{font-size:10px;color:#e8c77e}
 .messinho-workspace .messinho-hypothesis-controls small{flex-basis:100%;overflow-wrap:anywhere}
 .messinho-workspace .messinho-hypothesis-controls a{color:#e8c77e;text-decoration:underline}
+
+
+/* Reliable multiline composer: Enter inserts a line break; only the send button submits. */
+.messinho-workspace .messinho-chat-card .messinho-composer textarea{
+  display:block!important;order:1;flex:1 1 auto!important;width:0!important;
+  min-width:0!important;min-height:44px!important;max-height:150px!important;
+  height:auto!important;margin:0!important;padding:10px 7px!important;
+  resize:vertical;overflow-y:auto;box-sizing:border-box;
+  color:#f3f6fb!important;background:transparent!important;
+  border:0!important;outline:none!important;box-shadow:none!important;
+  font:inherit!important;font-size:16px!important;line-height:1.4!important;
+  text-align:left!important;white-space:pre-wrap;
+  -webkit-text-size-adjust:100%;
+}
+.messinho-workspace .messinho-chat-card .messinho-composer textarea::placeholder{
+  color:rgba(190,202,219,.58)!important;opacity:1;font-weight:400
+}
+.messinho-workspace .messinho-chat-card .messinho-composer textarea:focus{
+  outline:none!important;box-shadow:none!important
+}
+.messinho-workspace .messinho-chat-card .messinho-composer .messinho-send{
+  order:2;flex:0 0 42px;margin:0!important;align-self:flex-end
+}
+@media(max-width:760px){
+  .messinho-workspace .messinho-chat-card .messinho-composer textarea{
+    min-height:44px!important;max-height:132px!important;font-size:16px!important
+  }
+}
