@@ -2457,8 +2457,9 @@ Mathematics; statistics; physics; biology; medicine; sports science; football; c
 - Updated the conflict-review API to call the atomic RPC rather than directly updating the conflict table.
 - Verified in STAGING: prior-state column exists; both conflict RPCs are SECURITY DEFINER and executable only by service_role (plus postgres owner); conflict/review tables retain RLS with no browser policies. No conflict or concept rows were inserted for testing.
 - Current knowledge counts remain concepts 0, links 0, versions 0, conflicts 0, reviews 0. Rights allowlist remains empty.
-- CI on the latest code commit before these migration/documentation additions: Node suite 274/274 passed and backend syntax passed. Latest HEAD CI must be checked again before the next deployment.
-- Render STAGING deployment of commit `4593897290a90f0f184127a464549393ac1888ad` was triggered and reached **live** as deployment `dep-dc47rsl9el5s73ag1h80`. A duplicate queued deploy for the same commit was observed; the live deployment was confirmed. The subsequent conflict-restoration code/migrations are newer than that deployed commit and still require CI plus a follow-up STAGING deployment.
+- Latest feature branch HEAD c8c8a351534330728a6e2bf14c605e144181fd2c has successful Node test and backend syntax checks. Its only changes after the deployed code commit are source-register/checkpoint documentation updates.
+- Render dedicated STAGING deployment dep-dc47t5vvdc3s73be8km0 is **live** on commit 8e06b553d34b51ca324db8bdd4d85b7f60611d5f. This commit includes the conflict-restoration code and migrations. Render build repeated the suite: 274 passed, 0 failed, then Vite production build succeeded. Startup logs confirm the API is listening and Supabase Data API returned HTTP 200.
+- Authenticated admin/scout E2E remains outstanding; build, startup and Supabase connectivity do not prove the protected review/approval routes or actual chat retrieval with a logged-in user.
 - No production/main, production Supabase, PFMS/PFSS or PR merge changes. PR #47 remains Draft/open/unmerged.
 
 
