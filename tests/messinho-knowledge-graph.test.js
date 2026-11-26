@@ -1,0 +1,49 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  buildMessinhoKnowledgeConcept,
+  findMessinhoKnowledgeConcepts,
+  linkMessinhoKnowledgeConcepts,
+  storeMessinhoKnowledgeConcept,
+  MESSINHO_KNOWLEDGE_LEVELS,
+  MESSINHO_KNOWLEDGE_RELATIONS
+} from '../backend/messinho-knowledge-graph.js';
+
+const draft={
+  domain:'mathematics',topic:'Probability',title:'Bayes theorem',
+  definition:'Bayes theorem updates the probability of a hypothesis after observing evidence, using prior probability and likelihood.',
+  knowledge_level:'advanced',knowledge_type:'formula',parent_concept_key:'mathematics.probability',
+  prerequisites:['mathematics.probability.basics'],formula:'P(A|B)=P(B|A)P(A)/P(B)',
+  formula_variables:{A:'hypothesis',B:'observed evidence'},
+  claims:[{text:'Bayes theorem combines prior probability and likelihood.',source_urls:['https://one.example/a','https://two.example/b']}],
+  sources:[
+    {source_id:'unreviewed-a',title:'Source A',url:'https://one.example/a'},
+    {source_id:'unreviewed-b',title:'Source B',url:'https://two.example/b'}
+  ],
+  source_rights:[]
+};
+
+test('knowledge graph defines the agreed four learning levels and typed links',()=>{
+  assert.deepEqual(MESSINHO_KNOWLEDGE_LEVELS,['foundational','intermediate','advanced','specialist']);
+  assert.ok(MESSINHO_KNOWLEDGE_RELATIONS.includes('prerequisite'));
+  assert.ok(MESSINHO_KNOWLEDGE_RELATIONS.includes('contradicts'));
+});
+
+test('knowledge concept refuses unreviewed sources even if provider claims rights',()=>{
+  const result=buildMessinhoKnowledgeConcept({...draft,sources:draft.sources.map(source=>({...source,rights:{
+    source_id:source.source_id,status:'verified_permitted',license:'CC BY 4.0',
+    rights_holder:'Claimed holder',evidence_url:'https://example.org/license',
+    ai_tdm:true,commercial_use:true,derivative_use:true
+  }}))});
+  assert.equal(result.eligible,false);
+  assert.equal(result.reason,'two_independent_rights_verified_sources_required');
+});
+
+test('knowledge graph does not persist or retrieve without a database',async()=>{
+  assert.deepEqual(await storeMessinhoKnowledgeConcept(null,draft),{persisted:false,reason:'storage_unavailable'});
+  assert.deepEqual(await findMessinhoKnowledgeConcepts(null,'Bayes theorem'),{status:'unavailable',items:[]});
+});
+
+test('knowledge graph rejects invalid relationship writes',async()=>{
+  assert.deepEqual(await linkMessinhoKnowledgeConcepts(null,{from_concept_id:'a',to_concept_id:'b',relation_type:'invented'}),{linked:false,reason:'invalid_link'});
+});
