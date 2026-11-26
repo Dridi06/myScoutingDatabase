@@ -112,6 +112,39 @@ export async function findMessinhoKnowledgeConcepts(db,question,{limit=6}={}){
  }catch(error){console.warn('MESSINHO knowledge concept retrieval unavailable:',error.code||'unknown');return {status:'unavailable',items:[]};}
 }
 
+export async function reviewMessinhoKnowledgeConcept(db,{concept_id,decision,reason,reviewer_id}={}){
+ if(!db||!concept_id||!reviewer_id||!['approve','reject','mark_conflicting'].includes(decision)||clean(reason,500).length<10)return {reviewed:false,reason:'invalid_review_request'};
+ try{
+  const current=await db.from('messinho_knowledge_concepts').select('id,domain,knowledge_status,parent_concept_key,prerequisites,sources,claims,rights').eq('id',concept_id).maybeSingle();
+  if(current.error)throw current.error;
+  if(!current.data)return {reviewed:false,reason:'concept_not_found'};
+  if(decision==='approve'){
+   const row=current.data,sourceRights=Array.isArray(row.rights?.source_rights)?row.rights.source_rights:[];
+   const verifiedSources=(row.sources||[]).filter(source=>{
+    const rights=sourceRights.find(item=>item.source_id===source.source_id);
+    return rights&&verifyMessinhoSourceRights(rights)&&isMessinhoRegisteredSourceUrl(rights.source_id,source.url);
+   });
+   const domains=[...new Set(verifiedSources.map(source=>{try{return new URL(source.url).hostname.replace(/^www\./i,'').toLowerCase();}catch{return '';}}).filter(Boolean))];
+   if(row.knowledge_status!=='candidate'||row.rights?.status!=='verified_permitted'||row.rights?.ai_tdm!==true||row.rights?.commercial_use!==true||row.rights?.derivative_use!==true||verifiedSources.length<2||domains.length<2||!(row.claims||[]).some(claim=>(claim.source_urls||[]).filter(url=>verifiedSources.some(source=>source.url===url)).length>=2)){
+    return {reviewed:false,reason:'candidate_rights_or_corroboration_incomplete'};
+   }
+   const prerequisites=[...(row.parent_concept_key?[row.parent_concept_key]:[]),...(row.prerequisites||[])];
+   if(prerequisites.length){
+    const ready=await db.from('messinho_knowledge_concepts').select('concept_key').eq('knowledge_status','active').in('concept_key',prerequisites);
+    if(ready.error)throw ready.error;
+    if(new Set((ready.data||[]).map(item=>item.concept_key)).size!==new Set(prerequisites).size)return {reviewed:false,reason:'active_prerequisites_missing'};
+   }
+   const openConflicts=await db.from('messinho_knowledge_conflicts').select('id').eq('concept_id',concept_id).eq('status','open').limit(1);
+   if(openConflicts.error)throw openConflicts.error;
+   if((openConflicts.data||[]).length)return {reviewed:false,reason:'open_conflict_requires_resolution'};
+  }
+  const result=await db.rpc('messinho_review_knowledge_concept',{p_concept_id:concept_id,p_decision:decision,p_reason:clean(reason,500),p_reviewer_id:reviewer_id});
+  const saved=Array.isArray(result.data)?result.data[0]:result.data;
+  if(result.error||!saved?.id)throw result.error||new Error('review_not_confirmed');
+  return {reviewed:true,...saved};
+ }catch(error){console.warn('MESSINHO knowledge review failed:',error.code||error.message||'unknown');return {reviewed:false,reason:'review_storage_unavailable'};}
+}
+
 export async function linkMessinhoKnowledgeConcepts(db,{from_concept_id,to_concept_id,relation_type,rationale,evidence=[]}={}){
  const allowed=new Set(['prerequisite','related','extends','contradicts','applies_to','derived_from']);
  if(!db||!from_concept_id||!to_concept_id||from_concept_id===to_concept_id||!allowed.has(relation_type))return {linked:false,reason:'invalid_link'};
