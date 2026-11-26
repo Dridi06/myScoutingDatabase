@@ -1741,3 +1741,16 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - External contact, destructive data changes, model-weight activation, and consequential actions remain behind human approval and role checks.
 
 **Verification status:** Source and test changes are committed to the STAGING feature branch. Full `npm test`, backend syntax checks, Vite build, Render manual deployment, and exact live-commit verification are pending. Do not report this implementation as live until those checks pass. No production or PFMS/PFSS resources were changed.
+
+
+### Autonomous Agent Core 2.0 foundation — STAGING build and deployment verified (2026-11-26)
+
+- Render deployment: `dep-dc443fmq1p3s73cs1jbg`.
+- Deployed application commit: `1197dcc886c8fe2373b033e3ad46825976fe5c6e`.
+- Status: **live**, finished `2026-11-26T14:27:45.163634Z`.
+- Build: **198 tests passed, 0 failed**; backend syntax checks and Vite build succeeded.
+- Runtime: API listening on port 10000; STAGING Supabase Data API returned HTTP 200; Tavily and OpenAI provider configuration detected.
+- The first build exposed defects in goal sanitization/checkpoint tests; the control-character expression and checkpoint byte counting were corrected, then the full successful build above verified the fix.
+- The application commit includes the autonomy supervisor, core integration, server chat-path integration, persisted goal criteria in the existing task ledger, and the new regression suite.
+- The following are **not yet implemented or enabled by this release**: autonomous background worker/scheduler, general-purpose semantic planning beyond the reviewed capability catalogue, multi-round root-cause re-planning beyond bounded retries, and a fully integrated automatic improvement/test/release pipeline. Existing task resumption remains explicit; consequential changes remain approval-gated.
+- STAGING auto-deploy remains disabled. Production `main`, production Render, production Supabase, PFMS and PFSS remain untouched.
