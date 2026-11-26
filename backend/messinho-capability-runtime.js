@@ -149,10 +149,15 @@ function analysisHandler(id,input){
      if(eventAnalysis.status==='insufficient_data')return missingResult(id,[id==='video_event_analysis'?'mindestens fünf lizenzierte Ereignisse':'mindestens fünf strukturierte Ereignisse']);
      return result(id,'completed',{...eventAnalysis,analysis_basis:id==='video_event_analysis'?'licensed_video_events':'structured_match_events',interpretation:'Nur gelieferte Ereignisdaten werden ausgewertet; nicht erfasste Spielszenen bleiben unbekannt.'});
    }
-   const key=input.metric_key||'value';
-   const vals=filtered.map(e=>finite(e[key])).filter(v=>v!==null);
+   const defaultMetric={
+     minutes_analysis:'minutes',availability_history_analysis:'availability_rate',
+     running_performance_analysis:'distance',speed_analysis:'speed',anomaly_detection:'score'
+   }[id]||'value';
+   const key=input.metric_key||defaultMetric;
+   const vals=filtered.map(e=>finite(e[key]??e.ratings?.[key]??e.metrics?.[key])).filter(v=>v!==null);
+   if(!vals.length)return missingResult(id,[key+'_metrics'],'Es liegen keine numerischen Messwerte für diese Kennzahl vor. Ereigniszahlen allein ersetzen keine Leistungs- oder Verfügbarkeitsmessung.');
    const groups=filtered.reduce((acc,e)=>{const k=e.phase||e.event_type||e.type||'other';acc[k]=(acc[k]||0)+1;return acc;},{});
-   return result(id,'completed',{event_count:filtered.length,group_counts:groups,mean_value:avg(vals)===null?null:round(avg(vals)),min_value:vals.length?Math.min(...vals):null,max_value:vals.length?Math.max(...vals):null});
+   return result(id,'completed',{event_count:filtered.length,metric:key,group_counts:groups,mean_value:round(avg(vals)),min_value:Math.min(...vals),max_value:Math.max(...vals)});
  }
  if(id==='peer_comparison_analysis'||id==='competition_comparison'){
    const peers=getPlayers(input).filter(x=>normalizedPosition(x)===normalizedPosition(p));
