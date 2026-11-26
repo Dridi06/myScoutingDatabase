@@ -3542,3 +3542,22 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - No authenticated Admin or Scout browser session was available to perform the live chat follow-up or cross-tenant UI test. Deployment health is not equivalent to feature acceptance.
 - Current gate: continuation routing fix is implemented, regression-tested and LIVE on STAGING; VO2max pilot remains pending live Admin/Scout acceptance, role checks and tenant-isolation tests. Systematic knowledge import remains blocked.
 - Production, main, PFMS and PFSS remain untouched. No merge or production release is authorised.
+
+
+
+### STAGING incident and runtime fix — 2026-11-26 23:03 CET
+- Owner supplied a screenshot of the authenticated Admin chat. The VO2max application question returned the UI error “Messinho konnte die Anfrage gerade nicht bearbeiten.”
+- Render application logs identified the exact runtime exception: `Messinho agent chat failed: buildMessinhoVo2maxApplicationQuery is not defined` at 2026-11-26T22:01:25Z.
+- Source review confirmed that `backend/server.js` called `buildMessinhoVo2maxApplicationQuery(...)` in the canonical VO2max continuation route but omitted it from the named import from `./messinho-conversation.js`. The helper itself is exported from that module and its unit regression test exists; the missing route-level import was not caught by the existing tests.
+- Fixed only the missing named import in `backend/server.js`. No database, schema, permissions, user data, or production resources were changed.
+- Fix commit: `56c65555000fa8ccb7b5c3238ea80dd19201aa62` — “Fix missing VO2max continuation helper import”.
+- Deployed manually to the dedicated STAGING Render service only:
+  - Service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`)
+  - Deployment: `dep-dc4aotdg1s2s73dr7e4g`
+  - Commit: `56c65555000fa8ccb7b5c3238ea80dd19201aa62`
+  - Status: `LIVE`; build succeeded.
+  - Build test output: 329 passed, 0 failed; Vite production build succeeded (1,637 modules transformed).
+  - Runtime startup: API listening on port 10000; Supabase Data API HTTP 200; Render “Your service is live”.
+- The runtime exception was confirmed from the pre-fix log. The post-fix deployment starts successfully. A browser-authenticated repeat of the exact Admin chat request is still required to prove the user-facing route now completes; this environment has no authenticated browser session. Do not claim the VO2max pilot is accepted yet.
+- Next acceptance step: owner refreshes the STAGING page (hard reload / reopen), repeats the same Admin question, and shares the reply. If the first turn returns the targeted clarification, supply the requested VO2max data in the next turn to verify continuation. Then complete the Scout and tenant-isolation checks.
+- Systematic knowledge import remains blocked until live Admin/Scout acceptance passes. Production, `main`, PFMS and PFSS remain untouched; no merge or production release was made.
