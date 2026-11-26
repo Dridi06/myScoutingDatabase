@@ -2025,3 +2025,32 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Staging migration applied; table access and RPC grants verified: anon/authenticated denied, service_role allowed.
 - Supabase advisors show no new RLS finding for the two governance tables. Existing unrelated findings remain: messinho_diagnostic_runs without an RLS policy, admin_set_scout_approval executable by authenticated as SECURITY DEFINER, and leaked-password protection disabled. These were not modified in this milestone.
 - Runtime deployment is pending workspace confirmation; Render auto-deploy remains disabled.
+
+
+## 2026-11-26 – MESSINHO chat reliability and scouting-intent regression fixes
+
+### User-observed failures addressed
+- The owner reported that MESSINHO interpreted the bare year range 2004-2006 as subtraction, forgot a scouting request after asking for the country/league, and sent an irrelevant general web search for a conversational complaint.
+- The owner also reported premature message submission on iPhone. The chat composer was changed in the prior UI patch to a multiline textarea; Enter inserts a line break and only the explicit send button submits. Failed sends preserve the draft.
+
+### Runtime changes in this milestone
+- Reordered the /api/agent/chat decision path so a pending scouting dialog is resolved before deterministic arithmetic. A year range in a scouting conversation is therefore interpreted as a birth-year filter, not subtraction.
+- Expanded pending-clarification detection to include the actual assistant wording used in the chat: “Land bzw. Liga-Standort” and “Damit ich die Suche sauber eingrenzen kann …”.
+- Added recognition of natural-language ages such as “21-jährigen” / “21 Jahre alt”.
+- Added “6er” / “Sechser” as a specific defensive-midfielder role, taking precedence over the broader word “Mittelfeldspieler”.
+- Added “deutsch” as a Germany alias.
+- Age-based discovery now supplies a 21–21 age filter and derives a cautious birth-year window. The user-facing response explicitly states that exact age still requires a complete date of birth; a birth year alone is not treated as proof of exact age.
+- Fixed discovery's null birth-year handling. JavaScript Number(null) === 0 previously caused missing birth-year bounds to be interpreted as year zero instead of being derived from the requested age group.
+- Added a conversational-intent guard so complaints/questions about restarting, interrupted work, or premature sending are not routed to external general-knowledge web search.
+
+### Regression coverage
+- Added tests for the exact user scenario: 21-year-old, left-footed midfielder who can play as a No. 6, clarification “Deutschland 3 Liga oder Regionalliga”, preserving age/role/location/league context.
+- Added tests for the German adjective “deutsch” and for preventing conversational complaints from triggering general web research.
+- Existing deterministic-math tests already cover that a bare 2004-2006 range is not arithmetic; chat routing now ensures the scouting parser gets first opportunity to interpret the range.
+
+### Release gate / known limitations
+- Changes are committed to feature/messinho-unified-ai-integration.
+- Full Node test suite, backend syntax checks, Vite build, and manual STAGING deployment must pass before this runtime change is described as live.
+- The scouting discovery source pipeline still requires independent review for result relevance and source-to-player identity evidence. This patch fixes intent/context routing; it does not claim that the external candidate research is fully reliable.
+- Authenticated Scout/Admin smoke tests remain pending a user-controlled login session.
+- STAGING only. Production/main, PFMS/PFSS and production Supabase remain untouched. Render auto-deploy remains disabled. PR #47 remains Draft/open/unmerged.
