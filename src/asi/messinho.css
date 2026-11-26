@@ -297,3 +297,29 @@
  .messinho-workspace .messinho-help-bundle>summary{padding:13px}
  .messinho-workspace .messinho-help-content{padding:0 9px 10px;gap:10px}
 }
+
+
+/* MESSINHO answer feedback: quiet, compact controls that do not compete with chat. */
+.messinho-workspace .messinho-feedback{display:grid;gap:8px;margin-top:10px;padding-top:8px;border-top:1px solid rgba(160,180,205,.14)}
+.messinho-workspace .messinho-feedback-actions{display:flex;align-items:center;gap:8px;min-height:28px}
+.messinho-workspace .messinho-feedback-actions>span,.messinho-workspace .messinho-feedback-actions>small{font-size:11px;color:#9eafc5}
+.messinho-workspace .messinho-feedback-actions button{display:inline-flex;align-items:center;justify-content:center;width:30px;height:28px;padding:0;border:1px solid rgba(165,185,210,.2);border-radius:8px;background:rgba(255,255,255,.035);color:#aebed2;cursor:pointer}
+.messinho-workspace .messinho-feedback-actions button:hover{border-color:rgba(213,177,92,.55);color:#e2c27c}
+.messinho-workspace .messinho-feedback-form{display:grid;gap:8px;padding:10px;border:1px solid rgba(165,185,210,.16);border-radius:10px;background:rgba(5,13,24,.42)}
+.messinho-workspace .messinho-feedback-form label,.messinho-workspace .messinho-feedback-review-fields label{display:grid;gap:5px;font-size:11px;color:#aebed2}
+.messinho-workspace .messinho-feedback-form select,.messinho-workspace .messinho-feedback-form textarea,.messinho-workspace .messinho-feedback-review-fields input{width:100%;min-width:0;box-sizing:border-box;border:1px solid rgba(165,185,210,.22);border-radius:8px;background:#101d2d;color:#e7edf6;padding:9px;font:inherit;font-size:12px}
+.messinho-workspace .messinho-feedback-form textarea{resize:vertical;min-height:54px}
+.messinho-workspace .messinho-feedback-form>div,.messinho-workspace .messinho-feedback-review-actions{display:flex;flex-wrap:wrap;gap:7px}
+.messinho-workspace .messinho-feedback-form button,.messinho-workspace .messinho-feedback-review-actions button{font-size:11px;padding:7px 10px}
+.messinho-workspace .messinho-feedback-form [role=alert]{color:#f0a6a6}
+.messinho-workspace .messinho-feedback-admin{display:grid;gap:10px;padding:14px;border:1px solid rgba(190,160,94,.22);border-radius:13px;background:rgba(12,22,35,.72)}
+.messinho-workspace .messinho-feedback-admin-actions{display:flex;justify-content:flex-end}
+.messinho-workspace .messinho-feedback-review{display:grid;gap:7px;padding:12px;border:1px solid rgba(165,185,210,.16);border-radius:10px;background:rgba(255,255,255,.025);min-width:0}
+.messinho-workspace .messinho-feedback-review>div:first-child{display:grid;gap:4px}
+.messinho-workspace .messinho-feedback-review b{font-size:12px;color:#e6edf7}
+.messinho-workspace .messinho-feedback-review small{font-size:10px;color:#9eafc5;overflow-wrap:anywhere}
+.messinho-workspace .messinho-feedback-review p{margin:0;font-size:12px;line-height:1.5;color:#d4deeb;overflow-wrap:anywhere;white-space:pre-wrap}
+.messinho-workspace .messinho-feedback-comment{padding:9px;border-left:2px solid rgba(213,177,92,.55);background:rgba(213,177,92,.055);display:grid;gap:4px}
+.messinho-workspace .messinho-feedback-review-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.messinho-workspace .messinho-feedback-review-actions{display:flex;flex-wrap:wrap;gap:7px}
+@media(max-width:560px){.messinho-workspace .messinho-feedback-review-fields{grid-template-columns:1fr}.messinho-workspace .messinho-feedback-admin{padding:10px}}
