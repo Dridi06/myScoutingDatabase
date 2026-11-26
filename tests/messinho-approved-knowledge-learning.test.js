@@ -1,0 +1,73 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { learnMessinhoApprovedFoundationConcept } from '../backend/messinho-approved-knowledge-learning.js';
+
+const plosXml='<article><abstract><p>VO2max is the highest attained oxygen uptake during an incremental exercise test with large muscle groups. VO2max is an important parameter to objectively assess cardiorespiratory fitness.</p></abstract><body><p>Direct measurement is performed during cardiopulmonary exercise testing.</p></body></article>';
+const pmcJson={collection:{documents:[{passages:[
+ {infons:{section_type:'ABSTRACT'},text:'Cardiorespiratory fitness reflects the integration of ventilation, circulation and metabolism for oxygen delivery and utilization. The gold standard measure of cardiorespiratory fitness is maximal oxygen uptake.'}
+]}]}};
+
+function mockFetch(url){
+ if(url.includes('journals.plos.org'))return Promise.resolve({ok:true,text:async()=>plosXml});
+ if(url.includes('ncbi.nlm.nih.gov'))return Promise.resolve({ok:true,json:async()=>pmcJson});
+ return Promise.resolve({ok:false,status:404});
+}
+function mockDb(){
+ const saved={};
+ const query={
+  select(){return this;},eq(){return this;},
+  async maybeSingle(){return {data:null,error:null};}
+ };
+ return {
+  from(){return query;},
+  async rpc(name,args){saved.name=name;saved.args=args;return {data:[{id:'candidate-id',concept_key:args.p_record.concept_key,version:1,knowledge_status:'candidate'}],error:null};},
+  saved
+ };
+}
+
+test('VO2max foundation learning requires both exact approved sources and creates an inactive candidate',async()=>{
+ const db=mockDb();
+ const result=await learnMessinhoApprovedFoundationConcept(db,'Erkläre mir VO2max',{fetchImpl:mockFetch});
+ assert.equal(result.status,'candidate_created');
+ assert.equal(result.stored.persisted,true);
+ assert.equal(result.active,false);
+ assert.equal(result.approval_required,true);
+ assert.equal(result.source_count,2);
+ assert.equal(db.saved.name,'messinho_create_knowledge_candidate');
+ const record=db.saved.args.p_record;
+ assert.equal(record.knowledge_level,'foundational');
+ assert.equal(record.knowledge_status,'candidate');
+ assert.equal(record.sources.length,2);
+ assert.ok(record.claims[0].source_urls.length===2);
+ assert.equal(record.sources.some(source=>'snippet' in source),false);
+ assert.equal(record.sources.some(source=>'full_text' in source),false);
+});
+
+test('foundation learning does not run for unrelated questions',async()=>{
+ let calls=0;
+ const result=await learnMessinhoApprovedFoundationConcept(mockDb(),'Wie spät ist es?',{fetchImpl:async()=>{calls++;}});
+ assert.equal(result.status,'not_applicable');
+ assert.equal(calls,0);
+});
+
+test('foundation learning fails closed if one approved source cannot be retrieved',async()=>{
+ let calls=0;
+ const result=await learnMessinhoApprovedFoundationConcept(mockDb(),'Was bedeutet VO2max?',{
+  fetchImpl:async(url)=>{calls++;return url.includes('journals.plos.org')?{ok:true,text:async()=>plosXml}:{ok:false,status:503};}
+ });
+ assert.equal(result.status,'insufficient_approved_sources');
+ assert.equal(calls,2);
+});
+
+test('foundation learning does not write if two sources fail to corroborate the claim',async()=>{
+ let calls=0;
+ const db=mockDb();
+ const result=await learnMessinhoApprovedFoundationConcept(db,'Was ist VO2max?',{
+  fetchImpl:async(url)=>{calls++;return url.includes('journals.plos.org')
+   ?{ok:true,text:async()=>'<article><abstract><p>Unrelated astronomy content about distant galaxies and stars.</p></abstract></article>'}
+   :{ok:true,json:async()=>({collection:{documents:[{passages:[{infons:{section_type:'ABSTRACT'},text:'A different unrelated topic about ocean currents and marine biology.'}]}]}})};
+  }
+ });
+ assert.equal(result.status,'insufficient_corroboration');
+ assert.equal(db.saved.name,undefined);
+});
