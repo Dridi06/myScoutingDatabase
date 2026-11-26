@@ -1794,3 +1794,27 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - **STAGING deployment:** Render deploy `dep-dc44dp61egvs73fa83ng` is LIVE, commit `cf235b2c0a725c865e5b16486ab0023d7e6ea8ec`, finished `2026-11-26T14:49:45.995747Z`. Build reported 206 tests passed, 0 failed; Vite build succeeded; Supabase Data API returned HTTP 200 after startup.
 - **Worker staging gate:** set only on STAGING: `MESSINHO_AUTONOMY_WORKER_ENABLED=true`, `MESSINHO_STAGING_RENDER_SERVICE_ID=srv-dc3chlqjnfac73acd6ig`. The service auto-deploy setting remains disabled. Render environment update caused the expected staging deploy.
 - No task has yet been explicitly opted in, so the worker has no task to execute. No production, main, production database, PFMS or PFSS changes.
+## 2026-11-26 — Integration of bounded Scout self-reflection and quality memory
+
+### Audit findings against supplied Python architecture
+- No parallel SQLite memory was added. The project already has owner-scoped Supabase knowledge memory (messinho-knowledge-memory.js) with source provenance, HTTPS validation, independent-domain requirements, expiry, and similarity safeguards.
+- No second Tavily/OpenAI research client was added. Existing messinho-general-research.js and messinho-research.js already own web search and evidence synthesis.
+- No duplicate learning engine was added. Existing messinho-learning.js only proposes calibration from admin-verified outcomes and requires approval before activation; critic feedback is not treated as ground-truth football outcome data.
+- Existing task/core/orchestrator code already has bounded capability steps, execution budgets, provenance validation, retry limits and task checkpointing. The new three-pass limit is scoped to answer drafting/critique, not a second agent execution loop.
+- The supplied Python's excluded_domains and score > 0.5 are not portable as-is: current Tavily general search returns a different source shape and current source-quality logic is already centralized. The implementation uses existing HTTPS/source normalization and a targeted denylist for links instead of introducing an incompatible parallel filter.
+
+### Implemented on STAGING feature branch
+- Added backend/messinho-quality-control.js: separate Scout and Critic system prompts, hard maximum of 3 draft/review iterations, best-draft fallback, JSON critic response validation, fail-closed behavior when critic provider is unavailable, maximum 3 Markdown links, HTTPS/allowlisted-source enforcement, and rejection of raw/unapproved links.
+- Integrated the critic loop into general evidence research and external player-profile research. Player profile synthesis now requires cited fact records and independent critic approval; otherwise MESSINHO returns the source list with needs_review and no unapproved profile.
+- Critic feedback is supplied to each subsequent draft. If a later draft-generation call fails, the best prior reviewed candidate is retained; provider unavailability stops repeated calls.
+- Durable knowledge memory now requires quality_control.passed === true in addition to the existing two-domain/source evidence gates. Unreviewed drafts and source-only digests are not stored as corroborated memory.
+- Research API response now exposes the quality-control outcome for transparent UI reporting.
+- Added tests/messinho-quality-control.test.js for 3-iteration cap, early stop on approval, link validation, deterministic evidence gate, and critic provider failure.
+- Updated knowledge-memory tests to require critic approval.
+
+### Not claimed / remaining
+- This is persistent retrieval memory and reviewed quality feedback, not model-weight training or autonomous self-modification.
+- Critic is a second model call using the configured OpenAI endpoint/model; it is not an independent external fact database. Deterministic source/URL gates remain authoritative.
+- The quality loop currently wraps external general research and player-profile synthesis. Internal deterministic scoring capabilities remain validated by their existing runtime, provenance and test gates rather than sending every numerical operation through a language-model critic.
+- CI and STAGING deployment for these latest changes are pending. Do not claim this release is live until the Render build (which runs npm test, backend syntax checks and Vite build) succeeds and the exact deployed commit is verified.
+- No Supabase schema change was required. Production/main, production Supabase, PFMS and PFSS remain untouched.
