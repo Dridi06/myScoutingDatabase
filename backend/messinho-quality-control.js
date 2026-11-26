@@ -40,7 +40,7 @@ export async function runMessinhoQualityLoop({question,sources=[],draftFactory,m
   if(!candidate||typeof candidate.answer!=='string')break;
   const review=await reviewMessinhoDraft({question,draft:candidate.answer,sources,claims:candidate.claims||[],env,fetchImpl});
   history.push({iteration,score:review.score,passed:review.passed,feedback:review.feedback});
-  if(!best||review.score>best.review.score)best={...candidate,review,iteration};
+  if(review.passed||!best||review.score>best.review.score)best={...candidate,review,iteration};
   if(review.passed||!review.review_available)break;
   feedback=review.feedback||'Belege, Linkanzahl und sachliche Genauigkeit verbessern.';
  }
