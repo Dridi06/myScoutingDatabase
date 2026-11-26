@@ -110,3 +110,5 @@ revoke all on function public.asi_create_messinho_myki_ticket(jsonb) from public
 revoke all on function public.asi_admin_delete_messinho_myki_ticket(uuid,uuid) from public,anon,authenticated;
 grant execute on function public.asi_create_messinho_myki_ticket(jsonb) to service_role;
 grant execute on function public.asi_admin_delete_messinho_myki_ticket(uuid,uuid) to service_role;
+
+grant usage, select on sequence public.messinho_myki_ticket_events_id_seq to service_role;
