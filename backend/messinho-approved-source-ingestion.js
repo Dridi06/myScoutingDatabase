@@ -46,6 +46,11 @@ function extractPlosParagraphs(xml){
  }
  return paragraphs;
 }
+function extractHtmlParagraphs(html){
+ return [...String(html).matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)]
+  .map(match=>({text:stripMarkup(match[1]),section:'html_paragraph'}))
+  .filter(item=>item.text.length>=80);
+}
 function extractBioCParagraphs(payload){
  const docs=Array.isArray(payload?.documents)?payload.documents:
   Array.isArray(payload?.collection?.documents)?payload.collection.documents:[];
@@ -59,23 +64,27 @@ export async function fetchMessinhoApprovedSource(sourceId,{topic='',fetchImpl=g
  if(!rights||!verifyMessinhoSourceRights({...rights,status:'verified_permitted',ai_tdm:true,commercial_use:true,derivative_use:true}))
   return {status:'source_not_approved',source_id:sourceId||null,excerpts:[]};
  if(typeof fetchImpl!=='function')return {status:'fetch_unavailable',source_id:sourceId,excerpts:[]};
- const allowedMethods=new Set(['plos_jats_xml','pmc_bioc_json']);
+ const allowedMethods=new Set(['plos_jats_xml','pmc_bioc_json','libretexts_html','austin_html']);
  if(!allowedMethods.has(rights.retrieval_method)||typeof rights.retrieval_url!=='string'||!rights.retrieval_url.startsWith('https://'))
   return {status:'retrieval_method_not_approved',source_id:sourceId,excerpts:[]};
  try{
   const url=new URL(rights.retrieval_url);
-  const expectedHost=rights.retrieval_method==='plos_jats_xml'?'journals.plos.org':'www.ncbi.nlm.nih.gov';
+  const expectedHost=({plos_jats_xml:'journals.plos.org',pmc_bioc_json:'www.ncbi.nlm.nih.gov',libretexts_html:'math.libretexts.org',austin_html:'understandinglinearalgebra.org'})[rights.retrieval_method];
   if(url.hostname!==expectedHost)return {status:'retrieval_host_not_approved',source_id:sourceId,excerpts:[]};
-  const response=await fetchImpl(rights.retrieval_url,{headers:{accept:rights.retrieval_method==='pmc_bioc_json'?'application/json':'application/xml,text/xml;q=0.9'}});
+  const response=await fetchImpl(rights.retrieval_url,{headers:{accept:rights.retrieval_method==='pmc_bioc_json'?'application/json':rights.retrieval_method.endsWith('_html')?'text/html,application/xhtml+xml;q=0.9':'application/xml,text/xml;q=0.9'}});
   if(!response?.ok)return {status:'source_fetch_failed',source_id:sourceId,http_status:response?.status||null,excerpts:[]};
   let paragraphs=[];
   if(rights.retrieval_method==='plos_jats_xml'){
    const xml=await response.text();
    if(typeof xml!=='string'||xml.length>2_000_000)return {status:'source_payload_rejected',source_id:sourceId,excerpts:[]};
    paragraphs=extractPlosParagraphs(xml);
-  }else{
+  }else if(rights.retrieval_method==='pmc_bioc_json'){
    const payload=await response.json();
    paragraphs=extractBioCParagraphs(payload);
+  }else{
+   const html=await response.text();
+   if(typeof html!=='string'||html.length>2_000_000)return {status:'source_payload_rejected',source_id:sourceId,excerpts:[]};
+   paragraphs=extractHtmlParagraphs(html);
   }
   const excerpts=selectRelevantExcerpts(paragraphs,topic,Math.max(500,Math.min(10000,Number(maxChars)||7000)));
   if(!excerpts.length)return {status:'no_relevant_text',source_id:sourceId,excerpts:[]};
