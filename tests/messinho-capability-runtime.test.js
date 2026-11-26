@@ -8,13 +8,13 @@ test('runtime diagnostics distinguish catalogue dispatch from specialist impleme
  const functions=listExecutableMessinhoCapabilities().flatMap(g=>g.functions);
  assert.equal(summary.total_catalogue_entries,100);
  assert.equal(summary.dispatched_entries,100);
- assert.equal(summary.specialist_handler_count,76);
- assert.equal(summary.generic_fallback_count,24);
- assert.equal(summary.registered_handlers,76);
- assert.equal(summary.all_registered,false);
+ assert.equal(summary.specialist_handler_count,100);
+ assert.equal(summary.generic_fallback_count,0);
+ assert.equal(summary.registered_handlers,100);
+ assert.equal(summary.all_registered,true);
  assert.equal(functions.filter(x=>x.dispatch_available).length,100);
- assert.equal(functions.filter(x=>x.execution_handler_available).length,76);
- assert.equal(functions.filter(x=>x.implementation_status==='not_implemented').length,24);
+ assert.equal(functions.filter(x=>x.execution_handler_available).length,100);
+ assert.equal(functions.filter(x=>x.implementation_status==='not_implemented').length,0);
  assert.equal(summary.seasonal_learning_handler,'reachable');
 });
 test('every capability executes safely and reports missing data rather than inventing it',()=>{
@@ -94,4 +94,72 @@ test('seasonal learning is reachable and compares seasons without training',()=>
  assert.equal(result.result.change,13);
  assert.equal(result.result.training_performed,false);
  assert.equal(result.result.model_weights_changed,false);
+});
+
+test('automated talent search applies filters and only ranks measured players',()=>{
+ const out=executeMessinhoCapability('automated_talent_search',{filters:{maxAge:22,position:'ST'},current_year:2026,players:[
+  {player_id:1,name:'Young striker',year:2005,positions:['ST'],ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4}},
+  {player_id:2,name:'Older striker',year:2000,positions:['ST'],ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4}},
+  {player_id:3,name:'Young midfielder',year:2005,positions:['ZM'],ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4}}
+ ]});
+ assert.equal(out.status,'completed');
+ assert.equal(out.result.candidate_count,1);
+ assert.equal(out.result.ranked_candidates[0].id,1);
+});
+test('international research reports supplied countries and does not claim a live search',()=>{
+ const out=executeMessinhoCapability('international_research',{players:[{nationality:'Senegal'},{nationality:'France'}],
+  sources:[{url:'http://insecure.example/player',title:'Profile'}]});
+ assert.equal(out.status,'completed');
+ assert.equal(out.result.countries.length,2);
+ assert.equal(out.result.eligible_sources,0);
+ assert.match(out.result.provider_execution,/no new external search/i);
+});
+test('cross-league research handles missing scores without throwing',()=>{
+ const out=executeMessinhoCapability('cross_league_research',{players:[
+  {name:'A',league:'Bundesliga'},{name:'B',league:'Ligue 1'}
+ ]});
+ assert.equal(out.status,'completed');
+ assert.equal(out.result.leagues.length,2);
+ assert.equal(out.result.leagues[0].average_score,null);
+});
+test('underdog and hidden-gem discovery require both market values and player metrics',()=>{
+ const out=executeMessinhoCapability('hidden_gem_detection',{players:[
+  {id:1,name:'Measured prospect',market_value_eur:1000000,ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4}},
+  {id:2,name:'Missing value',ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4}}
+ ]});
+ assert.equal(out.status,'completed');
+ assert.equal(out.result.candidates.length,1);
+ assert.equal(out.result.candidates[0].id,1);
+});
+test('scout feedback learning uses only verified ratings and does not train',()=>{
+ const out=executeMessinhoCapability('scout_feedback_learning',{outcomes:[
+  {player_id:'1',scout_id:'s1',scout_rating:80,target_score:70,verification_status:'verified',verified_by:'admin'},
+  {player_id:'2',scout_id:'s1',scout_rating:50,target_score:60,verification_status:'verified',verified_by:'admin'},
+  {player_id:'3',scout_id:'s2',scout_rating:90,target_score:50,verification_status:'pending',verified_by:'admin'}
+ ]});
+ assert.equal(out.status,'completed');
+ assert.equal(out.result.scouts.length,1);
+ assert.equal(out.result.scouts[0].mean_absolute_error,10);
+ assert.equal(out.result.model_weights_changed,false);
+});
+test('cohort learning remains descriptive and refuses unverified samples',()=>{
+ const insufficient=executeMessinhoCapability('league_learning',{outcomes:[
+  {player_id:'1',league:'A',target_score:80,verification_status:'pending',verified_by:'admin'}
+ ]});
+ assert.equal(insufficient.status,'insufficient_data');
+ const result=executeMessinhoCapability('league_learning',{outcomes:[
+  {player_id:'1',league:'A',target_score:80,verification_status:'verified',verified_by:'admin'},
+  {player_id:'2',league:'B',target_score:70,verification_status:'verified',verified_by:'admin'}
+ ]});
+ assert.equal(result.status,'completed');
+ assert.equal(result.result.training_performed,false);
+});
+test('controlled self-optimization can only propose, never activate or change weights',()=>{
+ const outcomes=Array.from({length:30},(_,i)=>({player_id:String(i+1),position_group:'ST',target_score:65+i%20,
+  dimension_scores:{technical:70,tactical:65,athletic:75,mental:70},verification_status:'verified',verified_by:'admin'}));
+ const out=executeMessinhoCapability('controlled_self_optimization',{outcomes,minimum_examples:30});
+ assert.ok(['proposal_ready','no_reliable_improvement'].includes(out.status));
+ assert.equal(out.result.training_performed,false);
+ assert.equal(out.result.model_weights_changed,false);
+ assert.equal(out.result.activation,'blocked_until_admin_review');
 });
