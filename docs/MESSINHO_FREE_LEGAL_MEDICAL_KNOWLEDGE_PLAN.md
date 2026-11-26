@@ -181,3 +181,57 @@ Phase 4 — Qualitätssicherung und STAGING:
 - Retrieval bevorzugt: gespeicherte kompakte Wissensnotizen plus Quellenlinks; bei aktuellen oder fehlenden Fakten gezielte Live-Recherche. Antwort immer mit Herkunft und Aktualität.
 - Keine vollständigen Bücher zum Modelltraining und keine automatische Veränderung der MESSINHO-Scoring-Gewichte durch extrahierte medizinische Inhalte.
 - Speicherbudget, maximale Textlänge je Wissensbaustein, TTL, Deduplizierung und Cleanup-Tests vor Implementierung festlegen.
+
+
+## Übergreifende Wissensarchitektur — dauerhaftes, domänenweites Wissen (Eigentümerentscheidung 2026-11-26)
+
+Die medizinische Wissensbasis ist nur ein Fachbereich einer allgemeinen MESSINHO-Wissensarchitektur. Das Ziel gilt für **alle** Wissensgebiete und Funktionen, insbesondere Mathematik, Biologie, Physik sowie Sportwissenschaft, Medizin, Statistik, Informatik und Fußballanalyse.
+
+### Verbindliches Verhalten
+
+- Sobald MESSINHO neues Wissen rechtmäßig und ausreichend verifiziert erworben hat, soll es als dauerhaftes, wiederverwendbares Wissen verfügbar bleiben und bei späteren passenden Aufgaben automatisch berücksichtigt werden.
+- Dieses Wissen darf nicht nur im flüchtigen Gesprächskontext, in einem Prompt oder in einem kurzlebigen Cache liegen. Es benötigt einen persistenten, versionierten und gesicherten Wissensbestand.
+- MESSINHO muss gespeichertes Wissen in normalen Gesprächen automatisch abrufen, anwenden, analysieren, kritisch bewerten, verständlich erklären und – wo methodisch zulässig – zur Berechnung und Prognose verwenden.
+- Die automatische Nutzung gilt domänenübergreifend und für sämtliche Agentenfunktionen. Es darf keine manuelle Aktivierung einzelner Wissensmodule voraussetzen.
+- Wissen muss mit Herkunft, Lizenz/Rechten, Version, Datum, Vertrauensgrad, Gültigkeitsbereich und gegebenenfalls Ablauf-/Reviewdatum gespeichert werden.
+- Widersprüchliche Erkenntnisse werden nicht still überschrieben: Versionen und Gegenbelege bleiben nachvollziehbar; MESSINHO kennzeichnet Unsicherheit und erklärt, warum eine Quelle höher gewichtet wird.
+- Neue Erkenntnisse ergänzen oder korrigieren den Wissensbestand nachvollziehbar. Korrekturen dürfen ältere Versionen nicht spurlos vernichten.
+- Zeitabhängige Fakten werden als historisch erhalten, aber als möglicherweise nicht mehr aktuell markiert. Das Wissen wird also nicht gelöscht, nur weil seine Aktualität abläuft.
+- Nutzerbezogene/private Gesprächsdaten sind von allgemeinem Fachwissen strikt getrennt und dürfen nicht versehentlich in den globalen Wissensbestand gelangen.
+
+### Dauerhaftigkeit und Schutz vor Wissensverlust
+
+„Niemals verlieren“ ist ein Produktziel, das technisch durch Ausfallsicherheit und Wiederherstellbarkeit bestmöglich abgesichert wird; absolute Unfehlbarkeit kann kein System garantieren. Erforderlich sind:
+1. Persistente Speicherung mit stabilen Wissens-IDs und Versionierung.
+2. Automatische, verschlüsselte und getestete Backups nach festgelegtem Wiederherstellungsziel (RPO/RTO).
+3. Regelmäßige Restore-Tests, Integritätsprüfungen und Prüfsummen.
+4. Audit-Log für Aufnahme, Änderung, Korrektur, Verknüpfung und Deaktivierung.
+5. Schutz vor versehentlichem Löschen; geregelte Retention und Wiederherstellung.
+6. Export-/Migrationsfähigkeit in einem dokumentierten, offenen Format, damit Wissen nicht an einen einzelnen Anbieter gebunden ist.
+7. Deduplizierung und Speicherbudgets, ohne die einzige verifizierte Wissensfassung zu entfernen.
+8. Rechtewidrige Inhalte müssen sperrbar und gegebenenfalls löschbar sein. Rechtliche Löschpflichten und Datenschutz gehen einem absoluten Behalten vor; zulässige Provenienz-/Auditinformationen bleiben soweit erlaubt erhalten.
+
+### Fachliche Verarbeitung und Prognosen
+
+- **Mathematik:** nachvollziehbare Herleitung, Einheiten-/Definitionsprüfung, deterministische Berechnung, Plausibilitäts- und Randfallkontrolle.
+- **Physik:** Modellannahmen, Größen/Einheiten, Formeln, Randbedingungen, Messunsicherheit und Gültigkeitsbereich offenlegen.
+- **Biologie und Medizin:** Mechanismen und Evidenz erklären, Kausalität nicht aus bloßer Korrelation ableiten, aktuelle Leitlinien/Quellen berücksichtigen und medizinische Sicherheitsgrenzen einhalten.
+- **Statistik und Prognosen:** Datenqualität, Stichprobengröße, Verzerrungen, Modellannahmen, Konfidenz-/Prognoseintervalle und alternative Szenarien ausweisen. Prognosen sind Wahrscheinlichkeitsaussagen, keine Gewissheiten.
+- **Alle übrigen Funktionen:** das passende Wissen automatisch mit konkreten Daten, Regeln und Werkzeugen kombinieren; Quellen, Annahmen und Grenzen der Antwort sichtbar machen.
+
+Wissensspeicher, Gesprächsgedächtnis, Suchindex, Rechen-/Fachwerkzeuge und Modellparameter sind unterschiedliche Komponenten. Wissen wird nicht dadurch dauerhaft gesichert, dass es einmal in einem Chat erwähnt oder in Modellgewichte geschrieben wurde. MESSINHO soll verifizierte Erkenntnisse primär in einem kontrollierten Wissensspeicher erhalten und bei Bedarf abrufen. Ein Modelltraining ist dafür weder Voraussetzung noch Ersatz.
+
+### Architekturvorgabe
+
+Eine zentrale, domänenübergreifende Knowledge Layer mit:
+- fachgebietsneutralem Wissenseintrag und kontrolliertem Taxonomie-/Begriffsregister;
+- Quellen- und Rechteverwaltung;
+- Claim-/Regel-/Formel-/Methode-Einträgen mit Provenienz;
+- Versionen, Gültigkeitszeiträumen, Konfliktbeziehungen und Review-Status;
+- kompaktem Retrieval-Index und optional rechtlich zulässigen Embeddings;
+- deterministischen Werkzeugen für Berechnung/Simulation, getrennt von beschreibendem Wissen;
+- Agenten-Router, der passende Wissens- und Werkzeugbausteine automatisch in jeden Plan einbezieht;
+- Qualitätsprüfung, Unsicherheitsbewertung und nachvollziehbarer Prognoseausgabe;
+- Backup/Restore, Audit, Export und Rechte-gesteuerter Löschung.
+
+Keine kostenpflichtigen Zusatzdienste oder unbegrenzte Speicherhaltung ohne vorherige Kostenprüfung. Das System muss Speicher- und Backup-Kosten transparent messen und begrenzen. Vor Implementierung sind Schema, Zugriffsschutz, Backupziel, Speicherbudgets und Wiederherstellungstests festzulegen.
