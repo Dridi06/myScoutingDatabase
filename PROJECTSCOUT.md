@@ -2129,3 +2129,11 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - This further protects owner-scoped knowledge memory because only answers that pass the evidence and quality gates are eligible for persistence.
 - Added regression tests for valid two-domain corroboration, single-source rejection, same-domain rejection and unrelated-source rejection.
 - No schema migration and no automatic changes to model weights or agent behavior beyond stricter evidence acceptance. Full tests/build and manual STAGING deployment are pending.
+
+
+#### STAGING release verification — claim-level corroboration — 2026-11-26 17:07 UTC
+- Render deployment `dep-dc46ebec6qcc73cksv90` reached `live` on runtime SHA `9a03e5beb45f6542ea058ecd62f514c0fbf74391`.
+- Complete Node suite: **244 passed, 0 failed, 0 cancelled, 0 skipped**.
+- Backend syntax checks passed; Vite production build completed successfully (1,636 modules transformed).
+- Manual STAGING deployment only. Render auto-deploy remains disabled.
+- Production/main, production Supabase and PFMS/PFSS remain untouched. PR #47 remains Draft/open/unmerged.
