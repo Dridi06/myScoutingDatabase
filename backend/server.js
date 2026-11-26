@@ -1558,7 +1558,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const mathResult=calculateMessinhoMathQuestion(interpretedMessage);
     if(mathResult){
       const reply=mathResult.status==='completed'
-        ? mathResult.title+': '+mathResult.formatted+(mathResult.unit?' '+mathResult.unit:'')+'.\\nFormel: '+mathResult.formula+'.\\n'+(mathResult.steps||[]).map((step,index)=>(index+1)+'. '+step).join('\\n')+(mathResult.scouting_interpretation?'\\nEinordnung: '+mathResult.scouting_interpretation:'')+(mathResult.assumptions?.length?'\\nAnnahmen: '+mathResult.assumptions.join(' '):'')
+        ? mathResult.title+': '+mathResult.formatted+(mathResult.unit?' '+mathResult.unit:'')+'.\nFormel: '+mathResult.formula+'.\n'+(mathResult.steps||[]).map((step,index)=>(index+1)+'. '+step).join('\n')+(mathResult.scouting_interpretation?'\nEinordnung: '+mathResult.scouting_interpretation:'')+(mathResult.assumptions?.length?'\nAnnahmen: '+mathResult.assumptions.join(' '):'')
         : mathResult.message||'Die Berechnung konnte nicht sicher durchgeführt werden.';
       return respond({reply,intent:'mathematics_'+mathResult.kind,calculation:mathResult,items:[]});
     }
