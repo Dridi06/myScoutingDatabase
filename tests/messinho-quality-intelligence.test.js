@@ -54,3 +54,9 @@ test('attributes one reviewed rating to every relevant capability',()=>{
  const report=buildMessinhoQualityIntelligence([rating('multi',2,{capability_ids:['player_search','tactical_fit']})],{now});
  assert.deepEqual(report.by_capability.map(item=>item.key).sort(),['player_search','tactical_fit']);
 });
+
+test('segments quality by model and engine versions without exposing raw text',()=>{
+ const report=buildMessinhoQualityIntelligence([rating('v1',4,{model_version:'model-1',engine_version:'engine-1'})],{now});
+ assert.equal(report.by_model_version[0].key,'model-1');
+ assert.equal(report.by_engine_version[0].key,'engine-1');
+});
