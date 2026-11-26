@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {isMessinhoRegisteredSourceUrl} from '../backend/messinho-rights-registry.js';
 import {buildMessinhoDomainKnowledgeRecord,classifyMessinhoKnowledgeDomain,fingerprintMessinhoDomainKnowledge,rankMessinhoDomainKnowledge,storeMessinhoDomainKnowledge,findMessinhoDomainKnowledge} from '../backend/messinho-domain-knowledge.js';
 const good={question:'Wie funktioniert die Photosynthese in Pflanzen?',content:'Photosynthese wandelt Lichtenergie in chemische Energie um. Dabei werden Wasser und Kohlendioxid genutzt und Sauerstoff freigesetzt.',sources:[{title:'Open licensed biology reference',url:'https://example.org/bio',section:'Photosynthesis'}],claims:['Lichtenergie wird in chemische Energie umgewandelt.'],rights:{status:'verified_permitted',license:'CC BY 4.0',rights_holder:'Example Research Institute',ai_tdm:true,commercial_use:true,derivative_use:true,evidence_url:'https://example.org/license'},confidence:0.9};
 test('classifies requested scientific and financial domains',()=>{assert.equal(classifyMessinhoKnowledgeDomain('Erkläre Photosynthese'), 'biology');assert.equal(classifyMessinhoKnowledgeDomain('Wie funktioniert Value at Risk im Risikomanagement?'),'risk_management');assert.equal(classifyMessinhoKnowledgeDomain('Wie funktioniert ein Orderbuch an der Börse?'),'financial_markets');assert.equal(classifyMessinhoKnowledgeDomain('Berechne eine Gleichung'),'mathematics');});
@@ -10,3 +11,5 @@ test('database persistence and retrieval fail closed without database',async()=>
 test('rejects writes when any reuse permission is missing',async()=>{const result=await storeMessinhoDomainKnowledge({from(){throw Error('must not write')}},{...good,rights:{...good.rights,ai_tdm:false}});assert.equal(result.persisted,false);assert.equal(result.reason,'rights_not_in_verified_registry');});
 
 test('provider-supplied rights flags cannot bypass the independently reviewed allowlist',()=>{assert.equal(buildMessinhoDomainKnowledgeRecord({...good,rights:{...good.rights,source_id:'unreviewed-source'}}).reason,'rights_not_in_verified_registry');});
+
+test('source provenance URL must be inside the reviewed rights scope',()=>{assert.equal(isMessinhoRegisteredSourceUrl('unknown-source','https://example.org/book/chapter'),false);assert.equal(isMessinhoRegisteredSourceUrl('unknown-source','http://example.org/book'),false);});
