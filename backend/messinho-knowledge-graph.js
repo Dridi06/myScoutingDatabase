@@ -107,9 +107,9 @@ const CANONICAL_CONCEPT_MATCHERS=[
 ];
 export function formatMessinhoKnowledgeValue(value){
  if(value===null||value===undefined||value==='')return '';
- if(Array.isArray(value))return value.map(item=>formatMessinhoKnowledgeValue(item)).filter(Boolean).join('; ');
+ if(Array.isArray(value))return value.map(item=>formatMessinhoKnowledgeValue(item)).filter(Boolean).join('\\n• ');
  if(typeof value==='string'||typeof value==='number'||typeof value==='boolean')return String(value);
- if(typeof value==='object')return Object.entries(value).map(([key,item])=>key+': '+formatMessinhoKnowledgeValue(item)).join('; ');
+ if(typeof value==='object')return Object.entries(value).map(([key,item])=>key+': '+formatMessinhoKnowledgeValue(item)).join('\\n');
  return '';
 }
 export function getMessinhoCanonicalConceptKey(question){
