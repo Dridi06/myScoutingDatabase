@@ -27,7 +27,8 @@ import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMe
 import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
 import { findMessinhoDomainKnowledge } from './messinho-domain-knowledge.js';
-import { findMessinhoKnowledgeConcepts, storeMessinhoKnowledgeConcept, reviewMessinhoKnowledgeConcept } from './messinho-knowledge-graph.js';
+import { findMessinhoKnowledgeConcepts, reviewMessinhoKnowledgeConcept } from './messinho-knowledge-graph.js';
+import { learnMessinhoKnowledgeFromResearch } from './messinho-knowledge-learning.js';
 
 import { calculateMessinhoMathQuestion } from './messinho-math.js';
 import { learnMessinhoApprovedFoundationConcept } from './messinho-approved-knowledge-learning.js';
@@ -2043,15 +2044,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         const foundationalIntent=/^(?:was ist|was bedeutet|erkl[aä]re(?: mir)?|erkl[aä]ren sie|grundlagen|definition|einf[uü]hrung|what is|define|explain the basics)\b/i.test(interpretedMessage.trim());
         let durableLearning={persisted:false,reason:foundationalIntent?'source_rights_not_verified':'foundational_parent_not_yet_established'};
         if(foundationalIntent){
-          const conceptTopic=interpretedMessage.replace(/^(?:was ist|was bedeutet|erkl[aä]re(?: mir)?|erkl[aä]ren sie|definition|einf[uü]hrung|what is|define|explain the basics)\s*/i,'').replace(/[?!.]+$/g,'').trim().slice(0,180)||'Grundlagen';
-          const conceptDefinition=(research.claims||[]).map(claim=>claim.text).join(' ').slice(0,1800);
-          durableLearning=await storeMessinhoKnowledgeConcept(db,{
-            question:interpretedMessage,domain:undefined,topic:conceptTopic,title:interpretedMessage.slice(0,220),
-            definition:conceptDefinition,knowledge_level:'foundational',knowledge_type:/formel|gleichung|berechne|formula|equation/i.test(interpretedMessage)?'formula':'concept',
-            claims:research.claims||[],sources:research.sources||[],evidence_grade:'not_applicable',confidence:research.quality_control?.passed?0.85:0.7,
-            applicability:'Allgemeine Grundlagen; konkrete Anwendung muss zum jeweiligen Kontext geprüft werden.',
-            limitations:research.evidence?.limitations||[]
-          });
+          durableLearning=await learnMessinhoKnowledgeFromResearch(db,{question:interpretedMessage,research});
         }
         return respond({reply:research.answer,intent:'general_knowledge_research',items:sourceItems,sources:research.sources,evidence:research.evidence,answer_mode:research.answer_mode,claims:research.claims,researched_at:research.researched_at,
           learning:{...research.learning,...learning,reused:false,verification_status:learning.persisted?'corroborated':null},
