@@ -4,7 +4,7 @@
  */
 const TYPES=new Set(['quality_rating','factual_correction','bug_report','feature_request']);
 const DECISIONS=new Set(['reviewed','verified','rejected','applied']);
-const clean=(value,max)=>String(value??'').replace(/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/g,' ').replace(/\\s+/g,' ').trim().slice(0,max);
+const clean=(value,max)=>String(value??'').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
 const optionalText=(value,max)=>{const text=clean(value,max);return text||null;};
 const safeHttps=value=>{try{const url=new URL(String(value||''));return url.protocol==='https:'&&!url.username&&!url.password?url.toString():null;}catch{return null;}};
 
