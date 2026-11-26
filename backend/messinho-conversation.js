@@ -19,7 +19,7 @@ export function classifyMessinhoProviderFailure(status, payload = {}) {
 
 function normalizeSocialText(value) {
   return String(value || '').normalize('NFKC').toLocaleLowerCase('de-DE')
-    .replace(/[’']/g, '').replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^\\p{L}\\p{N}\\s]/gu, ' ').replace(/\\s+/g, ' ').trim();
+    .replace(/[’']/g, '').replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
 }
 
 const SOCIAL_POOLS = {
@@ -66,21 +66,21 @@ const SOCIAL_POOLS = {
 };
 
 const INTENT_PATTERNS = [
-  ['bot_identity', /\\b(wer bist du|wie heisst du|bist du ein mensch|bist du eine ki)\\b/],
-  ['goodbye', /\\b(tschuess|tschuss|ciao|bis dann|bis spaeter|schoenen abend|schoenes wochenende|feierabend|mach es gut|machs gut|haut rein)\\b/],
-  ['apology', /\\b(sorry|entschuldigung|tut mir leid|mein fehler|ups)\\b/],
-  ['coffee_break', /\\b(kaffee|pause|mittagessen|mittagspause|hunger|muede)\\b/],
-  ['thanks', /\\b(danke|dankeschoen|vielen dank|merci|top arbeit|super gemacht|stark)\\b/],
-  ['how_are_you', /\\b(wie geht es dir|wie gehts dir|alles klar|alles fit|was geht|wie laeuft es bei dir|alles gut bei dir)\\b/],
-  ['weekend_smalltalk', /\\b(wochenende|montag|freitag|spieltag|bundesliga|champions league)\\b/],
-  ['greeting', /\\b(hallo|hi|hey|moin|servus|guten morgen|guten tag|guten abend|nabend|grue\u00df dich|na)\\b/]
+  ['bot_identity', /\b(wer bist du|wie heisst du|bist du ein mensch|bist du eine ki)\b/],
+  ['goodbye', /\b(tschuess|tschuss|ciao|bis dann|bis spaeter|schoenen abend|schoenes wochenende|feierabend|mach es gut|machs gut|haut rein)\b/],
+  ['apology', /\b(sorry|entschuldigung|tut mir leid|mein fehler|ups)\b/],
+  ['coffee_break', /\b(kaffee|pause|mittagessen|mittagspause|hunger|muede)\b/],
+  ['thanks', /\b(danke|dankeschoen|vielen dank|merci|top arbeit|super gemacht|stark)\b/],
+  ['how_are_you', /\b(wie geht es dir|wie gehts dir|alles klar|alles fit|was geht|wie laeuft es bei dir|alles gut bei dir)\b/],
+  ['weekend_smalltalk', /\b(wochenende|montag|freitag|spieltag|bundesliga|champions league)\b/],
+  ['greeting', /\b(hallo|hi|hey|moin|servus|guten morgen|guten tag|guten abend|nabend|grue\u00df dich|na)\b/]
 ];
 
 function detectSocialIntent(text) {
   const normalized = normalizeSocialText(text);
   if (!normalized || normalized.length > 180) return null;
   // Do not intercept requests that contain a clear work/scouting action.
-  if (/\\b(suche|such|scoute|recherchiere|analysiere|vergleiche|bewerte|erstelle|berechne|finde|spieler|talent|kandidat|transfer|marktwert|shortlist|datenbank|position|jahrgang|u\\s?\\d{1,2})\\b/.test(normalized)) return null;
+  if (/\b(suche|such|scoute|recherchiere|analysiere|vergleiche|bewerte|erstelle|berechne|finde|spieler|talent|kandidat|transfer|marktwert|shortlist|datenbank|position|jahrgang|u\s?\d{1,2})\b/.test(normalized)) return null;
   for (const [intent, pattern] of INTENT_PATTERNS) if (pattern.test(normalized)) return intent;
   return null;
 }
