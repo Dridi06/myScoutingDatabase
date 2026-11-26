@@ -393,3 +393,52 @@
     min-height:44px!important;max-height:132px!important;font-size:16px!important
   }
 }
+
+/* Admin-only knowledge governance: compact, collapsible and source-transparent. */
+.messinho-workspace .messinho-knowledge-review{display:grid;gap:10px;min-width:0;padding:12px;border:1px solid rgba(190,160,94,.25);border-radius:13px;background:linear-gradient(145deg,rgba(17,29,44,.88),rgba(9,18,29,.9))}
+.messinho-workspace .messinho-knowledge-review>details>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;list-style:none}
+.messinho-workspace .messinho-knowledge-review>details>summary::-webkit-details-marker{display:none}
+.messinho-workspace .messinho-knowledge-review-summary>span:first-child{display:grid;gap:4px;min-width:0}
+.messinho-workspace .messinho-knowledge-review-summary strong{display:flex;align-items:center;gap:7px;color:#e9d09a;font-size:12px}
+.messinho-workspace .messinho-knowledge-review-summary small{font-size:10px;line-height:1.45;color:#9eafc5}
+.messinho-workspace .messinho-knowledge-review-body{display:grid;gap:12px;margin-top:12px;min-width:0}
+.messinho-workspace .messinho-knowledge-review-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.messinho-workspace .messinho-knowledge-review-toolbar p{margin:0;max-width:680px;color:#aebed2;font-size:10px;line-height:1.5}
+.messinho-workspace .messinho-knowledge-review-toolbar button{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;font-size:10px;padding:7px 9px}
+.messinho-workspace .messinho-knowledge-notice{margin:0;padding:8px 10px;border:1px solid rgba(92,173,132,.28);border-radius:8px;color:#a8dfbd;background:rgba(45,110,74,.12);font-size:10px}
+.messinho-workspace .messinho-knowledge-queue{display:grid;gap:9px;min-width:0}
+.messinho-workspace .messinho-knowledge-queue-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.messinho-workspace .messinho-knowledge-queue-heading strong{display:flex;align-items:center;gap:6px;color:#e5edf6;font-size:11px}
+.messinho-workspace .messinho-knowledge-queue-heading small{color:#91a4ba;font-size:9px;text-align:right}
+.messinho-workspace .messinho-knowledge-candidate,.messinho-workspace .messinho-knowledge-conflict{display:grid;gap:8px;min-width:0;padding:11px;border:1px solid rgba(165,185,210,.14);border-radius:10px;background:rgba(255,255,255,.025)}
+.messinho-workspace .messinho-knowledge-candidate-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;min-width:0}
+.messinho-workspace .messinho-knowledge-candidate-heading>div{display:grid;gap:3px;min-width:0}
+.messinho-workspace .messinho-knowledge-candidate-heading strong{font-size:11px;color:#e7edf5;overflow-wrap:anywhere}
+.messinho-workspace .messinho-knowledge-candidate-heading small,.messinho-workspace .messinho-knowledge-candidate>small,.messinho-workspace .messinho-knowledge-conflict>small{font-size:9px;line-height:1.45;color:#93a7bf;overflow-wrap:anywhere}
+.messinho-workspace .messinho-knowledge-status{flex:0 0 auto;padding:3px 7px;border:1px solid rgba(190,160,94,.25);border-radius:999px;color:#e5c989;background:rgba(190,160,94,.08);font-size:9px}
+.messinho-workspace .messinho-knowledge-candidate>p,.messinho-workspace .messinho-knowledge-conflict>p{margin:0;color:#c6d2df;font-size:10px;line-height:1.55;overflow-wrap:anywhere}
+.messinho-workspace .messinho-knowledge-facts{display:flex;flex-wrap:wrap;gap:6px}
+.messinho-workspace .messinho-knowledge-facts span{padding:4px 7px;border:1px solid rgba(165,185,210,.12);border-radius:6px;color:#aebed2;font-size:9px}
+.messinho-workspace .messinho-knowledge-formula,.messinho-workspace .messinho-knowledge-prerequisites,.messinho-workspace .messinho-knowledge-evidence,.messinho-workspace .messinho-knowledge-sources,.messinho-workspace .messinho-knowledge-limitations{display:grid;gap:5px;min-width:0}
+.messinho-workspace .messinho-knowledge-formula>b,.messinho-workspace .messinho-knowledge-prerequisites>b,.messinho-workspace .messinho-knowledge-evidence>b,.messinho-workspace .messinho-knowledge-sources>b,.messinho-workspace .messinho-knowledge-limitations>b{font-size:9px;color:#e5c989;text-transform:uppercase;letter-spacing:.04em}
+.messinho-workspace .messinho-knowledge-formula code{padding:6px 8px;border-radius:6px;background:rgba(0,0,0,.22);color:#f1dfb5;font-size:10px;overflow-wrap:anywhere}
+.messinho-workspace .messinho-knowledge-prerequisites span{font-size:9px;color:#b4c3d4;overflow-wrap:anywhere}
+.messinho-workspace .messinho-knowledge-evidence p{display:grid;gap:3px;margin:0;padding:6px 8px;border-left:2px solid rgba(190,160,94,.3);background:rgba(255,255,255,.02);color:#c6d2df;font-size:10px;line-height:1.45}
+.messinho-workspace .messinho-knowledge-evidence p small{font-size:8px;color:#91a4ba}
+.messinho-workspace .messinho-knowledge-sources>div{display:grid;gap:2px;padding:6px 8px;border:1px solid rgba(165,185,210,.1);border-radius:6px}
+.messinho-workspace .messinho-knowledge-sources a{color:#e5c989;font-size:10px;text-decoration:underline;overflow-wrap:anywhere}
+.messinho-workspace .messinho-knowledge-sources small{font-size:8px;line-height:1.4;color:#91a4ba;overflow-wrap:anywhere}
+.messinho-workspace .messinho-knowledge-limitations ul{display:grid;gap:3px;margin:0;padding-left:16px;color:#aebed2;font-size:9px;line-height:1.45}
+.messinho-workspace .messinho-knowledge-reason{display:grid;gap:4px;color:#aebed2;font-size:9px}
+.messinho-workspace .messinho-knowledge-reason textarea{width:100%;min-height:46px;resize:vertical;padding:7px 8px;border:1px solid rgba(165,185,210,.18);border-radius:7px;background:rgba(0,0,0,.18);color:#eef3f8;font:inherit;font-size:10px;line-height:1.4}
+.messinho-workspace .messinho-knowledge-actions{display:flex;flex-wrap:wrap;gap:6px}
+.messinho-workspace .messinho-knowledge-actions button{display:inline-flex;align-items:center;gap:5px;padding:7px 9px;font-size:9px}
+.messinho-workspace .messinho-knowledge-actions .danger{border-color:rgba(190,95,95,.35);color:#e7aaaa;background:rgba(120,38,38,.12)}
+@media(max-width:620px){
+ .messinho-workspace .messinho-knowledge-review{padding:10px}
+ .messinho-workspace .messinho-knowledge-review-toolbar{align-items:flex-start;flex-direction:column}
+ .messinho-workspace .messinho-knowledge-queue-heading{align-items:flex-start;flex-direction:column}
+ .messinho-workspace .messinho-knowledge-queue-heading small{text-align:left}
+ .messinho-workspace .messinho-knowledge-candidate,.messinho-workspace .messinho-knowledge-conflict{padding:9px}
+ .messinho-workspace .messinho-knowledge-actions button{flex:1 1 auto;justify-content:center}
+}
