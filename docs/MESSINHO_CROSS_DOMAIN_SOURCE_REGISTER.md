@@ -79,7 +79,7 @@ The project is Germany-based and may be used commercially. A statement that a US
 ## Current decision
 
 - Approved works: **0**.
-- Candidate works/resources recorded here: **14** (PMC, OpenStax and MIT OCW are source pools/families; the four OpenStax CC BY 4.0 titles are individually scoped works).
+- Candidate works/resources recorded here: **16** (PMC, OpenStax and MIT OCW are source pools/families; the four OpenStax CC BY 4.0 titles are individually scoped works).
 - Entries permitted in the permanent knowledge allowlist: **0**. OpenIntro and the Grinstead/Snell GNU FDL version remain quarantined pending exact work-level/copy-left review. Four exact OpenStax titles are quarantined CC BY 4.0 candidates; the wider OpenStax library default, Book of Proof and MIT 6.042J remain excluded under their current terms.
 - No source full text, PDF, OCR output, article, or dataset was downloaded or stored by creating this register.
 - No rights are inferred from search snippets alone. Each candidate remains quarantined pending exact work-level review.
