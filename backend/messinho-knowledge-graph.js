@@ -126,20 +126,11 @@ export async function findMessinhoKnowledgeConcepts(db,question,{limit=6}={}){
    .order('confidence',{ascending:false}).limit(150);
   if(error)throw error;
   const ranked=rank(question,data||[],limit);
-  // Canonical, approved foundations must be retrievable even when a natural
-  // language question contains several explanatory words and only one exact
-  // technical concept anchor. Promote an already-ranked canonical row before
-  // slicing to the requested limit; otherwise a row ranked just below the
-  // cutoff would be silently discarded by the route's canonical-key filter.
+  // Canonical foundation retrieval is a separate exact-key operation. The
+  // broad query is useful for related concepts, but its domain, lexical score,
+  // and result limit must never hide the canonical active foundation.
   const canonical=CANONICAL_CONCEPT_MATCHERS.find(item=>item.pattern.test(String(question||'')));
   if(canonical){
-   const canonicalIndex=ranked.findIndex(item=>item.record.concept_key===canonical.key);
-   if(canonicalIndex>0)ranked.unshift(ranked.splice(canonicalIndex,1)[0]);
-  }
-  if(canonical&&!ranked.some(item=>item.record.concept_key===canonical.key)){
-   // Keep canonical retrieval independent of the broad-query validity OR
-   // expression. A malformed/overly restrictive PostgREST OR filter must not
-   // hide an explicitly active canonical foundation. Enforce validity in JS.
    const {data:exact,error:exactError}=await db.from('messinho_knowledge_concepts')
     .select('id,concept_key,domain,topic,title,definition,knowledge_level,knowledge_type,parent_concept_key,prerequisites,formula,formula_variables,applicability,limitations,claims,sources,rights,evidence_grade,confidence,version,valid_from,valid_until,review_due_at')
     .eq('knowledge_status','active').eq('concept_key',canonical.key).limit(1);
@@ -150,13 +141,16 @@ export async function findMessinhoKnowledgeConcepts(db,question,{limit=6}={}){
    const exactRows=Array.isArray(exact)?exact:[];
    const exactActive=exactRows.find(record=>record.knowledge_status==='active'&&(!record.valid_until||new Date(record.valid_until).getTime()>Date.now()));
    console.info('MESSINHO canonical exact lookup diagnostic:',JSON.stringify({
-    concept_key:canonical.key,
-    rows:exactRows.length,
+    concept_key:canonical.key,rows:exactRows.length,
     statuses:exactRows.map(record=>record.knowledge_status||'missing'),
     domains:exactRows.map(record=>record.domain||'missing'),
-    active_valid: Boolean(exactActive)
+    active_valid:Boolean(exactActive)
    }));
-   if(exactActive)ranked.unshift({record:exactActive,score:1});
+   if(exactActive){
+    const existingIndex=ranked.findIndex(item=>item.record.concept_key===canonical.key);
+    if(existingIndex>=0)ranked.splice(existingIndex,1);
+    ranked.unshift({record:exactActive,score:1,overlap:1,minimumOverlap:1,minimumScore:0});
+   }
   }
   const items=ranked.map(item=>({...item.record,relevance:Number(item.score.toFixed(3))})).slice(0,Math.max(1,Math.min(12,limit)));
   if(!items.length)return {status:'miss',items:[]};
