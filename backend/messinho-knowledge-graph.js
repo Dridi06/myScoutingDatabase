@@ -20,10 +20,11 @@ const fingerprint=value=>createHash('sha256').update(normalize(value)).digest('h
 export function buildMessinhoKnowledgeConcept(input={},now=new Date()){
  const domain=MESSINHO_KNOWLEDGE_DOMAINS.includes(input.domain)?input.domain:classifyMessinhoKnowledgeDomain([input.topic,input.title,input.definition].join(' '));
  const topic=clean(input.topic,180),title=clean(input.title,220),definition=clean(input.definition,1800);
- const level=LEVELS.has(input.knowledge_level)?input.knowledge_level:'foundational';
- const type=TYPES.has(input.knowledge_type)?input.knowledge_type:'concept';
+ if(input.knowledge_level&&!LEVELS.has(input.knowledge_level))return {eligible:false,reason:'invalid_knowledge_level'};
+ if(input.knowledge_type&&!TYPES.has(input.knowledge_type))return {eligible:false,reason:'invalid_knowledge_type'};
+ const level=input.knowledge_level||'foundational',type=input.knowledge_type||'concept';
  if(topic.length<2||title.length<3||definition.length<40)return {eligible:false,reason:'incomplete_concept'};
- if(level!=='foundational'&&!clean(input.parent_concept_key,160)&&!Array.isArray(input.prerequisites))return {eligible:false,reason:'learning_dependency_required'};
+ if(level!=='foundational'&&!clean(input.parent_concept_key,160)&&!(Array.isArray(input.prerequisites)&&input.prerequisites.some(value=>clean(value,160))))return {eligible:false,reason:'learning_dependency_required'};
  const rawSources=Array.isArray(input.sources)?input.sources:[];
  const sources=[];
  for(const source of rawSources){
@@ -79,10 +80,10 @@ export async function storeMessinhoKnowledgeConcept(db,input,now=new Date()){
  if(!built.eligible)return {persisted:false,reason:built.reason};
  const record=built.record;
  try{
-  const existing=await db.from('messinho_knowledge_concepts').select('id,concept_key,definition,formula,version,knowledge_status').eq('concept_key',record.concept_key).maybeSingle();
+  const existing=await db.from('messinho_knowledge_concepts').select('id,concept_key,domain,topic,title,definition,formula,version,knowledge_status').eq('concept_key',record.concept_key).maybeSingle();
   if(existing.error)throw existing.error;
   if(existing.data){
-   const same=fingerprint([existing.data.definition,existing.data.formula||''].join('|'))===fingerprint([record.definition,record.formula||''].join('|'));
+   const same=fingerprint([existing.data.domain,existing.data.topic,existing.data.title,existing.data.definition,existing.data.formula||''].join('|'))===fingerprint([record.domain,record.topic,record.title,record.definition,record.formula||''].join('|'));
    return same?{persisted:false,reason:'already_exists',id:existing.data.id,status:existing.data.knowledge_status}:{persisted:false,reason:'conflict_requires_review',id:existing.data.id,existing_version:existing.data.version};
   }
   const {content_fingerprint,...dbRecord}=record;
