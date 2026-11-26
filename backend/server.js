@@ -650,33 +650,63 @@ function compactMessinhoTaskResult(item){
     verified_outcome_count:item.provenance.verified_outcome_count||0,claims:(item.provenance.claims||[]).slice(0,8),limitations:(item.provenance.limitations||[]).slice(0,3)};
   return output;
 }
-async function saveMessinhoAgentTask(ownerId,goal,plan,input,run,role){
-  const pending=Array.isArray(run?.deferred_capabilities)?run.deferred_capabilities:[];
-  if(!db||!pending.length)return null;
+function buildMessinhoTaskContext(input,priorResults=[]){
+  const context={
+    ...(input?.player?{player:input.player}:{}),
+    ...(Array.isArray(input?.players)?{players:input.players.slice(0,80)}:{}),
+    user_preferences:input?.user_preferences&&typeof input.user_preferences==='object'?input.user_preferences:{},
+    _previous_capability_results:priorResults.slice(-8).map(compactMessinhoTaskResult)
+  };
+  if(JSON.stringify(context).length>64000){
+    context.players=(context.players||[]).slice(0,20);
+    if(JSON.stringify(context).length>64000)delete context.players;
+  }
+  return context;
+}
+async function createMessinhoAgentTask(ownerId,goal,plan,input,role){
+  if(!db)return null;
   try{
-    const context={
-      ...(input?.player?{player:input.player}:{}),
-      ...(Array.isArray(input?.players)?{players:input.players.slice(0,80)}:{}),
-      user_preferences:input?.user_preferences&&typeof input.user_preferences==='object'?input.user_preferences:{},
-      _previous_capability_results:(run?.results||[]).slice(-8).map(compactMessinhoTaskResult)
-    };
-    if(JSON.stringify(context).length>64000){
-      context.players=(context.players||[]).slice(0,20);
-      if(JSON.stringify(context).length>64000)delete context.players;
-    }
-    const storedPlan={
-      goal:String(goal||'').slice(0,1200),label:plan?.label||'MESSINHO-Aufgabe',
+    const storedPlan={goal:String(goal||'').slice(0,1200),label:plan?.label||'MESSINHO-Aufgabe',
       matched_intents:plan?.matched_intents||[],discovered_capabilities:plan?.discovered_capabilities||[],
-      blocked_capabilities:plan?.blocked_capabilities||[],mode:plan?.mode||null,role
-    };
+      blocked_capabilities:plan?.blocked_capabilities||[],mode:plan?.mode||null,role};
+    const pending=[...new Set([...(plan?.steps||[]),...(plan?.deferred_capabilities||[])])];
     const {data,error}=await db.from('messinho_agent_tasks').insert({
-      owner_id:ownerId,goal:storedPlan.goal,status:'partial',plan:storedPlan,context,
-      completed_results:(run.results||[]).slice(0,20).map(compactMessinhoTaskResult),pending_capabilities:pending.slice(0,100),
+      owner_id:ownerId,goal:storedPlan.goal,status:'running',plan:storedPlan,context:buildMessinhoTaskContext(input),
+      completed_results:[],pending_capabilities:pending.slice(0,100),
+      lease_until:new Date(Date.now()+120000).toISOString(),
       expires_at:new Date(Date.now()+30*86400000).toISOString()
     }).select('id,status,pending_capabilities,expires_at').single();
-    if(error){if(error.code!=='42P01')console.warn('MESSINHO task checkpoint unavailable:',error.message);return null;}
+    if(error){if(error.code!=='42P01')console.warn('MESSINHO task creation unavailable:',error.message);return null;}
     return data;
-  }catch(error){console.warn('MESSINHO task checkpoint failed:',error.message);return null;}
+  }catch(error){console.warn('MESSINHO task creation failed:',error.message);return null;}
+}
+async function checkpointMessinhoAgentTask(taskId,ownerId,completedResults,pendingCapabilities,priorResults=[]){
+  if(!db||!taskId)return false;
+  try{
+    const completed=[...priorResults,...completedResults].slice(-100).map(compactMessinhoTaskResult);
+    const {error}=await db.from('messinho_agent_tasks').update({
+      completed_results:completed.slice(0,20),pending_capabilities:(pendingCapabilities||[]).slice(0,100),
+      updated_at:new Date().toISOString(),lease_until:new Date(Date.now()+120000).toISOString()
+    }).eq('id',taskId).eq('owner_id',ownerId).eq('status','running');
+    if(error){console.warn('MESSINHO task checkpoint update failed:',error.message);return false;}
+    return true;
+  }catch(error){console.warn('MESSINHO task checkpoint failed:',error.message);return false;}
+}
+async function finalizeMessinhoAgentTask(taskId,ownerId,run,priorResults=[]){
+  if(!db||!taskId)return null;
+  const pending=Array.isArray(run?.deferred_capabilities)?run.deferred_capabilities:[];
+  const status=pending.length?'partial':run?.missing_inputs?.length?'waiting_for_input':
+    (run?.results||[]).some(item=>item.status==='error')?'failed':'completed';
+  try{
+    const combined=[...priorResults,...(run?.results||[])].slice(-100).map(compactMessinhoTaskResult);
+    const {error}=await db.from('messinho_agent_tasks').update({
+      status,completed_results:combined.slice(0,20),pending_capabilities:pending.slice(0,100),
+      attempt_count:0,updated_at:new Date().toISOString(),lease_until:null,
+      last_error:(run?.results||[]).some(item=>item.status==='error')?'Ein oder mehrere Arbeitsschritte meldeten einen Fehler.':null
+    }).eq('id',taskId).eq('owner_id',ownerId).eq('status','running');
+    if(error){console.warn('MESSINHO task finalization failed:',error.message);return null;}
+    return {status,pending_capabilities:pending};
+  }catch(error){console.warn('MESSINHO task finalization failed:',error.message);return null;}
 }
 
 
@@ -712,19 +742,15 @@ app.post('/api/agent/tasks/:taskId/resume',async(req,res)=>{
     claimedTaskId=task.id;claimedOwnerId=actor.user.id;
     const pending=task.pending_capabilities.slice(0,100);
     const resumePlan={...(task.plan||{}),goal:task.goal,steps:pending.slice(0,20),deferred_capabilities:pending.slice(20),blocked_capabilities:[]};
-    const cycle=executeMessinhoAgentPlan({plan:resumePlan,input:task.context||{},role:actor.profile.role});
-    const newRun=cycle.run;
     const oldResults=Array.isArray(task.completed_results)?task.completed_results.map(compactMessinhoTaskResult):[];
-    const byId=new Map([...oldResults,...(newRun.results||[])].map(item=>[item.capability_id,item]));
+    const cycle=await executeMessinhoAgentPlan({plan:resumePlan,input:task.context||{},role:actor.profile.role,
+      onStep:checkpoint=>checkpointMessinhoAgentTask(task.id,actor.user.id,checkpoint.completed_results,checkpoint.pending_capabilities,oldResults)});
+    const newRun=cycle.run;
+    const byId=new Map([...oldResults,...(newRun.results||[]).map(compactMessinhoTaskResult)].map(item=>[item.capability_id,item]));
     const mergedResults=[...byId.values()];
-    const stillPending=Array.isArray(newRun.deferred_capabilities)?newRun.deferred_capabilities:[];
-    const status=stillPending.length?'partial':(newRun.missing_inputs?.length?'waiting_for_input':newRun.results?.some(item=>item.status==='error')?'failed':'completed');
-    const {error:updateError}=await db.from('messinho_agent_tasks').update({
-      status,completed_results:mergedResults.slice(0,20).map(compactMessinhoTaskResult),pending_capabilities:stillPending.slice(0,100),
-      attempt_count:(Number(task.attempt_count)||0)+1,updated_at:new Date().toISOString(),lease_until:null,
-      last_error:newRun.results?.some(item=>item.status==='error')?'Ein oder mehrere Arbeitsschritte meldeten einen Fehler.':null
-    }).eq('id',task.id).eq('owner_id',actor.user.id);
-    if(updateError)throw updateError;
+    const finalized=await finalizeMessinhoAgentTask(task.id,actor.user.id,newRun,oldResults);
+    if(!finalized)throw new Error('Task checkpoint finalization failed');
+    const stillPending=finalized.pending_capabilities,status=finalized.status;
     const mergedRun={...newRun,results:mergedResults,total_steps:mergedResults.length,
       completed_steps:mergedResults.filter(item=>['completed','verified','proposal_ready'].includes(item.status)).length,
       deferred_capabilities:stillPending,status:status==='completed'?'completed':status==='partial'?'partial':'insufficient_data'};
@@ -1102,6 +1128,7 @@ app.post('/api/messinho/development/hypotheses',messinhoDevelopmentLimiter,async
 
 const agentChatLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:true,legacyHeaders:false,message:{error:'Messinho wurde in kurzer Zeit zu häufig angesprochen. Bitte später erneut versuchen.'}});
 app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
+  let activeTaskId=null,activeTaskOwnerId=null;
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
@@ -1237,9 +1264,14 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         user_preferences:agentMemory.user_preferences,
         history:history.slice(-15)
       };
-      const agentCycle=executeMessinhoAgentPlan({plan,input,role:profile.role});
+      const taskRecord=await createMessinhoAgentTask(ownerId,message,plan,input,profile.role);
+      activeTaskId=taskRecord?.id||null;activeTaskOwnerId=activeTaskId?ownerId:null;
+      const agentCycle=await executeMessinhoAgentPlan({plan,input,role:profile.role,
+        onStep:taskRecord?checkpoint=>checkpointMessinhoAgentTask(taskRecord.id,ownerId,checkpoint.completed_results,checkpoint.pending_capabilities):undefined});
       const run=agentCycle.run;
-      const taskCheckpoint=await saveMessinhoAgentTask(ownerId,message,plan,input,run,profile.role);
+      const finalizedTask=taskRecord?await finalizeMessinhoAgentTask(taskRecord.id,ownerId,run):null;
+      const taskCheckpoint=taskRecord?{...taskRecord,...(finalizedTask||{}),pending_capabilities:run.deferred_capabilities||[]}:null;
+      activeTaskId=null;activeTaskOwnerId=null;
       const reply=formatMessinhoCapabilityResults(run,selectedPlayer?.name||null);
       const preferences={...agentMemory.user_preferences};
       const formation=message.match(/\b(4-\d-\d|3-\d-\d|5-\d-\d)\b/);
@@ -1273,7 +1305,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       return res.json({reply:'Hallo! Ich bin MESSINHO. Du kannst mir ein Scouting-Ziel nennen – ich zerlege es selbstständig in passende Analyse- und Rechercheaufgaben und zeige dir, wenn Daten fehlen.',intent:'smalltalk',items:[]});
     }
     return res.json({reply:'Ich habe deine Anfrage noch nicht eindeutig einem vorhandenen Modul zuordnen können. Beschreibe bitte Ziel, Spielerposition, Jahrgang und gewünschtes Leistungsniveau.',intent:'clarify',items:[]});
-  }catch(error){console.error('Messinho agent chat failed:',error.message);return res.status(500).json({error:'Messinho konnte die Anfrage gerade nicht bearbeiten.'});}
+  }catch(error){
+    if(activeTaskId&&activeTaskOwnerId)try{await db.from('messinho_agent_tasks').update({status:'partial',lease_until:null,last_error:'Ausführung wurde unterbrochen; gespeicherte Arbeitsschritte können fortgesetzt werden.',updated_at:new Date().toISOString()}).eq('id',activeTaskId).eq('owner_id',activeTaskOwnerId).eq('status','running');}catch{}
+    console.error('Messinho agent chat failed:',error.message);return res.status(500).json({error:'Messinho konnte die Anfrage gerade nicht bearbeiten.'});
+  }
 });
 
 app.use(express.static('dist',{maxAge:'1h',setHeaders(res,path){if(path.endsWith('/index.html'))res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');}}));
