@@ -1362,6 +1362,14 @@ async function messinhoScopedRows(table,columns,playerId,actor,limit=250,orderBy
   if(error)throw new Error('MESSINHO context read failed for '+table+': '+error.message);
   return data||[];
 }
+async function messinhoScopedOwnerRows(table,columns,actor,limit=2000,orderBy='created_at'){
+  let query=db.from(table).select(columns);
+  query=scopeMessinhoOwner(query,actor).limit(limit);
+  if(orderBy)query=query.order(orderBy,{ascending:false});
+  const {data,error}=await query;
+  if(error)throw new Error('MESSINHO owner-scoped read failed for '+table+': '+error.message);
+  return data||[];
+}
 async function loadMessinhoCapabilityContext({player,players,plan,actor}){
   const context={player,players:Array.isArray(players)?players:[],candidates:Array.isArray(players)?players:[]};
   const playerId=Number.isFinite(Number(player?.player_id))?Number(player.player_id):null;
@@ -1390,10 +1398,11 @@ async function loadMessinhoCapabilityContext({player,players,plan,actor}){
     if((plan?.steps||[]).some(id=>id==='contract_research'||id==='contract_expiry_monitor')){
       tasks.contracts=messinhoScopedRows('asi_contract_snapshots','id,evidence_id,contract_status,club_name,parent_club_name,contract_start,contract_end,option_type,option_details,effective_date,confidence,verification_status,source_url,source_checked_at,is_current,recorded_by,created_at',playerId,actor,100,'created_at');
     }
-    if(messinhoNeeds(plan,MESSINHO_LEARNING_CAPABILITIES)){
-      tasks.calibration=messinhoScopedRows('asi_scout_calibration_records','player_id,scout_id,scout_rating,outcome_metric,verified_outcome,outcome_observed_on,outcome_source_url,verification_status,verified_by,verified_at,messinho_position_group,messinho_dimension_scores,created_at',playerId,actor,500,'created_at');
-      tasks.predictions=messinhoScopedRows('asi_prediction_records','id,player_id,target_metric,prediction_horizon_days,predicted_value,probability,model_version,input_cutoff_at,status,explanation,created_at',playerId,actor,500,'created_at');
-    }
+  }
+  if(messinhoNeeds(plan,MESSINHO_LEARNING_CAPABILITIES)){
+    tasks.calibration=messinhoScopedOwnerRows('asi_scout_calibration_records','player_id,scout_id,scout_rating,outcome_metric,verified_outcome,outcome_observed_on,outcome_source_url,verification_status,verified_by,verified_at,messinho_position_group,messinho_dimension_scores,created_at',actor,2000,'created_at');
+    tasks.predictions=messinhoScopedOwnerRows('asi_prediction_records','id,player_id,target_metric,prediction_horizon_days,predicted_value,probability,model_version,input_cutoff_at,status,explanation,created_at',actor,2000,'created_at');
+    tasks.playerDirectory=messinhoScopedOwnerRows('players','player_id,year,national_team_country,positions',actor,2000,'created_at');
   }
   const entries=await Promise.all(Object.entries(tasks).map(async([key,promise])=>[key,await promise]));
   const loaded=Object.fromEntries(entries);
@@ -1442,7 +1451,13 @@ async function loadMessinhoCapabilityContext({player,players,plan,actor}){
   }));
   context._trusted_source_bundle=trustedEvidence.length>0;
   context.contract_records=loaded.contracts||[];
-  const calibrations=(loaded.calibration||[]).filter(row=>row.verification_status==='verified'&&row.verified_by&&row.verified_outcome!==null);
+  const playerDirectory=new Map((loaded.playerDirectory||[]).map(row=>[String(row.player_id),row]));
+  const calibrations=(loaded.calibration||[]).filter(row=>row.verification_status==='verified'&&row.verified_by&&row.verified_outcome!==null).map(row=>{
+    const profile=playerDirectory.get(String(row.player_id))||{};
+    const birthYear=Number(profile.year);
+    const age=Number.isInteger(birthYear)&&birthYear>1900?new Date().getFullYear()-birthYear:null;
+    return {...row,age,age_group:age===null?null:Math.floor(age/5)*5+'-'+(Math.floor(age/5)*5+4),country:profile.national_team_country||null};
+  });
   const predictionRecords=loaded.predictions||[];
   const predictionIds=predictionRecords.map(row=>row.id);
   let predictionOutcomes=[];
