@@ -859,7 +859,15 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 
 ### Verification and deployment boundary
 - CI passed on the pre-ledger baseline `a54e12b4f747c0e684374ef4f017d18b470838c8` after the new 100-handler tests were added.
-- Current follow-up commits include task leases, task UI and compact persistence. Their GitHub Actions checks are running; do not treat them as verified until both workflows complete successfully.
+- Latest source commit `84bf7c658e4eb207b0740ff8d50dbffd2a94a5a2` includes task leases, task UI, compact persistence and evidence provenance. Both GitHub Actions workflows passed `npm test` and `npm run build` on this commit.
 - **Staging migration required:** apply `20261126_messinho_agent_task_ledger.sql` to the separate staging Supabase project. The API reports persistence unavailable if the table is absent.
 - Render staging auto-deploy remains disabled; no deployment was triggered. LIVE branch, service, database and secrets remain untouched.
 - The project has not been declared LIVE from this work. Authenticated staging integration and a controlled staging deployment remain outstanding.
+
+
+### Provenance implementation update — 2026-11-26
+- Each capability result now carries a structured provenance object: origin classification, bounded player-record references, normalized metric evidence, source URL/transport assessment, verified-outcome count, derived-score links, and explicit evidence limitations.
+- Agent validation rejects useful results whose provenance is missing or does not match the capability ID.
+- Execution traces persist compact provenance; resumable task checkpoints retain bounded provenance and prior results as untrusted context.
+- No external source is labelled verified merely because it is HTTPS or present in a request. Dedicated verification remains required.
+- **Verification:** Both CI workflows passed on `84bf7c658e4eb207b0740ff8d50dbffd2a94a5a2`; Node tests and frontend build succeeded.
