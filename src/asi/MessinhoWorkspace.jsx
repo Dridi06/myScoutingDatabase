@@ -27,10 +27,9 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   const [fitAttributes,setFitAttributes]=useState([{name:'Antritt',target:'80'},{name:'Dribbling',target:'80'},{name:'Passspiel',target:'70'}]);
   const [fitResult,setFitResult]=useState(null);
   const [capabilityGroups,setCapabilityGroups]=useState([]);
-  const [selectedCapabilityId,setSelectedCapabilityId]=useState('holistic_player_analysis');
-  const [capabilityQuery,setCapabilityQuery]=useState('');
-  const [capabilityBusy,setCapabilityBusy]=useState(false);
-  const [capabilityOutput,setCapabilityOutput]=useState(null);
+  const [openTasks,setOpenTasks]=useState([]);
+  const [taskBusy,setTaskBusy]=useState(false);
+  const [taskError,setTaskError]=useState('');
   const [capabilityError,setCapabilityError]=useState('');
   const [developmentData,setDevelopmentData]=useState(null);
   const [developmentError,setDevelopmentError]=useState('');
@@ -72,7 +71,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       const payload=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(payload.error||'Messinho konnte nicht antworten.');
       const next={id:'a-'+Date.now(),role:'assistant',text:payload.reply||'Ich habe die Anfrage verarbeitet.',intent:payload.intent,items:Array.isArray(payload.items)?payload.items:[],metrics:payload.metrics||null};
-      setMessages(prev=>[...prev,next]);speak(next.text);
+      setMessages(prev=>[...prev,next]);speak(next.text);await refreshTasks();
     }catch(e){setError(e.message||'Verbindung zu Messinho fehlgeschlagen.');}
     finally{setBusy(false);}
   }
@@ -166,17 +165,22 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       setCapabilityError('');
     }catch(e){setCapabilityError(e.message||'MESSINHO-Funktionskatalog konnte nicht geladen werden.');}
   }
-  async function executeCapability(){
-    if(!selectedCapabilityId)return;
-    setCapabilityBusy(true);setCapabilityError('');setCapabilityOutput(null);
+  async function refreshTasks(){
     try{
-      const payload=await learningRequest('/api/messinho/capabilities/'+encodeURIComponent(selectedCapabilityId)+'/execute','POST',{
-        player_id:selectedLearningPlayer?Number(selectedLearningPlayer):undefined,
-        input:{query:capabilityQuery.trim()}
-      });
-      setCapabilityOutput(payload.output||payload);
-    }catch(e){setCapabilityError(e.message||'MESSINHO-Funktion konnte nicht ausgeführt werden.');}
-    finally{setCapabilityBusy(false);}
+      const payload=await learningRequest('/api/agent/tasks');
+      setOpenTasks(payload.tasks||[]);
+      setTaskError(payload.persistence_ready===false?'Die Aufgabenablage benötigt noch die Staging-Datenbankmigration.':'');
+    }catch(e){setTaskError(e.message||'Gespeicherte Aufgaben konnten nicht geladen werden.');}
+  }
+  async function resumeTask(id){
+    if(taskBusy)return;
+    setTaskBusy(true);setTaskError('');
+    try{
+      const payload=await learningRequest('/api/agent/tasks/'+encodeURIComponent(id)+'/resume','POST',{});
+      setMessages(prev=>[...prev,{id:'resume-'+Date.now(),role:'assistant',text:payload.reply||'Die gespeicherte Aufgabe wurde fortgesetzt.'}]);
+      await refreshTasks();
+    }catch(e){setTaskError(e.message||'Die Aufgabe konnte nicht fortgesetzt werden.');}
+    finally{setTaskBusy(false);}
   }
   async function runDevelopmentCycle(){
     if(!selectedLearningPlayer){setDevelopmentError('Bitte zuerst einen Spieler auswählen.');return;}
@@ -220,7 +224,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     catch(e){setDevelopmentError(e.message||'Hypothesen konnten nicht erzeugt werden.');}
     finally{setDevelopmentBusy(false);}
   }
-  useEffect(()=>{if(profile?.role==='admin'||profile?.role==='scout'){loadLearningStatus();loadCapabilities();}},[profile?.role]);
+  useEffect(()=>{if(profile?.role==='admin'||profile?.role==='scout'){loadLearningStatus();loadCapabilities();refreshTasks();}},[profile?.role]);
   function renderItems(items){
     if(!items?.length)return null;
     return <div className="messinho-results">{items.map((item,index)=><article key={String(item.id||item.name||index)} className="messinho-result-row"><div className="messinho-result-icon"><Users size={16}/></div><div className="messinho-result-copy"><strong>{index+1}. {item.name||item.player_name||'Unbenannter Eintrag'}</strong><span>{[item.club||item.current_club||item.currentClub,item.year||item.birth_year||item.birthYear,item.positions?.join(', '),item.analysis?.fit_score!==null&&item.analysis?.fit_score!==undefined?'Fit '+item.analysis.fit_score+'/100':null,item.analysis?.tactical_fit?.score!==null&&item.analysis?.tactical_fit?.score!==undefined?'Taktischer Fit '+item.analysis.tactical_fit.score+'/100':null,item.kind,item.analysis?.recommendation?.label||item.recommendation?.label||item.recommendation].filter(Boolean).join(' · ')}</span>{item.messinho_rating&&<small>{item.messinho_rating.score===null?'MESSINHO-Score: nicht ausreichend belegt':'MESSINHO-Score: '+item.messinho_rating.score+'/100'} · Datenabdeckung {item.messinho_rating.evidence_coverage}% · {item.messinho_rating.confidence}</small>}{item.analysis?.analysis&&<small>{item.analysis.analysis}</small>}{item.sources?.map(source=><span key={source.url} className="messinho-source-link"><a href={source.url} target="_blank" rel="noreferrer">{source.publisher||source.title||'Quelle öffnen'}</a>{source.quality&&<small>{source.quality.freshness==='fresh'?'Aktualitätsdatum vorhanden':source.quality.freshness==='stale'?'Ältere Quelle':'Datum unbekannt'} · {source.quality.secure_transport?'HTTPS':'nicht sicher'}</small>}</span>)}</div></article>)}</div>;
@@ -290,18 +294,25 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       {hypotheses&&<div className="messinho-development-result"><strong>MESSINHO · Verbesserungshypothesen · {hypotheses.status}</strong><pre>{JSON.stringify(hypotheses.hypotheses||[],null,2)}</pre><small>Keine Hypothese verändert automatisch das aktive Modell.</small></div>}
     </section>
     <section className="messinho-capability-panel">
-      <div className="messinho-learning-summary"><strong>MESSINHO · Funktionslabor</strong><small>{capabilityGroups.reduce((sum,group)=>sum+(group.functions?.length||0),0)||100} registrierte Funktionen · vier Kompetenzbereiche · eigene MESSINHO-Runtime</small><small>Wähle eine Funktion. Analyse und Bewertung verwenden den ausgewählten Datenbankspieler; Recherche benötigt einen konkreten Suchbegriff. Lernfunktionen sind Admins vorbehalten.</small></div>
-      <div className="messinho-capability-controls">
-        <label>Funktion<select value={selectedCapabilityId} onChange={e=>setSelectedCapabilityId(e.target.value)}>{capabilityGroups.map(group=><optgroup key={group.id} label={group.name}>{group.functions.map(fn=><option key={fn.id} value={fn.id}>{fn.name}</option>)}</optgroup>)}</select></label>
-        <label>Spieler für Analyse / Bewertung<select value={selectedLearningPlayer} onChange={e=>setSelectedLearningPlayer(e.target.value)}><option value="">Spieler auswählen</option>{learningPlayers.map(player=><option key={player.player_id} value={player.player_id}>{player.name} · {player.positions.join(', ')}</option>)}</select></label>
-        <label>Suchbegriff für Recherche<input value={capabilityQuery} onChange={e=>setCapabilityQuery(e.target.value)} placeholder="z. B. U21 Innenverteidiger Senegal" maxLength={400}/></label>
-        <button type="button" disabled={capabilityBusy||!selectedCapabilityId} onClick={executeCapability}>{capabilityBusy?'Messinho arbeitet …':'Funktion ausführen'}</button>
+      <div className="messinho-learning-summary"><strong>MESSINHO · Integrierte Fähigkeiten</strong>
+        <small>{capabilityGroups.reduce((sum,group)=>sum+(group.functions?.length||0),0)||100} registrierte Fähigkeiten · automatische Auswahl durch den Agenten · keine manuelle Aktivierung erforderlich</small>
+        <small>MESSINHO zerlegt dein Ziel selbstständig, verknüpft passende Analyse-, Bewertungs-, Recherche- und Lernschritte und prüft Berechtigungen sowie Datenlage.</small>
+      </div>
+      <div className="messinho-capability-status">
+        {capabilityGroups.map(group=><div key={group.id}><b>{group.name}</b><span>{group.functions?.length||0} Fähigkeiten</span></div>)}
+        <div><b>Spezialisierte Handler</b><span>{capabilityGroups.reduce((n,g)=>n+(g.functions||[]).filter(fn=>fn.specialist_handler_available).length,0)} · Status teilweise implementiert/verifizierungsbedürftig</span></div>
+        <div><b>Weitere Fähigkeiten</b><span>{capabilityGroups.reduce((n,g)=>n+(g.functions||[]).filter(fn=>!fn.specialist_handler_available).length,0)} benötigen noch spezialisierte Handler</span></div>
       </div>
       {capabilityError&&<p role="alert" className="messinho-error">{capabilityError}</p>}
-      {capabilityOutput&&<div className="messinho-capability-result"><strong>{capabilityOutput.name||capabilityOutput.capability_id} · {capabilityOutput.status}</strong><pre>{JSON.stringify(capabilityOutput.result??capabilityOutput,null,2)}</pre></div>}
     </section>
     <section className="messinho-chat-card">
       <div className="messinho-chat-heading"><div><span>SCOUTING CONVERSATION</span><h2>Sprich mit Messinho</h2></div><button type="button" className="messinho-voice-toggle" onClick={()=>{setVoiceOutput(v=>!v);if(voiceOutput&&'speechSynthesis'in window)window.speechSynthesis.cancel();}} title={voiceOutput?'Sprachausgabe ausschalten':'Sprachausgabe einschalten'}>{voiceOutput?<Volume2 size={17}/>:<VolumeX size={17}/>}<span>{voiceOutput?'Sprache an':'Sprache aus'}</span></button></div>
+      {openTasks.length>0&&<div className="messinho-task-list"><div className="messinho-task-heading"><strong>Gespeicherte Aufgaben</strong><span>{openTasks.length} offen</span></div>
+        {openTasks.map(task=><article key={task.id} className="messinho-task-row"><div><b>{task.goal}</b><small>{task.pending_capabilities?.length||0} Arbeitsschritte ausstehend · zuletzt {new Date(task.updated_at).toLocaleString('de-DE')}</small></div>
+          {task.status==='partial'?<button type="button" disabled={taskBusy||busy} onClick={()=>resumeTask(task.id)}>{taskBusy?'Setzt fort …':'Fortsetzen'}</button>:<span className="messinho-task-waiting">Benötigt weitere Angaben im Chat</span>}
+        </article>)}
+      </div>}
+      {taskError&&<p role="status" className="messinho-error">{taskError}</p>}
       <div className="messinho-messages" aria-live="polite">
         {messages.map(message=><article key={message.id} className={'messinho-message '+message.role}><div className="messinho-avatar">{message.role==='assistant'?<BrainCircuit size={17}/>:<MessageCircle size={16}/>}</div><div className="messinho-bubble"><small>{message.role==='assistant'?'MESSINHO':'DU'}</small><p>{message.text}</p>{message.metrics&&<div className="messinho-metrics"><span>{message.metrics.players} Spieler im Katalog</span><span>{message.metrics.candidates} eigene Kandidaten</span></div>}{renderItems(message.items)}</div></article>)}
         {busy&&<div className="messinho-thinking"><LoaderCircle className="messinho-spin" size={17}/> Messinho verarbeitet deine Anfrage …</div>}
