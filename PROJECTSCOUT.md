@@ -802,3 +802,26 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 4. Run authenticated staging tests for chat planning, player follow-ups, memory persistence, trace persistence, role guards, and missing-data responses.
 5. Verify Render staging build and runtime before describing the changes as live.
 6. Keep the safe self-evolution pipeline as a separate next phase: capability-gap proposal -> isolated sandbox -> tests/backtesting -> signed/versioned candidate -> admin approval -> registry activation. Do not execute generated source in the API process.
+
+## 16. KIWorkflow.docx integration — 2026-11-26
+
+### Owner request and source-derived requirements
+- Adopted: conversation/session memory, intent and task planning, deterministic retrieval/scoring, structured argumentation, bounded self-correction, traceable execution, source grounding, uncertainty reporting, approval for sensitive side effects, and controlled skill evolution.
+- Security correction: the document's example `exec()` plus AST check is not an adequate production sandbox. Generated code must not be executed in the application process. Future skill evolution requires isolated execution, static policy checks, adversarial tests, signed/versioned artifacts, holdout evaluation, admin approval, and rollback.
+- Unconditional budget relaxation is not adopted. Search constraints must not be silently weakened; MESSINHO must ask before widening a search.
+
+### Staging implementation slice — bounded agent lifecycle and honest capability coverage
+- **Branch:** `feature/messinho-agent-workspace`; no LIVE branch, service, database, or secret changed.
+- **Files:** `backend/messinho-agent-core.js`, `backend/messinho-orchestrator.js`, `backend/messinho-capability-runtime.js`, `backend/server.js`, `tests/messinho-agent-core.test.js`.
+- Added plan → execute → validate → close state machine with trace events.
+- Added an 8-second maximum execution budget and existing 20-step cap; work exceeding the budget is deferred and reported.
+- Added one bounded retry for deterministic handler errors; missing data is not retried or fabricated.
+- Added structured validation for duplicate/missing capability results and unsupported statuses.
+- Integrated the lifecycle into the existing authenticated `/api/agent/chat` route; existing role checks, owner-scoped player retrieval, chat UI and memory persistence remain in place.
+- Implemented deterministic technical, tactical, athletic, mental and goalkeeper dimension scoring.
+- Moved seasonal comparison into the learning dispatch path; it compares supplied season metrics without training or changing weights.
+- Corrected capability diagnostics to distinguish dispatch from specialist logic and generic fallback. Specialist handlers are marked `partial`, not fully verified.
+- **Tests added:** lifecycle, clarification, duplicate/missing result validation and budget visibility.
+- **Verification:** Pending GitHub Actions after commit. No database integration test is claimed without separate staging credentials. Render staging deployment was not triggered.
+- **Known limitations:** Generic fallback capabilities still need specialist handlers. Durable resumable task ledger, SSE streaming, semantic vector retrieval, complete claim-level provenance, and isolated self-evolving code sandbox remain future work.
+- **Next actions:** inspect CI; fix regressions; continue specialist handler coverage and persistent task ledger.
