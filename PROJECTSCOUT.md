@@ -561,10 +561,11 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 ### Implementierung auf separatem Prüf-Branch
 
 - **Branch:** `fix/messinho-runtime-coverage`
-- **Pull Request:** [#44 — MESSINHO: truthful capability coverage and seasonal learning](https://github.com/Dridi06/myScoutingDatabase/pull/44)
-- **Branch-Head vor diesem Checkpoint:** `e426762d5fab70e36acfce47e4442691648340f6`
-- **Produktionsstatus:** Noch nicht in `main` übernommen; keine neue Produktionsbereitstellung aus diesem Branch.
-- **Ausgangsstand Produktion:** `main` commit `8df9960a5b1c48da6dca47337bb3cd9f6414e92e`; Render deployment `dep-dc3o1rgjo6nc73amadeg` war als `live` bestätigt.
+- **Pull Request:** [#44 — MESSINHO: truthful capability coverage and seasonal learning](https://github.com/Dridi06/myScoutingDatabase/pull/44) — merged.
+- **Merge-Commit auf `main`:** `817a9571755fc9a87729cf8bfc85ea95a9af1f63`
+- **Render Produktionsdeployment:** `dep-dc3o3ti9lscs73dbudu0` — Status `live`, bestätigt am 2026-11-26 um 00:49:26 UTC.
+- **Verifizierter Live-Start:** Render meldete `Your service is live`; Prozess `node backend/server.js` startete und meldete `myScoutingDatabase API listening on 10000`.
+- **Vorheriger Produktionsstand:** `8df9960a5b1c48da6dca47337bb3cd9f6414e92e`.
 
 ### Tatsächlich implementiert
 
@@ -589,7 +590,7 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - **Testergebnis:** 98 Tests bestanden, 0 fehlgeschlagen, 0 übersprungen.
 - **Hinweis:** Die CI belegt die automatisierten Tests. Sie ist kein browserbasierter Live-Test und keine End-to-End-Prüfung jeder einzelnen Katalogfähigkeit.
 - **Supabase / Daten / Schema:** Keine Datenbankmigration, keine Änderung an Nutzerdaten, Spielerakten, Lernhistorie oder Modellgewichten.
-- **Produktionsbereitstellung:** Noch nicht erfolgt. Merge und Render-Live-Status müssen separat bestätigt werden.
+- **Produktionsbereitstellung:** Erfolgreich; Merge und Render-Status `live` sind bestätigt.
 
 ### Status nach diesem Arbeitsschritt
 
@@ -600,10 +601,21 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 | `seasonal_learning` | Fachlogik ergänzt und getestet | Mit realen, berechtigten Saisonmesswerten im Produkt prüfen |
 | Node-Test-Suite | 98/98 bestanden | CI dauerhaft auf `main` aktiv halten |
 | 100 Fähigkeiten | Noch nicht vollständig end-to-end verifiziert | Verträge, Datenbedarf, Berechtigungen und Tests pro Fähigkeit weiter ausbauen |
-| Produktionsdeployment dieses Arbeitsschritts | Noch nicht erfolgt | Erst nach erfolgreicher PR-Prüfung mergen und Render-Status kontrollieren |
+| Produktionsdeployment dieses Arbeitsschritts | Live | Merge-Commit `817a957`; Render deployment `dep-dc3o3ti9lscs73dbudu0` bestätigt `live` |
 
 ### Change-Log — 2026-11-26
 
 | Datum | Änderung | Status | Hinweis |
 |---|---|---|---|
 | 2026-11-26 | Runtime-Coverage, saisonale Lernlogik, Admin-Diagnosen und Node-CI | Implementiert auf Prüf-Branch; 98 Tests bestanden | Noch nicht in Produktion; keine Daten-/Schemaänderung |
+
+
+### Abschluss-Checkpoint — 2026-11-26 — Runtime-Coverage LIVE
+
+- **Main-Commit mit Implementierung:** `817a9571755fc9a87729cf8bfc85ea95a9af1f63`
+- **PR:** #44, merged.
+- **Render-Deployment:** `dep-dc3o3ti9lscs73dbudu0`, Status `live`.
+- **CI:** GitHub Actions Run `45731353854` erfolgreich; `npm test` mit 98 bestanden und 0 fehlgeschlagenen Tests.
+- **Live-Start:** Build erfolgreich, `node backend/server.js` gestartet, API meldete Listening auf Port 10000; Render meldete Service live.
+- **Datenbank:** Keine Migration und keine Änderung an Spieler-, Nutzer-, Scout- oder Lerndaten.
+- **Nächster Schritt:** Laufzeitübersicht und MESSINHO-Admin-Diagnose gegen Live-API prüfen; danach die 29 generischen Fallbacks einzeln nach Datenvertrag, Berechtigung, Fachlogik, Persistenz und Tests aufarbeiten. Die 71 als Speziallogik markierten Fähigkeiten sind damit nicht automatisch vollständig end-to-end verifiziert.
