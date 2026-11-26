@@ -1573,3 +1573,13 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - ed494c5a8b2c4f3ad71a17f2c49d96399d115441 — regression tests.
 
 **Verification status:** Changes are committed on feature/messinho-unified-ai-integration. The STAGING build/deployment must be run and verified before calling this correction live. Production and PFMS/PFSS remain untouched.
+
+
+### MESSINHO chat correction — STAGING build and deployment verified
+- Render deployment: dep-dc42g2t6e07s73dvpkeg.
+- Deployed commit: 11347b7a3b4398555526a0a785b1abf65db3c0a4.
+- Status: **live**, finished 2026-11-26T12:38:07.513Z.
+- Build tests: **176 passed, 0 failed** (including the two new chat viewport/iOS input tests); Vite build completed successfully in 2.68s.
+- Runtime: Node API listening on port 10000; STAGING Supabase Data API returned HTTP 200.
+- STAGING service remains on feature/messinho-unified-ai-integration with auto-deploy disabled. Production and PFMS/PFSS remain untouched.
+- Remaining verification: owner must confirm on the physical iPhone that focusing/typing/sending in MESSINHO no longer triggers visual zoom or outer page resizing. Automated tests prove CSS contracts and deployment health, not device-specific Safari rendering.
