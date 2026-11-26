@@ -18,7 +18,7 @@
 
 1. Read this file from the repository's current `main` branch before making project changes. Do not rely on an old chat summary if the repository contains a newer record.
 2. Work only on **myScoutingDatabase**. PFMS and PFSS are separate projects and must never be changed as part of this work.
-3. The current operating instruction is to work toward the **production LIVE system** so the owner can see and test changes immediately. Production changes require extra care: inspect current code, understand dependencies, run appropriate tests, deploy, and verify the actual Render deployment before reporting success.
+3. **Current explicit operating boundary: staging only.** Keep production (`main`, production Render service and production Supabase) untouched unless the owner explicitly authorizes a production release in the current conversation. A branch commit is not a staging deployment; verify the exact Render service, branch, deployment commit and health before saying a change is live.
 4. Never say a feature is implemented, tested, or live unless the corresponding code, tests, and deployment have actually been verified.
 5. Do not delete or overwrite user, player, scouting, learning, account, or other persistent data without explicit authorization. Avoid unnecessary database migrations. Inspect schema and impact before any migration.
 6. Preserve the agreed product vision, design baseline, and architecture. New ideas are recorded first, then assessed for fit; they do not silently replace existing decisions.
@@ -748,3 +748,64 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 2. Die Admin-Diagnose authentifiziert und nur lesend aufrufen; 100 Speziallogiken/0 Fallbacks bestätigen.
 3. Danach Ende-zu-Ende-Tests pro Fähigkeitsfamilie mit isolierten Testdaten ergänzen und Completion erst bei echten Integrationsnachweisen erhöhen.
 4. Keine Live-Erfolgsaussage über externe Suche, Datenbankpersistenz oder Modelllernen machen, solange diese Pfade nicht separat belegt sind.
+
+
+---
+
+## 13. Unified AI integration decision — 2026-11-26
+
+**Owner instruction:** inspect the AI currently operating in the LIVE product and combine it with the independently developed MESSINHO agent. Do not replace either system.
+
+### Verified existing LIVE AI path (source inspection, not a new live test)
+The current `main` implementation contains a single `/api/agent/chat` route that already combines:
+- deterministic MESSINHO request interpretation, typo correction and conversation follow-up handling;
+- the ASI player-search/research pipeline and source-backed player research;
+- MESSINHO's independent player scoring, 100-capability registry, planning and runtime;
+- an optional OpenAI conversational/research provider fallback using the configured server-side model;
+- authenticated user/role checks and owner-scoped access to the player's own records;
+- a provider-independent MESSINHO response path when OpenAI is not configured or unavailable.
+
+**Preservation rule:** the existing chat endpoint, conversational behavior, ASI search, research providers, evidence constraints, deterministic scoring and learning remain the foundation. OpenAI is a supporting language/research provider, not the MESSINHO agent identity or its learning engine.
+
+### Integration now implemented on the isolated feature branch
+- Added `backend/messinho-agent-core.js`, a bounded plan → execute → validate state machine.
+- Connected the existing automatic capability execution path in `backend/server.js` to this agent core.
+- Preserved the existing `/api/agent/chat` route and all preceding special paths (scouting search, player follow-ups, comparison, summaries, candidate retrieval and OpenAI conversational fallback).
+- The integrated path reports agent lifecycle phase, validation, next action, retry/re-plan status and agent-core version alongside existing orchestration output.
+- Execution remains provider-independent; no active model weights are changed by ordinary chat execution.
+- Added agent-core unit tests. Their execution status must be confirmed by CI before release.
+- No production deployment, production database write, model activation or migration was performed by this integration.
+
+### Unified target architecture
+1. **Existing chat / language layer:** preserve current conversation and optional provider-backed natural-language responses.
+2. **MESSINHO agent core:** interpret the goal, create a bounded plan, coordinate execution, validate outputs and decide whether to ask, retry, resume or report.
+3. **Existing ASI and MESSINHO specialists:** use the existing scouting search, evidence/research, scoring, analysis, capability runtime and learning modules.
+4. **Shared security boundary:** authenticate once per request, retain role checks and owner/organization scoping for every data operation.
+5. **Shared memory/task continuity:** bring the existing staging memory and task-ledger work across selectively only after schema, ownership, retention and failure-recovery review; do not copy a divergent branch wholesale.
+6. **Controlled learning:** only verified outcomes can inform proposals; candidate models remain inactive until evaluation and authorized approval.
+
+### Design baseline audit — screens and behavior to preserve
+- **Login / entry:** approved stadium backdrop and football-scout visual identity; preserve the intended approximately 3.5-second welcome sequence only where current assets/code support it.
+- **Global shell:** navy/silver visual language, consistent typography/spacing, brand mark, sidebar and persistent system status.
+- **Dashboard:** existing dashboard hierarchy, status cards and responsive tile arrangement.
+- **Player search and ASI:** existing search filters, player result presentation, candidate/research evidence and ASI workspace.
+- **MESSINHO:** existing chat as the sole conversation surface; no duplicate chat; preserve subdued composer, natural input, result cards and separate diagnostic/history areas.
+- **System diagnostics:** existing system status, diagnostic cards, details, retained history and MESSINHO quality diagnostics.
+- **Responsive/mobile:** preserve the existing iPhone/mobile navigation, compact cards, readable spacing and desktop behavior.
+- **Assets:** do not replace the stadium/mascot/celebration assets without checking exact paths, dimensions and rendered result.
+
+This is a preservation inventory, not a claim that every visual state has passed a fresh pixel-level or device-level regression test. Exact CSS tokens and asset references remain governed by the checked-in implementation.
+
+### Branch / release state
+- Integration branch: `feature/messinho-unified-ai-integration` (created from current `main`).
+- Base commit: `fa0d4dfbdd779f280bb3caf44c6cc70be8dcb5b6`.
+- New production deployment: **not performed**.
+- Staging deployment: **not performed**; Render staging still needs its branch/service mapping checked before deployment.
+- Current release gate: CI tests/build, security review of memory/task integration, staging deployment and end-to-end checks of conversation + research + agent execution + provider outage fallback.
+- Do not merge to `main` or deploy to production without explicit owner approval.
+
+### Change & Decision Log — 2026-11-26
+- Accepted: retain the existing LIVE AI path and integrate the independently developed MESSINHO agent core around its capability execution path.
+- Accepted: preserve the entire established design baseline; improve without replacing approved screens/assets.
+- In progress: selective integration of durable memory/task ledger and verified live-data context after schema and authorization review.
+- Not authorized: production deployment, production database changes, wholesale merge of the divergent staging branch, or automatic activation of a learned model.
