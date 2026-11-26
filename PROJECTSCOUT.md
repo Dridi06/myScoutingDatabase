@@ -2286,3 +2286,23 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Diese Änderung ist noch nicht deployed; Tests und Build müssen vor einem manuellen STAGING-Deploy erfolgreich sein.
 - Rechtekatalog enthält weiterhin 0 freigegebene Werke. Die 100er-Zielzahl wird nicht künstlich mit ungeprüften Titeln aufgefüllt.
 - Grenzen unverändert: Feature-Branch und dediziertes STAGING; keine Produktion/main/PFMS/PFSS-Änderungen; PR #47 Draft/offen/unmerged; Render Auto-Deploy aus.
+
+
+## 2026-11-26 — Umsetzungsschritt 3: Rechte-Allowlist und ehrliche Capability-Abdeckung — STAGING live
+
+- Commit: `f7ed919c59e062c94283fcce7b11dd7392ea8453`.
+- Render STAGING Deployment: `dep-dc47b54ipgvc73bu3pjg`, Status **live**, abgeschlossen `2026-11-26T18:08:55.255865Z`.
+- Build-Verifikation: **261 Tests bestanden, 0 fehlgeschlagen**; Vite-Build erfolgreich (`built in 2.24s`); Render meldet `Build successful`.
+- Neue Datei `backend/messinho-rights-registry.js`: unabhängige Rechte-Allowlist; aktuell bewusst 0 freigegebene Werke. Provider-/Aufruferfelder allein können kein dauerhaftes Speichern mehr autorisieren.
+- `backend/messinho-domain-knowledge.js` verlangt jetzt eine intern registrierte `source_id`, exakte Rechteübereinstimmung und Quellenreferenzen derselben ID. Fehlende oder ungeprüfte Einträge werden abgewiesen.
+- Capability Runtime korrigiert: 94/100 Einträge besitzen einen expliziten spezialisierten Handler-Zweig; 6 werden als generischer Fallback ausgewiesen: `supervised_learning`, `weight_optimization`, `country_learning`, `talent_pathway_learning`, `breakthrough_learning`, `controlled_self_optimization`. Alle 100 bleiben dispatch-registriert. E2E-verifizierte Fähigkeiten: weiterhin 0.
+- Tests wurden angepasst, damit diese Unterschiede verbindlich und regressionssicher bleiben.
+- Zwei Zwischen-Builds schlugen wegen veralteter Erwartungen in Tests fehl; die Fehler wurden analysiert und korrigiert. Der aktuelle Build ist erfolgreich und live.
+- Kein Wissensimport: Supabase-Wissensbestand weiterhin 0 Einträge, Allowlist 0. Die eigentliche Wissensaufnahme ist noch nicht freigegeben.
+- Grenzen eingehalten: nur `feature/messinho-unified-ai-integration` und dediziertes STAGING; Produktion/main, PFMS/PFSS nicht verändert; PR #47 bleibt Draft/offen/unmerged; Render Auto-Deploy aus.
+
+### Nächste Schritte
+1. Quellenkatalog werkweise aufbauen und Rechtebelege prüfen; erst verifizierte Einträge in die Allowlist aufnehmen.
+2. Capability-Audit der 94 Spezialhandler: Fachlogik, reale Datenabhängigkeiten, Rollenrechte, Quellen-/Provider-Abhängigkeit, Fehlerfälle und echte automatische Chat-End-to-End-Ausführung nachweisen.
+3. Sechs generische Fallbacks einzeln vervollständigen oder als bewusst nicht verfügbar belassen; keine falsche Fertigmeldung.
+4. Danach Import-/Extraktionspipeline, Versions-/Konfliktmanagement und Backup/Restore-Tests aufbauen.
