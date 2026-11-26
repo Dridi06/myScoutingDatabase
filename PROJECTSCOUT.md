@@ -1368,11 +1368,11 @@ Before the next staging deployment, the general research path was hardened:
 - Chat response metadata distinguishes exact reuse from high-confidence lexical reuse.
 - Added regression tests for positive paraphrase matching and superficially similar but different/contrasting questions.
 
-**Current source head:** `708244293c7e539e837a253a48fd64ced9d2bc95` (math expression parser update; later commits update tests and project record).
+**Current source head before this project-record update:** `20a99429f82fa0964e1bb557776163118dce90e4` (CI workflow update; math and memory code commits precede it).
 
 **Verification and release status:**
 - Test cases have been added, but the complete repository Node test suite has **not yet been executed** on this branch.
-- GitHub Actions workflow runs and combined status returned no checks for the latest test commit.
+- Updated `.github/workflows/messinho-tests.yml` to run the full Node test suite and backend syntax checks on pushes to the active feature branch and pull requests to `main`. The GitHub workflow/status connector returned no workflow runs or combined checks at the time of this checkpoint; execution remains unverified.
 - Render STAGING has **not yet been redeployed** with the mathematics and paraphrase changes. Do not call these features live until the exact deployed commit is verified.
 - No new Supabase schema or data migration was required for these code changes.
 - Production branch, production Render service, production Supabase and PR merge state remain untouched. PR #47 remains Draft/unmerged.
@@ -1383,3 +1383,6 @@ Before the next staging deployment, the general research path was hardened:
 3. Add scouting-specific interpretation using real verified player/event denominators; never infer an individual player's success probability from a small or biased sample.
 4. Consider semantic/embedding retrieval only after the conservative lexical approach is validated; do not serve uncertain memory matches.
 5. Deploy only the verified feature branch to the dedicated STAGING Render service and perform authenticated chat checks. Keep production unchanged.
+
+
+**Checkpoint update:** CI workflow definition is now committed on the feature branch. Latest code is still pending validation and staging deployment; no production change was made.
