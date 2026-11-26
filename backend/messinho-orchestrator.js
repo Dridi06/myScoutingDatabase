@@ -92,7 +92,7 @@ const KEYWORDS = {
   verified_long_term_memory:['langzeitgedächtnis','verifizierte erkenntnisse','dauerhafte erkenntnisse'],
   model_versioning:['modellversion','modell versionieren','versionierung'],
   controlled_self_optimization:['selbstoptimierung','kontrollierte optimierung','selbst verbessern'],
-  automated_talent_search:['talentsuche','spieler suchen','scouting suche','automatische suche'],
+  automated_talent_search:['finde','finden','suche','suche nach','suche einen','suche eine','talente finden','talentsuche','spieler suchen','scouting suche','automatische suche','entdecke'],
   international_research:['internationale recherche','international suchen','länderübergreifend recherchieren'],
   cross_league_research:['ligaübergreifend','ligen vergleichen','cross league'],
   youth_talent_discovery:['nachwuchstalente','jugendspieler finden','jugendtalente'],
