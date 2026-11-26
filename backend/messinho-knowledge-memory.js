@@ -20,6 +20,7 @@ export function isMessinhoKnowledgePersistable(question,research){
  if(/\b(mein|meine|meiner|meinem|meinen|bei mir|über mich|ich habe|ich bin|ich nehme|mein konto|meine familie)\b/i.test(text))return false;
  if(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/.test(text)||/\b\+?\d[\d\s()./-]{7,}\b/.test(text))return false;
  if(research?.status!=='completed'||research?.evidence?.can_answer!==true)return false;
+ if(research?.quality_control?.passed!==true)return false;
  if(!Array.isArray(research.sources)||research.sources.length<2)return false;
  const usable=research.sources.filter(source=>safeUrl(source.url)&&clean(source.snippet,1400).length>=120);
  const domains=new Set(usable.map(source=>{try{return new URL(source.url).hostname.replace(/^www\./i,'').toLowerCase();}catch{return ''}}).filter(Boolean));
