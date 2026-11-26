@@ -22,7 +22,7 @@ import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './me
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
 import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 import { planMessinhoAutonomously } from './messinho-autonomy.js';
-import { classifyMessinhoProviderFailure, getMessinhoSocialReply, resolveMessinhoLiveQuestion } from './messinho-conversation.js';
+import { classifyMessinhoProviderFailure, getMessinhoSocialReply, resolveMessinhoLiveQuestion, buildMessinhoKnowledgeApplicationFollowUp } from './messinho-conversation.js';
 import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
 import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
@@ -1851,11 +1851,15 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
           formatMessinhoKnowledgeValue(item.limitations)?'Grenzen: '+formatMessinhoKnowledgeValue(item.limitations):'',
           formatMessinhoKnowledgeValue(item.prerequisites)?'Voraussetzungen: '+formatMessinhoKnowledgeValue(item.prerequisites):''
         ].filter(Boolean).join('\n\n'));
+        const applicationFollowUp=buildMessinhoKnowledgeApplicationFollowUp(interpretedMessage,{conceptKey:canonicalConceptKey});
         return respond({
-          reply:'Ich habe das freigegebene Grundlagenwissen direkt aus meinem Wissensnetz abgerufen.\n\n'+sections.join('\n\n'),
-          intent:'structured_knowledge_graph_hit',
+          reply:'Ich habe das freigegebene Grundlagenwissen direkt aus meinem Wissensnetz abgerufen.\\n\\n'+sections.join('\\n\\n')+(applicationFollowUp?'\\n\\n'+applicationFollowUp.reply:''),
+          intent:applicationFollowUp?'knowledge_application_clarification':'structured_knowledge_graph_hit',
+          pending:Boolean(applicationFollowUp),
+          follow_up:applicationFollowUp?.follow_up||null,
           items:canonicalItems.map((item,index)=>({id:'knowledge-concept-'+index,name:item.title,kind:item.domain+' · '+item.knowledge_level,sources:item.sources||[]})),
           sources:canonicalItems.flatMap(item=>item.sources||[]),
+          knowledge_application:applicationFollowUp?{kind:applicationFollowUp.follow_up.kind,score_created:false,estimated_value_created:false}:null,
           knowledge_memory:{reused:true,kind:'hierarchical_knowledge_graph',domain:first.domain,matched_entries:canonicalItems.length,versions:canonicalItems.map(item=>item.version)}
         });
       }
