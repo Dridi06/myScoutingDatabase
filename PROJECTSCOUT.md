@@ -1690,3 +1690,32 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - The first two deployment attempts failed due to syntax/patch-fragment errors in the new parser. These were corrected; the final deployment above is the verified successful build. The failed deployments did not replace the previously live service.
 - STAGING auto-deploy remains disabled. Production `main`, production Render, production Supabase, PFMS and PFSS remain untouched.
 - Remaining scope: broaden the natural-language interpreter to more physics formula families, add general dimensional analysis/unit compatibility, validate physical domains across all formulas, and expand mathematics (algebra, geometry, calculus). The present speed interpreter is a focused deterministic first step, not unrestricted natural-language understanding.
+
+
+### 2026-11-26 — Autonomous mathematical and physical performance intelligence
+
+**Owner decision:** Mathematics and physics are not standalone user-selectable functions. They must be integrated into MESSINHO's autonomous agent behavior and invoked automatically when relevant.
+
+**Implementation on staging feature branch:**
+- Added `backend/messinho-performance-intelligence.js`.
+- Integrated it directly into `backend/messinho-agent-core.js`; every accepted agent cycle now performs the assessment automatically, without a separate user toggle or capability selection.
+- The resulting intelligence is passed into the capability execution context as `_messinho_autonomous_performance_intelligence` and attached to the agent run for response formatting/audit.
+- `backend/messinho-orchestrator.js` formats explicit measured and derived findings in the normal MESSINHO response.
+- Added `tests/messinho-performance-intelligence.test.js`.
+
+**Current measured/derived scope:**
+- 10 m and 30 m sprint average speed from explicitly supplied sprint times.
+- Explicit top speed, vertical jump, ball speed.
+- Explicit pass completion, duel success and dribbling success rates.
+- Ball kinetic energy only when both explicit ball mass and ball speed are supplied.
+- Each result is classified as measured or derived, includes units/formula/basis, and states interpretation limits.
+
+**Scientific and governance safeguards:**
+- No invented or imputed measurements.
+- No conversion of average sprint speed into top speed.
+- No inference of stamina or injury risk from speed/jump data.
+- No global player rating without age-, position-, league- and sample-appropriate comparison cohorts and approved weighting.
+- No source data writes and no automatic model-weight changes.
+- Unsupported units/values are not promoted to findings.
+
+**Verification status:** Code and regression tests committed to the staging feature branch. Runtime test suite, build, Render staging deployment and live verification are still pending; do not describe this feature as live until the exact deployment commit is confirmed. Production `main`, production Render/Supabase, PFMS and PFSS remain untouched.
