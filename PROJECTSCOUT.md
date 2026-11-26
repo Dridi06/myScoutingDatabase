@@ -2370,7 +2370,7 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Existing backend already had a flat canonical table/module (messinho_domain_knowledge), an owner-scoped answer cache (messinho_knowledge_memory), and a separate source-rights allowlist.
 - These are different responsibilities. The answer cache is not a structured knowledge base and is not neural model training.
 - STAGING table counts before this change: messinho_domain_knowledge = 0; messinho_knowledge_memory = 0.
-- backend/messinho-rights-registry.js has 0 approved source entries. At the initial knowledge-foundation baseline the source register had 5 candidate/source-pool entries; it has since been expanded to 7 entries/resources (including OpenIntro Statistics and the OpenStax textbook-family exclusion), with 0 approved works.
+- backend/messinho-rights-registry.js has 0 approved source entries. At the initial knowledge-foundation baseline the source register had 5 candidate/source-pool entries; it has since been expanded to 10 entries/resources (including OpenIntro Statistics, the Grinstead/Snell GNU FDL probability text, and explicit OpenStax/Book of Proof/MIT OCW exclusions), with 0 approved works.
 - No books, PDFs, source full texts or knowledge records were imported. No model weights, player data or scoring rules were changed.
 
 ### Implemented on feature/messinho-unified-ai-integration
@@ -2460,3 +2460,9 @@ Mathematics; statistics; physics; biology; medicine; sports science; football; c
 - CI on the latest code commit before these migration/documentation additions: Node suite 274/274 passed and backend syntax passed. Latest HEAD CI must be checked again before the next deployment.
 - Render STAGING deployment of commit `4593897290a90f0f184127a464549393ac1888ad` was triggered and reached **live** as deployment `dep-dc47rsl9el5s73ag1h80`. A duplicate queued deploy for the same commit was observed; the live deployment was confirmed. The subsequent conflict-restoration code/migrations are newer than that deployed commit and still require CI plus a follow-up STAGING deployment.
 - No production/main, production Supabase, PFMS/PFSS or PR merge changes. PR #47 remains Draft/open/unmerged.
+
+
+### Additional source screening
+- Added the Dartmouth/CHANCE GNU FDL version of Grinstead and Snell's *Introduction to Probability* as a quarantined probability/statistics candidate. The official source states it is freely redistributable under GNU FDL; GNU FDL 1.3 explicitly permits commercial redistribution and modification but applies copyleft to modified versions. It is not approved for ingestion yet: legal review must determine how the terms apply to compact knowledge records and retain the exact version/licence notice.
+- Added explicit exclusions for Richard Hammack's *Book of Proof* (CC BY-NC-ND) and MIT OCW 6.042J (CC BY-NC-SA) because their current terms are incompatible with commercial derivative use.
+- Source register now has 10 entries/resources, 0 approved works; allowlist remains 0.
