@@ -499,7 +499,7 @@ export function executeMessinhoCapability(id,input={}){
    const domain=String(item.domain||'');
    const text=norm([meta.name,meta.description,id,input.goal||''].join(' '));
    if(domain==='medicine')return /medizin|verletz|orthopaed|rehabil|gesundheit|return to play|sportmedizin/.test(text);
-   if(domain==='sports_science')return /sportwissenschaft|training|belastung|regeneration|biomechan|laufleist|geschwindigkeit/.test(text);
+   if(domain==='sports_science')return /sportwissenschaft|training|belastung|regeneration|biomechan|laufleist|geschwindigkeit|vo2max|vo₂max|maximale sauerstoffaufnahme|aerobe|ausdauer|fitness|kardiorespiratorisch/.test(text);
    if(domain==='mathematics')return /mathemat|berechn|statistik|wahrscheinlich|prognos|score|analyse/.test(text);
    if(domain==='physics')return /physik|biomechan|kraft|bewegung|energie|geschwindigkeit/.test(text);
    if(domain==='biology')return /biolog|anatom|stoffwechsel|physiolog|medizin|sportwissenschaft/.test(text);
