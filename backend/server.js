@@ -1842,8 +1842,12 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const lastHistoryItem=history.at(-1);
     const pendingVo2AssistantPrompt=lastHistoryItem?.role==='assistant'&&lastHistoryItem.text.includes('Für eine konkrete Einordnung eines Spielers brauche ich');
     const priorVo2UserQuestion=[...history].reverse().find(item=>item.role==='user'&&getMessinhoCanonicalConceptKey(item.text)==='sports_science.physiology.vo2max');
-    const knowledgeApplicationQuestion=buildMessinhoVo2maxApplicationQuery(priorVo2UserQuestion?.text,interpretedMessage,lastHistoryItem?.text);
-    const continuingVo2Application=Boolean(!currentCanonicalConceptKey&&pendingVo2AssistantPrompt&&knowledgeApplicationQuestion);
+    const vo2ApplicationContinuationQuery=buildMessinhoVo2maxApplicationQuery(priorVo2UserQuestion?.text,interpretedMessage,lastHistoryItem?.text);
+    // A first-turn canonical foundation question has no previous assistant
+    // clarification. In that case the continuation helper correctly returns
+    // null, but the canonical retrieval must still receive the current question.
+    const knowledgeApplicationQuestion=vo2ApplicationContinuationQuery||interpretedMessage;
+    const continuingVo2Application=Boolean(!currentCanonicalConceptKey&&pendingVo2AssistantPrompt&&vo2ApplicationContinuationQuery);
     const canonicalConceptKey=currentCanonicalConceptKey||(continuingVo2Application?'sports_science.physiology.vo2max':null);
     if(canonicalConceptKey){
       const canonicalResult=await findMessinhoKnowledgeConcepts(db,knowledgeApplicationQuestion,{limit:8});
