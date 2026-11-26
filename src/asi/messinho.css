@@ -128,3 +128,32 @@
  .messinho-workspace .messinho-message{animation:none}
  .messinho-workspace .messinho-voice-toggle,.messinho-workspace .messinho-suggestions button,.messinho-workspace .messinho-mic,.messinho-workspace .messinho-send{transition:none}
 }
+
+
+/* Chat composer refinement: one calm prompt, correctly aligned text input and send action. */
+.messinho-workspace .messinho-chat-card .messinho-chat-heading{display:flex;align-items:center;justify-content:space-between}
+.messinho-workspace .messinho-chat-card .messinho-composer{
+  display:flex!important;flex-direction:row!important;align-items:center!important;
+  justify-content:stretch!important;width:100%;min-width:0;gap:10px;
+  margin-top:2px;position:relative
+}
+.messinho-workspace .messinho-chat-card .messinho-composer input{
+  display:block!important;order:1;flex:1 1 auto!important;width:0!important;
+  min-width:0!important;height:44px!important;margin:0!important;
+  text-align:left!important;box-sizing:border-box
+}
+.messinho-workspace .messinho-chat-card .messinho-composer input::placeholder{
+  color:rgba(190,202,219,.58)!important;opacity:1;font-weight:400
+}
+.messinho-workspace .messinho-chat-card .messinho-composer .messinho-send{
+  order:2;flex:0 0 42px;margin:0!important
+}
+.messinho-workspace .messinho-chat-card .messinho-composer .messinho-mic,
+.messinho-workspace .messinho-chat-card .messinho-suggestions,
+.messinho-workspace .messinho-chat-card .messinho-voice-toggle,
+.messinho-workspace .messinho-chat-card .messinho-footnote{display:none!important}
+@media(max-width:760px){
+ .messinho-workspace .messinho-chat-card .messinho-composer{gap:7px}
+ .messinho-workspace .messinho-chat-card .messinho-composer input{height:42px!important}
+ .messinho-workspace .messinho-chat-card .messinho-composer .messinho-send{flex-basis:39px}
+}
