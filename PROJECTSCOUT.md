@@ -2382,11 +2382,15 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - All three tables have RLS enabled, no browser roles/policies/grants, and service_role-only backend access. STAGING catalog verification confirmed all three tables and RLS; policy_count is 0 by design because browser access is revoked.
 - Added backend/messinho-knowledge-graph.js. It validates level/type, requires a parent or prerequisites for non-foundational concepts, verifies each source against the independently reviewed rights allowlist, requires at least two independent source domains and corroborated claims, stores compact concept candidates, records an initial version snapshot, refuses silent overwrites and retrieves only active concepts.
 - Integrated graph retrieval into POST /api/agent/chat. Retrieved approved concepts are passed to the existing scouting agent input and conversational reasoning context; general questions can use the graph before the older flat knowledge and answer-cache paths.
+- Updated backend/messinho-capability-runtime.js to combine active graph concepts with legacy rights-verified knowledge for relevant capability explanations. Scoring/model-weight functions remain isolated from reference knowledge so it cannot silently change numerical ratings or weights.
 - Added tests/messinho-knowledge-graph.test.js for learning-level/link contracts, rights refusal, prerequisite validation and fail-closed persistence/retrieval.
 - Added docs/MESSINHO_KNOWLEDGE_FOUNDATION.md with the agreed domain coverage map and data/learning/governance design.
 
 ### Domain coverage map
 Mathematics; statistics; physics; biology; medicine; sports science; football; computer science/AI; risk management; banking; financial markets; general cross-domain reasoning. Every domain follows foundational → intermediate → advanced → specialist, with explicit prerequisites and cross-domain links. The detailed curriculum map is in docs/MESSINHO_KNOWLEDGE_FOUNDATION.md.
+
+
+- Added STAGING migration 20261126234000_messinho_knowledge_version_append_only.sql (applied as messinho_knowledge_version_append_only). Verified privileges: service_role has SELECT/INSERT/UPDATE on concepts and links, SELECT/INSERT only on versions; no DELETE/TRUNCATE rights remain for the permanent knowledge graph. Browser roles have no grants.
 
 ### Verification / release status
 - STAGING migration applied; table existence and RLS state verified by read-only SQL.
