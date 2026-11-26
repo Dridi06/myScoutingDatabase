@@ -2037,9 +2037,18 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       }
       if(shouldBlockMessinhoFoundationResearchFallback(foundationLearning)){
         const status=foundationLearning.status;
+        if(Array.isArray(foundationLearning.source_status)&&foundationLearning.source_status.length){
+          console.warn('MESSINHO approved foundation source retrieval failed:',JSON.stringify(foundationLearning.source_status));
+        }
         const message=status==='already_present'
-          ?'Zu diesem Grundlagengebiet existiert bereits ein Wissenseintrag oder Kandidat. Ich starte keine parallele externe Ersatzrecherche. Bitte prüfe den Admin-Wissensbereich auf den bestehenden Eintrag und dessen Freigabestatus.'
-          :'Die geprüfte Grundlagenaufnahme ist noch nicht erfolgreich abgeschlossen ('+status+'). Ich verwende deshalb keine externe Ersatzantwort und behaupte nicht, dieses Wissen bereits dauerhaft gespeichert zu haben.';
+          ?'Zu diesem Grundlagengebiet existiert bereits ein Wissenseintrag oder Kandidat. Bitte prüfe im Admin-Wissensbereich dessen Freigabestatus.'
+          :status==='insufficient_approved_sources'
+            ?'Mindestens eine zugelassene Fachquelle war nicht erreichbar oder lieferte kein auswertbares Textformat. Ich habe deshalb noch kein Wissen gespeichert. Die Quellenverbindung muss zuerst korrigiert und erneut geprüft werden.'
+            :status==='insufficient_corroboration'
+              ?'Die abgerufenen Fachquellen belegen die zentrale Aussage noch nicht ausreichend unabhängig. Ich habe deshalb nichts gespeichert und werde die Beleglage nicht künstlich ergänzen.'
+              :status==='candidate_not_stored'
+                ?'Die Quellenprüfung war erfolgreich, aber der Wissenskandidat konnte nicht dauerhaft gespeichert werden. Es wurde keine erfolgreiche Speicherung vorgespiegelt.'
+                :'Die geprüfte Grundlagenaufnahme konnte noch nicht abgeschlossen werden. Ich verwende keine ungesicherte Ersatzantwort und behaupte nicht, dieses Wissen bereits dauerhaft gespeichert zu haben.';
         return respond({
           reply:message,
           intent:'approved_foundation_knowledge_blocked',
