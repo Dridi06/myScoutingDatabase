@@ -359,3 +359,9 @@
  .messinho-workspace .messinho-quality-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
  .messinho-workspace .messinho-quality-intelligence{padding:10px}
 }
+
+.messinho-workspace .messinho-hypothesis-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:5px}
+.messinho-workspace .messinho-hypothesis-controls button{font-size:10px;padding:6px 9px}
+.messinho-workspace .messinho-hypothesis-controls strong{font-size:10px;color:#e8c77e}
+.messinho-workspace .messinho-hypothesis-controls small{flex-basis:100%;overflow-wrap:anywhere}
+.messinho-workspace .messinho-hypothesis-controls a{color:#e8c77e;text-decoration:underline}
