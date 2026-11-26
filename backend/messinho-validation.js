@@ -91,7 +91,7 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
     .map(match => Number(match[1])).filter(year => year >= 1990 && year <= currentYear);
   const yearFrom = yearMatches.length ? Math.min(...yearMatches) : null;
   const yearTo = yearMatches.length ? Math.max(...yearMatches) : null;
-  const ageGroupMatch = context.match(/\bU\s*([1-2]\d)\b/i);
+  const ageGroupMatch = context.match(/\bU[\s-]*([1-2]\d)\b/i);
   const ageGroup = ageGroupMatch ? `U${Number(ageGroupMatch[1])}` : null;
 
   const positionPattern = /\b(linker\s+verteidiger|linksverteidiger|left[- ]back|left fullback|lv|lb|rechter\s+verteidiger|rechtsverteidiger|right[- ]back|right fullback|rv|rb|innenverteidiger|center[- ]back|centre[- ]back|iv|cb|mittelstürmer|stürmer|striker|torwart|goalkeeper|keeper|tw|gk|zentraler?\s+mittelfeldspieler|defensives?\s+mittelfeld|mittelfeldspieler|mittelfeld|midfielder|midfield|zdm|cdm|zm|cm|om|cam|flügelspieler|winger|lw|rw|lf|rf)\b/i;
