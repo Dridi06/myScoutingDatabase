@@ -112,7 +112,7 @@ export function rankMessinhoPlayers(candidates = [], modelProfiles = null) {
 }
 export function sanitizeMessinhoHistory(history) {
   if (!Array.isArray(history)) return [];
-  return history.slice(-10).filter(item =>
+  return history.slice(-20).filter(item =>
     item && ['user','assistant'].includes(item.role) && typeof item.text === 'string'
   ).map(item => {
     const safe = { role: item.role, text: item.text.slice(0, 1200) };

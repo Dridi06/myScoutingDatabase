@@ -47,7 +47,7 @@
   border-color:rgba(143,174,218,.25);color:#f4f7fc
 }
 .messinho-workspace .messinho-bubble>small{color:#a9c5e9;font-size:9px;letter-spacing:.14em}
-.messinho-workspace .messinho-bubble p{font-size:13px;line-height:1.72;color:inherit;overflow-wrap:anywhere}
+.messinho-workspace .messinho-bubble p{font-size:13px;line-height:1.72;color:inherit;overflow-wrap:anywhere;white-space:pre-line}
 .messinho-workspace .messinho-suggestions{gap:8px}
 .messinho-workspace .messinho-suggestions button{
   min-height:36px;padding:8px 13px;border-radius:11px;
@@ -156,4 +156,115 @@
  .messinho-workspace .messinho-chat-card .messinho-composer{gap:7px}
  .messinho-workspace .messinho-chat-card .messinho-composer input{height:42px!important}
  .messinho-workspace .messinho-chat-card .messinho-composer .messinho-send{flex-basis:39px}
+}
+
+
+/* Chat scroll fix: keep long conversations independently scrollable on desktop and touch devices. */
+.messinho-workspace .messinho-chat-card{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+.messinho-workspace .messinho-chat-card .messinho-messages{
+  display:flex;
+  flex:1 1 auto;
+  flex-direction:column;
+  min-height:0;
+  max-height:min(58vh,650px);
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior-y:contain;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+  scrollbar-gutter:stable;
+  scroll-padding-block:12px;
+}
+.messinho-workspace .messinho-chat-card .messinho-messages > *{
+  flex-shrink:0;
+}
+@media(max-width:760px){
+  .messinho-workspace .messinho-chat-card .messinho-messages{
+    max-height:58vh;
+    min-height:250px;
+    overscroll-behavior:contain;
+  }
+}
+
+
+/* Stable chat frame: the conversation scrolls inside its own fixed panel. */
+.messinho-workspace .messinho-chat-card{
+  display:flex;
+  flex-direction:column;
+  height:clamp(480px,68vh,680px);
+  min-height:480px;
+  max-height:680px;
+  min-width:0;
+  overflow:hidden;
+  overflow-anchor:none;
+}
+.messinho-workspace .messinho-chat-card .messinho-messages{
+  flex:1 1 0;
+  height:0;
+  min-height:0;
+  max-height:none;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+  overflow-anchor:none;
+  scroll-behavior:auto !important;
+  -webkit-overflow-scrolling:touch;
+}
+.messinho-workspace .messinho-chat-card .messinho-composer{
+  flex:0 0 auto;
+  min-height:58px;
+  overflow-anchor:none;
+}
+.messinho-workspace .messinho-chat-card .messinho-composer input{
+  min-width:0;
+  font-size:16px !important;
+  line-height:1.35;
+  -webkit-text-size-adjust:100%;
+}
+.messinho-workspace .messinho-chat-card .messinho-message{
+  flex:0 0 auto;
+  min-width:0;
+  max-width:100%;
+}
+.messinho-workspace .messinho-chat-card .messinho-bubble{
+  min-width:0;
+  max-width:100%;
+  overflow-wrap:anywhere;
+}
+@media(max-width:760px){
+  .messinho-workspace .messinho-chat-card{
+    height:560px;
+    min-height:560px;
+    max-height:none;
+    padding:13px;
+    gap:11px;
+  }
+  .messinho-workspace .messinho-chat-card .messinho-messages{
+    flex:1 1 0;
+    height:0;
+    min-height:0;
+    max-height:none;
+    padding:10px;
+    gap:12px;
+  }
+  .messinho-workspace .messinho-chat-card .messinho-composer{
+    min-height:56px;
+    gap:7px;
+    padding:6px;
+  }
+  .messinho-workspace .messinho-chat-card .messinho-composer input{
+    height:44px !important;
+    min-height:44px;
+    font-size:16px !important;
+  }
+}
+@media(max-width:380px){
+  .messinho-workspace .messinho-chat-card{
+    height:540px;
+    min-height:540px;
+  }
 }

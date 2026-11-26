@@ -18,7 +18,7 @@
 
 1. Read this file from the repository's current `main` branch before making project changes. Do not rely on an old chat summary if the repository contains a newer record.
 2. Work only on **myScoutingDatabase**. PFMS and PFSS are separate projects and must never be changed as part of this work.
-3. The current operating instruction is to work toward the **production LIVE system** so the owner can see and test changes immediately. Production changes require extra care: inspect current code, understand dependencies, run appropriate tests, deploy, and verify the actual Render deployment before reporting success.
+3. **Current explicit operating boundary: staging only.** Keep production (`main`, production Render service and production Supabase) untouched unless the owner explicitly authorizes a production release in the current conversation. A branch commit is not a staging deployment; verify the exact Render service, branch, deployment commit and health before saying a change is live.
 4. Never say a feature is implemented, tested, or live unless the corresponding code, tests, and deployment have actually been verified.
 5. Do not delete or overwrite user, player, scouting, learning, account, or other persistent data without explicit authorization. Avoid unnecessary database migrations. Inspect schema and impact before any migration.
 6. Preserve the agreed product vision, design baseline, and architecture. New ideas are recorded first, then assessed for fit; they do not silently replace existing decisions.
@@ -247,8 +247,7 @@ The sequence below is the working roadmap. Reorder only when dependencies, risk,
 
 ### Phase 5 — Learning and monitoring
 - [ ] Audit learning persistence, model versioning, and approval flow.
-- [ ] Ensure only verified outcomes enter calibration.
-- [ ] Add monitoring tasks and event triggers with explicit user/role permissions.
+- [ ] Ensure only verified outcomes enter calibration.- [ ] Add monitoring tasks and event triggers with explicit user/role permissions.
 - [ ] Add auditability, rollback, and model comparison before activation.
 
 ### Phase 6 — UX, visual quality, and accessibility
@@ -497,7 +496,6 @@ The 100 MESSINHO capabilities must no longer be presented as 100 individual func
 ### New owner decision — autonomous chat behavior
 
 The owner wants the entire chat experience improved as part of the same agent integration: language understanding, spelling/name interpretation, natural conversation, context retention, clarification behavior, explanation quality, and final answers. These improvements must be consistent across all chat branches, not only the capability-run response formatter. OpenAI remains optional; the deterministic MESSINHO path must remain useful without it.
-
 
 ### Runtime audit finding — 2026-11-26
 
@@ -748,3 +746,1051 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 2. Die Admin-Diagnose authentifiziert und nur lesend aufrufen; 100 Speziallogiken/0 Fallbacks bestätigen.
 3. Danach Ende-zu-Ende-Tests pro Fähigkeitsfamilie mit isolierten Testdaten ergänzen und Completion erst bei echten Integrationsnachweisen erhöhen.
 4. Keine Live-Erfolgsaussage über externe Suche, Datenbankpersistenz oder Modelllernen machen, solange diese Pfade nicht separat belegt sind.
+
+---
+
+## 13. Unified AI integration decision — 2026-11-26
+
+**Owner instruction:** inspect the AI currently operating in the LIVE product and combine it with the independently developed MESSINHO agent. Do not replace either system.
+
+### Verified existing LIVE AI path (source inspection, not a new live test)
+The current `main` implementation contains a single `/api/agent/chat` route that already combines:
+- deterministic MESSINHO request interpretation, typo correction and conversation follow-up handling;
+- the ASI player-search/research pipeline and source-backed player research;
+- MESSINHO's independent player scoring, 100-capability registry, planning and runtime;
+- an optional OpenAI conversational/research provider fallback using the configured server-side model;
+- authenticated user/role checks and owner-scoped access to the player's own records;
+- a provider-independent MESSINHO response path when OpenAI is not configured or unavailable.
+
+**Preservation rule:** the existing chat endpoint, conversational behavior, ASI search, research providers, evidence constraints, deterministic scoring and learning remain the foundation. OpenAI is a supporting language/research provider, not the MESSINHO agent identity or its learning engine.
+
+### Integration now implemented on the isolated feature branch
+- Added `backend/messinho-agent-core.js`, a bounded plan → execute → validate state machine.
+- Connected the existing automatic capability execution path in `backend/server.js` to this agent core.
+- Preserved the existing `/api/agent/chat` route and all preceding special paths (scouting search, player follow-ups, comparison, summaries, candidate retrieval and OpenAI conversational fallback).
+- The integrated path reports agent lifecycle phase, validation, next action, retry/re-plan status and agent-core version alongside existing orchestration output.
+- Execution remains provider-independent; no active model weights are changed by ordinary chat execution.
+- Added agent-core unit tests. Their execution status must be confirmed by CI before release.
+- No production deployment, production database write, model activation or migration was performed by this integration.
+
+### Unified target architecture
+1. **Existing chat / language layer:** preserve current conversation and optional provider-backed natural-language responses.
+2. **MESSINHO agent core:** interpret the goal, create a bounded plan, coordinate execution, validate outputs and decide whether to ask, retry, resume or report.
+3. **Existing ASI and MESSINHO specialists:** use the existing scouting search, evidence/research, scoring, analysis, capability runtime and learning modules.
+4. **Shared security boundary:** authenticate once per request, retain role checks and owner/organization scoping for every data operation.
+5. **Shared memory/task continuity:** bring the existing staging memory and task-ledger work across selectively only after schema, ownership, retention and failure-recovery review; do not copy a divergent branch wholesale.
+6. **Controlled learning:** only verified outcomes can inform proposals; candidate models remain inactive until evaluation and authorized approval.
+
+### Design baseline audit — screens and behavior to preserve
+- **Login / entry:** approved stadium backdrop and football-scout visual identity; preserve the intended approximately 3.5-second welcome sequence only where current assets/code support it.
+- **Global shell:** navy/silver visual language, consistent typography/spacing, brand mark, sidebar and persistent system status.
+- **Dashboard:** existing dashboard hierarchy, status cards and responsive tile arrangement.
+- **Player search and ASI:** existing search filters, player result presentation, candidate/research evidence and ASI workspace.
+- **MESSINHO:** existing chat as the sole conversation surface; no duplicate chat; preserve subdued composer, natural input, result cards and separate diagnostic/history areas.
+- **System diagnostics:** existing system status, diagnostic cards, details, retained history and MESSINHO quality diagnostics.
+- **Responsive/mobile:** preserve the existing iPhone/mobile navigation, compact cards, readable spacing and desktop behavior.
+- **Assets:** do not replace the stadium/mascot/celebration assets without checking exact paths, dimensions and rendered result.
+
+This is a preservation inventory, not a claim that every visual state has passed a fresh pixel-level or device-level regression test. Exact CSS tokens and asset references remain governed by the checked-in implementation.
+
+### Branch / release state
+- Integration branch: `feature/messinho-unified-ai-integration` (created from current `main`).
+- Base commit: `fa0d4dfbdd779f280bb3caf44c6cc70be8dcb5b6`.
+- New production deployment: **not performed**.
+- Staging deployment: **not performed**; Render staging still needs its branch/service mapping checked before deployment.
+- Current release gate: CI tests/build, security review of memory/task integration, staging deployment and end-to-end checks of conversation + research + agent execution + provider outage fallback.
+- Do not merge to `main` or deploy to production without explicit owner approval.
+
+### Change & Decision Log — 2026-11-26
+- Accepted: retain the existing LIVE AI path and integrate the independently developed MESSINHO agent core around its capability execution path.
+- Accepted: preserve the entire established design baseline; improve without replacing approved screens/assets.
+- In progress: selective integration of durable memory/task ledger and verified live-data context after schema and authorization review.
+- Not authorized: production deployment, production database changes, wholesale merge of the divergent staging branch, or automatic activation of a learned model.
+
+
+---
+
+## 14. Release-candidate checkpoint — 2026-11-26
+
+**Owner objective:** prepare the advanced Staging system so it can later be promoted to LIVE safely, while preserving the existing LIVE AI and all approved product behavior.
+
+### Candidate
+- Branch: `feature/messinho-unified-ai-integration`
+- Pull request: [#47](https://github.com/Dridi06/myScoutingDatabase/pull/47)
+- Candidate HEAD at checkpoint: `1b69a0bd0b0ed67c9d2db7da87f85e7c52df4441`
+- Base: `main` at `fa0d4dfbdd779f280bb3caf44c6cc70be8dcb5b6`
+- PR remains draft/open; not merged.
+- GitHub Actions MESSINHO Node tests run `45746920376` was still installing dependencies at checkpoint; no passing test result may be claimed yet.
+
+### Work completed in this checkpoint
+- Preserved the existing LIVE `/api/agent/chat` and specialist execution path while integrating the bounded MESSINHO Agent Core.
+- Added agent-core unit tests.
+- Added the staging memory/traces migration and task-ledger migration definitions to the candidate for review and reproducibility.
+- Added `docs/RELEASE_PROMOTION.md` with a controlled Staging→LIVE promotion process, security boundaries, CI, database rehearsal, E2E acceptance, backup and rollback gates.
+- Updated PR #47 to clearly distinguish included migration definitions from the still-pending full memory/task runtime integration.
+
+### Not yet completed / release blockers
+- Full selective integration of staging memory persistence, task ledger, streaming recovery and safe task resume into the current LIVE codebase.
+- Review and selective integration of the separate live-data-context work.
+- CI test and production build pass on the final candidate SHA.
+- RLS / cross-user isolation / safe-resume and idempotency tests.
+- Exact candidate deployed and verified on staging Render service.
+- E2E acceptance of existing chat, ASI, capabilities, provider fallback, interrupted tasks and mobile UI.
+- Backup/restore and rollback rehearsal.
+
+### Environment safety
+- Work in this checkpoint changed GitHub feature branch/PR only.
+- No Render service branch or deployment changed.
+- No Supabase project was migrated by these commits.
+- No production service, production database, production secret or active model weight was changed.
+- Continue staging-only. Never merge to `main` or deploy production without explicit owner approval in the current conversation.
+
+### Next action
+Wait for the current CI run, inspect the staging agent helper/route and main route side by side, then selectively integrate memory/task recovery into the candidate without replacing the current main server or approved frontend. Only after CI and security checks pass should the staging Render service be pointed to this candidate branch.
+
+
+---
+
+## 15. Unified AI / task continuity checkpoint — 2026-11-26
+
+### Implemented on the release candidate
+- Preserved the current main-branch chat route and its existing ASI, deterministic scoring, learning and conversational fallback paths.
+- Added a separate asynchronous capability runner for bounded execution budgets and awaited per-capability checkpoint callbacks. The original synchronous `runMessinhoCapabilityPlan` API remains intact for existing consumers.
+- Integrated owner-scoped MESSINHO memory read/write and execution trace persistence into the existing automatic capability path.
+- Added bounded context reuse for the previously selected player when no new player name is supplied; access remains scoped through `scopeMessinhoOwner`.
+- Added server-managed task ledger helpers for creation, checkpointing, finalization and bounded context storage.
+- Added authenticated task listing and task-resume endpoints. Task reads and updates are constrained by both task ID and authenticated owner ID; resume uses a conditional status claim to prevent concurrent replay.
+- Retained bounded source context (title, URL, publisher, date and excerpt) and claims for resumable tasks. Stored context is size-limited; previous capability results remain untrusted context and are not promoted to evidence.
+- Included the staging-only memory/trace and task-ledger migration definitions in this candidate and documented the Staging→LIVE promotion process.
+
+### Automated verification
+Candidate SHA: `c25a724dc64135d889ca99bde03a3721d0a2c57c`
+
+All three GitHub Actions workflows completed successfully on this exact SHA:
+- MESSINHO Node tests: success — run `45747384840`
+- MESSINHO validation (unit tests + frontend build): success — run `45747384905`
+- ASI quality checks (tests + frontend build): success — run `45747384870`
+
+This is automated CI evidence only. It is not a substitute for a deployed staging E2E test or security review against the live staging database.
+
+### Deployment and release state
+- PR #47 remains open and draft; not merged.
+- Staging Render service remains configured to `feature/messinho-agent-workspace` with auto-deploy off. This candidate has **not** been deployed.
+- The last staging runtime audit reported missing Supabase service-role credentials in Render. Recheck the staging service configuration and startup logs before deployment; configure the staging-only key directly in Render, never in Git or chat.
+- No staging database migration was executed by this candidate's commits; migration definitions are versioned for review.
+- Production Render, production Supabase, production secrets and active model weights remain untouched.
+
+### Remaining acceptance gates
+1. Review task-resume behavior for idempotency, expiration, stale leases and safe retry of partially completed work.
+2. Verify RLS and cross-user isolation with two separate staging test accounts.
+3. Verify memory, trace and task persistence against the staging Supabase project.
+4. Configure the missing staging-only service-role secret in Render and verify the startup DB check.
+5. Deploy this exact candidate SHA to the staging service and run authenticated E2E tests for login, chat, ASI, capability execution, task interruption/resume, provider fallback and mobile UI.
+6. Only after all gates pass, prepare a production PR from the verified candidate and obtain explicit production-release approval.
+
+**Do not merge PR #47 or deploy production automatically.** The candidate is CI-green and functionally integrated at code level, but staging deployment and E2E acceptance are still pending.
+
+---
+
+## 16. Stale task lease safety hardening — 2026-11-26
+
+- Reviewed the task-resume route and found that an expired `running` lease was not handled. A process crash could leave a task permanently marked as running.
+- Added an owner- and task-scoped conditional update for expired leases. A stale run is moved to `failed`, its lease is cleared, and a review-required error is recorded.
+- Deliberately do **not** replay stale work automatically: a capability may have completed an external side effect immediately before its last persisted checkpoint. Automatic replay could duplicate that side effect.
+- Active, non-expired runs remain protected; concurrent stale recovery is guarded by the conditional `status='running'` and `lease_until <= now` update.
+- This is a safety quarantine, not a full exactly-once execution guarantee. Before enabling automatic recovery, capability-level idempotency keys and side-effect classification must be implemented and tested.
+- Code change commit: `9dc97876532ecced908625afb9750b281ac50638` on `feature/messinho-unified-ai-integration`.
+- CI for this new commit must complete before it is considered verified. Staging deployment, DB migration and all production actions remain unperformed.
+
+
+---
+
+## 17. Candidate CI and Staging deployment audit — 2026-11-26
+
+### Candidate verification
+- Candidate branch: `feature/messinho-unified-ai-integration`.
+- Candidate SHA reviewed: `2e606b4a554ed9de1954500da7a4030893323ff2`.
+- PR #47 remains open, draft, unmerged; base is `main`.
+- GitHub Actions on the exact candidate SHA all completed successfully:
+  - `validate`: success — job `139667760568`.
+  - `test`: success — job `139667760395`.
+  - `test-and-build`: success — job `139667760113`.
+- This confirms automated checks/build only; authenticated staging E2E and database isolation tests remain outstanding.
+
+### Staging Render audit
+- Staging service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`).
+- URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- Current configured branch: `feature/messinho-agent-workspace` (not the candidate branch).
+- Auto-deploy remains disabled.
+- Most recent successful deployment: `dep-dc3pnoui0phs7386bvg0`, commit `e9e5157abf38b9f98514a5020bf910bfbb7fbeb0`, completed `2026-11-26T02:39:49Z`.
+- That deployed commit is not the candidate SHA. Therefore the candidate is **not yet deployed to Staging**.
+- The available Render connection exposes service inspection, deploy and environment-variable operations, but no direct service-branch update operation. Do not repoint or overwrite the divergent old branch, and do not trigger a deployment of it as a substitute.
+- No staging migration was applied during this audit. Production Render and production Supabase remain untouched.
+
+### Next safe action
+1. Change the Staging Render service's Git branch to `feature/messinho-unified-ai-integration` through the Render service settings (preserve all existing environment variables; do not replace them).
+2. Keep auto-deploy disabled; verify the selected branch and exact candidate SHA before triggering a Staging-only deployment.
+3. Verify health/startup logs and then execute authenticated E2E checks for chat, ASI, capability execution, memory/task persistence, owner isolation, resume safety, provider fallback and mobile UI.
+4. Review and apply the two versioned MESSINHO migrations to the Staging Supabase project only after schema/RLS review and backup.
+5. Keep PR #47 unmerged and production untouched until all gates pass and the owner explicitly authorizes promotion.
+
+## Checkpoint – 2026-11-26 – MESSINHO backend syntax repair and Staging startup
+
+- Environment: Staging only. Production branch `main` and production Render service were not changed.
+- Branch: `feature/messinho-unified-ai-integration`
+- Repair commit: `fb2a1a8a1b9b94fbee462c2656da6d05a3a17b2a`
+- Root cause: a second, incomplete registration of `GET /api/messinho/capabilities` appeared immediately before the `/api/agent/chat` limiter. The original complete, admin-protected catalogue route already existed earlier in the file. The duplicate incomplete route was removed; the original route and intervening backend endpoints were preserved.
+- Validation: MESSINHO backend syntax workflow passed; MESSINHO Node tests passed; MESSINHO validation passed; ASI quality checks passed.
+- Render Staging deployment: `dep-dc3qh3ei0phs7388kdu0` – status `live`; build succeeded; application started and logged `myScoutingDatabase API listening on 10000`.
+- Supabase Staging connectivity: Data API returned HTTP 200.
+- Important runtime observation: startup diagnostics reported `TAVILY_API_KEY=false` and `OPENAI_API_KEY=false`. The backend process is live, but provider-backed research/conversational fallback cannot be considered operational until the corresponding Staging environment configuration is verified. Do not expose or request secret values in chat; inspect environment-variable presence through Render's secure settings.
+- Remaining verification: authenticated smoke test of `/api/agent/chat` and `/api/messinho/capabilities`, provider configuration check, then controlled AI-agent behavior tests. No production promotion or PR merge authorized.
+
+## Checkpoint – 2026-11-26 – Staging health smoke test
+
+- Added `.github/workflows/staging-health-smoke.yml` on the candidate branch. It probes the public Staging `/api/health` endpoint from a GitHub-hosted runner and fails if HTTP health or database readiness is not OK.
+- First smoke run: `45749868929` – success.
+- Observed response: HTTP 200, `ok=true`, database `ok`, authentication `ready`, MESSINHO core `provider_independent`.
+- Remaining provider readiness: `externalResearch=not_configured` and `optionalAiAnalysis=not_configured`. Render startup diagnostics independently reported `TAVILY_API_KEY=false` and `OPENAI_API_KEY=false`. Do not assume previously supplied credentials are present under the exact environment variable names read by this Staging service. Render connector does not expose secret values; never print them. Confirm presence securely in the Staging service's environment settings or align variable names without disclosing values.
+- Authenticated admin-only route checks and a real interactive AI-agent conversation are still pending; no admin access token or login session was available to this automated run. Do not create or reset user credentials as a workaround.
+- Staging remains live. Production untouched; PR #47 remains unmerged.
+
+
+
+## 2026-11-26 – MESSINHO-Chat: Scrollbarkeit langer Verläufe
+- Nutzerfehler: Bei langen Chatverläufen ließ sich der Nachrichtenbereich nicht zuverlässig scrollen.
+- Ursache in der Oberfläche: Der Nachrichtencontainer hatte Höhenbegrenzungen, aber keine explizite eigene vertikale Scroll-Konfiguration; außerdem fehlten Touch-Scrolling- und Overscroll-Regeln.
+- Korrektur in `src/asi/messinho.css`:
+  - Chatkarte als flex-column mit `min-height: 0`.
+  - Nachrichtenbereich als eigener flexibler Scrollcontainer mit `overflow-y: auto`, `overflow-x: hidden`, `min-height: 0`.
+  - Touch-Scrolling für iOS/Android (`-webkit-overflow-scrolling: touch`, `touch-action: pan-y`).
+  - `overscroll-behavior-y: contain`, stabile Scrollbar-Spalte und nicht schrumpfende Nachrichten.
+  - Mobile Maximalhöhe bleibt responsiv bei 58vh.
+- Commit: `0de1b32d1328f3ff208eaea64d65852815ab3c73`
+- Branch: `feature/messinho-unified-ai-integration`
+- Ausschließlich Staging-Kandidat. Production `main` unverändert; PR #47 nicht gemergt.
+- Nächster Schritt: Frontend-Build/CI prüfen, anschließend Staging manuell deployen (Render autoDeploy ist deaktiviert) und Scrollen mit langem Verlauf auf Desktop und iPhone verifizieren.
+
+---
+
+## 2026-11-26 — U19 scouting clarification regression
+
+- **User-observed defect:** MESSINHO asked for birth year and position after receiving a complete request for three U19 midfielders from Germany.
+- **Root cause confirmed in code:** `parseMessinhoScoutingRequest` only recognized explicit four-digit birth years and narrow midfield position labels; it did not interpret U-age groups or the generic position group “Mittelfeldspieler”. The request parser also treated target league as mandatory even when the user described a broad performance level.
+- **Changes on staging candidate branch:**
+  - Recognize U-age groups (e.g. U19) as sufficient age criteria without demanding an exact birth year.
+  - Recognize “Mittelfeldspieler” / “Mittelfeld” / “Midfielder” as a broad position group and match central, defensive, and attacking midfield roles.
+  - Parse German number words (including “drei”) for requested candidate counts.
+  - Treat target league as optional context; do not block broad scouting tasks with an unnecessary level question.
+  - Map U19 to the current scouting search age band (16–18) when no exact birth year is supplied.
+  - Add regression tests for the exact user prompt, broad midfield matching, and U19 without birth year.
+- **Files changed:** `backend/messinho-validation.js`, `backend/server.js`, `tests/messinho-validation.test.js`.
+- **Commits so far:** parser `4a763cb78bd71f7179b075d102aebba7d092093c`; server `82e901006972b05d74dc93ee23e3b3bbc0a80e11`; regression tests `a74c5d7de54af046812a408b32f0f18b79224c7b`; parser regex correction `3c8f1e1333d11321a97e642cd8265d85a637894f`.
+- **Validation:** first CI attempt exposed two failing new regression tests caused by over-escaped regex literals and an unchanged narrow position/quantity regex. Those were corrected in the latest parser commit. A fresh full test run is still required; do not report this fix as verified until it passes.
+- **Release boundary:** staging candidate branch only. Production branch, production Render, and production Supabase untouched. Do not deploy until tests pass.
+- **Next:** run full MESSINHO tests and build, inspect all results, then deploy only to the designated staging Render service and verify the exact deployment SHA and health.
+
+---
+
+## 2026-11-26 — MESSINHO natural conversation and provider error handling
+
+- **User request:** Make MESSINHO behave naturally in everyday conversation (e.g. hello ↔ hello, “how are you?” ↔ “I'm well, thank you, and you?”), and integrate everyday conversational behavior as a normal capability.- **Observed production-like Staging failure:** The global player-selection call reached OpenAI but returned HTTP 429 with `insufficient_quota` / `credit_balance_exhausted`. Tavily and OpenAI credentials were detected by the Staging process; provider billing quota, not request parsing, blocked analysis.
+- **Implemented on Staging candidate branch:**
+  - Added provider failure classifier distinguishing exhausted quota, invalid API key, rate limit, temporary provider outage, and generic provider errors.
+  - Discovery endpoint now returns a clear, safe German user-facing message and stable error code rather than the generic “global player selection” message.
+  - Added provider-independent natural small-talk handling for greetings, “Wie geht's?”, thanks, and farewells. It executes before scouting intent parsing and does not consume model/API credits.
+  - Everyday non-small-talk conversation continues through the existing conversational model path when available; scouting and factual research remain evidence-based and are not fabricated by the small-talk shortcut.
+  - Added unit tests for greeting flow, how-are-you, thanks/goodbye, ordinary messages not swallowed, and provider failure distinctions.
+- **Files changed:** `backend/messinho-conversation.js`, `backend/server.js`, `tests/messinho-conversation.test.js`.
+- **Commits:** helper `0724f2a7f3de4cbcb359882e3f6b216dc8c22def`; server integration `1653bcf6dba39a33ddebee9f1258e8f8e62c8947`; tests `1e79947be49b548fbd151cd1bafffbf2d5530cba`.
+- **Release boundary:** candidate branch only. No deployment yet. Production untouched.
+- **Next:** run full tests, backend syntax and frontend build; inspect failures; deploy only to Staging when all gates pass. After deployment test “Hallo”, “Wie geht's?” and the quota-error message. General everyday Q&A still relies on the existing provider conversation path; the new deterministic local layer covers common social exchanges.
+
+### Deployment result — 2026-11-26 04:12 UTC
+
+- Corrected Unicode/punctuation normalization in `backend/messinho-conversation.js`; regression tests now pass.
+- Latest checks on commit `e8c50cd73df80eded041b1b8d85764618a13a80d`:
+  - MESSINHO backend syntax — success (run 45753592808)
+  - MESSINHO Node tests — success (run 45753592864)
+  - ASI quality checks / frontend build — success (run 45753592776)
+- Render Staging deploy `dep-dc3r306c6qcc73blp3a0` reached status `live` at 2026-11-26 04:12:17 UTC on exact commit `e8c50cd`.
+- Production untouched. Open PR #47 remains draft/unmerged.
+- Remaining validation: authenticated UI test “Hallo” → greeting; “Wie geht’s?” → natural reply; quota-exhausted discovery → clear user-facing explanation. Full autonomous scouting remains blocked until OpenAI API quota is replenished.
+
+---
+
+## 2026-11-26 — Expand MESSINHO into a natural everyday conversation agent
+
+- **Source:** User-uploaded Word specification (4 pages), fully reviewed.
+- **Requirements extracted:** intent recognition for greeting, how-are-you, thanks, goodbye, apology, coffee/breaks, weekend/football small talk, and bot identity; varied response pools; time/day-aware wording; avoid immediate repeated replies; route normal scouting work to the existing scouting agent.
+- **Implemented on candidate branch:**
+  - Replaced the small fixed greeting shortcuts with a modular social intent engine in `backend/messinho-conversation.js`.
+  - Added all eight intent groups from the document and natural German variants/normalization.
+  - Added time-of-day greeting and weekday-aware weekend/football phrasing.
+  - Added recent assistant-history awareness to avoid repeating the same reply in the current conversation.
+  - Protected scouting/work requests from social interception so normal player searches and analysis continue through the existing MESSINHO/ASI path.
+  - Bot identity answers explicitly state that MESSINHO is an AI; no false human identity.
+  - Connected the engine to the existing authenticated `/api/agent/chat` route; no separate chat or new UI.
+  - Expanded tests in `tests/messinho-conversation.test.js` to cover all intents, repetition avoidance, work routing and provider error classification.
+- **Files:** `backend/messinho-conversation.js`, `backend/server.js`, `tests/messinho-conversation.test.js`.
+- **Current head:** `1d132747ada1f1fef1091a1147e935839eeaf2b1`.
+- **Staging health smoke:** passed (run `45754793292`). Full test/syntax/build CI for this exact commit is still to be confirmed.
+- **Release boundary:** not yet deployed. Production untouched. PR #47 remains draft/unmerged.
+- **Next:** verify all CI checks; fix any failures; then manually deploy only to the Staging Render service and verify the exact deployed commit. Authenticated in-app tests still required.
+
+### Implementation follow-up — social engine wired to chat
+
+- Updated `backend/server.js` so the existing authenticated MESSINHO chat passes recent conversation history into `getMessinhoSocialReply`.
+- Normalized German umlauts and ß, including variants such as “Wie geht’s?”, “Tschüss”, “Dankeschön”, and “müde”.
+- Corrected intent detection to avoid intercepting explicit scouting/work requests.
+- Latest code head: `dd545fbc35d97ce4eeb06a84384e31a57f75fcaf`.
+- Tests were expanded, but automated Node/syntax/build results for this exact head have not yet been returned by GitHub Actions. Staging deployment is therefore pending verification; do not claim live yet.
+
+### Verification update — 2026-11-26
+
+- Fixed a flaky case-sensitive assertion in `tests/messinho-conversation.test.js`; the social reply pool legitimately contains “Immer gern!” and the assertion now accepts case variants.
+- Exact code commit `8d28ec5df4e06855279f04b6264ff0059091335c` passed:
+  - MESSINHO Node tests — run 45754963679
+  - MESSINHO backend syntax (including `node --check backend/server.js` and `npm test`) — run 45754963508
+  - ASI quality checks / frontend build — run 45754963515
+  - MESSINHO validation — run 45754963454
+  - Staging health smoke — run 45754963477
+- All five checks are green. Manual Staging deployment is the next step; verify exact deployed SHA before announcing LIVE.
+
+---
+
+## 2026-11-26 — U-19 hyphenated age-group parser correction
+
+- **User-observed regression:** The exact chat input `Suche drei U-19 Mittelfeldspieler aus Deutschland` still triggered a clarification asking for birth year or age group.
+- **Root cause:** `backend/messinho-validation.js` matched `U19` and `U 19` but not the hyphenated form `U-19`.
+- **Fix:** Age-group parser now accepts optional whitespace or hyphen between U and the age number and normalizes all forms to `U19`.
+- **Regression coverage:** Added a test that runs the same complete request with `U19`, `U-19`, and `U 19`, asserting quantity=3, ageGroup=U19, position=Mittelfeldspieler, region=deutschland, and no missing criteria.
+- **Files:** `backend/messinho-validation.js`, `tests/messinho-validation.test.js`.
+- **Code commits:** parser `f234d1f1a3528e8182e776da0be7a6c6624d2920`; tests `4062245ce17962d727bc096d9aae5eea3e8c9f96`.
+- **Status:** Not deployed. Waiting for CI on the latest branch head. Production untouched.
+
+---
+
+## 2026-11-26 — Autonomous question resolution and live system clock
+
+- **User requirement:** MESSINHO should not be limited to known commands. For unfamiliar questions it should inspect context, identify what is needed, use an appropriate source/tool, verify the result, and answer logically; it should ask a follow-up only if required. Example: “Wie spät ist es?” must be answered from the live clock (the user gave 05:31 as an example), not guessed from model training.
+- **Implemented:**
+  - Added provider-independent `resolveMessinhoLiveQuestion` in `backend/messinho-conversation.js`.
+  - Added authoritative runtime clock resolution for current time, date/day, and combined date/time questions using `Intl.DateTimeFormat` with the explicit `Europe/Berlin` time zone. It returns the verified timestamp and tool provenance.
+  - Routed live time/date questions in the existing authenticated `/api/agent/chat` path before social small talk and before the LLM fallback. These answers do not consume OpenAI quota and do not depend on model memory.
+  - Strengthened the conversation system instruction: treat all messages as possible questions/tasks, inspect context and available tools first, use live runtime data for current facts, research and validate evidence when supported, separate fact/inference/uncertainty, and ask only necessary clarifying questions. No fabricated tool results.
+  - Added regression tests proving a UTC clock at 2026-11-26 04:31 returns 05:31 in Berlin, date/day and combined queries work, and unrelated questions are not falsely answered by the clock resolver.
+- **Files:** `backend/messinho-conversation.js`, `backend/server.js`, `tests/messinho-conversation.test.js`.
+- **Current code commits:** live resolver `f3e2802a5f0a8c05f509aea685bf20e269b1d5d4`; chat integration `b624ca3d95587927f5d4b9d77637e20063ecc600`; tests `abd3a013fe939ca48ed96b9a7d4773ab94fd7a64`.
+- **Status:** Candidate branch only; automated CI results for current head have not yet been returned. No deployment performed. Production untouched.
+- **Next:** confirm exact PR head and CI, inspect any failures, then manually deploy to Staging only and verify exact Render commit. Continue expanding the tool resolver registry only for tools with authoritative sources; unknown/unverifiable questions must be researched or transparently clarified, never guessed.
+
+### CI failure corrections — 2026-11-26
+
+- Inspected the four failed workflow logs on head `d7c35a801f2335fef2784aebf193cfb4fcdf0c48`; failures reduced to two implementation defects exposed by tests:
+  1. Live clock/date intent regexes were double-escaped, so the resolver returned `null` for ordinary questions such as “Wie spät ist es?”.
+  2. Candidate-count regex allowed a U-age token only with optional whitespace, not a hyphen; “drei U-19-Mittelfeldspieler” therefore defaulted to 10.
+- Fixed the live time/date regex literals in `backend/messinho-conversation.js` (commit `1a69f9f4de41331343b277da62c36df26d5ad279`).
+- Fixed the quantity lookahead to accept U-age notation with whitespace or hyphen in `backend/messinho-validation.js` (commit `32daabc9b1e92308ff263e16cb6c644e079f7ac1`).
+- Both changes are isolated and covered by the existing regression tests for Berlin time/date and U19/U-19/U 19 count=3.
+- **Status:** Waiting for CI results on the latest head. No deployment until all required checks pass. Production untouched.
+
+
+---
+
+## 2026-11-26 — Controlled MESSINHO knowledge-gap and capability evolution foundation
+
+- **Source requirement:** User-provided 15-page Word document describes unknown-question detection, new capability development, durable knowledge, versioned upgrades, regression testing, and feedback-based self-improvement.
+- **Architecture decision:** Adopt the evolutionary loop, but do not copy the supplied Python/LangGraph code verbatim. Its dynamic `exec`/module-import approach and incomplete sandbox are not an acceptable security boundary for a multi-user web service.
+- **Implemented on the Staging candidate branch:**
+  - Added `backend/messinho-evolution.js` with explicit knowledge-gap classification, bounded/sanitized declarative proposals, version metadata, approved-example matching, and a promotion gate.
+  - Proposal operations are restricted to a reviewed allowlist (`system_clock`, `calendar_date`, `basic_arithmetic`, `unit_conversion`). Arbitrary Python/JavaScript source is rejected and never evaluated.
+  - Protected side-effect/sensitive requests are marked for human review rather than being converted into autonomous executable capabilities.
+  - Promotion requires valid schema, at least two test cases, passing regression tests, and an explicit approver. Candidate proposals are not automatically executable.
+  - Integrated knowledge-gap metadata into the existing `backend/messinho-agent-core.js` no-plan outcome and pass the original user goal from the chat route.
+  - Added tests for gap detection, protected requests, schema validation, executable-code rejection, test/approval gates, approved-example reuse, and agent-core reporting.
+- **Files:** `backend/messinho-evolution.js`, `backend/messinho-agent-core.js`, `backend/server.js`, `tests/messinho-evolution.test.js`, `tests/messinho-agent-core.test.js`.
+- **Initial CI findings:** First test run exposed regex escaping and missing original-goal propagation. Both root causes were corrected and a new CI run was triggered. The exact latest commit must pass all required checks before Staging deployment.
+- **Current intended boundary:** Staging candidate branch only; no Render deployment, no Supabase migration applied, no Production changes, no PR merge.
+- **Not yet complete:** Durable database storage for evolution proposals/approved capability versions, runtime execution adapters for newly approved declarative operations, semantic embedding retrieval, automatic candidate generation from provider/tool research, user-feedback ingestion, and end-to-end chat integration of unknown-question fallback. The current code is a secure foundation, not the complete self-evolving agent.
+- **Next:** Verify latest CI; correct failures; then implement owner-/admin-scoped persistence and safe reviewed operation handlers. Deploy only after all required tests and staging migration review are complete.
+
+
+### Regression correction — 2026-11-26
+
+- Re-inspected the failing CI logs on head `052562b015fc588a776dbad70bfd1c5f8ca5e613`. The remaining failure was the new knowledge-gap test invoking the agent core without a user goal; an empty input is correctly not classified as a knowledge gap.
+- Updated `tests/messinho-agent-core.test.js` to provide a concrete unknown tactical question. Commit: `c58997f59c8eca0deac76b12d8ce00a9a54210e3`.
+- On that exact commit, MESSINHO backend syntax, MESSINHO Node tests, ASI quality checks, and Staging health smoke test are green. MESSINHO validation is still running at the time of this checkpoint; do not infer full CI completion until it returns.
+- No deployment, migration application, merge, or Production changes. Staging remains the only intended target.
+
+
+## 2026-11-26 — Agent-Core Ergebnisvalidierung korrigiert und STAGING aktualisiert
+
+### Ausgangspunkt
+- Fortsetzung nach dem vorherigen Checkpoint zur kontrollierten MESSINHO-Evolution und Wissenslückenbehandlung.
+- Maßgeblicher Render-STAGING-Service: `myscoutingdatabase-messinho-staging`, ID `srv-dc3chlqjnfac73acd6ig`.
+- Der tatsächlich konfigurierte Render-Branch ist `feature/messinho-unified-ai-integration`; ältere Checkpoints mit `feature/messinho-agent-workspace` sind für den aktuellen STAGING-Service nicht maßgeblich.
+- Render Auto-Deploy bleibt deaktiviert. Änderungen wurden ausschließlich auf dem oben genannten Entwicklungsbranch vorgenommen.
+
+### Fehlerkorrektur
+- Datei: `backend/messinho-agent-core.js`.
+- Commit: `8129091c3c413512944291a2b619280834d0e374`.
+- Befund: `validateMessinhoAgentRun` erfasste fehlende Ergebnisse geplanter Capability-Schritte in `missing_results`, bezog diese aber nicht in `valid` ein. Ein unvollständiger Plan konnte dadurch fälschlich als gültig ausgewiesen werden.
+- Korrektur: `valid` ist jetzt nur wahr, wenn auch `missingResults.length === 0` gilt.
+- Regressionstest in `tests/messinho-agent-core.test.js`: Ein Plan mit zwei erwarteten Fähigkeiten und nur einem zurückgegebenen Ergebnis muss `valid === false` liefern.
+- Test-Commit: `82b126e342989c91f4af19eeb0b8956692c592b3`.
+
+### CI-Nachweise für Commit `82b126e342989c91f4af19eeb0b8956692c592b3`
+- MESSINHO Node tests: Run `45759958645`, erfolgreich; **136/136 Tests bestanden**, 0 fehlgeschlagen.
+- MESSINHO validation: Run `45759958520`, erfolgreich; **136/136 Tests bestanden** und Frontend-Build erfolgreich.
+- ASI quality checks: Run `45759958579`, erfolgreich; **136/136 Tests bestanden** und Frontend-Build erfolgreich.
+- MESSINHO backend syntax: Run `45759958571`, erfolgreich.
+- Staging health smoke: Run `45759958586`, erfolgreich; HTTP 200, `ok=true`, Datenbank `ok`, Authentifizierung `ready`, MESSINHO-Core `provider_independent`, externe Recherche `ready`, optionale KI-Analyse `ready`. Dieser Smoke-Test lief vor dem neuen Render-Deploy gegen den zuvor laufenden STAGING-Code.
+
+### Render STAGING Deploy
+- Deployment: `dep-dc3rv8rl550s73fe3qk0`.
+- Exakter Code-Commit: `82b126e342989c91f4af19eeb0b8956692c592b3`.
+- Status: `live`; Render Event `deploy_ended / succeeded` um `2026-11-26T05:12:40Z`.
+- Build erfolgreich; Prozess `npm start` / `node backend/server.js` gestartet; API meldete Listening auf Port 10000.
+- Frische Runtime-Logs bestätigen: STAGING-Supabase-Server-Secret vorhanden (neuer Secret-Key-Typ), Supabase Data API HTTP 200, Tavily=true, OpenAI=true.
+- Diese Statusmeldungen bestätigen Konfiguration und Prozessstart, nicht die vollständige Auth-/Chat-/Task-E2E-Funktion.
+
+### Daten- und Sicherheitsauswirkung
+- Keine Supabase-Migration, keine SQL-Schreiboperation und keine Änderung an Datenbanktabellen.
+- Keine Nutzer-, Scout-, Spieler-, Memory-, Trace-, Task- oder Lerndaten verändert.
+- Keine Modellgewichte geändert und kein automatisches Training ausgeführt.
+- Produktion `main`, LIVE-Render und Produktions-Supabase unverändert.
+- PFMS/PFSS nicht berührt.
+
+### Noch offene Verifikation / nächster Schritt
+1. Nach diesem Dokumentations-Checkpoint den GitHub Actions Staging health smoke erneut ausführen lassen, damit HTTP 200 / Datenbank `ok` ausdrücklich gegen den neuen Deploy `dep-dc3rv8rl550s73fe3qk0` bestätigt wird.
+2. Danach mit freigegebenen, ausschließlich im STAGING angelegten Testkonten Login, Rollen, Scout-Owner-Isolation und Spielerzugriffe testen.
+3. MESSINHO-Chat E2E prüfen: Begrüßung, Live-Uhrzeit Europe/Berlin, normale unbekannte Frage, Knowledge-Gap-Antwort, Capability-Auswahl und provider/quota Fehlerbehandlung.
+4. Memory-/Trace-/Task-Ledger-Persistenz, SSE-Unterbrechung, Resume, Lease-Ablauf, Idempotenz und Cross-User-Denial prüfen.
+5. Keine Produktionspromotion oder Merge-Freigabe aus diesem Checkpoint ableiten.
+
+
+
+## 2026-11-26 — Sichere MESSINHO-Task-Wiederaufnahme und Persistenzbestätigung
+
+### Befund und Korrektur
+- Zusätzlicher Audit des Task-Ledgers zeigte, dass `GET /api/agent/tasks` abgelaufene `running`-Leases bisher auf `partial` setzte. Damit konnte die anschließende Resume-Route einen möglicherweise bereits teilweise wirksamen Lauf erneut ausführen, obwohl ihr eigener Sicherheitszweig abgelaufene Läufe korrekt quarantänisierte.
+- Neue Datei: `backend/messinho-task-policy.js`.
+  - Einheitliche Lease-Ablaufprüfung.
+  - Einheitliche Quarantäne-Aktualisierung: `status=failed`, `lease_until=null`, erklärender `last_error`.
+  - Bestätigung, dass eine Datenbankänderung tatsächlich genau die erwartete Task-ID zurückgegeben hat.
+- `backend/server.js`:
+  - Abgelaufene Tasks werden bereits beim Listen als `failed` quarantänisiert und bleiben im Aufgabenstatus sichtbar; sie werden nicht in `partial` zurückgestuft.
+  - Resume verwendet dieselbe Lease-Policy und denselben Quarantänegrund.
+  - Checkpoint- und Finalisierungsupdates verwenden jetzt `.select('id').maybeSingle()` und melden Erfolg nur, wenn genau die erwartete Task-Zeile tatsächlich aktualisiert wurde.
+- Neue Tests: `tests/messinho-task-policy.test.js` — Ablaufzeit, aktive/fehlende Lease, Quarantäne-Patch und bestätigte Task-ID.
+- Commits: Policy-Modul `124cf5efc04792d167dd963cf38e0a44bc012b96`; Serverintegration `e7ee6adc4dc7fd9cfa2c35e8b44656d85c907c34`; Tests `eb9173027477f27141db50149f9d776160a16fdc`.
+
+### CI und Render STAGING
+- Exakter Code-/Test-Commit: `eb9173027477f27141db50149f9d776160a16fdc`.
+- MESSINHO Node tests: Run `45760237377` — **140/140 bestanden**, 0 fehlgeschlagen.
+- MESSINHO validation: Run `45760237464` — Tests und Frontend-Build erfolgreich.
+- ASI quality checks: Run `45760237296` — Tests und Frontend-Build erfolgreich.
+- MESSINHO backend syntax: Run `45760237334` — erfolgreich.
+- Staging health smoke: Run `45760237347` — erfolgreich; vor dem neuen Deploy ausgeführt.
+- Render STAGING Deployment: `dep-dc3s0e56e07s73ddqh9g`, exakter Commit `eb9173027477f27141db50149f9d776160a16fdc`, Status `live`; Render meldete `deploy_ended / succeeded` um `2026-11-26T05:15:03Z`.
+- Frische Runtime-Logs bestätigen API-Start auf Port 10000, STAGING-Supabase-Secret vorhanden, Supabase Data API HTTP 200, Tavily=true und OpenAI=true.
+
+### Read-only STAGING-Dateninventur
+- Projekt `myScoutingDatabase-staging`, Ref `nwqwnrhupbyhshsprxjt`.
+- `profiles`: 1 Profil, Rolle Admin, approved=true.
+- `players`, `asi_player_candidates`, `messinho_agent_memory`, `messinho_agent_traces`, `messinho_agent_tasks`: jeweils 0 Datensätze.
+- Die fünf genannten Tabellen haben RLS aktiviert; die Task-Tabelle erlaubt den Status `failed`.
+- Es wurden ausschließlich SELECT-/Inventurabfragen ausgeführt. Keine Zeile, kein Schema und keine Migration geändert.
+
+### Auswirkungen und Grenzen
+- Keine Datenbankmigration und keine Datenänderung.
+- Keine Nutzer-, Scout-, Spieler-, Memory-, Trace-, Task- oder Lerndaten geschrieben.
+- Keine Modellgewichte verändert; kein Training ausgeführt.
+- Produktionsbranch `main`, LIVE-Render, Produktions-Supabase und PFMS/PFSS unverändert.
+- PR #47 bleibt Draft und ungemergt; keine Produktionspromotion.
+
+### Nächster Schritt
+1. Authentifizierte STAGING-E2E mit einem ausdrücklich dafür vorgesehenen Test-Scout-Konto durchführen; aktuell ist im Staging nur ein genehmigtes Admin-Profil vorhanden.
+2. Memory-/Trace-/Task-Schreibvorgänge, Task-Resume, abgelaufene Lease, parallelen Resume-Claim und Cross-Owner-Zugriff mit zwei getrennten Konten prüfen.
+3. MESSINHO-Chat auf dem aktuell live geschalteten STAGING-Commit testen: normale Frage, Knowledge-Gap, Live-Uhrzeit, Recherche mit Quellen, Provider-Ausfall und Kontingentfehler.
+4. Erst nach diesen E2E-/Sicherheitsnachweisen den Status der betroffenen Fähigkeiten erhöhen. Keine Live- oder Produktionsfreigabe aus diesem Checkpoint ableiten.
+
+
+
+## 2026-11-26 — Evidence-first allgemeine Wissensrecherche (STAGING-Entwicklung)
+
+**Owner request:** MESSINHO soll unbekannte Fragen erkennen, selbst recherchieren, Quellen gegeneinander prüfen, logisch antworten und sein Wissen kontrolliert erweitern.
+
+**Implemented on the staging branch (not yet deployed):**
+- Added `backend/messinho-general-research.js`.
+- General question detection routes eligible unknown knowledge questions into a dedicated research path after existing live-time, small-talk, scouting, player-research and capability flows.
+- Tavily search results are normalized to HTTPS sources, deduplicated, and filtered to exclude FUSSBALL.DE.
+- A response requires at least two substantial sources from at least two distinct domains. Otherwise MESSINHO explicitly reports insufficient evidence.
+- OpenAI is optional and only used to synthesize the supplied evidence. The generated claims are accepted only when they cite URLs in the retrieved source allowlist. If synthesis is unavailable or invalid, a deterministic source digest is returned.
+- Search content is treated as untrusted data; no instructions in retrieved pages are executed.
+- Added `tests/messinho-general-research.test.js` for question routing, source normalization, independent-domain checks, missing provider configuration, source-only fallback, and non-question bypass.
+- Updated `backend/server.js` to route eligible general questions through the new research module.
+- No Supabase writes, migrations, new user accounts, or persistent general-knowledge storage were performed. Existing `messinho_agent_memory` fields do not currently define a reviewed knowledge-base contract; automatic persistence is therefore deferred until schema and RLS ownership are explicitly verified.
+- No model weights, capability code, or active learning model are modified by research results.
+
+**Commits:**
+- `836d92191469128de04dd59fbcf3de72aa1eeec8` — add general research module
+- `a938a396e60b6345cf6ed79dbf543dee8b93ea2a` — integrate research route in server
+- `c7bb52699f15ab860af497d17a88c3ccaad2193d` — add research tests
+
+**Verification / release status:**
+- Static source review completed.
+- GitHub combined status returned no status checks for the latest test commit; no successful CI result has yet been confirmed for this change.
+- This change has **not** been deployed to Render STAGING and is not live.
+- Production branch, production Render service, and production Supabase remain untouched.
+**Next steps:**
+1. Run the new and full Node test suite plus backend syntax check in CI.
+2. Fix any failures before deployment.
+3. Verify the staging Render service is still pinned to `feature/messinho-unified-ai-integration`, then deploy only that service.
+4. Run staging health and authenticated end-to-end tests with a permitted test account.
+5. Design a separate owner-scoped knowledge store with explicit provenance, freshness, review state, retention limits, and RLS before any durable general-knowledge learning is enabled.
+
+
+### STAGING deployment verification — 2026-11-26
+
+- Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`).
+- Configured branch verified: `feature/messinho-unified-ai-integration`; auto-deploy remains disabled.
+- Deployed commit: `023a176c4107a29f33b3cb1e5da15cfcc171f722`.
+- Render deployment: `dep-dc3s45h7lnhs73elqnq0`, status **live**, completed `2026-11-26T05:23:03Z`.
+- Build command completed successfully; Vite reported 1,636 modules transformed and build completed.
+- Runtime log confirms `node backend/server.js` started and API is listening on port 10000.
+- Runtime log confirms Tavily and OpenAI configuration are present (secret values were not exposed) and Supabase Data API returned HTTP 200.
+- Local isolated test execution of the six new general-research tests: **6/6 passed**.
+- Full repository Node suite was not rerun in this verification; GitHub combined status did not report checks for the tested commit. Authenticated end-to-end chat test was not possible because no dedicated staging Scout test account was confirmed.
+- The deployment is **STAGING only**. Production remains unchanged.
+
+
+### Evidence validation hardening — 2026-11-26
+
+Before the next staging deployment, the general research path was hardened:
+- Unicode-aware German/English normalization was corrected for source text and question matching.
+- Synthesized claims must cite only retrieved URLs **and** overlap with at least three meaningful terms in the cited source excerpt (minimum 35% lexical overlap).
+- The user-visible synthesized answer is assembled from accepted claims, not from the model's free-form answer field. If no claim passes, MESSINHO falls back to the deterministic source digest.
+- Added a regression test for accepting a source-supported claim and rejecting an unrelated claim.
+- Focused local check for the claim-support rule: 2/2 passed.
+- These checks are a conservative lexical support filter, not a semantic proof of truth; human review and stronger evidence evaluation remain necessary.
+
+
+### Final hardened STAGING deployment — 2026-11-26
+
+- Final source branch head deployed: `426e545cc3a0f045680163430d7ccd8eb30c06cf`.
+- Render deployment: `dep-dc3s4q61egvs73ejlv80`, status **live**, completed `2026-11-26T05:24:26Z`.
+- Build succeeded; the Node server started successfully, reported API listening on port 10000, and Supabase Data API returned HTTP 200.
+- Runtime confirms Tavily and OpenAI are configured on STAGING.
+- This final deployment includes the hardened Unicode normalization and source-overlap claim filter.
+- The latest source code is deployed on STAGING only. No production promotion, branch merge, database migration, or data write was performed.
+- Full Node regression suite and authenticated E2E question/answer test remain outstanding.
+
+
+## 2026-11-26 — Owner-scoped MESSINHO knowledge memory
+
+**Requirement:** MESSINHO should remember source-backed general knowledge across conversations without mixing users' information or treating retrieval memory as neural model training.
+
+**Database / STAGING:**
+- Inspected the existing `messinho_agent_memory` schema and ASI evidence schema. The former is limited to player context/preferences; the ASI evidence schema requires a player ID. Neither is suitable for general knowledge memory.
+- Added `public.messinho_knowledge_memory` in STAGING project ref `nwqwnrhupbyhshsprxjt`.
+- Migration source: `supabase/migrations/20261126190000_messinho_knowledge_memory.sql`.
+- Columns retain owner, normalized question fingerprint, answer, answer mode, supported claims, source URLs/publishers/excerpts, evidence summary, verification status, source/domain counts, verification and expiry timestamps, access count.
+- RLS enabled. Authenticated policies restrict SELECT/INSERT/UPDATE/DELETE to `auth.uid() = owner_id`.
+- Anonymous access revoked. Explicit authenticated and service_role grants restricted to SELECT/INSERT/UPDATE/DELETE only (no TRUNCATE/REFERENCES/TRIGGER).
+- Schema, RLS policies, and grants were verified through read-only inspection after DDL. Table currently has **0 rows**; no user or knowledge records were seeded.
+- Security Advisor did not report the new table as missing RLS policy. It reported an unrelated pre-existing policy gap on `messinho_diagnostic_runs` and leaked-password protection disabled; neither was changed here.
+
+**Backend integration:**
+- Added `backend/messinho-knowledge-memory.js`.
+- Added exact normalized-question SHA-256 fingerprinting.
+- Lookup is explicitly scoped by authenticated `owner_id`, exact fingerprint, `corroborated` state, and unexpired timestamp.
+- Only stores completed research with at least two substantial HTTPS source excerpts from two distinct domains. Personal/private markers and email/phone-like identifiers are excluded from persistence.
+- Records expire after 14 days; retrieval increments hit count without extending evidence verification/expiry.
+- Upsert confirms returned row ID; database errors fail soft so chat can still answer without persistent memory.
+- Integrated into `POST /api/agent/chat`: owner-scoped memory lookup first, fresh research on miss, then source-backed persistence.
+- Reused answers include their source metadata and are labelled as corroborated (not human-reviewed). No code, capabilities, or model weights self-modify.
+
+**Tests:**
+- Added `tests/messinho-knowledge-memory.test.js` (7 cases).
+- Isolated Node.js execution of the knowledge-memory module/test harness: **7/7 passed**.
+- Full repository Node suite and complete authenticated end-to-end chat test have not yet been confirmed.
+- GitHub Actions combined status did not return checks for the latest feature commit.
+
+**Commits (staging branch):**
+- `1982630934535d7c9cada3c53adb1195c627316d` — migration source
+- `adb5d15fcf62e531abc46c7f16474d2ec5bb1fb7` — tighten grants
+- `ddc244806fbe27a433bf521c85b73d8f9882006e` — memory module
+- `b3214001433e2dbaee3dc29278a2f2fceddb8ea2` — chat integration
+- `ff9c331caa18c8d032e2301018e1092fdcc7e2d6` — tests
+- `f5dc8c03f807079f2b4805dedc3d96feb60a84ac` — storage failure semantics
+
+**Deployment:** Pending. Do not describe this milestone as live until the staging deployment commit and runtime are verified. Production is untouched.
+
+
+### Deployment verification — owner-scoped knowledge memory (2026-11-26)
+
+- Render STAGING service confirmed on branch `feature/messinho-unified-ai-integration`.
+- Runtime commit `e8f1c8e12889fe4454c262297b8f59146cf00cda`; deployment `dep-dc3s6puc6qcc73bosk8g`; Render status `live`, deploy-ended event `2026-11-26T05:28:41Z`.
+- Build succeeded. Runtime started `node backend/server.js`, API listened on port 10000, Supabase Data API returned HTTP 200, and Tavily/OpenAI configuration was detected.
+- The new knowledge-memory table exists on STAGING, RLS is enabled, four owner policies are present, anonymous grants are absent, and only CRUD privileges are granted to authenticated/service_role. Row count remains zero.
+- Seven isolated knowledge-memory tests passed locally; the full repository suite and authenticated live chat test are not yet verified.
+- The staging deployment includes the memory lookup/write integration. It is not yet proven through a real authenticated user conversation because no staging test account has been authorized/created.
+- Production remains untouched; PR #47 remains Draft and unmerged.
+
+
+## 2026-11-26 — MESSINHO mathematics, scouting probability and physics
+
+**Owner requirement:** MESSINHO must independently calculate basic and advanced mathematics, probability/statistics for scouting, and physics formulas. Calculations must be reproducible and must not depend on an LLM doing arithmetic.
+
+**Implementation on the STAGING feature branch:**
+- Added `backend/messinho-math.js`, a deterministic calculation module with a restricted arithmetic parser. It does not use `eval`, `Function`, or execute user-supplied code.
+- Integrated the calculation module into `POST /api/agent/chat` immediately after live-question/small-talk handling and before general LLM fallback. The user does not select a tool; MESSINHO recognizes supported calculation questions and invokes the engine automatically.
+- Basic arithmetic supports addition, subtraction, multiplication, division, parentheses, powers and modulo, with division-by-zero and invalid-input handling.
+- Added percentage calculations, fractions, and proportional rule-of-three calculations.
+- Probability/statistics currently include exact/at-least/at-most binomial probabilities, Poisson probabilities, Bayes updates, 95% Wilson confidence intervals, hypergeometric probabilities (sampling without replacement), cumulative normal-distribution probabilities, z-scores, and combinations/binomial coefficients.
+- Physics currently includes Newton's second law, average speed, acceleration, kinetic and potential energy, mechanical work, power, density, pressure, momentum, Hooke's law, Ohm's law, electrical power, wave speed, circle circumference and circle area.
+- Results return a formula, calculation steps, units, and relevant assumptions. Probability results explicitly distinguish an observed statistical rate from a guaranteed individual player outcome.
+- Added `tests/messinho-math.test.js` for arithmetic, percentages, fractions, rule of three, binomial/Poisson/Bayes/Wilson calculations, and physics formula cases.
+- The math engine returns a clarification result when a calculation is recognized but required parameters are missing; unsupported non-math messages continue through the existing chat path.
+
+**Knowledge memory improvement:**
+- Exact normalized-question matching remains the first lookup.
+- Added owner-scoped high-confidence lexical paraphrase retrieval over at most 40 recent, unexpired, corroborated records.
+- Candidate matching requires at least three meaningful shared terms, high overlap/containment, and no detected polarity/negation conflict. Near-ties are rejected rather than guessed.
+- Retrieval still filters by the authenticated owner, corroborated status, and expiry. Similarity matching does not extend the verification timestamp or expiry.
+- Chat response metadata distinguishes exact reuse from high-confidence lexical reuse.
+- Added regression tests for positive paraphrase matching and superficially similar but different/contrasting questions.
+
+**Source head deployed to STAGING:** `2c828e68624d36ce5e663becc75bb48ee6ff1c3f`.
+
+**Verification and release status:**
+- Test cases have been added, but the complete repository Node test suite has **not yet been executed** on this branch.
+- Updated `.github/workflows/messinho-tests.yml` to run the full Node test suite and backend syntax checks on pushes to the active feature branch and pull requests to `main`. The GitHub workflow/status connector returned no workflow runs or combined checks at the time of this checkpoint; execution remains unverified.
+- Render STAGING has **not yet been redeployed** with the mathematics and paraphrase changes. Do not call these features live until the exact deployed commit is verified.
+- No new Supabase schema or data migration was required for these code changes.
+- Production branch, production Render service, production Supabase and PR merge state remain untouched. PR #47 remains Draft/unmerged.
+
+**Known limitations / next steps:**
+1. Validate all new math tests and run the full existing Node suite plus backend syntax checks.
+2. Expand physics/statistics coverage after test validation (e.g. normal distribution, hypergeometric probability, confidence calibration, additional mechanics/electrical formulas).
+3. Add scouting-specific interpretation using real verified player/event denominators; never infer an individual player's success probability from a small or biased sample.
+4. Consider semantic/embedding retrieval only after the conservative lexical approach is validated; do not serve uncertain memory matches.
+5. Deploy only the verified feature branch to the dedicated STAGING Render service and perform authenticated chat checks. Keep production unchanged.
+
+
+**Checkpoint update:** CI workflow definition is now committed on the feature branch. Latest code is still pending validation and staging deployment; no production change was made.
+
+
+### MESSINHO mathematics and knowledge retrieval — STAGING deployment verification (2026-11-26)
+
+- STAGING service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`), branch `feature/messinho-unified-ai-integration`, auto-deploy disabled.
+- Deployed commit: `2c828e68624d36ce5e663becc75bb48ee6ff1c3f`.
+- Render deployment: `dep-dc3sbdk9v7es73d4nd5g`, status **live**, finished `2026-11-26T05:38:34.254Z`. The earlier `76d1832` deployment is superseded by this expanded probability build.
+- Build command now gates deployment on `npm test`, backend JavaScript syntax checks, and `vite build`.
+- Full Node suite after initial math integration: **166 passed, 0 failed**. After adding normal/hypergeometric/combinatorics dispatch, final full Node suite: **169 passed, 0 failed**. New math tests cover arithmetic/parentheses, percentages, fractions, rule of three, binomial, Poisson, Bayes, Wilson intervals, normal distribution, hypergeometric probability, combinations, and physics formula families.
+- Backend syntax check completed successfully; Vite build succeeded with 1,636 modules transformed.
+- Runtime logs confirm `node backend/server.js` started, API listening on port 10000, Supabase Data API HTTP 200, and configured Tavily/OpenAI presence (no secret values logged).
+- The deterministic math module and conservative paraphrase retrieval are therefore **deployed to STAGING**. They have not yet been verified through an authenticated human chat session; no Scout/Admin test credentials were used or created.
+- Production Render service, production Supabase, and `main` were not modified. PR #47 remains Draft, open, and unmerged.
+
+- One intermediate deployment attempt exposed three missing dispatch cases for the added normal/hypergeometric/combinatorics tests; these were corrected before the final deployment. Final build/test gate passed all 169 tests.
+
+## 2026-11-26 — Comprehensive STAGING test pass and security hardening
+
+**Owner instruction:** Continue the existing myScoutingDatabase/MESSINHO project from its current state. Work only on dedicated STAGING. Record all work and test results in this master file so a new chat can resume without losing context.
+
+### Exact scope
+- Repository: `Dridi06/myScoutingDatabase`.
+- Active development branch: `feature/messinho-unified-ai-integration`.
+- STAGING Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`), URL https://myscoutingdatabase-messinho-staging.onrender.com.
+- STAGING Supabase project ref: `nwqwnrhupbyhshsprxjt`.
+- PR #47 remains Draft/open/unmerged.
+- Production Render service: `myscoutingdatabase` (`srv-dc25n13rjlhs73e2ae1g`), URL https://myscoutingdatabase.onrender.com.
+- PFMS/PFSS are unrelated and must not be modified.
+
+### Verified automated test and deployment results
+- Latest feature-branch CI commit tested: `1c5bfbfb351a65e8285e73d2b561578c55077c0c`.
+- MESSINHO Node tests workflow run `45765883276`: **success**; all workflow steps completed, including install, full Node tests and backend syntax.
+- MESSINHO validation workflow run `45765883304`: **success**; unit tests and frontend build completed.
+- ASI quality checks workflow run `45765883266`: **success**; ASI unit tests and frontend build completed.
+- Backend syntax workflow run `45765883315`: **success**.
+- STAGING health smoke test workflow run `45765883273`: **success**.
+- Previously verified full Node suite: **169 passed, 0 failed**.
+- Previously verified Vite build: successful, 1,636 modules transformed.
+- STAGING Render runtime logs confirm Node API listening on port 10000, Supabase Data API HTTP 200, Tavily configured and OpenAI configured (no secret values disclosed).
+- Persisted MESSINHO diagnostics: **healthy, 9 passed, 0 failed, 0 warnings**, completed 2026-11-26 06:05:11 UTC.
+- Persisted system diagnostics: **healthy, 46 passed, 0 failed, 0 warnings**, latest stored run 2026-11-26 03:49:36 UTC.
+- Scout3 profile verified in STAGING database: `role=scout`, `approved=true`, `approval_status=approved`.
+- The knowledge-memory table exists with owner-scoped RLS; row count is currently 0. No knowledge records were seeded.
+- A real authenticated Scout3 chat E2E test has **not** been completed by the assistant. Do not claim it has. It requires the user's existing logged-in browser session; never request or store a password, bearer token or JWT.
+
+### STAGING database changes made during this pass
+All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshsprxjt`, and source migrations were committed to the active feature branch:
+
+1. `supabase/migrations/20261126210000_staging_security_performance_hardening.sql`
+   - Revoke all table privileges on `messinho_diagnostic_runs` from PUBLIC, anon and authenticated.
+   - Retain backend CRUD for service_role only.
+   - Add missing FK indexes for `asi_model_versions.approved_by`, `messinho_diagnostic_runs.actor_profile_id`, and `system_diagnostic_runs.actor_profile_id`.
+   - Optimize two admin-only RLS policies on `system_diagnostic_runs` to use `(select auth.uid())`.
+2. `supabase/migrations/20261126211000_fix_admin_login_diagnostic_source.sql`
+   - Fix `system_diagnostic_runs_triggered_by_check` to allow the actual source `admin_login` alongside `automatic`, `admin`, and `deployment`.
+   - This was prompted by Render logs showing admin-login diagnostic persistence failing due to the constraint.
+3. `supabase/migrations/20261126212000_harden_system_diagnostic_table_grants.sql`
+   - Revoke broad default table grants from PUBLIC, anon and authenticated on `system_diagnostic_runs`.
+   - Grant authenticated only SELECT/INSERT (still subject to admin-only RLS policies).
+   - Retain backend CRUD for service_role.
+   - Explicitly remove TRUNCATE/DELETE from browser roles; TRUNCATE bypasses RLS.
+
+### Scout approval fix carried forward
+- Earlier STAGING migration `20261126200000_fix_admin_scout_approval_rls.sql` changed `admin_set_scout_approval` to a narrowly scoped SECURITY DEFINER function.
+- Function validates `auth.uid()` and `private.is_admin()`, uses empty search_path, changes only scout approval fields, and is not executable by anon/PUBLIC.
+- Scout3 now verified approved in STAGING as described above.
+
+### Security advisor findings and remaining action
+- Supabase Auth leaked-password protection is still disabled. This is an Auth dashboard/configuration setting and was **not** changed by SQL. Enable it in STAGING Auth password/security settings before release.
+- The SECURITY DEFINER warning for `admin_set_scout_approval` is intentional and narrowly constrained by the admin check.
+- `messinho_diagnostic_runs` has RLS enabled with no browser policies intentionally; browser roles have no table privileges, only backend service_role may access it.
+- Supabase flagged 31 unused indexes. Do not drop these without workload evidence; most are on new/empty tables. Three missing FK indexes were added.
+- The full authenticated Scout3 login/chat test, calculation routing, unknown-question research and persistent memory reuse remain unverified until exercised from the user's real authenticated session.
+
+### Production branch/deploy recovery incident — transparently recorded
+- During this test pass, one migration source file was accidentally created on `main` instead of the feature branch. This was an operator error.
+- The `main` ref was immediately force-reset with an expected-SHA guard to its exact prior commit `fa0d4dfbdd779f280bb3caf44c6cc70be8dcb5b6`.
+- Render production auto-deploy had already begun for the temporary commit. It briefly deployed that commit, which contained only a migration source file; no application source, production database schema or production data was changed.
+- After `main` was restored, Render redeployed the prior commit. Recovery deployment `dep-dc3soico3iic73cbldog` was verified **live**, completed 2026-11-26 06:06:56 UTC.
+- Production runtime logs confirm the API started and the production Supabase Data API returned HTTP 200.
+- Current GitHub `main` HEAD was verified back at `fa0d4dfbdd779f280bb3caf44c6cc70be8dcb5b6`.
+- Production Supabase was never modified.
+- Do not merge PR #47 or promote STAGING. Continue on feature branch and dedicated STAGING only.
+
+### Current STAGING application release state
+- STAGING app deployment remains `2c828e68624d36ce5e663becc75bb48ee6ff1c3f`, deployment `dep-dc3sbdk9v7es73d4nd5g`, verified live.
+- Latest changes in this test pass were database migrations and documentation; no STAGING application-code deployment was needed.
+- Render STAGING auto-deploy remains disabled.
+- PR #47 remains Draft and unmerged.
+
+### Next actions
+1. Continue reading this `PROJECTSCOUT.md` before any further project work.
+2. Enable leaked-password protection in STAGING Supabase Auth configuration.
+3. Have the owner sign in as Scout3 on STAGING and perform authenticated E2E checks:
+   - ordinary question and current time;
+   - arithmetic and percentage;
+   - binomial/Poisson/Bayes/scouting probability;
+   - physics formula;
+   - unknown knowledge question with at least two independent sources;
+   - exact and paraphrase knowledge-memory reuse after a source-backed answer is persisted;
+   - missing parameters, provider failure, invalid input and safe fallback;
+   - verify Scout role permissions and cross-owner data isolation.
+4. Inspect each chat result and backend logs; record screenshots/results without exposing secrets.
+5. Re-run diagnostics after Auth setting is enabled.
+6. Keep production and PFMS/PFSS untouched. Do not merge PR #47 or claim production readiness until authenticated E2E and security follow-up are complete.
+
+**Persistent test checkpoint file:** `docs/STAGING_TEST_CHECKPOINT_20261126.md` (feature branch). This detailed master record is authoritative for continuation; the checkpoint file contains the test matrix and incident timeline.
+
+
+## 2026-11-26 — Responsive UX and interaction-stability pass (STAGING)
+
+**Owner request:** Make the complete STAGING site work cleanly on phones and desktop; prevent screens/dashboard tiles from jumping or shifting after clicks; group and size all tiles sensibly on mobile; remove unnecessary non-AI and duplicate page functions.
+
+**Scope and safety:**
+- Repository: `Dridi06/myScoutingDatabase`.
+- Branch: `feature/messinho-unified-ai-integration`.
+- Target: dedicated Render STAGING service `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`).
+- STAGING Supabase ref: `nwqwnrhupbyhshsprxjt`.
+- Production `main`, production Render, production Supabase, PFMS and PFSS remain out of scope and unchanged.
+- STAGING auto-deploy is disabled; any release must be manually triggered and verified.
+
+**Source audit:**
+- Reviewed the current React app navigation, dashboard, global stylesheet, ASI workspace, MESSINHO workspace and existing help guide.
+- Confirmed the top-level pages represent distinct workflows: player create/edit/search/database, player analysis/ASI, MESSINHO talent search/chat, scout administration, system diagnostics, deletion audit, and support/ticket messaging.
+- No redundant top-level workflow was proven safe to delete. These functions have distinct user and security purposes, so they were retained rather than risking loss of scouting/admin capability.
+- The help guide is explanatory content, not a second AI agent; it was retained.
+- Identified interaction movement from global button hover transforms and specific dashboard tile hover transforms, plus smooth document scrolling and several conflicting late-stage responsive overrides.
+
+**Implemented — `src/styles.css`:**
+- Disabled smooth scrolling for the workspace so navigation/focus changes do not animate the page unexpectedly.
+- Reserved scrollbar gutter to reduce horizontal layout shifts when page content height changes.
+- Kept the workspace header sticky with a stable background while scrolling.
+- Removed translate transforms from button hover/focus/active states and dashboard action/metric/position tiles; retained non-positional feedback such as color, border and shadow changes.
+- Stabilized dashboard minimum height and constrained grid children to prevent content overflow.
+- Reworked mobile dashboard metrics to use responsive auto-fit columns and a single column when the screen is too narrow.
+- Grouped foot-preference tiles and position groups vertically on mobile; improved chip wrapping and touch target height.
+- Improved safe-area handling, narrow-screen typography, form widths, player facts/rating layouts, table horizontal scrolling, and MESSINHO composer/message wrapping.
+- Added responsive breakpoints for <=1100, <=760, <=520 and <=380 CSS pixels.
+- Kept existing product visual identity; no database or persistent user data was changed.
+
+**Regression coverage:**
+- Added `tests/responsive-layout.test.js` to guard against reintroducing smooth scrolling, button/tile translation, poor mobile dashboard grid behavior, safe-area regressions, and a non-sticky workspace header.
+- The Render STAGING service was confirmed on the correct feature branch with auto-deploy disabled.
+- GitHub Actions did not return push-triggered workflow runs for the commits; full `npm test` and `vite build` must be verified through the manual STAGING build before calling this change deployed.
+
+**UI cleanup decision:**
+- No unique non-AI workflow was removed in this pass because current source review did not establish any as redundant or obsolete. The request to remove duplicates is accepted; further deletion requires identifying actual duplicated controls/flows with evidence, not deleting essential player, scout, support or audit functionality by guesswork.
+- No authenticated cross-device browser session or screenshot automation was available during this pass. Responsive CSS regression checks and the STAGING build are the next verification gates.
+
+**Commits:**
+- `3fe77909e3f76fb36965673a3d36e5ff1d319bd4` — responsive CSS and interaction stability.
+- `a7c55a30845939bb90bb649f50f5121f3c487c7d` — responsive regression tests.
+
+**Deployment status at checkpoint:** Code committed to the STAGING feature branch. Render STAGING manual deployment and build verification are pending. Do not call it live until the exact deployment commit is confirmed live and health is checked.
+
+
+### Responsive UX pass — STAGING build and deployment verification (2026-11-26)
+
+- Render STAGING service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`).
+- Manual deployment: `dep-dc3stkp7lnhs73eo1hu0`.
+- Deployed commit: `69cf085aae71b4de5b7c0c0afc16e4ac19910d3e`.
+- Render deployment status: **live**, finished `2026-11-26T06:17:26.097Z`.
+- Render build executed `npm run build`: **174 tests passed, 0 failed** (169 existing + 5 responsive layout regression tests); backend syntax checks passed; Vite transformed 1,636 modules and completed the build successfully.
+- Runtime started `node backend/server.js`, API listened on port 10000, and STAGING Supabase Data API returned HTTP 200. Render confirmed the service live at the dedicated STAGING URL.
+- No database migrations or persistent user/player/scout data changes were made.
+- No authenticated browser screenshot/visual QA was available; CSS regression tests and deployment health are verified, but exact rendering/scroll behavior on physical iPhone/Android/desktop browsers still requires interactive visual confirmation.
+- Production `main`, production Render, production Supabase, PFMS and PFSS remain unchanged. STAGING auto-deploy remains disabled; PR #47 remains Draft/unmerged.
+
+
+## 2026-11-26 — MESSINHO chat viewport/zoom correction (STAGING)
+
+**User report:** After typing/sending a message in the MESSINHO chat, the page visually distorts and changes size.
+
+**Root-cause findings:**
+- MESSINHO's message list had several competing min-height/max-height declarations across the component stylesheet and global responsive stylesheet.
+- The chat card did not have a definite block size, so its flex child could participate in page-height changes as messages accumulated.
+- The chat input was explicitly set to 13px in the component stylesheet. On iOS Safari, focusing an input below 16px triggers automatic page zoom, which matches the reported visual resizing when tapping/typing in the chat.
+- The previous auto-scroll only changes the message list's own scrollTop; it does not call document scrollIntoView. The primary fixes therefore target input auto-zoom and layout sizing rather than removing conversation auto-scroll.
+
+**Implemented:**
+- src/asi/messinho.css: fixed desktop chat card height to a bounded responsive range (480–680px), and mobile height to a stable 560px (540px at <=380px).
+- Message list now uses the remaining fixed flex area (height:0; flex:1 1 0; min-height:0) and scrolls internally, rather than expanding the outer page.
+- Composer is a non-shrinking fixed row; message bubbles are constrained to the available width and can wrap long content.
+- Disabled scroll anchoring and smooth scrolling inside the chat to prevent browser-driven jumps.
+- Set the MESSINHO composer input to 16px (including mobile, with !important) to prevent iOS Safari's focus-triggered automatic zoom.
+- Added two regression tests to tests/responsive-layout.test.js for the fixed chat viewport/internal scroll and iOS 16px input size.
+
+**Commits:**
+- 17fd7791ee092f619956b524a95e40939515f1b1 — chat layout/scroll/input sizing.
+- ed494c5a8b2c4f3ad71a17f2c49d96399d115441 — regression tests.
+
+**Verification status:** Changes are committed on feature/messinho-unified-ai-integration. The STAGING build/deployment must be run and verified before calling this correction live. Production and PFMS/PFSS remain untouched.
+
+
+### MESSINHO chat correction — STAGING build and deployment verified
+- Render deployment: dep-dc42g2t6e07s73dvpkeg.
+- Deployed commit: 11347b7a3b4398555526a0a785b1abf65db3c0a4.
+- Status: **live**, finished 2026-11-26T12:38:07.513Z.
+- Build tests: **176 passed, 0 failed** (including the two new chat viewport/iOS input tests); Vite build completed successfully in 2.68s.
+- Runtime: Node API listening on port 10000; STAGING Supabase Data API returned HTTP 200.
+- STAGING service remains on feature/messinho-unified-ai-integration with auto-deploy disabled. Production and PFMS/PFSS remain untouched.
+- Remaining verification: owner must confirm on the physical iPhone that focusing/typing/sending in MESSINHO no longer triggers visual zoom or outer page resizing. Automated tests prove CSS contracts and deployment health, not device-specific Safari rendering.
+
+
+## 2026-11-26 — MESSINHO screenshot-driven answer correctness and formatting fix (STAGING)
+
+**User-provided iPhone screenshot findings:**
+- MESSINHO displayed the literal characters `\\n` in a calculation response instead of readable line breaks.
+- A bare scouting year range `2004-2006` was incorrectly intercepted by the deterministic arithmetic parser and returned as subtraction (`-2`).
+- The chat frame itself appears bounded in this screenshot; this report exposed response-format and intent-routing defects in addition to the earlier iOS viewport concern.
+
+**Implemented on `feature/messinho-unified-ai-integration`:**
+- `backend/messinho-math.js`: a bare four-digit year range (hyphen, en dash or em dash) is no longer treated as arithmetic. Explicitly requested arithmetic such as `Berechne 2004-2006` remains valid.
+- `backend/server.js`: calculation replies now contain actual newline characters rather than literal backslash-n sequences.
+- `src/asi/messinho.css`: chat message paragraphs use `white-space:pre-line` so multiline responses remain readable.
+- `tests/messinho-math.test.js`: regression tests for bare year ranges and explicit subtraction.
+- `tests/responsive-layout.test.js`: regression test for multiline chat formatting.
+
+**Commits (feature branch only):**
+- `d1a4f7569e4189bccaa7bea3d14b8588b8df02fb` — year-range guard initial implementation.
+- `5430641b4aa283daa38710b21517e43e538e5bab` — actual newline formatting in calculation replies.
+- `09bb10901c638c178ca664884dc273c5f5668516` — preserve multiline text in chat bubbles.
+- `81fb04b87a6dec84df5c24783bdbe84a2ea091e5` — correct regex source for year-range guard.
+- `7a66e1732d45e7a65025e04e679b47556a80113e` — math regression tests.
+- `34ad2add7ea49ee8311f6c21c62c608693c63c65` — chat formatting regression test.
+
+**Deployment status at checkpoint:** Code is committed to the STAGING feature branch. Render build and deployment are pending. Do not call the fix live until the exact deployed commit is verified live and the health check succeeds. Production, PFMS/PFSS and production Supabase remain untouched. STAGING auto-deploy remains disabled.
+
+
+## 2026-11-26 — MESSINHO conversation continuity and birth-year context (STAGING)
+
+**Owner request:** MESSINHO must remember the preceding conversation so a short follow-up such as `2004-2006` is interpreted in the context of a discussion about player birth years/year groups, rather than as arithmetic subtraction or as an isolated phrase.
+
+**Implemented on the STAGING feature branch:**
+- Increased the recent conversation window passed by the chat UI from 10 to 20 messages.
+- Increased backend history sanitization to retain the latest 20 safe user/assistant messages.
+- Increased the scouting dialog parser and general OpenAI conversational context to use up to 20 recent messages.
+- The scouting parser now recognizes a terse year or year-range follow-up when the recent conversation discussed `Jahrgang`, `Geburtsjahr`, `Geburtsjahrgang`, `Geburtsdatum` or `Altersklasse`.
+- In that case, it carries the prior user context into the parser without automatically launching a scouting search merely because the user clarified a year.
+- A subsequent explicit scouting request can reuse the recently discussed birth-year criteria.
+- Added `tests/messinho-context.test.js` covering contextual year ranges, carry-forward into a new scouting request, and the 20-message history limit.
+- Existing deterministic math guard still distinguishes a bare year range from explicitly requested arithmetic.
+
+**Commits:**
+- `a830a04d32d980c69f9b7a8a011d35c4efabb9ce` — retain 20 safe chat messages.
+- `d0bbd6531bcba88c4dd6bdb70f0a01246b327006` — contextual year follow-ups in scouting parser.
+- `31a4fa59a385c35f5234b2252eb53556ffcab054` — 20-message context for general AI fallback.
+- `7d062dd7bdc2d949c70f0e65445c724d265330d6` — send 20 recent messages from chat UI.
+- `827e740daf6fddadbd3412356f03a683eb6bb1bd` — contextual continuity regression tests.
+
+**Deployment status:** Source changes are committed to `feature/messinho-unified-ai-integration`. STAGING build/deploy and test verification are pending. Do not call this live until Render reports the exact current commit live. Production, PFMS/PFSS and production Supabase remain untouched. STAGING auto-deploy remains disabled.
+
+
+**Build feedback and test correction (2026-11-26):**
+- First manual STAGING build for the context-continuity pass exposed two test expectation issues (not a production code/runtime failure): the test's previous assistant line accidentally matched the existing explicit pending-question flow, and the existing sanitizer test still expected the former 10-message limit.
+- Corrected the scenario so it tests a non-pending conversational year clarification, and updated the sanitizer test to expect all 13 valid messages from its 13-message fixture under the new 20-message cap.
+- The first build therefore failed (179 passed, 2 failed). A corrected build is required; do not treat the context-continuity change as live until that build succeeds.
+- Follow-up test commits: `af1088f51634de7f389866f0f8ba810b83a31efa`, `f3c40ec646d7c02458347cbdcf70174e3ac24195`.
+
+
+**Second build feedback (2026-11-26):**
+- The sanitizer expectation now passes. One context test still used an assistant sentence containing the explicit pending clarification keyword `Geburtsjahrgang`, correctly activating the pre-existing clarification flow.
+- Adjusted the fixture's assistant response to a neutral acknowledgement so the test isolates a terse follow-up without an outstanding clarification. No production behavior was weakened.
+- Test fixture correction: `92e347c46d7247c628fd176c8bd4fb1963d2fdf4`. The second build also failed; next build is required before release.
+
+
+### MESSINHO conversation continuity — STAGING deployment verified (2026-11-26)
+- Render deployment: `dep-dc436rui0phs739171d0`.
+- Deployed commit: `5c47a6090bbeebff8a4c65a87403a37babf427a7`.
+- Status: **live**, finished `2026-11-26T13:26:47.149873Z`.
+- Build: **181 tests passed, 0 failed**; backend syntax checks passed; Vite transformed 1,636 modules and built successfully.
+- Runtime: `node backend/server.js` started, API listening on port 10000; Supabase credentials detected and research providers configured.
+- The context test suite confirms a terse `2004-2006` follow-up after a birth-year discussion is treated as context, not subtraction; an explicit later scouting request reuses the year range; latest 20 messages are retained.
+- The screenshot-driven answer formatting and bare-year-range arithmetic correction are included in the deployed commit.
+- This is a code-level and automated regression verification. A real authenticated Scout3 chat session still needs to confirm natural-language behavior from the user's browser.
+- Production Render, production `main`, production Supabase, PFMS and PFSS remain untouched. STAGING auto-deploy remains disabled; PR #47 remains Draft/unmerged.
+
+## 2026-11-26 — MESSINHO Mathematics & Physics Intelligence, first interpretation layer (STAGING)
+
+**Owner instruction:** Continue the existing deterministic mathematics/physics engine and progress from formula-only inputs toward understanding natural-language word problems.
+
+**Implemented on `feature/messinho-unified-ai-integration`:**
+- Added a deterministic German-language physics quantity extractor for distance and time in natural sentences.
+- Supports distance conversion into SI metres for km, m, cm and mm; time conversion into SI seconds for hours, minutes and seconds.
+- A natural-language average-speed problem now extracts known values, identifies the unknown (speed), applies (v=s/t), shows substitution steps, and returns both m/s and km/h.
+- Example covered by regression test: “Ein Fußballer läuft 100 Meter in 12 Sekunden. Wie schnell ist er?” -> 8.33333333 m/s = 30 km/h.
+- Added finite-result validation in the shared result constructor so Infinity/NaN cannot be reported as a completed calculation.
+- Added explicit zero-current validation for Ohm's law to avoid division by zero.
+- Added regression tests for natural-language speed, unit conversion, Ohm's law zero current, and non-finite results.
+
+**Limitations retained deliberately:**
+- This is a first rule-based interpretation layer, not unrestricted natural-language understanding.
+- Unit parsing currently covers distance/time for average speed only; no general dimensional-analysis framework or arbitrary unit conversion yet.
+- Other formula families still require the existing explicit parameter notation unless separately interpreted.
+- No neural model weights are trained or changed; this is deterministic software capability growth.
+
+**Verification:** Source/test changes committed to STAGING feature branch. Run the complete test/build pipeline and manually deploy the exact commit to Render STAGING before calling it live. Do not enable auto-deploy. Production, production Supabase, PFMS and PFSS remain untouched.
+
+### Mathematics & Physics Intelligence — STAGING deployment verified (2026-11-26)
+
+- Render STAGING deployment: `dep-dc43hes9v7es73dot5t0`.
+- Deployed commit: `855a0b49a061699d159b9ee6a76b3fa8390ff50d`.
+- Render status: **live**, completed `2026-11-26T13:49:17.656Z`.
+- Build/test verification: **185 tests passed, 0 failed**; Vite transformed 1,636 modules and completed the production build.
+- Runtime: `node backend/server.js` started, API listening on port 10000; STAGING Supabase Data API returned HTTP 200; Tavily and OpenAI provider configuration detected.
+- Added regression coverage for German natural-language speed problems, SI conversion from kilometres/minutes, zero-current Ohm validation, and non-finite arithmetic results.
+- The first two deployment attempts failed due to syntax/patch-fragment errors in the new parser. These were corrected; the final deployment above is the verified successful build. The failed deployments did not replace the previously live service.
+- STAGING auto-deploy remains disabled. Production `main`, production Render, production Supabase, PFMS and PFSS remain untouched.
+- Remaining scope: broaden the natural-language interpreter to more physics formula families, add general dimensional analysis/unit compatibility, validate physical domains across all formulas, and expand mathematics (algebra, geometry, calculus). The present speed interpreter is a focused deterministic first step, not unrestricted natural-language understanding.
+
+
+### 2026-11-26 — Autonomous mathematical and physical performance intelligence
+
+**Owner decision:** Mathematics and physics are not standalone user-selectable functions. They must be integrated into MESSINHO's autonomous agent behavior and invoked automatically when relevant.
+
+**Implementation on staging feature branch:**
+- Added `backend/messinho-performance-intelligence.js`.
+- Integrated it directly into `backend/messinho-agent-core.js`; every accepted agent cycle now performs the assessment automatically, without a separate user toggle or capability selection.
+- The resulting intelligence is passed into the capability execution context as `_messinho_autonomous_performance_intelligence` and attached to the agent run for response formatting/audit.
+- `backend/messinho-orchestrator.js` formats explicit measured and derived findings in the normal MESSINHO response.
+- Added `tests/messinho-performance-intelligence.test.js`.
+
+**Current measured/derived scope:**
+- 10 m and 30 m sprint average speed from explicitly supplied sprint times.
+- Explicit top speed, vertical jump, ball speed.
+- Explicit pass completion, duel success and dribbling success rates.
+- Ball kinetic energy only when both explicit ball mass and ball speed are supplied.
+- Each result is classified as measured or derived, includes units/formula/basis, and states interpretation limits.
+
+**Scientific and governance safeguards:**
+- No invented or imputed measurements.
+- No conversion of average sprint speed into top speed.
+- No inference of stamina or injury risk from speed/jump data.
+- No global player rating without age-, position-, league- and sample-appropriate comparison cohorts and approved weighting.
+- No source data writes and no automatic model-weight changes.
+- Unsupported units/values are not promoted to findings.
+
+**Verification status:** Code and regression tests committed to the staging feature branch. Runtime test suite, build, Render staging deployment and live verification are still pending; do not describe this feature as live until the exact deployment commit is confirmed. Production `main`, production Render/Supabase, PFMS and PFSS remain untouched.
+
+
+## 2026-11-26 — Autonomous Agent Core 2.0 foundation (STAGING; verification pending)
+
+**Owner request:** Implement the autonomous-agent improvements discussed in the conversation, including goal planning, automatic tool selection, execution observation, error recovery, persistent task continuity, self-improvement safeguards, and football intelligence. Work remains restricted to `feature/messinho-unified-ai-integration` and the dedicated STAGING service.
+
+**Changes committed:**
+- Added `backend/messinho-autonomy.js` with a provider-independent goal contract, autonomous plan construction through the existing capability catalogue/dependency resolver, protected-side-effect approval detection, execution observation, bounded JSON task checkpoint creation, and strict owner/organization resume-scope validation.
+- Integrated autonomous goal interpretation and observation into `backend/messinho-agent-core.js`; the core can now derive a plan when no caller-supplied plan exists, emits trace events for planning/observation, exposes the goal contract and observation, and chooses a next action from observed missing inputs/errors/deferred steps.
+- Routed the normal chat orchestration path through the autonomy supervisor in `backend/server.js`; the API response now exposes the goal contract and observation alongside the existing task checkpoint.
+- Added `tests/messinho-autonomy.test.js` for autonomous plan creation, goal contracts, protected-action approval, observation states, checkpoint owner/organization isolation, completed-task resume prevention, and empty-goal rejection.
+
+**Existing foundations reused rather than duplicated:**
+- The repository already contains an owner-scoped `messinho_agent_tasks` ledger, per-step checkpoint writes, lease handling, stale-task quarantine, a user task-list endpoint, and an explicit resume endpoint.
+- Existing verified knowledge memory, research evidence checks, learning safeguards, role restrictions, and the autonomous performance-intelligence module remain in place.
+- The current task resume mechanism is still explicit/user-triggered; a background worker that autonomously resumes tasks is not yet enabled or verified.
+- The new checkpoint constructor is a bounded serialization/ownership contract; it does not replace the existing database ledger or silently persist data by itself.
+- The current planner still relies on the reviewed capability vocabulary/catalogue and dependency resolver. This is a safer autonomous supervisor around the current planner, not unrestricted semantic planning.
+- Error recovery remains bounded; the current retry behavior does not constitute general-purpose root-cause repair or automatic source-code modification.
+- External contact, destructive data changes, model-weight activation, and consequential actions remain behind human approval and role checks.
+
+**Verification status:** Source and test changes are committed to the STAGING feature branch. Full `npm test`, backend syntax checks, Vite build, Render manual deployment, and exact live-commit verification are pending. Do not report this implementation as live until those checks pass. No production or PFMS/PFSS resources were changed.
+
+
+### Autonomous Agent Core 2.0 foundation — STAGING build and deployment verified (2026-11-26)
+
+- Render deployment: `dep-dc443fmq1p3s73cs1jbg`.
+- Deployed application commit: `1197dcc886c8fe2373b033e3ad46825976fe5c6e`.
+- Status: **live**, finished `2026-11-26T14:27:45.163634Z`.
+- Build: **198 tests passed, 0 failed**; backend syntax checks and Vite build succeeded.
+- Runtime: API listening on port 10000; STAGING Supabase Data API returned HTTP 200; Tavily and OpenAI provider configuration detected.
+- The first build exposed defects in goal sanitization/checkpoint tests; the control-character expression and checkpoint byte counting were corrected, then the full successful build above verified the fix.
+- The application commit includes the autonomy supervisor, core integration, server chat-path integration, persisted goal criteria in the existing task ledger, and the new regression suite.
+- The following are **not yet implemented or enabled by this release**: autonomous background worker/scheduler, general-purpose semantic planning beyond the reviewed capability catalogue, multi-round root-cause re-planning beyond bounded retries, and a fully integrated automatic improvement/test/release pipeline. Existing task resumption remains explicit; consequential changes remain approval-gated.
+- STAGING auto-deploy remains disabled. Production `main`, production Render, production Supabase, PFMS and PFSS remain untouched.
+
+---
+
+## 2026-11-26 — Development checkpoint: safe task-resume policy
+
+- **Scope:** myScoutingDatabase / MESSINHO, feature branch only.
+- **Implemented:** `backend/messinho-task-policy.js` now provides a conservative resume gate, explicit per-task opt-in enforcement, capability read-only classification enforcement, expiry and attempt-limit checks, retry-backoff checks, and capped exponential retry-delay calculation.
+- **Tests:** `tests/messinho-task-policy.test.js` expanded from 4 to 7 tests. Isolated Node test run: 7 passed, 0 failed.
+- **Safety decisions:** tasks are not background-resumable unless `autonomous_resume_enabled === true`; only queued/partial tasks can pass the policy; each pending capability must be explicitly classified `read_only`; running/expired leases are not reclaimed by this policy; max attempts defaults to 4.
+- **Not yet implemented:** atomic database claim RPC, durable retry metadata columns, worker polling/lifecycle, capability safety registry, and wiring from the server to the worker. The policy functions are groundwork only; no automatic execution has been enabled.
+- **Deployment:** not deployed. No Render service, Supabase project, production branch, or production data was changed.
+- **Next step:** design and test an atomic STAGING-only task-claim migration, after confirming the task table schema and migration history; then implement a worker that consumes only explicitly opted-in, read-only tasks.
+
+---
+
+## 2026-11-26 — Development checkpoint: atomic task claim on STAGING
+
+- **Database:** applied migration `messinho_atomic_task_claim` to STAGING Supabase project `nwqwnrhupbyhshsprxjt` only.
+- **Schema additions:** `autonomous_resume_enabled BOOLEAN NOT NULL DEFAULT false`, `next_retry_at`, `claimed_by`, and `lease_token`. Existing task count was zero at inspection; no task was opted in.
+- **Concurrency:** added `public.claim_next_messinho_agent_task(text)`, which claims one eligible queued/partial task with `FOR UPDATE SKIP LOCKED`, creates a unique lease token, increments attempts, and sets a two-minute lease. It only considers explicitly opted-in, unexpired tasks with fewer than four attempts and a due retry time.
+- **Security:** SECURITY DEFINER with empty search_path; execution revoked from PUBLIC/anon/authenticated and granted only to service_role. Verified privileges: anon=false, authenticated=false, service_role=true.
+- **Repository migration:** `supabase/migrations/20261126200000_messinho_atomic_task_claim.sql` committed on `feature/messinho-unified-ai-integration`.
+- **CI for commit `b09ddb19422bb1656b618fee1786ffab4efb84bc`:** MESSINHO Node tests passed; backend syntax checks passed; STAGING health smoke test passed. Workflow runs: 45842070880, 45842070806, 45842070932.
+- **Important limitation:** this is the atomic claim primitive only. No background worker, task opt-in UI/API, execution/resume loop, lease renewal, or lease-token guarded finalization has been connected yet. No existing task can be picked up by the new function unless explicitly opted in.
+- **Release:** no Render deployment was triggered. STAGING Render auto-deploy remains disabled. Production, main, production Supabase, PFMS and PFSS remain untouched.
+- **Next:** implement an explicit owner-authorized opt-in path, strict read-only capability allowlist, lease-token guarded worker lifecycle, bounded retry/failure handling and tests; only then enable worker in STAGING behind a dedicated environment flag.
+## 2026-11-26 — MESSINHO worker implementation checkpoint
+
+- Added `backend/messinho-background-worker.js`: explicitly gated to Render, the exact configured staging service ID, an explicit enable flag, and Supabase service credentials. Production service IDs cannot pass the staging equality check.
+- Atomic RPC claim is used; only tasks with `autonomous_resume_enabled=true` are claimable. Execution is restricted to a small, explicit read-only capability allowlist.
+- Task completion, retry and rejection writes are owner-scoped and additionally require the exact worker claim and lease token. Retry uses capped exponential backoff and four-attempt ceiling. User-input gaps move to `waiting_for_input`.
+- Added authenticated owner-only endpoint `POST /api/messinho/tasks/:taskId/autonomous-resume`; it rejects unsafe capabilities, expired tasks, invalid states and exhausted attempts before explicit opt-in.
+- Worker is started at server boot but remains disabled unless all staging env gates are set. SIGTERM/SIGINT stop it.
+- Added `tests/messinho-background-worker.test.js` covering staging gate, explicit opt-in, read-only allowlist, lease-token completion and unsafe-task rejection.
+- Commits: worker `02dfff83d923cac8225e45a8ad6ae71bfa733243`; tests `3aadc41e7847b9209eb4123e63960d2ece98d601`; server integration `f67648f274c945227dca606080767b2780350fcb`.
+- **Not yet live:** no Render environment flag has been enabled and no deployment has been triggered. Keep auto-deploy disabled. Next: run CI/build, configure only STAGING `MESSINHO_AUTONOMY_WORKER_ENABLED=true` and `MESSINHO_STAGING_RENDER_SERVICE_ID=srv-dc3chlqjnfac73acd6ig`, manually deploy STAGING, verify health and worker startup. Production and all PFMS/PFSS systems untouched.
+- **Validation correction:** first CI pass exposed three issues in worker tests: the claimed row is in status `running`, while the generic resume policy expects `queued/partial`. Worker validation now adapts only a claimed row with a lease token for the policy check. Corrected run `45842726513`: all 206 tests passed and backend syntax checks passed.
+- **STAGING deployment:** Render deploy `dep-dc44dp61egvs73fa83ng` is LIVE, commit `cf235b2c0a725c865e5b16486ab0023d7e6ea8ec`, finished `2026-11-26T14:49:45.995747Z`. Build reported 206 tests passed, 0 failed; Vite build succeeded; Supabase Data API returned HTTP 200 after startup.
+- **Worker staging gate:** set only on STAGING: `MESSINHO_AUTONOMY_WORKER_ENABLED=true`, `MESSINHO_STAGING_RENDER_SERVICE_ID=srv-dc3chlqjnfac73acd6ig`. The service auto-deploy setting remains disabled. Render environment update caused the expected staging deploy.
+- No task has yet been explicitly opted in, so the worker has no task to execute. No production, main, production database, PFMS or PFSS changes.
