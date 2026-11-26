@@ -49,14 +49,20 @@ export function normalizeMessinhoGeneralSources(results=[]){
  }
  return rows.slice(0,8);
 }
-const GENERAL_QUERY_STOP=new Set(['aber','auch','auf','aus','bei','das','dass','dem','den','der','des','die','ein','eine','einem','einen','einer','eines','für','im','in','ist','mit','oder','und','von','warum','weshalb','wieso','wie','was','welche','welcher','welches','erkläre','erklaere','erklären','mir','mich','seine','seiner','seinen','wert','bedeutung','grenzen','faktoren','muss','müssen','muessen','berücksichtigen','beruecksichtigen','aussagen','ableiten','ordne','anhand','eines','einer','ein','the','and','for','with','from','that','this','what','when','where','which','how','explain']);
+const GENERAL_QUERY_STOP=new Set(['aber','auch','auf','aus','bei','das','dass','dem','den','der','des','die','ein','eine','einem','einen','einer','eines','für','im','in','ist','mit','oder','und','von','warum','weshalb','wieso','wie','was','welche','welcher','welches','erkläre','erklaere','erklären','mir','mich','seine','seiner','seinen','wert','bedeutung','grenzen','faktoren','muss','müssen','muessen','berücksichtigen','beruecksichtigen','aussagen','ableiten','ordne','anhand','eines','einer','ein','the','and','for','with','from','that','this','what','when','where','which','how','explain','aktuell','stand']);
 export function filterMessinhoRelevantGeneralSources(sources=[],question=''){
  const q=normalize(question);
- const vo2Topic=/\b(vo\s*[₂2]\s*max|vo2max|vo₂max|maximale sauerstoffaufnahme|cardiorespiratory fitness|kardiorespiratorische fitness)\b/i.test(q);
+ const vo2Topic=q.includes('vo2max')||q.includes('maximale sauerstoffaufnahme')||q.includes('cardiorespiratory fitness')||q.includes('kardiorespiratorische fitness');
  if(vo2Topic){
   return (Array.isArray(sources)?sources:[]).filter(source=>{
    const text=normalize([source.title,source.snippet].join(' '));
-   return /\b(vo2max|vo₂max|maximale sauerstoffaufnahme|oxygen uptake|cardiorespiratory fitness|kardiorespiratorische fitness)\b/i.test(text);
+   return ['vo2max','maximale sauerstoffaufnahme','oxygen uptake','cardiorespiratory fitness','kardiorespiratorische fitness'].some(anchor=>text.includes(anchor));
+  });
+ }
+ if(q.includes('himmel')&&q.includes('blau')){
+  return (Array.isArray(sources)?sources:[]).filter(source=>{
+   const text=normalize([source.title,source.snippet].join(' '));
+   return text.includes('blue light')||text.includes('rayleigh scattering')||text.includes('atmospheric scattering');
   });
  }
  const anchors=[...new Set(q.split(' ').filter(token=>token.length>=4&&!GENERAL_QUERY_STOP.has(token)))];
