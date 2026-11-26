@@ -1451,7 +1451,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const agentCycle=await executeMessinhoAgentPlan({plan:automaticPlan,input:{player,players:players.length?players:[player],model_profiles:activeModel?.configuration?.profiles||null,sources:Array.isArray(player.sources)?player.sources:[],claims:[]},role:profile.role});
       const run=agentCycle.run;
       const reply=formatMessinhoCapabilityResults(run,player.name||player.player_name||null);
-      return respond({reply,intent:'automatic_capability_orchestration',items:players.map(p=>({id:p.player_id||p.id,name:p.name||p.player_name,club:p.club||p.current_club,positions:p.positions||[]})),orchestration:{label:run.label,status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,provider_independent:true,model_weights_changed:false},capability_results:profile.role==='admin'?run.results:undefined});
+      return respond({reply,intent:'automatic_capability_orchestration',items:players.map(p=>({id:p.player_id||p.id,name:p.name||p.player_name,club:p.club||p.current_club,positions:p.positions||[]})),orchestration:{label:run.label,status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,provider_independent:true,model_weights_changed:false,agent_core_version:run.agent_core_version,agent_phase:agentCycle.state.phase,validation:agentCycle.validation,next_action:run.next_action,replan_recommended:run.replan_recommended},capability_results:profile.role==='admin'?run.results:undefined});
     }
     const searchTerm=extractMessinhoPlayerSearchTerm(interpretedMessage);
     if(searchTerm){
