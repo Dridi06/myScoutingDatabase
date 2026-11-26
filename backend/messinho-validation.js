@@ -85,7 +85,7 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
   const lastAssistant = [...safeHistory].reverse().find(item => item?.role === 'assistant');
   const latest = normalize(message);
   const startsNewRequest = /\b(benötige|brauche|suche|such|finde|scoute|recherchiere)\b/i.test(latest);
-  const pending = !startsNewRequest && /(?:welches spielerlevel|welche spielklasse|leistungsniveau|welches land|welcher standort|welche position|welcher jahrgang|geburtsjahrgang|land\\s+bzw\\.?\\s+liga[- ]standort|damit ich die suche sauber eingrenzen kann|brauche ich noch:)/i.test(String(lastAssistant?.text || ''));
+  const pending = !startsNewRequest && /(?:welches spielerlevel|welche spielklasse|leistungsniveau|welches land|welcher standort|welche position|welcher jahrgang|geburtsjahrgang|land\s+bzw\.?\s+liga[- ]standort|damit ich die suche sauber eingrenzen kann|brauche ich noch:)/i.test(String(lastAssistant?.text || ''));
   const recentConversation = safeHistory.slice(-8).map(item => String(item?.text || '')).join(' ');
   const discussedBirthYears = /\b(jahrgang|geburtsjahr|geburtsjahrgang|geboren|geburtsdatum|altersklasse)\b/i.test(recentConversation);
   const terseYearFollowUp = /^(?:19|20)\d{2}(?:\s*[-–—]\s*(?:19|20)\d{2})?$/u.test(latest);
@@ -96,13 +96,13 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
     .map(match => Number(match[1])).filter(year => year >= 1990 && year <= currentYear);
   const yearFrom = yearMatches.length ? Math.min(...yearMatches) : null;
   const yearTo = yearMatches.length ? Math.max(...yearMatches) : null;
-  const ageMatch = context.match(/\\b(1[4-9]|2[0-9])\\s*(?:[- ]?j[aä]hrig(?:en|er|e|es)?|jahre?\\s+alt)\\b/i);
+  const ageMatch = context.match(/\b(1[4-9]|2[0-9])\s*(?:[- ]?j[aä]hrig(?:en|er|e|es)?|jahre?\s+alt)\b/i);
   const age = ageMatch ? Number(ageMatch[1]) : null;
   const ageGroupMatch = context.match(/\bU[\s-]*([1-2]\d)\b/i);
   const ageGroup = ageGroupMatch ? `U${Number(ageGroupMatch[1])}` : null;
 
   const positionPattern = /\b(linker\s+verteidiger|linksverteidiger|left[- ]back|left fullback|lv|lb|rechter\s+verteidiger|rechtsverteidiger|right[- ]back|right fullback|rv|rb|innenverteidiger|center[- ]back|centre[- ]back|iv|cb|mittelstürmer|stürmer|striker|torwart|goalkeeper|keeper|tw|gk|zentraler?\s+mittelfeldspieler|defensives?\s+mittelfeld|mittelfeldspieler|mittelfeld|midfielder|midfield|zdm|cdm|zm|cm|om|cam|flügelspieler|winger|lw|rw|lf|rf)\b/i;
-  const specificSix = context.match(/\\b(?:als\\s+)?6er\\b|\\bsechser\\b/i);
+  const specificSix = context.match(/\b(?:als\s+)?6er\b|\bsechser\b/i);
   const positionMatch = specificSix || context.match(positionPattern);
   const position = positionMatch ? (specificSix ? 'defensiver Mittelfeldspieler' : positionMatch[0].trim()) : '';
 
