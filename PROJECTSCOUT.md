@@ -1632,3 +1632,10 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - `827e740daf6fddadbd3412356f03a683eb6bb1bd` — contextual continuity regression tests.
 
 **Deployment status:** Source changes are committed to `feature/messinho-unified-ai-integration`. STAGING build/deploy and test verification are pending. Do not call this live until Render reports the exact current commit live. Production, PFMS/PFSS and production Supabase remain untouched. STAGING auto-deploy remains disabled.
+
+
+**Build feedback and test correction (2026-11-26):**
+- First manual STAGING build for the context-continuity pass exposed two test expectation issues (not a production code/runtime failure): the test's previous assistant line accidentally matched the existing explicit pending-question flow, and the existing sanitizer test still expected the former 10-message limit.
+- Corrected the scenario so it tests a non-pending conversational year clarification, and updated the sanitizer test to expect all 13 valid messages from its 13-message fixture under the new 20-message cap.
+- The first build therefore failed (179 passed, 2 failed). A corrected build is required; do not treat the context-continuity change as live until that build succeeds.
+- Follow-up test commits: `af1088f51634de7f389866f0f8ba810b83a31efa`, `f3c40ec646d7c02458347cbdcf70174e3ac24195`.
