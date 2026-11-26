@@ -34,6 +34,9 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   const [qualityIntelligence,setQualityIntelligence]=useState(null);
   const [qualityIntelligenceBusy,setQualityIntelligenceBusy]=useState(false);
   const [qualityIntelligenceError,setQualityIntelligenceError]=useState('');
+  const [hypothesisRecords,setHypothesisRecords]=useState([]);
+  const [hypothesisLifecycleBusy,setHypothesisLifecycleBusy]=useState(false);
+  const [hypothesisLifecycleError,setHypothesisLifecycleError]=useState('');
   const messagesRef=useRef(null);
   useEffect(()=>{const container=messagesRef.current;if(!container)return;container.scrollTop=container.scrollHeight;},[messages,busy]);
   async function send(text=draft){
@@ -104,8 +107,33 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     try{
       const payload=await learningRequest('/api/messinho/quality-intelligence');
       setQualityIntelligence(payload.report||null);
+      await loadHypothesisRecords();
     }catch(error){setQualityIntelligenceError(error.message||'Qualitätsauswertung konnte nicht geladen werden.');}
     finally{setQualityIntelligenceBusy(false);}
+  }
+  async function loadHypothesisRecords(){
+    try{const payload=await learningRequest('/api/messinho/improvement-hypotheses');setHypothesisRecords(payload.hypotheses||[]);setHypothesisLifecycleError('');}
+    catch(error){setHypothesisLifecycleError(error.message||'Verbesserungsprozess konnte nicht geladen werden.');}
+  }
+  async function addHypothesisToReview(hypothesis){
+    setHypothesisLifecycleBusy(true);setHypothesisLifecycleError('');
+    try{await learningRequest('/api/messinho/improvement-hypotheses','POST',{hypothesis,reason:'Administrativ zur strukturierten Prüfung übernommen.'});await loadHypothesisRecords();}
+    catch(error){setHypothesisLifecycleError(error.message||'Hypothese konnte nicht übernommen werden.');}
+    finally{setHypothesisLifecycleBusy(false);}
+  }
+  async function transitionHypothesis(item,action){
+    const reasonMap={accept:'Admin hat die Hypothese zur kontrollierten Prüfung freigegeben.',reject:'Admin hat die Hypothese nach fachlicher Prüfung abgelehnt.',create_test:'Konkreter Regressionstest wird vor jeder Verhaltensänderung angelegt.',validate:'Regressionstest wurde anhand des dokumentierten Ergebnisses bewertet.',rollback:'Änderung wird aus Sicherheits- oder Qualitätsgründen zurückgenommen.'};
+    const body={action,reason:reasonMap[action]};
+    if(action==='create_test'){const plan=window.prompt('Beschreibe den konkreten Regressionstest (mindestens 20 Zeichen):');if(!plan||plan.trim().length<20)return;body.test_plan=plan.trim();}
+    if(action==='validate'){
+      if(!window.confirm('Bestätigst du, dass der dokumentierte Regressionstest bestanden wurde?'))return;
+      const evidence=window.prompt('HTTPS-Link zum Testbericht / Nachweis:');const summary=window.prompt('Kurze Auswertung mit mindestens 12 Zeichen:');
+      if(!evidence||!summary)return;body.evidence_url=evidence.trim();body.evaluation={passed:true,summary:summary.trim()};
+    }
+    setHypothesisLifecycleBusy(true);setHypothesisLifecycleError('');
+    try{await learningRequest('/api/messinho/improvement-hypotheses/'+encodeURIComponent(item.id)+'/transition','POST',body);await loadHypothesisRecords();}
+    catch(error){setHypothesisLifecycleError(error.message||'Statuswechsel konnte nicht gespeichert werden.');}
+    finally{setHypothesisLifecycleBusy(false);}
   }
   function setFeedbackReviewDraft(id,key,value){setFeedbackReviewDrafts(prev=>({...prev,[id]:{...(prev[id]||{}),[key]:value}}));}
   async function reviewFeedback(id,decision){
@@ -286,10 +314,11 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
           {qualityIntelligence.by_capability.map(item=><div key={item.key}><span>{item.key}</span><b>{item.average===null?'–':item.average+'/5'}</b><small>{item.count} geprüfte Bewertungen · {item.confidence==='stable'?'stabil':item.confidence==='directional'?'Tendenz':'kleine Stichprobe'}</small></div>)}
         </div>}
         {!!qualityIntelligence.themes.length&&<div className="messinho-quality-themes"><strong>Wiederkehrende Themen</strong><div>{qualityIntelligence.themes.map(item=><span key={item.theme}>{item.theme.replaceAll('_',' ')} · {item.count}</span>)}</div></div>}
+        {hypothesisLifecycleError&&<p role="alert" className="messinho-error">{hypothesisLifecycleError}</p>}
         <div className="messinho-quality-hypotheses">
           <strong>Verbesserungshypothesen · {qualityIntelligence.hypotheses.length}</strong>
           {!qualityIntelligence.hypotheses.length&&<small>Noch keine wiederkehrenden, ausreichend belegten Muster. Weitere geprüfte Rückmeldungen sammeln.</small>}
-          {qualityIntelligence.hypotheses.map(item=><article key={item.id}><div><b>{item.type==='repeated_low_quality'?'Wiederholt schwache Antwortqualität':item.type==='repeated_verified_corrections'?'Wiederkehrende verifizierte Korrekturen':'Wiederkehrendes Feedback-Thema'}</b><small>{item.group} · {item.sample_size} Signale · Priorität {item.priority}</small></div><p>{item.proposal}</p></article>)}
+          {qualityIntelligence.hypotheses.map(item=>{const saved=hypothesisRecords.find(record=>record.hypothesis_key===item.id);const labels={proposed:'Vorgeschlagen',accepted:'Zur Prüfung freigegeben',rejected:'Abgelehnt',test_created:'Regressionstest angelegt',validated:'Test bestanden · validiert',rolled_back:'Zurückgenommen'};return <article key={item.id}><div><b>{item.type==='repeated_low_quality'?'Wiederholt schwache Antwortqualität':item.type==='repeated_verified_corrections'?'Wiederkehrende verifizierte Korrekturen':'Wiederkehrendes Feedback-Thema'}</b><small>{item.group} · {item.sample_size} Signale · Priorität {item.priority}</small></div><p>{item.proposal}</p><div className="messinho-hypothesis-controls">{saved?<><strong>Status: {labels[saved.status]||saved.status}</strong>{saved.status==='proposed'&&<><button type="button" disabled={hypothesisLifecycleBusy} onClick={()=>transitionHypothesis(saved,'accept')}>Prüfung freigeben</button><button type="button" className="secondary" disabled={hypothesisLifecycleBusy} onClick={()=>transitionHypothesis(saved,'reject')}>Ablehnen</button></>}{saved.status==='accepted'&&<button type="button" disabled={hypothesisLifecycleBusy} onClick={()=>transitionHypothesis(saved,'create_test')}>Regressionstest anlegen</button>}{saved.status==='test_created'&&<button type="button" disabled={hypothesisLifecycleBusy} onClick={()=>transitionHypothesis(saved,'validate')}>Testergebnis validieren</button>}{['accepted','test_created','validated'].includes(saved.status)&&<button type="button" className="secondary" disabled={hypothesisLifecycleBusy} onClick={()=>transitionHypothesis(saved,'rollback')}>Zurücknehmen</button>}{saved.test_plan&&<small>Testplan: {saved.test_plan}</small>}{saved.evidence_url&&<small>Nachweis: <a href={saved.evidence_url} target="_blank" rel="noreferrer">Testbericht öffnen</a></small>}</>:<button type="button" disabled={hypothesisLifecycleBusy} onClick={()=>addHypothesisToReview(item)}>In Prüfprozess übernehmen</button>}</div></article>;})}
         </div>
         <small className="messinho-quality-muted">Diese Auswertung erstellt ausschließlich Prüfhypothesen. Weder Prompts noch Fähigkeiten, Wissen oder Modellgewichte werden automatisch verändert.</small>
       </>}
