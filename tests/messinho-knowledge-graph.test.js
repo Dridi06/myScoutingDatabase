@@ -115,6 +115,21 @@ test('retrieves canonical VO2max knowledge in longer player-specific scouting qu
  assert.equal(result.items[0].concept_key,'sports_science.physiology.vo2max');
 });
 
+test('canonical VO2max exact lookup bypasses a restrictive broad-query validity filter',async()=>{
+ const row={id:'vo2',concept_key:'sports_science.physiology.vo2max',domain:'sports_science',topic:'Kardiorespiratorische Fitness',
+  title:'VO2max maximale Sauerstoffaufnahme',definition:'VO2max beschreibt die maximale Sauerstoffaufnahme des Körpers unter intensiver Belastung und ist ein Maß der kardiorespiratorischen Fitness.',
+  knowledge_level:'foundational',knowledge_type:'metric',knowledge_status:'active',version:1,confidence:0.88,sources:[],claims:[],valid_until:null};
+ let exactLookup=false;
+ const query={select(){return this;},eq(column,value){if(column==='concept_key')exactLookup=value===row.concept_key;return this;},
+  in(){return this;},or(){return this;},order(){return this;},
+  async limit(){return {data:exactLookup?[row]:[],error:null};}};
+ const links={select(){return this;},async or(){return {data:[],error:null};}};
+ const db={from(table){return table==='messinho_knowledge_links'?links:query;}};
+ const result=await findMessinhoKnowledgeConcepts(db,'Wie kann ich die VO₂max eines Fußballspielers für seine Leistungsbewertung nutzen?');
+ assert.equal(result.status,'hit');
+ assert.equal(result.items[0].concept_key,row.concept_key);
+});
+
 test('canonical VO2max lookup recovers active knowledge when broad lexical ranking misses',async()=>{
  const row={id:'vo2',concept_key:'sports_science.physiology.vo2max',domain:'sports_science',topic:'Kardiorespiratorische Fitness',
   title:'VO2max maximale Sauerstoffaufnahme',definition:'VO2max beschreibt die maximale Sauerstoffaufnahme des Körpers unter intensiver Belastung und ist ein Maß der kardiorespiratorischen Fitness.',
