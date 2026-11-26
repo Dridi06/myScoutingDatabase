@@ -52,13 +52,15 @@ function knowledgeTokens(value){
  const tokens=normalize(value).split(' ').filter(token=>token.length>=3&&!KNOWLEDGE_STOPWORDS.has(token));
  return [...new Set(tokens)];
 }
+const KNOWLEDGE_CONTRASTS=[['verbessern','verschlechtern'],['verbessert','verschlechtert'],['verbesserung','verschlechterung'],['erhöhen','senken'],['steigt','sinkt'],['steigen','sinken'],['increase','decrease'],['improve','worsen'],['improving','worsening'],['better','worse'],['mehr','weniger'],['more','less'],['positiv','negativ'],['positive','negative']];
 export function scoreMessinhoKnowledgeSimilarity(question,candidate){
  const left=knowledgeTokens(question),right=knowledgeTokens(candidate);
  if(left.length<3||right.length<3)return {score:0,overlap:0,jaccard:0,containment:0,eligible:false};
  const a=new Set(left),b=new Set(right),intersection=[...a].filter(token=>b.has(token));
+ const polarityConflict=KNOWLEDGE_CONTRASTS.some(([x,y])=>(a.has(x)&&b.has(y))||(a.has(y)&&b.has(x)));
  const union=new Set([...a,...b]).size,jaccard=intersection.length/union,containment=intersection.length/Math.min(a.size,b.size);
  const score=0.65*jaccard+0.35*containment;
- return {score,overlap:intersection.length,jaccard,containment,eligible:intersection.length>=3&&jaccard>=0.48&&containment>=0.75};
+ return {score,overlap:intersection.length,jaccard,containment,eligible:!polarityConflict&&intersection.length>=3&&jaccard>=0.48&&containment>=0.75};
 }
 export async function findMessinhoKnowledge(db,ownerId,question,now=new Date()){
  const fingerprint=fingerprintMessinhoKnowledgeQuestion(question);
