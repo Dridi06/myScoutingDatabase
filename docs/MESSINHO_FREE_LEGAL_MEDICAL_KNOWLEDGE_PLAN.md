@@ -235,3 +235,52 @@ Eine zentrale, domänenübergreifende Knowledge Layer mit:
 - Backup/Restore, Audit, Export und Rechte-gesteuerter Löschung.
 
 Keine kostenpflichtigen Zusatzdienste oder unbegrenzte Speicherhaltung ohne vorherige Kostenprüfung. Das System muss Speicher- und Backup-Kosten transparent messen und begrenzen. Vor Implementierung sind Schema, Zugriffsschutz, Backupziel, Speicherbudgets und Wiederherstellungstests festzulegen.
+
+
+## Erweiterung: Risikomanagement, Banken, Börsen und Finanzmarktanalyse — Eigentümerentscheidung 2026-11-26
+
+Diese Wissensdomäne wird als gleichwertiger Teil der domänenübergreifenden MESSINHO-Wissensarchitektur aufgenommen. MESSINHO soll die Funktionsweisen von Banken, Börsen und Finanzmärkten verstehen und Methoden aus professionellem Risikomanagement für Analysen, Szenarien und Prognosen anwenden können.
+
+### Fachliche Themenfelder
+
+- **Risikomanagement:** Risikoidentifikation, Risikokategorien, Risikoappetit/-toleranz, Eintrittswahrscheinlichkeit, Schadenshöhe, Exposure, Konzentrationsrisiken, Frühwarnindikatoren, Kontrollen, Restrisiko und Maßnahmensteuerung.
+- **Bankwesen:** Geschäftsmodelle von Geschäfts- und Zentralbanken, Einlagen/Kredite, Zinsmargen, Liquiditäts- und Fristentransformation, Kreditprüfung, Sicherheiten, Ausfallrisiko, Kapital- und Liquiditätsanforderungen sowie Zahlungsverkehr.
+- **Börsen und Marktmechanik:** Primär-/Sekundärmarkt, Ordertypen, Orderbuch, Geld-/Briefkurs, Spread, Liquidität, Volatilität, Handelszeiten, Preisbildung, Market Maker, Auktionen, Marktindizes und Handelsunterbrechungen.
+- **Kapitalmarktinstrumente:** Aktien, Anleihen, Fonds/ETFs, Devisen, Rohstoffe, Optionen, Futures und weitere Derivate; jeweils Funktionsweise, Bewertung, Risiken und Grenzen.
+- **Quantitative Analyse:** Zeitreihen, Rendite/Risiko, Volatilität, Korrelation, Kovarianz, Regression, Szenarioanalyse, Sensitivität, Monte-Carlo-Simulation, Drawdown, Value-at-Risk und Expected Shortfall.
+- **Kredit- und Gegenparteirisiko:** Bonität, PD/LGD/EAD als Modellgrößen, Ratinglogik, Ausfall- und Migrationsrisiken, Sicherheiten, Stresstests und Konzentrationen.
+- **Liquiditäts- und Marktrisiko:** Funding-Liquidität, Marktliquidität, Zinsänderungsrisiko, Währungsrisiko, Spreadrisiko und Stressereignisse.
+- **Makroökonomie:** Inflation, Zinsen, Geldpolitik, Konjunktur, Arbeitsmarkt, Wechselkurse und deren mögliche Übertragung auf Märkte.
+- **Governance und Regulierung:** Kontrollsysteme, Modellrisiko, Interessenkonflikte, Marktmissbrauch, Compliance, Datenschutz und einschlägige regulatorische Rahmenwerke.
+
+### Analyse- und Prognoseverhalten
+
+MESSINHO soll:
+1. Fragestellung, Zeithorizont, Zielgröße und verfügbare Daten bestimmen.
+2. Datenqualität, Aktualität, Stichprobengröße, Verzerrungen und fehlende Werte prüfen.
+3. Risikoquellen, Abhängigkeiten, Konzentrationen und mögliche Kaskadeneffekte identifizieren.
+4. Basis-, Positiv-, Negativ- und Extrem-/Stressszenarien entwickeln.
+5. Kennzahlen und Modelle passend auswählen, Annahmen offenlegen und Ergebnisse reproduzierbar berechnen.
+6. Prognosen als Bandbreiten/Wahrscheinlichkeiten mit Unsicherheit und Grenzen ausgeben, niemals als sichere Zukunftsaussagen.
+7. Backtesting und Out-of-sample-Prüfungen nutzen, Überanpassung vermeiden und Prognosegüte dokumentieren.
+8. Gegenargumente, alternative Erklärungen und Ereignisse berücksichtigen, die das Modell ungültig machen könnten.
+9. Ergebnisse verständlich und sachlich erklären, inklusive Quellen, Datenstand und Risikohinweisen.
+10. Bei dynamischen Marktinformationen aktuelle, datierte Quellen oder Datenfeeds verwenden; historische Wissensnotizen allein reichen nicht.
+
+### Wichtige methodische Schutzregeln
+
+- Korrelation ist keine Kausalität; vergangene Renditen oder Muster garantieren keine künftige Entwicklung.
+- VaR ist kein maximal möglicher Verlust und muss mit Expected Shortfall, Szenarien und Stressanalysen ergänzt werden.
+- Modelle müssen Annahmen, Datenfenster, Konfidenzniveau, Zeithorizont und bekannte Schwächen offenlegen.
+- Keine erfundenen Echtzeitkurse, Bankdaten, Orderbücher, Volumina oder Makrodaten.
+- Keine Prognose ohne Datenbasis; bei fehlenden oder unzureichenden Daten ausdrücklich Unsicherheit oder Nichtbeurteilbarkeit melden.
+- Backtests müssen Transaktionskosten, Gebühren, Slippage, Liquidität, Survivorship Bias und Look-ahead Bias soweit relevant berücksichtigen.
+- Finanzanalysen und allgemeine Bildung klar von individueller Anlageberatung, Kreditentscheidung oder regulierter Finanzdienstleistung trennen. Vor einer solchen Produktfunktion sind rechtliche/regulatorische Prüfung und geeignete organisatorische Kontrollen erforderlich.
+- Keine Handelsausführung, Kontoaktionen oder sonstigen finanziellen Nebenwirkungen ohne gesonderte ausdrückliche Autorisierung und Sicherheitsprüfung.
+
+### Wissensspeicherung
+
+- Auch diese Domäne nutzt denselben dauerhaften, versionierten und quellenbasierten Wissenskern.
+- Speichern: kompakte Definitionen, Formeln, Modellannahmen, Verfahrensschritte, Kennzahlen, Grenzen, Quellen-/Lizenznachweise und Review-Daten.
+- Dynamische Kurse, Marktstände und Konjunkturdaten werden nicht als ewiges Wissen behandelt; sie erhalten Zeitstempel und kurze Aktualitätsfenster oder werden bei Bedarf live abgerufen.
+- Kein kostenpflichtiger Marktdatenfeed und kein kostenpflichtiger Dienst ohne vorherige Zustimmung und Kostenprüfung.
