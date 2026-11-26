@@ -149,7 +149,14 @@ const PARTIAL_IMPLEMENTATIONS = new Set([
   'youth_talent_discovery','underdog_detection','hidden_gem_detection','club_research','squad_research',
   'contract_research','contract_expiry_monitor','rumour_verification','market_monitoring',
   'identity_verification','statistics_research','match_report_research','competition_monitoring',
-  'club_need_research','comparable_player_research','player_data_refresh'
+  'club_need_research','comparable_player_research','player_data_refresh',
+  // These capabilities already have explicit runtime handlers; they remain partial
+  // until their data contracts and end-to-end execution are independently verified.
+  'game_intelligence_analysis','running_performance_analysis','creativity_analysis',
+  'decision_quality_analysis','availability_history_analysis','video_event_analysis',
+  'mental_score','coach_fit_score','market_value_assessment','value_for_money',
+  'development_projection','transfer_priority','country_learning',
+  'availability_outcome_learning','video_source_research','new_talent_monitoring'
 ]);
 
 function statusFor(id) {
