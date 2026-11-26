@@ -1789,7 +1789,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       }
       const evidence=(ctx)=> (ctx?.sources||[]).slice(0,10).map(({title,url,publisher,published_date,snippet})=>({title,url,publisher,published_date,snippet}));
       const firstEvidence=evidence(context);
-      const compareMatch=interpretedMessage.match(/\\b(?:mit|gegen|vs\\.?|versus)\\s+([\\p{L}][\\p{L}'’.-]*(?:\\s+[\\p{L}][\\p{L}'’.-]*){0,2})/iu);
+      const compareMatch=interpretedMessage.match(/\b(?:mit|gegen|vs\\.?|versus)\s+([\\p{L}][\\p{L}'’.-]*(?:\s+[\\p{L}][\\p{L}'’.-]*){0,2})/iu);
       const secondName=compareMatch?.[1]?.trim();
       let secondResearch=null;
       if(secondName){
@@ -1940,10 +1940,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const sourceItems=(research.sources||[]).map((source,index)=>({id:'general-source-'+index,name:source.title||source.publisher||source.url,kind:'Recherchequelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
       if(research.status==='completed'){
         const learning=await storeMessinhoKnowledge(db,ownerId,interpretedMessage,research);
-        const foundationalIntent=/^(?:was ist|was bedeutet|erkl[aä]re(?: mir)?|erkl[aä]ren sie|grundlagen|definition|einf[uü]hrung|what is|define|explain the basics)\\b/i.test(interpretedMessage.trim());
+        const foundationalIntent=/^(?:was ist|was bedeutet|erkl[aä]re(?: mir)?|erkl[aä]ren sie|grundlagen|definition|einf[uü]hrung|what is|define|explain the basics)\b/i.test(interpretedMessage.trim());
         let durableLearning={persisted:false,reason:foundationalIntent?'source_rights_not_verified':'foundational_parent_not_yet_established'};
         if(foundationalIntent){
-          const conceptTopic=interpretedMessage.replace(/^(?:was ist|was bedeutet|erkl[aä]re(?: mir)?|erkl[aä]ren sie|definition|einf[uü]hrung|what is|define|explain the basics)\\s*/i,'').replace(/[?!.]+$/g,'').trim().slice(0,180)||'Grundlagen';
+          const conceptTopic=interpretedMessage.replace(/^(?:was ist|was bedeutet|erkl[aä]re(?: mir)?|erkl[aä]ren sie|definition|einf[uü]hrung|what is|define|explain the basics)\s*/i,'').replace(/[?!.]+$/g,'').trim().slice(0,180)||'Grundlagen';
           const conceptDefinition=(research.claims||[]).map(claim=>claim.text).join(' ').slice(0,1800);
           durableLearning=await storeMessinhoKnowledgeConcept(db,{
             question:interpretedMessage,domain:undefined,topic:conceptTopic,title:interpretedMessage.slice(0,220),
