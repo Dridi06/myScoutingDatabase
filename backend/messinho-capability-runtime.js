@@ -411,7 +411,7 @@ function researchHandler(id,input){
    const ranked=pool.map(candidate=>{const dims=metricsByDimension(metricEntries(candidate)),shared=Object.keys(targetDims).filter(key=>targetDims[key]!==null&&dims[key]!==null),distance=shared.length?avg(shared.map(key=>Math.abs(targetDims[key]-dims[key]))):null;return {player:playerName(candidate),id:candidate.player_id??candidate.id??null,shared_dimensions:shared.length,mean_distance:distance,similarity:distance===null?null:Math.round(clamp(100-distance))};}).filter(item=>item.similarity!==null&&item.shared_dimensions>=2).sort((a,b)=>b.similarity-a.similarity);
    if(!ranked.length)return missingResult(id,['target_player_metrics','candidate_pool_metrics']);
    return result(id,'completed',{target:playerName(target),comparables:ranked.slice(0,20),similarity_basis:'shared performance dimensions',market_or_identity_equivalence:false});
-
+ }
  const audited=sourceAudit(sources,now);
  const claims=asArray(input.claims||input.evidence);
  if(id==='identity_verification'||id==='birth_year_verification'||id==='position_verification'){
