@@ -85,9 +85,9 @@ export async function storeMessinhoKnowledgeConcept(db,input,now=new Date()){
   if(existing.data){
    const same=fingerprint([existing.data.domain,existing.data.topic,existing.data.title,existing.data.definition,existing.data.formula||''].join('|'))===fingerprint([record.domain,record.topic,record.title,record.definition,record.formula||''].join('|'));
    if(same)return {persisted:false,reason:'already_exists',id:existing.data.id,status:existing.data.knowledge_status};
-   const conflict=await db.from('messinho_knowledge_conflicts').insert({concept_id:existing.data.id,proposed_concept:record,evidence:{claims:record.claims,sources:record.sources,rights:record.rights},conflict_reason:'A newer source-backed proposal differs from the existing concept; manual review required.',status:'open'}).select('id').single();
-   if(conflict.error||!conflict.data?.id)throw conflict.error||new Error('conflict_record_unconfirmed');
-   return {persisted:false,reason:'conflict_requires_review',id:existing.data.id,conflict_id:conflict.data.id,existing_version:existing.data.version};
+   const conflict=await db.rpc('messinho_record_knowledge_conflict',{p_concept_id:existing.data.id,p_proposed_concept:record,p_evidence:{claims:record.claims,sources:record.sources,rights:record.rights},p_conflict_reason:'A newer source-backed proposal differs from the existing concept; manual review required.'});
+   if(conflict.error||!conflict.data)throw conflict.error||new Error('conflict_record_unconfirmed');
+   return {persisted:false,reason:'conflict_requires_review',id:existing.data.id,conflict_id:conflict.data,existing_version:existing.data.version};
   }
   const {data,error}=await db.rpc('messinho_create_knowledge_candidate',{p_record:record,p_change_reason:'Initial verified compact knowledge candidate'});
   if(error||!Array.isArray(data)||!data[0]?.id)throw error||new Error('atomic_candidate_write_unconfirmed');
