@@ -49,6 +49,24 @@ export function normalizeMessinhoGeneralSources(results=[]){
  }
  return rows.slice(0,8);
 }
+const GENERAL_QUERY_STOP=new Set(['aber','auch','auf','aus','bei','das','dass','dem','den','der','des','die','ein','eine','einem','einen','einer','eines','für','im','in','ist','mit','oder','und','von','warum','weshalb','wieso','wie','was','welche','welcher','welches','erkläre','erklaere','erklären','mir','mich','seine','seiner','seinen','wert','bedeutung','grenzen','faktoren','muss','müssen','muessen','berücksichtigen','beruecksichtigen','aussagen','ableiten','ordne','anhand','eines','einer','ein','the','and','for','with','from','that','this','what','when','where','which','how','explain']);
+export function filterMessinhoRelevantGeneralSources(sources=[],question=''){
+ const q=normalize(question);
+ const vo2Topic=/\\b(vo\\s*[₂2]\\s*max|vo2max|vo₂max|maximale sauerstoffaufnahme|cardiorespiratory fitness|kardiorespiratorische fitness)\\b/i.test(q);
+ if(vo2Topic){
+  return (Array.isArray(sources)?sources:[]).filter(source=>{
+   const text=normalize([source.title,source.snippet].join(' '));
+   return /\\b(vo2max|vo₂max|maximale sauerstoffaufnahme|oxygen uptake|cardiorespiratory fitness|kardiorespiratorische fitness)\\b/i.test(text);
+  });
+ }
+ const anchors=[...new Set(q.split(' ').filter(token=>token.length>=4&&!GENERAL_QUERY_STOP.has(token)))];
+ if(!anchors.length)return Array.isArray(sources)?sources:[];
+ const minimum=anchors.length>=3?2:1;
+ return (Array.isArray(sources)?sources:[]).filter(source=>{
+  const text=normalize([source.title,source.snippet].join(' '));
+  return anchors.filter(token=>text.includes(token)).length>=minimum;
+ });
+}
 export function isMessinhoTimeSensitiveQuestion(question){
  const text=String(question||'');
  if(/\b(früher|frueher|damals|historisch|rückblick|rueckblick|im jahr 19\d{2}|saison 20\d{2}\/\d{2})\b/i.test(text)||(/\b(war|waren|wurde|wurden|trainierte|spielte)\b/i.test(text)&&/\b(?:19|20)\d{2}\b/.test(text)))return false;
@@ -97,7 +115,8 @@ export async function researchMessinhoGeneralQuestion(question,env=process.env,f
  if(!env.TAVILY_API_KEY)return {status:'provider_not_configured',question:query,sources:[],message:'Die eigenständige Webrecherche ist derzeit nicht konfiguriert.'};
  const response=await fetchImpl('https://api.tavily.com/search',{method:'POST',signal:AbortSignal.timeout(22000),headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:env.TAVILY_API_KEY,query,search_depth:'advanced',max_results:8,include_answer:false,include_raw_content:false,topic:'general'})});
  if(!response.ok)throw new Error('Die externe Recherche ist derzeit nicht erreichbar.');
- const payload=await response.json(),sources=normalizeMessinhoGeneralSources(payload.results||[]);
+ const payload=await response.json(),normalizedSources=normalizeMessinhoGeneralSources(payload.results||[]);
+ const sources=filterMessinhoRelevantGeneralSources(normalizedSources,query);
  const evidence=assessMessinhoGeneralEvidence(sources,query);
  if(!evidence.can_answer)return {status:sources.length?'insufficient_evidence':'no_sources',question:query,sources,evidence,answer:'Ich habe die Frage geprüft, aber noch keine ausreichende unabhängige Quellenbasis gefunden. Ich möchte dir keine ungesicherte Antwort geben.'};
  const evidenceInput=sources.map(({title,url,publisher,published_date,snippet})=>({title,url,publisher,published_date,snippet}));
