@@ -85,7 +85,8 @@ test('runtime summary separates dispatch, specialist logic, generic fallback and
   assert.equal(summary.total_catalogue_entries, 100);
   assert.equal(summary.all_dispatched, true);
   assert.ok(summary.specialist_logic_count > 0);
-  assert.ok(summary.generic_fallback_count > 0);
+  assert.equal(summary.generic_fallback_count, 0);
+  assert.equal(summary.specialist_logic_count, 100);
   assert.equal(summary.completion_verified_count, 0);
   assert.equal(summary.specialist_logic_count + summary.generic_fallback_count, summary.dispatched_capabilities);
 });
@@ -98,7 +99,7 @@ test('admin capability catalogue exposes honest implementation levels', () => {
   assert.equal(seasonal.specialist_logic_available, true);
   assert.equal(seasonal.implementation_level, 'specialist_logic');
   assert.equal(seasonal.completion_verified, false);
-  assert.ok(all.some(item => item.implementation_level === 'generic_fallback'));
+  assert.ok(all.every(item => item.implementation_level === 'specialist_logic'));
 });
 
 
@@ -138,4 +139,62 @@ test('planner exposes missing-input recovery and does not claim unsupported comp
   assert.ok(run.results.some(item => item.status === 'insufficient_data'));
   assert.equal(run.model_weights_changed, false);
   assert.equal(run.provider_independent, true);
+});
+
+
+test('the 29 formerly generic fallback capabilities now have explicit specialist dispatch', () => {
+  const ids = [
+    'technical_score','tactical_score','athletic_score','mental_score','goalkeeper_score',
+    'supervised_learning','position_specific_learning','weight_optimization','age_group_learning',
+    'league_learning','country_learning','talent_pathway_learning','breakthrough_learning',
+    'position_change_learning','availability_outcome_learning','controlled_self_optimization',
+    'automated_talent_search','international_research','cross_league_research','youth_talent_discovery',
+    'underdog_detection','hidden_gem_detection','club_research','squad_research','statistics_research',
+    'match_report_research','club_need_research','comparable_player_research'
+  ];
+  for (const id of ids) {
+    const result = executeMessinhoCapability(id, {});
+    assert.equal(result.implementation_level, 'specialist_logic', id);
+    assert.notEqual(result.status, 'unknown_capability', id);
+    assert.notEqual(result.status, 'error', id);
+  }
+});
+
+test('technical and goalkeeper scoring use their dedicated metric dimensions', () => {
+  const player = { name: 'Test', positions: ['Torwart'], ratings: {
+    technical: 70, tactical: 65, athletic: 75, mental: 80, goalkeeping: 90
+  }};
+  assert.equal(executeMessinhoCapability('technical_score', { player }).result.score, 70);
+  assert.equal(executeMessinhoCapability('goalkeeper_score', { player }).result.score, 90);
+});
+
+test('automated talent search filters a supplied candidate pool without pretending to search externally', () => {
+  const result = executeMessinhoCapability('automated_talent_search', {
+    candidates: [
+      { id: 'a', name: 'Young Forward', birth_year: 2007, positions: ['Stürmer'], ratings: { technical: 80, tactical: 70, athletic: 75, mental: 70 } },
+      { id: 'b', name: 'Older Midfielder', birth_year: 1995, positions: ['Mittelfeld'], ratings: { technical: 80, tactical: 70, athletic: 75, mental: 70 } }
+    ],
+    filters: { position: 'Stürmer', max_age: 21 }
+  });
+  assert.equal(result.status, 'completed');
+  assert.equal(result.result.candidate_count, 1);
+  assert.equal(result.result.results[0].id, 'a');
+  assert.equal(result.result.external_search_performed, false);
+});
+
+test('club need research reports position gaps only from supplied squad and explicit requirements', () => {
+  const result = executeMessinhoCapability('club_need_research', {
+    squad: [{ positions: ['Stürmer'] }, { positions: ['Innenverteidiger'] }],
+    required_positions: [{ position: 'Stürmer', minimum: 2 }, { position: 'Torwart', minimum: 1 }]
+  });
+  assert.equal(result.status, 'completed');
+  assert.equal(result.result.priority_positions.length, 2);
+  assert.equal(result.result.priority_positions[0].position, 'Torwart');
+});
+
+test('learning proposals remain approval-gated and never train or change active weights', () => {
+  const result = executeMessinhoCapability('supervised_learning', { outcomes: [] });
+  assert.equal(result.status, 'insufficient_data');
+  assert.equal(result.result.training_performed, false);
+  assert.equal(result.result.model_weights_changed, false);
 });
