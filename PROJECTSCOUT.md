@@ -701,3 +701,50 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 3. Run staging-only API smoke tests using a dedicated non-production test account and test player records; verify actual capability results and data-context counters.
 4. Verify the staging Render service and staging Supabase project references before any deployment. Do not use the main Render service or production data for these tests.
 5. Expand end-to-end completion verification per capability. Keep all 100 `completion_verified` flags false until each capability has evidence-based integration tests and a real staging smoke test.
+
+
+## 20. Session checkpoint — 2026-11-26 — MESSINHO live-context integration and filter-aware execution
+
+### Branch and review state
+- Repository: `Dridi06/myScoutingDatabase`.
+- Feature branch: `feature/messinho-live-data-context`.
+- Pull request: #46 — Connect MESSINHO autonomous capabilities to scoped live scouting data.
+- PR URL: https://github.com/Dridi06/myScoutingDatabase/pull/46
+- Latest verified feature-branch commit at checkpoint: `10b18c50d2f37c23392f3159207ea4ba6da8c02a`.
+- Main branch at the time of the check: `fa0d4dfbdd779f280bb3caf44c6cc70be8dcb5b6`.
+- PR #46 is still open. It has not been merged and this feature branch has not been deployed to production.
+- The production Render service remains on the main branch; no production deploy was triggered by this feature work.
+
+### Implemented on the feature branch
+1. Added a read-only MESSINHO context builder in `backend/messinho-data-context.js`.
+2. Connected the agent chat path to owner-scoped reads for player observations, verified video event tags, external evidence, candidate evidence, contract snapshots, scout calibration records, prediction records and prediction outcomes.
+3. Scout reads are explicitly filtered by authenticated `owner_id`; administrator reads retain the existing admin scope.
+4. Trusted evidence is accepted only when the real database states support it: confirmed/corroborated evidence, approved review with reviewer, matched/confirmed identity, approved/not-required legal review, ordinary classification, HTTPS source and non-expired validity.
+5. Video events require verified event status and an approved source registry entry whose permitted purposes include video analysis. Unlicensed events do not become trusted video inputs.
+6. Contract analysis prefers structured contract snapshots with confirmed/corroborated status. Unconfirmed snapshots remain in `needs_review`; text-extracted dates remain leads, not verified facts.
+7. Historical observation ratings are flattened into dated metrics without losing original observation fields, enabling metric-specific analyses. Metric analyses now return `insufficient_data` instead of reporting completion when the requested numeric measurements are absent.
+8. Natural-language goals are parsed for explicit position, age and birth-year filters. Automated talent search requires at least one meaningful filter and will not silently return the entire roster.
+9. Planner and search handling guard against candidates without position metadata matching a requested position.
+10. No model training, model-weight changes, database writes, schema migrations or user/scout/player data changes were performed.
+
+### Tests and verification
+- Latest checked feature-branch head: `10b18c50d2f37c23392f3159207ea4ba6da8c02a`.
+- MESSINHO Node tests: **130/130 passed**, 0 failed.
+- MESSINHO validation: passed, including frontend build.
+- ASI quality checks: passed, including frontend build.
+- All three GitHub Actions workflows completed successfully for the latest checked head.
+- These are automated code/unit/build checks, not a live authenticated browser smoke test or proof that every capability has end-to-end completion verification.
+- Runtime catalogue still must not claim end-to-end completion merely because a specialist handler exists; keep `completion_verified_count=0` until actual integration evidence exists.
+
+### Data audit
+- Read-only Supabase schema/constraint inspection confirmed the allowed evidence statuses and legal/review states used by the context builder.
+- A read-only aggregate status check found one rejected calibration record and no other rows in the inspected evidence/contract/video/calibration tables at the time of the query. No row contents were retrieved or changed.
+- No Supabase migration was applied and no records were inserted, updated or deleted.
+
+### Next steps
+1. Keep PR #46 separate from production until the user explicitly authorizes release or the correct staging service is identified.
+2. Reconcile the PR branch with the latest main head before any merge; the PR base was behind main at the last status check.
+3. Identify and verify the dedicated staging Render service and matching staging Supabase project. Do not use the production service or production data for smoke tests.
+4. Run authenticated staging tests with a dedicated non-production test account and isolated test records: named-player analysis, historical metrics, licensed video events, contract review, candidate filtering, and admin-only learning.
+5. Add integration tests for owner isolation and context-loader failure behavior.
+6. Keep all capability end-to-end completion flags false until each capability family has verified staging evidence.
