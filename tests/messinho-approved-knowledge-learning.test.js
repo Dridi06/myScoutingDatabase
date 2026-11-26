@@ -55,7 +55,7 @@ test('foundation learning fails closed if one approved source cannot be retrieve
  const result=await learnMessinhoApprovedFoundationConcept(mockDb(),'Was bedeutet VO2max?',{
   fetchImpl:async(url)=>{calls++;return url.includes('journals.plos.org')?{ok:true,text:async()=>plosXml}:{ok:false,status:503};}
  });
- assert.equal(result.status,'insufficient_corroboration');
+ assert.equal(result.status,'insufficient_approved_sources');
  assert.equal(calls,2);
 });
 
@@ -68,6 +68,6 @@ test('foundation learning does not write if two sources fail to corroborate the 
    :{ok:true,json:async()=>({collection:{documents:[{passages:[{infons:{section_type:'ABSTRACT'},text:'Fitness was recorded as one background characteristic in a survey about marine ecology and coastal fieldwork, without any physiological measurements or oxygen uptake analysis.'}]}]}})};
   }
  });
- assert.equal(result.status,'insufficient_approved_sources');
+ assert.equal(result.status,'insufficient_corroboration');
  assert.equal(db.saved.name,undefined);
 });
