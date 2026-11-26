@@ -2370,7 +2370,7 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Existing backend already had a flat canonical table/module (messinho_domain_knowledge), an owner-scoped answer cache (messinho_knowledge_memory), and a separate source-rights allowlist.
 - These are different responsibilities. The answer cache is not a structured knowledge base and is not neural model training.
 - STAGING table counts before this change: messinho_domain_knowledge = 0; messinho_knowledge_memory = 0.
-- backend/messinho-rights-registry.js has 0 approved source entries. Existing source register has 5 candidate/source-pool entries, 0 approved works.
+- backend/messinho-rights-registry.js has 0 approved source entries. At the initial knowledge-foundation baseline the source register had 5 candidate/source-pool entries; it has since been expanded to 7 entries/resources (including OpenIntro Statistics and the OpenStax textbook-family exclusion), with 0 approved works.
 - No books, PDFs, source full texts or knowledge records were imported. No model weights, player data or scoring rules were changed.
 
 ### Implemented on feature/messinho-unified-ai-integration
