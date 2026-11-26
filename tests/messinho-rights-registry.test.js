@@ -47,10 +47,13 @@ test('provider-supplied licence claims cannot promote an unreviewed source',()=>
   assert.equal(isMessinhoRegisteredSourceUrl('unapproved',openStaxClaim.evidence_url),false);
 });
 
-test('rights verification rejects incomplete attribution and licence evidence',()=>{
-  assert.equal(verifyMessinhoSourceRights({...openStaxClaim,license_url:'https://example.com/license'}),false);
-  assert.equal(verifyMessinhoSourceRights({...openStaxClaim,attribution:''}),false);
-  assert.equal(verifyMessinhoSourceRights({...openStaxClaim,ai_tdm:false}),false);
+test('rights verification rejects incomplete attribution, licence and TDM evidence',()=>{
+  const approved=getMessinhoVerifiedSourceRightsById('plos_one_vo2max_prediction_2023');
+  assert.ok(approved);
+  assert.equal(verifyMessinhoSourceRights({...approved,license_url:'https://example.com/license'}),false);
+  assert.equal(verifyMessinhoSourceRights({...approved,tdm_evidence_url:''}),false);
+  assert.equal(verifyMessinhoSourceRights({...approved,attribution:''}),false);
+  assert.equal(verifyMessinhoSourceRights({...approved,ai_tdm:false}),false);
 });
 
 test('approved article URLs are exact, including PLOS DOI query and PMC article identity',()=>{
