@@ -293,6 +293,7 @@ function learningHandler(id,input){
    const joined=records.map(record=>({record,outcome:verified.find(row=>String(row.player_id)===String(record.player_id))})).filter(item=>item.outcome);
    if(!joined.length)return missingResult(id,['verified_availability_records','verified_outcomes']);
    return result(id,'completed',{verified_pairs:joined.length,mean_availability:round(avg(joined.map(item=>finite(item.record.availability_rate)))),mean_outcome:round(avg(joined.map(item=>finite(item.outcome.target_score??item.outcome.verified_outcome)).filter(v=>v!==null))),training_performed:false,model_weights_changed:false,scope:'verified availability metrics only; no medical inference'});
+ }
 
  if(id==='seasonal_learning'){
    const observations=asArray(input.seasonal_metrics||input.time_series||input.history);
