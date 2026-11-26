@@ -1010,3 +1010,10 @@ Der nächste Chat beginnt nicht mit einer Neuentwicklung und fragt den Nutzer ni
 - Der App-Start ist bestätigt, aber es wurde kein authentifizierter Chat-/Agentenaufruf, keine Browser-E2E-Prüfung und kein Task-Ledger-Resume ausgeführt. `live` bezeichnet hier ausschließlich den erfolgreichen Render-Rollout des STAGING-Service, nicht Produktionsfreigabe oder vollständige Funktionsreife.
 - Keine Secrets, Environment-Werte, Datenbankobjekte oder persistenten Nutzerdaten wurden geändert.
 
+
+
+### Supabase-Inventar nach STAGING-Rollout — 2026-11-26
+- Supabase-Projektliste erneut live abgefragt. Sichtbar sind nur `myScoutingDatabase` (`vxtybjaabtfhxfwctnyj`, `ACTIVE_HEALTHY`), `PFFS-Test` (`oolvpbzbqiojioazsoun`) und `PFSS` (`nkkajhjdvfjzrvxkbokg`). Ein separates Projekt `myScoutingDatabase-staging` existiert in der verbundenen Organisation weiterhin nicht.
+- Das Projekt `myScoutingDatabase` bleibt geschützt als Produktion. Die beiden anderen Projekte sind fremde PFSS/PFFS-Umgebungen und dürfen nicht verwendet werden.
+- Kein Supabase-Projekt wurde erstellt, pausiert, restauriert oder verändert. Es wurde keine SQL-Abfrage mit Schreibwirkung und keine Migration ausgeführt.
+- Für den nächsten Datenbank-Schritt ist ein separates Staging-Projekt erforderlich. Vor dem Erstellen muss der Owner die gewünschte Organisation und mögliche Kosten bestätigen; bis dahin bleiben Task-Ledger-Migration und Datenbank-E2E blockiert.
