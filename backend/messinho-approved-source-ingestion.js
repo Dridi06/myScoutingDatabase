@@ -77,12 +77,25 @@ export async function fetchMessinhoApprovedSource(sourceId,{topic='',fetchImpl=g
   const url=new URL(rights.retrieval_url);
   const expectedHost=({plos_jats_xml:'journals.plos.org',pmc_bioc_json:'www.ncbi.nlm.nih.gov',libretexts_html:'math.libretexts.org',austin_html:'understandinglinearalgebra.org'})[rights.retrieval_method];
   if(url.hostname!==expectedHost)return {status:'retrieval_host_not_approved',source_id:sourceId,excerpts:[]};
-  const fetchOptions={headers:{accept:rights.retrieval_method==='pmc_bioc_json'?'application/json':rights.retrieval_method.endsWith('_html')?'text/html,application/xhtml+xml;q=0.9':'application/xml,text/xml;q=0.9'},redirect:'follow'};
+  const fetchOptions={headers:{accept:rights.retrieval_method==='pmc_bioc_json'?'application/json':rights.retrieval_method.endsWith('_html')?'text/html,application/xhtml+xml;q=0.9':'application/xml,text/xml;q=0.9'},redirect:'manual'};
   if(typeof AbortSignal?.timeout==='function')fetchOptions.signal=AbortSignal.timeout(12000);
-  const response=await fetchImpl(rights.retrieval_url,fetchOptions);
-  if(response?.url){
-   try{if(new URL(response.url).hostname!==expectedHost)return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};}
-   catch{return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};}
+  // Follow only bounded HTTPS redirects that remain on the source's exact approved host.
+  let currentUrl=rights.retrieval_url,response;
+  for(let redirectCount=0;redirectCount<=3;redirectCount++){
+   response=await fetchImpl(currentUrl,fetchOptions);
+   if(response?.url){
+    try{if(new URL(response.url).hostname!==expectedHost)return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};}
+    catch{return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};}
+   }
+   const status=Number(response?.status)||0;
+   if(status<300||status>=400)break;
+   const location=response?.headers?.get?.('location');
+   if(!location||redirectCount===3)return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};
+   let nextUrl;
+   try{nextUrl=new URL(location,currentUrl);}catch{return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};}
+   if(nextUrl.protocol!=='https:'||nextUrl.hostname!==expectedHost||nextUrl.username||nextUrl.password||nextUrl.port&&nextUrl.port!=='443')
+    return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};
+   currentUrl=nextUrl.toString();
   }
   if(Number(response?.status)>=300&&Number(response?.status)<400)return {status:'retrieval_redirect_not_approved',source_id:sourceId,excerpts:[]};
   const declaredLength=Number(response?.headers?.get?.('content-length')||0);
