@@ -51,6 +51,14 @@ test('VO2max curriculum adapter accepts general definitions but rejects player-s
  assert.equal(isMessinhoApprovedFoundationTopic('Was bedeutet VO2max bei mir?'),false);
 });
 
+test('VO2max source seeding is limited to general foundation questions',()=>{
+ assert.equal(isMessinhoApprovedFoundationTopic('Was ist VO2max?'),true);
+ assert.equal(isMessinhoApprovedFoundationTopic('VO2max'),true);
+ assert.equal(isMessinhoApprovedFoundationTopic('Vergleiche den VO2max von zwei Spielern'),false);
+ assert.equal(isMessinhoApprovedFoundationTopic('Analysiere die VO2max-Daten dieses Spielers'),false);
+ assert.equal(isMessinhoApprovedFoundationTopic('Ich habe gesundheitliche Beschwerden und mein VO2max ist niedrig'),false);
+});
+
 test('foundation learning does not run for unrelated questions',async()=>{
  let calls=0;
  const result=await learnMessinhoApprovedFoundationConcept(mockDb(),'Wie spät ist es?',{fetchImpl:async()=>{calls++;}});
