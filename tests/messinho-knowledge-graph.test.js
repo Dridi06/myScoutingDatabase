@@ -164,8 +164,8 @@ test('canonical VO2max lookup recovers active knowledge when broad lexical ranki
 
 test('formats stored knowledge fields whether strings, arrays, or structured objects',()=>{
  assert.equal(formatMessinhoKnowledgeValue('Leistungsdiagnostik und Ausdauer'),'Leistungsdiagnostik und Ausdauer');
- assert.equal(formatMessinhoKnowledgeValue(['Laborwert','Feldtest']),'Laborwert; Feldtest');
- assert.equal(formatMessinhoKnowledgeValue({protocol:'CPET',unit:'ml/kg/min'}),'protocol: CPET; unit: ml/kg/min');
+ assert.equal(formatMessinhoKnowledgeValue(['Laborwert','Feldtest']),'Laborwert\\n• Feldtest');
+ assert.equal(formatMessinhoKnowledgeValue({protocol:'CPET',unit:'ml/kg/min'}),'protocol: CPET\\nunit: ml/kg/min');
  assert.equal(formatMessinhoKnowledgeValue(null),'');
 });
 test('recognizes canonical VO2max knowledge questions including Unicode subscript aliases',()=>{
