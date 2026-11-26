@@ -1291,3 +1291,44 @@ Before the next staging deployment, the general research path was hardened:
 - This final deployment includes the hardened Unicode normalization and source-overlap claim filter.
 - The latest source code is deployed on STAGING only. No production promotion, branch merge, database migration, or data write was performed.
 - Full Node regression suite and authenticated E2E question/answer test remain outstanding.
+
+
+## 2026-11-26 — Owner-scoped MESSINHO knowledge memory
+
+**Requirement:** MESSINHO should remember source-backed general knowledge across conversations without mixing users' information or treating retrieval memory as neural model training.
+
+**Database / STAGING:**
+- Inspected the existing `messinho_agent_memory` schema and ASI evidence schema. The former is limited to player context/preferences; the ASI evidence schema requires a player ID. Neither is suitable for general knowledge memory.
+- Added `public.messinho_knowledge_memory` in STAGING project ref `nwqwnrhupbyhshsprxjt`.
+- Migration source: `supabase/migrations/20261126190000_messinho_knowledge_memory.sql`.
+- Columns retain owner, normalized question fingerprint, answer, answer mode, supported claims, source URLs/publishers/excerpts, evidence summary, verification status, source/domain counts, verification and expiry timestamps, access count.
+- RLS enabled. Authenticated policies restrict SELECT/INSERT/UPDATE/DELETE to `auth.uid() = owner_id`.
+- Anonymous access revoked. Explicit authenticated and service_role grants restricted to SELECT/INSERT/UPDATE/DELETE only (no TRUNCATE/REFERENCES/TRIGGER).
+- Schema, RLS policies, and grants were verified through read-only inspection after DDL. Table currently has **0 rows**; no user or knowledge records were seeded.
+- Security Advisor did not report the new table as missing RLS policy. It reported an unrelated pre-existing policy gap on `messinho_diagnostic_runs` and leaked-password protection disabled; neither was changed here.
+
+**Backend integration:**
+- Added `backend/messinho-knowledge-memory.js`.
+- Added exact normalized-question SHA-256 fingerprinting.
+- Lookup is explicitly scoped by authenticated `owner_id`, exact fingerprint, `corroborated` state, and unexpired timestamp.
+- Only stores completed research with at least two substantial HTTPS source excerpts from two distinct domains. Personal/private markers and email/phone-like identifiers are excluded from persistence.
+- Records expire after 14 days; retrieval increments hit count without extending evidence verification/expiry.
+- Upsert confirms returned row ID; database errors fail soft so chat can still answer without persistent memory.
+- Integrated into `POST /api/agent/chat`: owner-scoped memory lookup first, fresh research on miss, then source-backed persistence.
+- Reused answers include their source metadata and are labelled as corroborated (not human-reviewed). No code, capabilities, or model weights self-modify.
+
+**Tests:**
+- Added `tests/messinho-knowledge-memory.test.js` (7 cases).
+- Isolated Node.js execution of the knowledge-memory module/test harness: **7/7 passed**.
+- Full repository Node suite and complete authenticated end-to-end chat test have not yet been confirmed.
+- GitHub Actions combined status did not return checks for the latest feature commit.
+
+**Commits (staging branch):**
+- `1982630934535d7c9cada3c53adb1195c627316d` — migration source
+- `adb5d15fcf62e531abc46c7f16474d2ec5bb1fb7` — tighten grants
+- `ddc244806fbe27a433bf521c85b73d8f9882006e` — memory module
+- `b3214001433e2dbaee3dc29278a2f2fceddb8ea2` — chat integration
+- `ff9c331caa18c8d032e2301018e1092fdcc7e2d6` — tests
+- `f5dc8c03f807079f2b4805dedc3d96feb60a84ac` — storage failure semantics
+
+**Deployment:** Pending. Do not describe this milestone as live until the staging deployment commit and runtime are verified. Production is untouched.
