@@ -695,7 +695,7 @@ async function checkpointMessinhoAgentTask(taskId,ownerId,completedResults,pendi
 async function finalizeMessinhoAgentTask(taskId,ownerId,run,priorResults=[],attemptCount=0){
   if(!db||!taskId)return null;
   const pending=Array.isArray(run?.deferred_capabilities)?run.deferred_capabilities:[];
-  const status=pending.length?'partial':run?.missing_inputs?.length?'waiting_for_input':
+  const status=pending.length?'partial':run?.validation?.valid===false?'failed':run?.missing_inputs?.length?'waiting_for_input':
     (run?.results||[]).some(item=>item.status==='error')?'failed':'completed';
   try{
     const combined=[...priorResults,...(run?.results||[])].slice(-20).map(compactMessinhoTaskResult);
