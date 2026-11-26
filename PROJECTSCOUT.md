@@ -3784,3 +3784,11 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Added `tests/messinho-engineering-proposals.test.js` covering allowed proposal shape, protected-path rejection, execution/network/environment rejection, size limits, all six evaluation gates, benchmark identity, false improvements, regressions and the non-deployment guarantee.
 - No Supabase migration/write, no knowledge import/activation, no source-rights allowlist change, no Render deployment, no production change.
 - Next: verify CI on the exact latest commit; fix any failures; then audit all server routes and background workers for indirect MESSINHO-to-CRUD paths and build adversarial tests proving MESSINHO cannot mutate players or registered scout profiles even with the server's service-role client.
+
+
+### Engineering proposal gate v1.0 — regression correction and CI pass — 2026-11-27
+- A first new regression test incorrectly repeated the same diff path nine times while expecting nine distinct changed files. The implementation correctly de-duplicated the path. The test was corrected to generate nine distinct paths; no policy relaxation was made.
+- Final CI verified on commit `40af94794f8fc772d192b10a7cf728427874dd1f`: **344 tests passed, 0 failed**; backend syntax check passed; Vite production build succeeded; staging health smoke passed.
+- The proposal-only engineering gate remains intentionally disconnected from the live capability dispatcher. This prevents an unreviewed model output from becoming a code-writing or code-execution capability.
+- No Render deployment was performed. Staging CI/build validation does not mean the new module is running in staging.
+- Next: finish route/background-worker adversarial audit, add explicit MESSINHO actor/capability boundary tests for protected player and scout CRUD, and only then consider a tightly isolated, resource-limited code sandbox. No production deployment or database migration is authorized by this checkpoint.
