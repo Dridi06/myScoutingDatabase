@@ -86,11 +86,54 @@ test('unverified or incomplete knowledge records are never passed into capabilit
  assert.equal(result.knowledge_context,undefined);
 });
 
-test('capability runtime does not label generic fallbacks as specialist logic',()=>{
+test('all six learning capabilities with existing domain handlers are classified as specialist logic',()=>{
  const summary=getMessinhoRuntimeSummary();
  assert.equal(summary.total_catalogue_entries,100);
+ assert.equal(summary.specialist_logic_count,100);
+ assert.equal(summary.generic_fallback_count,0);
  assert.equal(summary.completion_verified_count,0);
  const rows=listExecutableMessinhoCapabilities().flatMap(group=>group.functions);
- const generic=rows.filter(row=>row.implementation_level==='generic_fallback');
- assert.deepEqual(generic.map(row=>row.id).sort(),['breakthrough_learning','controlled_self_optimization','country_learning','supervised_learning','talent_pathway_learning','weight_optimization'].sort());
+ const learningIds=['supervised_learning','weight_optimization','country_learning','talent_pathway_learning','breakthrough_learning','controlled_self_optimization'];
+ for(const id of learningIds){
+  const row=rows.find(item=>item.id===id);
+  assert.equal(row.specialist_logic_available,true,id);
+  assert.equal(row.implementation_level,'specialist_logic',id);
+  assert.equal(row.completion_verified,false,id);
+ }
+});
+
+test('the six learning handlers execute their existing verified-data logic without mutating model weights',()=>{
+ const outcomes=Array.from({length:30},(_,i)=>({
+  player_id:'player-'+i,position_group:'ST',target_score:50+(i%10)*3,
+  verification_status:'verified',verified_by:'admin-1',
+  dimension_scores:{technical:40+(i%10)*4,tactical:45+(i%10)*3,athletic:50+(i%10)*2,mental:55+(i%10)}
+ }));
+ for(const id of ['supervised_learning','weight_optimization','controlled_self_optimization']){
+  const out=executeMessinhoCapability(id,{outcomes,minimum_examples:30});
+  assert.ok(['proposal_ready','no_reliable_improvement'].includes(out.status),id+' '+out.status);
+  assert.equal(out.result.verified_examples,30,id);
+  assert.equal(out.result.training_performed,false,id);
+  assert.equal(out.result.model_weights_changed,false,id);
+  assert.equal(out.result.activation,'admin_approval_required',id);
+ }
+ const country=executeMessinhoCapability('country_learning',{outcomes:[
+  {player_id:'a',country:'DE',target_score:70,verification_status:'verified',verified_by:'admin-1'},
+  {player_id:'b',country:'FR',target_score:75,verification_status:'verified',verified_by:'admin-1'}
+ ]});
+ assert.equal(country.status,'completed');
+ assert.equal(country.result.grouping,'country');
+ assert.equal(country.result.groups.length,2);
+ assert.equal(country.result.model_weights_changed,false);
+ const paths=[
+  {player_id:'a',verification_status:'verified',observations:[{date:'2024-01-01',score:55},{date:'2025-01-01',score:78}]},
+  {player_id:'b',verification_status:'verified',observations:[{date:'2024-01-01',score:60},{date:'2025-01-01',score:63}]}
+ ];
+ const pathway=executeMessinhoCapability('talent_pathway_learning',{development_paths:paths});
+ assert.equal(pathway.status,'completed');
+ assert.equal(pathway.result.verified_players,2);
+ const breakthrough=executeMessinhoCapability('breakthrough_learning',{development_paths:paths});
+ assert.equal(breakthrough.status,'completed');
+ assert.equal(breakthrough.result.breakthrough_count,1);
+ assert.equal(breakthrough.result.training_performed,false);
+ assert.equal(breakthrough.result.model_weights_changed,false);
 });
