@@ -1429,7 +1429,7 @@ app.post('/api/internal/messinho/myki-tickets',myKiTicketLimiter,async(req,res)=
   try{
     const expected=process.env.MESSINHO_MYKI_INGEST_SECRET||'';
     const supplied=String(req.headers['x-messinho-ticket-secret']||'');
-    if(!expected||supplied.length!==expected.length||!crypto.timingSafeEqual(Buffer.from(supplied),Buffer.from(expected)))return res.status(403).json({error:'Interne Ticketübermittlung nicht autorisiert.'});
+    if(!expected||supplied.length!==expected.length||!timingSafeEqual(Buffer.from(supplied),Buffer.from(expected)))return res.status(403).json({error:'Interne Ticketübermittlung nicht autorisiert.'});
     if(!await requireMyKiTable(res))return;
     const normalized=normalizeMyKiTicketProposal(req.body||{});if(!normalized.ok)return res.status(400).json({error:normalized.error});
     const record=createMyKiTicketRecord(normalized.value,{id:randomUUID()});if(!record.ok)return res.status(400).json({error:record.error});
