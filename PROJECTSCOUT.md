@@ -2370,7 +2370,7 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Existing backend already had a flat canonical table/module (messinho_domain_knowledge), an owner-scoped answer cache (messinho_knowledge_memory), and a separate source-rights allowlist.
 - These are different responsibilities. The answer cache is not a structured knowledge base and is not neural model training.
 - STAGING table counts before this change: messinho_domain_knowledge = 0; messinho_knowledge_memory = 0.
-- backend/messinho-rights-registry.js has 0 approved source entries. At the initial knowledge-foundation baseline the source register had 5 candidate/source-pool entries; it has since been expanded to 10 entries/resources (including OpenIntro Statistics, the Grinstead/Snell GNU FDL probability text, and explicit OpenStax/Book of Proof/MIT OCW exclusions), with 0 approved works.
+- backend/messinho-rights-registry.js has 0 approved source entries. At the initial knowledge-foundation baseline the source register had 5 candidate/source-pool entries; it has since been expanded to 14 entries/resources (including OpenIntro Statistics, the Grinstead/Snell GNU FDL probability text, four exact OpenStax CC BY 4.0 works, and explicit OpenStax-default/Book of Proof/MIT OCW exclusions), with 0 approved works.
 - No books, PDFs, source full texts or knowledge records were imported. No model weights, player data or scoring rules were changed.
 
 ### Implemented on feature/messinho-unified-ai-integration
@@ -2467,3 +2467,10 @@ Mathematics; statistics; physics; biology; medicine; sports science; football; c
 - Added the Dartmouth/CHANCE GNU FDL version of Grinstead and Snell's *Introduction to Probability* as a quarantined probability/statistics candidate. The official source states it is freely redistributable under GNU FDL; GNU FDL 1.3 explicitly permits commercial redistribution and modification but applies copyleft to modified versions. It is not approved for ingestion yet: legal review must determine how the terms apply to compact knowledge records and retain the exact version/licence notice.
 - Added explicit exclusions for Richard Hammack's *Book of Proof* (CC BY-NC-ND) and MIT OCW 6.042J (CC BY-NC-SA) because their current terms are incompatible with commercial derivative use.
 - Source register now has 10 entries/resources, 0 approved works; allowlist remains 0.
+
+
+### OpenStax work-level licence exception review
+- The OpenStax library-wide current default is CC BY-NC-SA 4.0 and is not suitable for the commercial platform without written permission.
+- Exact official PDFs for *College Algebra 2e* (2021), *Introductory Statistics 2e* (2023), *University Physics Volume 1* (2021 PDF) and *Introductory Business Statistics 2e* state CC BY 4.0. These specific works have therefore been added as quarantined candidates, not approved works.
+- CC BY 4.0 permits commercial adaptation with attribution, but third-party content, required attribution/change notices and the intended AI/TDM processing must still be checked for each work. No source allowlist entries have been added.
+- Source register now contains 14 entries/resources; 0 approved works.
