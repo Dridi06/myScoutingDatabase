@@ -44,7 +44,8 @@ export function buildMessinhoKnowledgeRecord(ownerId,question,research,now=new D
  if(isMessinhoTimeSensitiveQuestion(question)){
   const dated=sources.map(source=>Date.parse(source.published_date||'')).filter(timestamp=>Number.isFinite(timestamp)&&timestamp<=verifiedAt.getTime()&&verifiedAt.getTime()-timestamp<=90*24*60*60*1000);
   if(dated.length<2)return null;
-  expiryTimestamp=Math.min(expiryTimestamp,Math.min(...dated)+90*24*60*60*1000);
+  const maxAgeDays=Number(research.evidence?.freshness?.max_age_days)||90;
+  expiryTimestamp=Math.min(expiryTimestamp,Math.min(...dated)+maxAgeDays*24*60*60*1000);
  }
  const expiresAt=new Date(expiryTimestamp);
  if(expiresAt<=verifiedAt)return null;
