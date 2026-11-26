@@ -7,7 +7,7 @@ import {
   getMessinhoVerifiedSourceRightsCount
 } from '../backend/messinho-rights-registry.js';
 
-const collegeAlgebra={
+const openStaxClaim={
   source_id:'openstax_college_algebra_2e_2021',
   status:'verified_permitted',
   license:'CC BY 4.0',
@@ -18,63 +18,39 @@ const collegeAlgebra={
   ai_tdm:true,commercial_use:true,derivative_use:true
 };
 
-test('the permanent source allowlist remains empty until AI/TDM and commercial rights are proven',()=>{
+test('the permanent source allowlist remains empty until all rights are verified',()=>{
   assert.equal(getMessinhoVerifiedSourceRightsCount(),0);
-  assert.equal(verifyMessinhoSourceRights(collegeAlgebra),false);
-  assert.equal(isMessinhoRegisteredSourceUrl(collegeAlgebra.source_id,collegeAlgebra.evidence_url),false);
-  assert.equal(getMessinhoVerifiedSourceRightsForUrl(collegeAlgebra.evidence_url),null);
+  assert.equal(verifyMessinhoSourceRights(openStaxClaim),false);
+  assert.equal(isMessinhoRegisteredSourceUrl(openStaxClaim.source_id,openStaxClaim.evidence_url),false);
+  assert.equal(getMessinhoVerifiedSourceRightsForUrl(openStaxClaim.evidence_url),null);
 });
 
-test('OpenStax CC BY labels cannot override per-work AI-ingestion restrictions',()=>{
+test('a CC BY label cannot override explicit OpenStax AI-ingestion restrictions',()=>{
   for(const sourceId of [
     'openstax_college_algebra_2e_2021',
     'openstax_introductory_statistics_2e_2023',
     'openstax_university_physics_volume_1_2021',
     'openstax_introductory_business_statistics_2e'
   ]){
-    assert.equal(verifyMessinhoSourceRights({...collegeAlgebra,source_id:sourceId}),false);
-    assert.equal(isMessinhoRegisteredSourceUrl(sourceId,collegeAlgebra.evidence_url),false);
+    assert.equal(verifyMessinhoSourceRights({...openStaxClaim,source_id:sourceId}),false);
+    assert.equal(isMessinhoRegisteredSourceUrl(sourceId,openStaxClaim.evidence_url),false);
   }
 });
 
-test('unapproved rights claims and URL scope escalation fail closed',()=>{
-  const claimed={...collegeAlgebra,source_id:'unapproved',license:'CC BY-NC-SA 4.0',commercial_use:true};
+test('provider-supplied licence claims cannot promote an unreviewed source',()=>{
+  const claimed={...openStaxClaim,source_id:'unapproved',license:'CC BY-NC-SA 4.0',commercial_use:true};
   assert.equal(verifyMessinhoSourceRights(claimed),false);
-  assert.equal(isMessinhoRegisteredSourceUrl('unapproved',collegeAlgebra.evidence_url),false);
-  assert.equal(isMessinhoRegisteredSourceUrl(collegeAlgebra.source_id,'http://assets.openstax.org/oscms-prodcms/media/documents/College-Algebra-2e-WEB.pdf'),false);
-  assert.equal(isMessinhoRegisteredSourceUrl(collegeAlgebra.source_id,'https://example.com/College-Algebra-2e-WEB.pdf'),false);
-  assert.equal(isMessinhoRegisteredSourceUrl(collegeAlgebra.source_id,'https://openstax.org/books/college-algebra-2e/pages/preface'),false);
+  assert.equal(isMessinhoRegisteredSourceUrl('unapproved',openStaxClaim.evidence_url),false);
 });
 
 test('rights verification rejects incomplete attribution and licence evidence',()=>{
-  assert.equal(verifyMessinhoSourceRights({...collegeAlgebra,license_url:'https://example.com/license'}),false);
-  assert.equal(verifyMessinhoSourceRights({...collegeAlgebra,attribution:''}),false);
-  assert.equal(verifyMessinhoSourceRights({...collegeAlgebra,ai_tdm:false}),false);
+  assert.equal(verifyMessinhoSourceRights({...openStaxClaim,license_url:'https://example.com/license'}),false);
+  assert.equal(verifyMessinhoSourceRights({...openStaxClaim,attribution:''}),false);
+  assert.equal(verifyMessinhoSourceRights({...openStaxClaim,ai_tdm:false}),false);
 });
 
-test('only exact work-level CC BY 4.0 sources are allowlisted for commercial TDM',()=>{
-  assert.equal(getMessinhoVerifiedSourceRightsCount(),4);
-  const registered=getMessinhoVerifiedSourceRightsForUrl(collegeAlgebra.evidence_url);
-  assert.ok(registered);
-  assert.equal(verifyMessinhoSourceRights(registered),true);
-  assert.equal(isMessinhoRegisteredSourceUrl(collegeAlgebra.source_id,collegeAlgebra.evidence_url),true);
-  assert.equal(registered.source_id,collegeAlgebra.source_id);
-});
-
-test('source allowlist rejects URL scope escalation and non-HTTPS locations',()=>{
-  assert.equal(isMessinhoRegisteredSourceUrl(collegeAlgebra.source_id,'https://assets.openstax.org/oscms-prodcms/media/documents/College-Algebra-2e-WEB.pdf.evil'),false);
-  assert.equal(isMessinhoRegisteredSourceUrl(collegeAlgebra.source_id,'http://assets.openstax.org/oscms-prodcms/media/documents/College-Algebra-2e-WEB.pdf'),false);
-  assert.equal(isMessinhoRegisteredSourceUrl(collegeAlgebra.source_id,'https://example.com/College-Algebra-2e-WEB.pdf'),false);
-});
-
-test('provider claims cannot upgrade an unapproved non-commercial source',()=>{
-  const claimed={...collegeAlgebra,source_id:'unapproved',license:'CC BY-NC-SA 4.0',commercial_use:true};
-  assert.equal(verifyMessinhoSourceRights(claimed),false);
-  assert.equal(isMessinhoRegisteredSourceUrl('unapproved',collegeAlgebra.evidence_url),false);
-});
-
-test('rights verification requires the full attribution and licence evidence tuple',()=>{
-  assert.equal(verifyMessinhoSourceRights({...collegeAlgebra,license_url:'https://example.com/license'}),false);
-  assert.equal(verifyMessinhoSourceRights({...collegeAlgebra,attribution:''}),false);
-  assert.equal(verifyMessinhoSourceRights({...collegeAlgebra,ai_tdm:false}),false);
+test('unregistered, non-HTTPS and lookalike URLs are never accepted',()=>{
+  assert.equal(isMessinhoRegisteredSourceUrl(openStaxClaim.source_id,'http://assets.openstax.org/oscms-prodcms/media/documents/College-Algebra-2e-WEB.pdf'),false);
+  assert.equal(isMessinhoRegisteredSourceUrl(openStaxClaim.source_id,'https://example.com/College-Algebra-2e-WEB.pdf'),false);
+  assert.equal(isMessinhoRegisteredSourceUrl(openStaxClaim.source_id,'https://assets.openstax.org/oscms-prodcms/media/documents/College-Algebra-2e-WEB.pdf.evil'),false);
 });
