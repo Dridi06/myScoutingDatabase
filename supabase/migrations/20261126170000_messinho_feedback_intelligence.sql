@@ -177,7 +177,7 @@ create table if not exists public.messinho_feedback_reviews (
 create index if not exists messinho_feedback_reviews_history_idx
   on public.messinho_feedback_reviews(feedback_id,created_at desc);
 alter table public.messinho_feedback_reviews enable row level security;
-revoke all on table public.messinho_feedback_reviews from public, anon, authenticated;
+revoke all on table public.messinho_feedback_reviews from public, anon, authenticated, service_role;
 grant select,insert on table public.messinho_feedback_reviews to service_role;
 drop policy if exists messinho_feedback_reviews_service_role_only on public.messinho_feedback_reviews;
 create policy messinho_feedback_reviews_service_role_only on public.messinho_feedback_reviews
