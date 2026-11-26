@@ -62,8 +62,7 @@ create table if not exists public.asi_external_evidence (
   created_at timestamptz not null default now(),
   constraint asi_evidence_source_url_check check (source_url ~ '^https?://'),
   constraint asi_evidence_health_gate check (
-    data_classification <> 'health_sensitive'
-    or (legal_review_status = 'approved' and review_status <> 'approved' or legal_review_status = 'approved')
+    data_classification <> 'health_sensitive' or legal_review_status = 'approved'
   )
 );
 
