@@ -68,7 +68,8 @@ export async function findMessinhoKnowledge(db,ownerId,question,now=new Date()){
 
 export async function storeMessinhoKnowledge(db,ownerId,question,research,now=new Date()){
  const record=buildMessinhoKnowledgeRecord(ownerId,question,research,now);
- if(!db||!record)return {persisted:false,reason:'not_eligible'};
+ if(!record)return {persisted:false,reason:'not_eligible'};
+ if(!db)return {persisted:false,reason:'storage_unavailable'};
  try{
   const {data,error}=await db.from('messinho_knowledge_memory')
    .upsert(record,{onConflict:'owner_id,question_fingerprint'})
