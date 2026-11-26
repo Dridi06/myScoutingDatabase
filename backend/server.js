@@ -1095,7 +1095,16 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       let selectedPlayer=null;
       let matchedPlayers=[];
       if(needsPlayer){
-        if(agentMemory.active_player_ids.length){
+        const messageKey=message.normalize('NFKC').toLocaleLowerCase('de-DE');
+        const allPlayersQuery=scopeMessinhoOwner(
+          db.from('players').select('player_id,owner_id,name,club,year,positions,foot,ratings,performance_metrics,metrics').order('player_id',{ascending:false}).limit(500),
+          actor
+        );
+        const {data:allPlayers,error:allPlayersError}=await allPlayersQuery;
+        if(allPlayersError)return res.status(500).json({error:'Dein Spielerkatalog konnte für die Kontextauflösung nicht geladen werden.'});
+        const explicitMatches=(allPlayers||[]).filter(p=>p.name&&messageKey.includes(String(p.name).normalize('NFKC').toLocaleLowerCase('de-DE')));
+        if(explicitMatches.length)matchedPlayers=explicitMatches;
+        else if(agentMemory.active_player_ids.length){
           const activeQuery=scopeMessinhoOwner(
             db.from('players').select('player_id,owner_id,name,club,year,positions,foot,ratings,performance_metrics,metrics').in('player_id',agentMemory.active_player_ids),
             actor
@@ -1103,16 +1112,6 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
           const {data,error}=await activeQuery;
           if(error)return res.status(500).json({error:'Der gespeicherte Spieler-Kontext konnte nicht geladen werden.'});
           matchedPlayers=data||[];
-        }
-        if(!matchedPlayers.length){
-          let playerQuery=scopeMessinhoOwner(
-            db.from('players').select('player_id,owner_id,name,club,year,positions,foot,ratings,performance_metrics,metrics').order('player_id',{ascending:false}).limit(500),
-            actor
-          );
-          const {data,error}=await playerQuery;
-          if(error)return res.status(500).json({error:'Dein Spielerkatalog konnte für die Kontextauflösung nicht geladen werden.'});
-          const messageKey=message.normalize('NFKC').toLocaleLowerCase('de-DE');
-          matchedPlayers=(data||[]).filter(p=>p.name&&messageKey.includes(String(p.name).normalize('NFKC').toLocaleLowerCase('de-DE')));
         }
         if(matchedPlayers.length>1){
           return res.json({reply:'Ich habe mehrere passende Spieler in deinem Datenbestand gefunden. Bitte nenne den vollständigen Namen oder die Spieler-ID, damit ich keine falsche Person analysiere.',intent:'player_clarification',items:matchedPlayers.slice(0,8).map(p=>({id:p.player_id,name:p.name,club:p.club||null,positions:p.positions||[]})),pending:true});
