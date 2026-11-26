@@ -2727,7 +2727,7 @@ Im nächsten Chat direkt mit Punkt 1 und 2 fortfahren: aktuellen Feature-HEAD un
 - Latest deployed feature commit: `4155705ba7d52942e7455df6bb644c7040808a7d`.
 - GitHub Node tests and backend syntax workflows: **success**.
 - Render build: **299 tests passed, 0 failed**; Vite transformed 1,636 modules and built successfully.
-- Dedicated STAGING deployment: `dep-dc4877p7lnhs73fm6oag`, status **live**, finished `2026-11-26T19:08:55Z`.
+- Dedicated STAGING deployment: `dep-dc48781aekrs73cj27mg` (final active rollout; the earlier same-commit rollout was superseded), status **live**, finished `2026-11-26T19:08:55Z`.
 - Runtime logs confirm server start, API listening on port 10000 and Supabase Data API HTTP 200.
 - The candidate queue and review interface are deployed, but authenticated Admin/Scout UI and API end-to-end tests have not yet been executed. The knowledge tables still contain 0 concepts, 0 conflicts, 0 versions and 0 reviews until the first authenticated learning request.
 
