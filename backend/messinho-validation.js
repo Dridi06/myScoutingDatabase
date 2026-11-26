@@ -115,7 +115,7 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
   const numberWords={eins:1,eine:1,einen:1,zwei:2,drei:3,vier:4,fünf:5,sechs:6,sieben:7,acht:8,neun:9,zehn:10};
   const quantity = quantityMatch ? Math.max(1, Math.min(15, Number(quantityMatch[1])||numberWords[quantityMatch[1].toLocaleLowerCase('de-DE')]||10)) : 10;
 
-  const scoutingIntent = /\b(benötige|brauche|suche|such|finde|scoute|recherchiere|spieler|talent|kandidaten|scouting)\b/i.test(latest);
+  const scoutingIntent = /\b(benötige|brauche|suche|such|finde|identifiziere|ermittle|scoute|recherchiere|spieler|talent|kandidaten|scouting)\b/i.test(latest);
   const hasCriteria = !!(yearFrom || ageGroup || position || region);
   const shouldHandle = pending || (scoutingIntent && (hasCriteria || !!quantityMatch));
   const missing = [];
