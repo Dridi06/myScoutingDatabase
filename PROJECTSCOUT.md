@@ -2768,3 +2768,27 @@ Im nächsten Chat direkt mit Punkt 1 und 2 fortfahren: aktuellen Feature-HEAD un
 5. Only after those authenticated checks pass may the newer feature-branch rights-expiry and next-domain work be promoted to STAGING.
 
 No Admin/Scout credentials, passwords or session tokens were accessed, generated or stored. Real authenticated E2E remains pending the owner's existing STAGING sessions. PR #47 remains open/Draft/unmerged; `main`, production, production Supabase and PFMS/PFSS remain untouched.
+
+
+## 2026-11-26 — Branch-only preparation: mathematics foundation source pair
+
+### Rights-cleared source pair added on the feature branch
+- Added Ken Kuttler (Lyryx), *A First Course in Linear Algebra*, §2.2 *Multiplication of Matrices*, exact LibreTexts chapter page, CC BY 4.0.
+- Added David Austin, *Understanding Linear Algebra*, §2.2 *Matrix multiplication and linear combinations*, exact official HTML page, CC BY 4.0; the official colophon identifies the author and licence.
+- Both entries are work/page scoped, carry separate licence/TDM evidence, attribution, a one-year review deadline (`2027-11-26`) and exact retrieval URLs. Only the text of those exact chapter pages may be extracted; no PDFs, diagrams, interactive Sage cells, exercises or third-party media.
+- The registry now has **4** approved works: PLOS, PMC BioC, Kuttler and Austin. The source register contains **20** works/resources, 4 approved. OpenStax remains excluded/quarantined.
+
+### Mathematics foundation path prepared — not deployed
+- Extended the transient approved-source adapter with exact HTML retrieval for the two linear-algebra pages. It caps excerpts, preserves section and licence provenance, enforces approved host/redirect/time limits and does not persist full text.
+- Extended the curated foundation learner with `mathematics.linear_algebra.matrix_multiplication`. It requires the two independent chapter sources to corroborate the dimension rule, then prepares a compact foundational candidate with formula `(AB)_{ij} = Σ A_{ik}B_{kj}`, variables, applicability and limitations.
+- The existing VO₂max foundation remains the only deployed learning seed. The mathematics source pair and learner are feature-branch only and must not be deployed until the VO₂max authenticated E2E gate passes.
+
+### Additional STAGING database transaction check
+- Executed a temporary candidate-create → admin-approve transaction against STAGING, asserting active status, version increment 1→2, one approval audit row and two append-only version snapshots. The transaction was rolled back.
+- Post-rollback counts remain concepts 0, conflicts 0, versions 0, reviews 0. No persistent candidate was inserted by the test.
+
+### Branch verification
+- Feature commit `67314ee04e3af960fb488e1cb996b3b7184edd9e`: **304 Node tests passed**, backend syntax success. The later documentation-only source-ID checkpoint is separate.
+- No Render deployment was triggered for the mathematics expansion. Current live STAGING remains `dep-dc48781aekrs73cj27mg`, commit `4155705ba7d52942e7455df6bb644c7040808a7d`.
+- Immediate gate remains the owner's authenticated VO₂max test, candidate review/approval, Scout 403 and post-approval retrieval. Only after that may the mathematics expansion be promoted to STAGING.
+- Production/main, production Supabase, user/player/scout data, model weights, PFMS/PFSS and PR merge state remain untouched; PR #47 remains Draft/open/unmerged.
