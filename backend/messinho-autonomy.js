@@ -15,7 +15,7 @@ const SUCCESS = new Set(['completed','verified','proposal_ready']);
 const FAILURE = new Set(['error','denied','invalid_input','unknown_capability','unverified','needs_review','no_reliable_improvement']);
 
 const clean = (value, max = MAX_AUTONOMOUS_GOAL_LENGTH) =>
-  typeof value === 'string' ? value.normalize('NFKC').replace(/[\\u0000-\\u001f\\u007f]/g,' ').trim().slice(0,max) : '';
+  typeof value === 'string' ? value.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,max) : '';
 
 export function buildMessinhoGoalContract(goal, { role = 'scout', context = {} } = {}) {
   const objective = clean(goal);
@@ -99,7 +99,7 @@ export function createMessinhoTaskCheckpoint({ taskId, ownerId, organizationId =
     })) : [],
     updated_at:new Date().toISOString()
   };
-  const bytes = Buffer.byteLength(JSON.stringify(checkpoint),'utf8');
+  const bytes = new TextEncoder().encode(JSON.stringify(checkpoint)).length;
   if (bytes > MAX_CHECKPOINT_BYTES) return { valid:false, errors:['checkpoint_size_limit_exceeded'] };
   return { valid:true, checkpoint };
 }
