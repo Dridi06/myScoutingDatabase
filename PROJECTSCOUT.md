@@ -3618,3 +3618,16 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 
 
 - Deployment verification: `dep-dc4bdtlg1s2s73dt5f50` is `LIVE` (finished 22:47:53Z); build succeeded; runtime started on port 10000 and Supabase Data API returned HTTP 200. The code commit deployed is `4a234660114e8caa23872dd5d135608d0250fdf8`. User-facing retest is now requested; no claim of pilot acceptance until response is verified.
+
+
+### Definitive VO2max retrieval root cause and fix — 2026-11-26 23:51 CET
+- Owner's screenshot at 23:48 CET still showed the canonical knowledge miss. Render runtime diagnostic at 22:48:55Z showed `rows:1`, `domains:["sports_science"]`, but `statuses:["missing"]` and `active_valid:false`.
+- This proved the exact database query returned a row, but the status field was not included in the PostgREST `.select(...)` projection. Both the broad and exact projections in `backend/messinho-knowledge-graph.js` omitted `knowledge_status`, while `rank()` and the exact result validation explicitly read `record.knowledge_status === 'active'`. The property was therefore `undefined` and the genuine active row was discarded. This is the definitive cause.
+- Fixed both projections by explicitly selecting `knowledge_status`. No database status or permissions were changed; the active concept remains governed by its existing approval.
+- Strengthened tests to assert that the broad and exact query projections both include the status field.
+- Code commit: `b337b8da8458c5355ad09ab7188f76530382197b`.
+- Test commit / deployed feature-branch head: `67f698405b2fe6c0e7a7b9d4758d5bae1bcb0256`.
+- Render deployment: `dep-dc4bfad6e07s73eo32ig`, completed successfully and **LIVE** at 22:51:06Z on dedicated STAGING service only.
+- Build verification: Node test suite **331 passed, 0 failed**; build output includes successful frontend production build; runtime starts on port 10000 and Supabase Data API responds HTTP 200.
+- Next acceptance: owner repeats the canonical VO2max question in authenticated Admin STAGING chat. Expected result is the stored concept explanation and a focused request for missing player-specific test details. Then provide the requested data in the immediate next turn to test continuation. Scout role and tenant isolation acceptance remains required.
+- The corrected code is deployed, but the user-facing conversation has not yet been re-tested after this final fix. Do not claim pilot acceptance. Knowledge import stays gated. No production, `main`, PFMS, PFSS, or Supabase data mutations.
