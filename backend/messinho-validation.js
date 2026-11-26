@@ -1,5 +1,5 @@
 const COUNTRY_ALIASES = {
-  deutschland: ['deutschland', 'germany', 'german'],
+  deutschland: ['deutschland', 'deutsch', 'germany', 'german'],
   england: ['england', 'english'],
   spanien: ['spanien', 'spain', 'spanish'],
   italien: ['italien', 'italy', 'italian'],
@@ -27,7 +27,7 @@ const POSITION_ALIASES = {
   centre_back: ['innenverteidiger', 'center back', 'centre back', 'center-back', 'centre-back', 'cb', 'iv'],
   goalkeeper: ['torwart', 'goalkeeper', 'goal keeper', 'keeper', 'gk', 'tw'],
   striker: ['mittelstürmer', 'stürmer', 'striker', 'centre forward', 'center forward', 'cf', 'st'],
-  defensive_midfielder: ['defensiver mittelfeldspieler', 'defensives mittelfeld', 'defensive midfielder', 'holding midfielder', 'dm', 'cdm', 'zdm'],
+  defensive_midfielder: ['als 6er', '6er', 'sechser', 'defensiver mittelfeldspieler', 'defensives mittelfeld', 'defensive midfielder', 'holding midfielder', 'dm', 'cdm', 'zdm'],
   central_midfielder: ['zentraler mittelfeldspieler', 'zentrales mittelfeld', 'central midfielder', 'cm', 'zm'],
   midfielder: ['mittelfeldspieler', 'mittelfeld', 'midfielder', 'midfield'],
   attacking_midfielder: ['offensiver mittelfeldspieler', 'offensives mittelfeld', 'attacking midfielder', 'am', 'cam', 'om'],
@@ -85,7 +85,7 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
   const lastAssistant = [...safeHistory].reverse().find(item => item?.role === 'assistant');
   const latest = normalize(message);
   const startsNewRequest = /\b(benötige|brauche|suche|such|finde|scoute|recherchiere)\b/i.test(latest);
-  const pending = !startsNewRequest && /(?:welches spielerlevel|welche spielklasse|leistungsniveau|welches land|welcher standort|welche position|welcher jahrgang|geburtsjahrgang)/i.test(String(lastAssistant?.text || ''));
+  const pending = !startsNewRequest && /(?:welches spielerlevel|welche spielklasse|leistungsniveau|welches land|welcher standort|welche position|welcher jahrgang|geburtsjahrgang|land\\s+bzw\\.?\\s+liga[- ]standort|damit ich die suche sauber eingrenzen kann|brauche ich noch:)/i.test(String(lastAssistant?.text || ''));
   const recentConversation = safeHistory.slice(-8).map(item => String(item?.text || '')).join(' ');
   const discussedBirthYears = /\b(jahrgang|geburtsjahr|geburtsjahrgang|geboren|geburtsdatum|altersklasse)\b/i.test(recentConversation);
   const terseYearFollowUp = /^(?:19|20)\d{2}(?:\s*[-–—]\s*(?:19|20)\d{2})?$/u.test(latest);
@@ -96,12 +96,15 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
     .map(match => Number(match[1])).filter(year => year >= 1990 && year <= currentYear);
   const yearFrom = yearMatches.length ? Math.min(...yearMatches) : null;
   const yearTo = yearMatches.length ? Math.max(...yearMatches) : null;
+  const ageMatch = context.match(/\\b(1[4-9]|2[0-9])\\s*(?:[- ]?j[aä]hrig(?:en|er|e|es)?|jahre?\\s+alt)\\b/i);
+  const age = ageMatch ? Number(ageMatch[1]) : null;
   const ageGroupMatch = context.match(/\bU[\s-]*([1-2]\d)\b/i);
   const ageGroup = ageGroupMatch ? `U${Number(ageGroupMatch[1])}` : null;
 
   const positionPattern = /\b(linker\s+verteidiger|linksverteidiger|left[- ]back|left fullback|lv|lb|rechter\s+verteidiger|rechtsverteidiger|right[- ]back|right fullback|rv|rb|innenverteidiger|center[- ]back|centre[- ]back|iv|cb|mittelstürmer|stürmer|striker|torwart|goalkeeper|keeper|tw|gk|zentraler?\s+mittelfeldspieler|defensives?\s+mittelfeld|mittelfeldspieler|mittelfeld|midfielder|midfield|zdm|cdm|zm|cm|om|cam|flügelspieler|winger|lw|rw|lf|rf)\b/i;
-  const positionMatch = context.match(positionPattern);
-  const position = positionMatch ? positionMatch[0].trim() : '';
+  const specificSix = context.match(/\\b(?:als\\s+)?6er\\b|\\bsechser\\b/i);
+  const positionMatch = specificSix || context.match(positionPattern);
+  const position = positionMatch ? (specificSix ? 'defensiver Mittelfeldspieler' : positionMatch[0].trim()) : '';
 
   const countryNames = Object.keys(COUNTRY_ALIASES).sort((a, b) => b.length - a.length);
   const countryPattern = new RegExp('\\b(?:in\\s+)?(' + countryNames.map(name => name.replace(/[.*+?^{}()|[\]\\]/g, '\\$&')).join('|') +
@@ -121,11 +124,11 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
   const quantity = quantityMatch ? Math.max(1, Math.min(15, Number(quantityMatch[1])||numberWords[quantityMatch[1].toLocaleLowerCase('de-DE')]||10)) : 10;
 
   const scoutingIntent = /\b(benötige|brauche|suche|such|finde|identifiziere|ermittle|scoute|recherchiere|spieler|talent|kandidaten|scouting)\b/i.test(latest);
-  const hasCriteria = !!(yearFrom || ageGroup || position || region);
+  const hasCriteria = !!(yearFrom || ageGroup || age || position || region);
   const shouldHandle = pending || (scoutingIntent && (hasCriteria || !!quantityMatch));
   const missing = [];
   if (shouldHandle) {
-    if (!yearFrom && !ageGroup) missing.push('Geburtsjahrgang oder Altersklasse');
+    if (!yearFrom && !ageGroup && !age) missing.push('Geburtsjahrgang oder Altersklasse');
     if (!position) missing.push('Position');
     if (!region) missing.push('Land bzw. Liga-Standort');
   }
@@ -134,6 +137,6 @@ export function parseMessinhoScoutingRequest(message, history = [], currentYear 
   const needsTargetLevel = false;
   return {
     shouldHandle, missing, needsTargetLevel,
-    request: { quantity, yearFrom, yearTo, ageGroup, position, region, targetLevel }
+    request: { quantity, yearFrom, yearTo, ageGroup, ...(age ? { age } : {}), position, region, targetLevel }
   };
 }
