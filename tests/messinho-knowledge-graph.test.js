@@ -9,6 +9,7 @@ import {
   MESSINHO_KNOWLEDGE_LEVELS,
   MESSINHO_KNOWLEDGE_RELATIONS
 } from '../backend/messinho-knowledge-graph.js';
+import { getMessinhoVerifiedSourceRightsById, verifyMessinhoSourceRights } from '../backend/messinho-rights-registry.js';
 
 const draft={
   domain:'mathematics',topic:'Probability',title:'Bayes theorem',
@@ -73,6 +74,29 @@ test('unapproved one-source candidates cannot be promoted to active knowledge',a
   const result=await reviewMessinhoKnowledgeConcept(db,{concept_id:'candidate-1',decision:'approve',reason:'Review the evidence before activation',reviewer_id:'admin-1'});
   assert.equal(result.reviewed,false);
   assert.equal(result.reason,'candidate_rights_or_corroboration_incomplete');
+});
+
+test('new knowledge candidates preserve rights review deadlines required for Admin approval',()=>{
+ const ids=['plos_one_vo2max_prediction_2023','pmc_cardiorespiratory_fitness_2022'];
+ const rights=ids.map(id=>getMessinhoVerifiedSourceRightsById(id));
+ const urls=[
+  'https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0280897',
+  'https://pmc.ncbi.nlm.nih.gov/articles/PMC11269081/'
+ ];
+ const result=buildMessinhoKnowledgeConcept({
+  domain:'sports_science',topic:'Kardiorespiratorische Fitness',title:'VO2max',
+  definition:'VO2max beschreibt die maximale Sauerstoffaufnahme des Körpers unter intensiver körperlicher Belastung und ist ein Maß der kardiorespiratorischen Fitness.',
+  knowledge_level:'foundational',knowledge_type:'metric',
+  claims:[{text:'VO2max is maximal oxygen uptake.',source_urls:urls}],
+  sources:ids.map((source_id,index)=>({source_id,title:'Approved source',url:urls[index]})),
+  source_rights:rights,confidence:0.94,evidence_grade:'B'
+ });
+ assert.equal(result.eligible,true);
+ assert.equal(result.record.rights.source_rights.length,2);
+ for(const item of result.record.rights.source_rights){
+  assert.ok(item.review_due_at,'registry review deadline must be persisted');
+  assert.equal(verifyMessinhoSourceRights(item),true,'stored rights snapshot must remain verifiable at approval time');
+ }
 });
 
 test('knowledge graph does not persist or retrieve without a database',async()=>{
