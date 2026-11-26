@@ -49,3 +49,8 @@ test('caps the analyzed dataset and ignores malformed input',()=>{
  assert.equal(report.coverage.records_loaded,1000);
  assert.equal(buildMessinhoQualityIntelligence(null,{now}).coverage.records_loaded,0);
 });
+
+test('attributes one reviewed rating to every relevant capability',()=>{
+ const report=buildMessinhoQualityIntelligence([rating('multi',2,{capability_ids:['player_search','tactical_fit']})],{now});
+ assert.deepEqual(report.by_capability.map(item=>item.key).sort(),['player_search','tactical_fit']);
+});
