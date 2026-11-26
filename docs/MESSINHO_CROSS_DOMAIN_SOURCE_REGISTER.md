@@ -70,6 +70,10 @@ The project is Germany-based and may be used commercially. A statement that a US
 - Creative Commons official FAQ on commercial text/data mining under CC 4.0: https://creativecommons.org/faq/#can-i-conduct-textdata-mining-on-a-cc-licensed-database
 - CC BY 4.0 deed: https://creativecommons.org/licenses/by/4.0/deed.en
 - OpenStax *Statistics* exact work and AI-ingestion notice: https://openstax.org/books/statistics/pages/preface
+- OpenStax College Algebra 2e exact preface and reuse notice: https://openstax.org/books/college-algebra-2e/pages/preface
+- OpenStax Introductory Statistics 2e exact preface and reuse notice: https://openstax.org/books/introductory-statistics-2e/pages/preface
+- OpenStax University Physics Volume 1 exact preface and reuse notice: https://openstax.org/books/university-physics-volume-1/pages/preface
+- OpenStax Introductory Business Statistics exact preface and AI-ingestion notice: https://openstax.org/books/introductory-business-statistics/pages/preface
 - PLOS TDM policy: https://plos.org/text-and-data-mining/
 - PLOS article licence and copyright policy: https://journals.plos.org/plosone/s/licenses-and-copyright
 - PLOS TDM/API technical access guidance: https://api.plos.org/text-and-data-mining.html
@@ -81,7 +85,7 @@ The project is Germany-based and may be used commercially. A statement that a US
 ## Current decision
 
 - Approved works: **0**. The four OpenStax works previously considered are not approved: three carry CC BY-NC-SA 4.0 and all four have an explicit AI/LLM ingestion restriction without prior written permission.
-- Candidate works/resources recorded here: **16** (PMC, OpenStax and MIT OCW are source pools/families; the four OpenStax CC BY 4.0 titles are individually scoped works).
+- Candidate works/resources recorded here: **16** (PMC, OpenStax and MIT OCW are source pools/families; four OpenStax editions are individually scoped works, but none is currently approved).
 - Entries permitted in the permanent knowledge allowlist: **0**. OpenIntro and the Grinstead/Snell GNU FDL version remain quarantined pending exact work-level/copy-left review. OpenStax College Algebra 2e, Introductory Statistics 2e and University Physics Volume 1 are excluded under CC BY-NC-SA 4.0 and explicit AI-ingestion restrictions; Introductory Business Statistics is CC BY 4.0 but still requires written permission for LLM/AI ingestion. The wider OpenStax library default, Book of Proof and MIT 6.042J remain excluded under their current terms.
 - No source full text, PDF, OCR output, article, or dataset was downloaded or stored by creating this register.
 - No rights are inferred from a CC badge or PDF metadata alone. Exact prefaces and AI-ingestion notices take precedence; all OpenStax titles remain excluded or quarantined until written permission is obtained.
