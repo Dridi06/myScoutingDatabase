@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
- fingerprintMessinhoKnowledgeQuestion,isMessinhoKnowledgePersistable,buildMessinhoKnowledgeRecord,
+ fingerprintMessinhoKnowledgeQuestion,isMessinhoKnowledgePersistable,buildMessinhoKnowledgeRecord,scoreMessinhoKnowledgeSimilarity,
  findMessinhoKnowledge,storeMessinhoKnowledge
 } from '../backend/messinho-knowledge-memory.js';
 
@@ -79,4 +79,16 @@ test('upserts only the current owner record and confirms returned database ID',a
 test('does not claim persistence if no database is available',async()=>{
  const result=await storeMessinhoKnowledge(null,ownerA,'Warum ist der Himmel blau?',research,now);
  assert.deepEqual(result,{persisted:false,reason:'storage_unavailable'});
+});
+
+test('paraphrase retrieval requires strong shared meaningful terms',()=>{
+ const good=scoreMessinhoKnowledgeSimilarity('Wie beeinflusst Schlaf die Regeneration von Fußballspielern?','Wie wirkt Schlaf auf die Regeneration bei Fußballspielern?');
+ assert.equal(good.eligible,true);
+ assert.ok(good.overlap>=3);
+ const bad=scoreMessinhoKnowledgeSimilarity('Wie beeinflusst Schlaf die Regeneration von Fußballspielern?','Welche Verletzungsgefahr haben Fußballspieler auf Kunstrasen?');
+ assert.equal(bad.eligible,false);
+});
+test('negation and different topic wording do not pass the lexical threshold',()=>{
+ const match=scoreMessinhoKnowledgeSimilarity('Welche Faktoren verbessern die Sprintleistung eines Spielers?','Welche Faktoren verschlechtern die Sprintleistung eines Spielers?');
+ assert.equal(match.eligible,false);
 });
