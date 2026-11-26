@@ -1645,3 +1645,15 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - The sanitizer expectation now passes. One context test still used an assistant sentence containing the explicit pending clarification keyword `Geburtsjahrgang`, correctly activating the pre-existing clarification flow.
 - Adjusted the fixture's assistant response to a neutral acknowledgement so the test isolates a terse follow-up without an outstanding clarification. No production behavior was weakened.
 - Test fixture correction: `92e347c46d7247c628fd176c8bd4fb1963d2fdf4`. The second build also failed; next build is required before release.
+
+
+### MESSINHO conversation continuity — STAGING deployment verified (2026-11-26)
+- Render deployment: `dep-dc436rui0phs739171d0`.
+- Deployed commit: `5c47a6090bbeebff8a4c65a87403a37babf427a7`.
+- Status: **live**, finished `2026-11-26T13:26:47.149873Z`.
+- Build: **181 tests passed, 0 failed**; backend syntax checks passed; Vite transformed 1,636 modules and built successfully.
+- Runtime: `node backend/server.js` started, API listening on port 10000; Supabase credentials detected and research providers configured.
+- The context test suite confirms a terse `2004-2006` follow-up after a birth-year discussion is treated as context, not subtraction; an explicit later scouting request reuses the year range; latest 20 messages are retained.
+- The screenshot-driven answer formatting and bare-year-range arithmetic correction are included in the deployed commit.
+- This is a code-level and automated regression verification. A real authenticated Scout3 chat session still needs to confirm natural-language behavior from the user's browser.
+- Production Render, production `main`, production Supabase, PFMS and PFSS remain untouched. STAGING auto-deploy remains disabled; PR #47 remains Draft/unmerged.
