@@ -372,6 +372,18 @@ export function formatMessinhoCapabilityResults(run,playerName=null) {
       lines.push('• '+title+': Dieser Schritt konnte nicht abgeschlossen werden.');
     }
   }
+  const intelligence=run.performance_intelligence;
+  if (intelligence?.findings?.length) {
+    lines.push('MESSINHO hat automatisch messbare Leistungsdaten mathematisch und physikalisch eingeordnet:');
+    for (const finding of intelligence.findings.slice(0,8)) {
+      const value=finding.value;
+      const rendered=Number.isFinite(value)?String(value).replace('.',',')+' '+finding.unit:'Messwert';
+      lines.push('• '+finding.metric+': '+rendered+(finding.also_kmh!==undefined?' ('+String(finding.also_kmh).replace('.',',')+' km/h)':'')+'. '+(finding.interpretation||finding.basis||''));
+    }
+    if (intelligence.rating_policy) lines.push(intelligence.rating_policy);
+  } else if (intelligence?.status==='insufficient_data') {
+    lines.push('Für eine belastbare mathematisch-physikalische Leistungsbewertung fehlen noch konkrete Messwerte. Ich erfinde oder schätze sie nicht.');
+  }
   if (run.blocked_capabilities?.length) lines.push('Zusätzliche Lern- und Modellprüfungen bleiben aus Berechtigungsgründen geschützt.');
   if (run.deferred_capabilities?.length) lines.push('Weitere Prüfschritte wurden wegen der Ausführungsbegrenzung zurückgestellt und nicht als erledigt gewertet.');
   if (run.replan_recommended) lines.push('Ich benötige ergänzende Daten oder muss den Arbeitsplan nach der Datenprüfung anpassen.');
