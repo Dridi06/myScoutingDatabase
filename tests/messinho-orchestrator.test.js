@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults, getMessinhoCapabilityDiscovery } from '../backend/messinho-orchestrator.js';
-import { buildMessinhoCapabilityContext } from '../backend/messinho-data-context.js';
+import { buildMessinhoCapabilityContext, extractMessinhoGoalFilters } from '../backend/messinho-data-context.js';
 
 test('MESSINHO composes all matching analysis intents from a natural-language goal', () => {
   const plan = planMessinhoCapabilities('Bitte analysiere das Potenzial und die Entwicklung von Spieler X', 'scout');
@@ -350,4 +350,23 @@ test('metric-based analyses use dated observations and do not report empty metri
   });
   assert.equal(missing.status, 'insufficient_data');
   assert.ok(missing.missing_inputs.includes('availability_rate_metrics'));
+});
+
+test('goal filter extraction preserves explicit age and position criteria', () => {
+  assert.deepEqual(
+    extractMessinhoGoalFilters('Finde einen Stürmer unter 21 Jahren'),
+    { position: 'Stürmer', max_age: 20 }
+  );
+  assert.deepEqual(
+    extractMessinhoGoalFilters('Suche Mittelfeldspieler zwischen 18 und 21 Jahren, Jahrgang 2005 bis 2008'),
+    { position: 'Mittelfeld', min_age: 18, max_age: 21, birth_year_from: 2005, birth_year_to: 2008 }
+  );
+});
+
+test('automated talent search asks for meaningful filters instead of returning the entire roster', () => {
+  const result = executeMessinhoCapability('automated_talent_search', {
+    candidates: [{ id: 'a', name: 'Candidate A', positions: ['Stürmer'], ratings: { technical: 80 } }]
+  });
+  assert.equal(result.status, 'insufficient_data');
+  assert.ok(result.missing_inputs.includes('search_filters'));
 });
