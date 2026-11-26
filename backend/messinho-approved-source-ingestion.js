@@ -53,8 +53,13 @@ function extractHtmlParagraphs(html){
   .filter(item=>item.text.length>=80);
 }
 function extractBioCParagraphs(payload){
- const docs=Array.isArray(payload?.documents)?payload.documents:
-  Array.isArray(payload?.collection?.documents)?payload.collection.documents:[];
+ // NCBI BioC JSON is a list of collections, each containing documents/passages.
+ // Some mirrors/fixtures return a single collection object; accept both shapes.
+ const collections=Array.isArray(payload)?payload:
+  Array.isArray(payload?.collection)?payload.collection:
+  payload?.collection&&typeof payload.collection==='object'?[payload.collection]:
+  payload&&typeof payload==='object'?[payload]:[];
+ const docs=collections.flatMap(collection=>Array.isArray(collection?.documents)?collection.documents:[]);
  return docs.flatMap(doc=>(Array.isArray(doc?.passages)?doc.passages:[])
   .map(p=>({text:clean(p?.text),section:clean(p?.infons?.section_type||p?.infons?.section||'article_text')}))
   .filter(p=>p.text.length>=80));
@@ -72,7 +77,7 @@ export async function fetchMessinhoApprovedSource(sourceId,{topic='',fetchImpl=g
   const url=new URL(rights.retrieval_url);
   const expectedHost=({plos_jats_xml:'journals.plos.org',pmc_bioc_json:'www.ncbi.nlm.nih.gov',libretexts_html:'math.libretexts.org',austin_html:'understandinglinearalgebra.org'})[rights.retrieval_method];
   if(url.hostname!==expectedHost)return {status:'retrieval_host_not_approved',source_id:sourceId,excerpts:[]};
-  const fetchOptions={headers:{accept:rights.retrieval_method==='pmc_bioc_json'?'application/json':rights.retrieval_method.endsWith('_html')?'text/html,application/xhtml+xml;q=0.9':'application/xml,text/xml;q=0.9'},redirect:'manual'};
+  const fetchOptions={headers:{accept:rights.retrieval_method==='pmc_bioc_json'?'application/json':rights.retrieval_method.endsWith('_html')?'text/html,application/xhtml+xml;q=0.9':'application/xml,text/xml;q=0.9'},redirect:'follow'};
   if(typeof AbortSignal?.timeout==='function')fetchOptions.signal=AbortSignal.timeout(12000);
   const response=await fetchImpl(rights.retrieval_url,fetchOptions);
   if(response?.url){
