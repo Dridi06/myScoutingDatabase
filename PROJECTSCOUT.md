@@ -1000,3 +1000,13 @@ Der nächste Chat beginnt nicht mit einer Neuentwicklung und fragt den Nutzer ni
 - Ausschließlich `Dridi06/myScoutingDatabase` und den dedizierten STAGING-Service bearbeiten.
 - `main`, LIVE-Render, Produktions-Supabase und Produktions-Secrets unverändert lassen.
 - PFMS/PFSS nicht bearbeiten.
+
+
+### Nachprüfung des STAGING-Rollouts — 2026-11-26
+- Render bestätigte Deployment `dep-dc3p9q49v7es73crs2hg` als `live`; Event `evt-dc3pa29aekrs73c918sg` meldete `deploy_ended / succeeded` um 2026-11-26 02:10:17 UTC.
+- Der Build hatte zuvor `build_ended / succeeded` gemeldet. Der neue Prozess startete mit `npm start` / `node backend/server.js`; Log meldet `myScoutingDatabase API listening on 10000`, danach Render `Your service is live`.
+- Der frisch gestartete Prozess meldet weiterhin `SUPABASE_SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY is missing or empty` und `Tavily=false OpenAI=false` (Modell `gpt-4.1-mini`). Der Nutzer hat die Konfiguration möglicherweise bearbeitet, aber die aktuelle STAGING-Runtime bestätigt sie nicht. Provider-gestützte KI-Suche und authentifizierte Supabase-Serverfunktionen sind damit nicht betriebsbereit nachgewiesen.
+- Der Render-Deploy wurde auf Commit `262cb0cda8634d6b8efd122129ca01cddebd032a` ausgeführt. Der nachfolgende PROJECTSCOUT-Dokumentationscheckpoint wurde als Commit `22940f5a5b9c7eed23ca3939d0040cdb71eeca78` auf denselben Feature-Branch geschrieben; er enthält nur die Statusdokumentation und wurde wegen deaktiviertem Auto-Deploy nicht ausgerollt. Der laufende STAGING-Code entspricht somit dem letzten vor dem Dokumentationsupdate geprüften Code-Commit; der Branch-HEAD ist danach nur dokumentarisch weiter.
+- Der App-Start ist bestätigt, aber es wurde kein authentifizierter Chat-/Agentenaufruf, keine Browser-E2E-Prüfung und kein Task-Ledger-Resume ausgeführt. `live` bezeichnet hier ausschließlich den erfolgreichen Render-Rollout des STAGING-Service, nicht Produktionsfreigabe oder vollständige Funktionsreife.
+- Keine Secrets, Environment-Werte, Datenbankobjekte oder persistenten Nutzerdaten wurden geändert.
+
