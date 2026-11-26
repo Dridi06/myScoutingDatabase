@@ -3678,3 +3678,8 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Safety boundary: no code-execution agent, self-modification, production access, deployment permission, Supabase data write or knowledge activation has been enabled. The initial package is a versioned curriculum/candidate foundation only.
 - Next steps: verify CI; review and register exact source rights; expand candidate coverage into detailed language, algorithms, architecture, testing, database, security and AI concepts; build prerequisite relationships and task-based mastery assessments; only then submit small batches for Admin review and STAGING retrieval tests.
 - The VO2max second-turn continuation and Scout/tenant-isolation pilot tests remain open. Technical curriculum preparation does not waive those pilot gates.
+
+
+- Initial STAGING build for the technical curriculum failed at 332/333 tests: the new domain-routing test exposed an existing German compound-word gap (`Fußballspieler` was not classified as `football`). The technical-language routing test passed.
+- Corrected the football classifier to recognize German compounds (Fußballspieler, Spielerprofile, Transfermarkt, Mannschafts- etc.) and added a regression case for Innenverteidiger/Fußball-Scouting. No production or database changes. Follow-up STAGING build required before declaring this implementation deployed.
+- Follow-up code commits: `264e96677db7467e79f97b886ec78560547a16ff` (compound-word classifier), `03a5ff480e560ab98aa44a46e6448f55231ae880` (regression test).
