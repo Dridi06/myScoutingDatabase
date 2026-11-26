@@ -69,10 +69,13 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 
 ## Implemented in this milestone
 
-- Added STAGING migration 20261126233000_messinho_knowledge_hierarchy.sql (applied as migration 20261126182955_messinho_knowledge_hierarchy).
+- Added STAGING migration 20261126182955_messinho_knowledge_hierarchy.sql (applied as migration 20261126182955_messinho_knowledge_hierarchy).
 - Added graph schema, typed relations and immutable version snapshots.
 - Added backend/messinho-knowledge-graph.js with level/type validation, rights allowlist enforcement, two independent source-domain requirement, compact payloads, candidate-only insertion, conflict refusal, version snapshotting and active-only retrieval.
 - Connected graph retrieval to the existing POST /api/agent/chat flow and passed retrieved concepts to the scouting agent input and conversational context.
+- The general-research path now creates a foundational concept candidate only when the question is a foundation-style query, source claims are corroborated, and each source URL resolves through the reviewed rights allowlist. Provider-supplied license flags are ignored. The current empty allowlist intentionally prevents all candidate persistence.
+- Source URL permission matching enforces exact HTTPS origin and path boundaries, preventing lookalike hosts or prefix confusion.
+- The capability runtime merges active graph concepts with legacy verified knowledge for relevant explanations. Scoring/model-weight functions remain isolated so reference knowledge cannot silently alter numerical ratings or weights.
 - Updated the capability runtime to merge active graph concepts with the legacy rights-verified knowledge context for relevant explanations across the capability handlers. Scoring/model-weight functions remain protected: reference knowledge cannot alter numerical scores or weights.
 - Added tests/messinho-knowledge-graph.test.js for level/link contracts, invalid rights, prerequisite validation and fail-closed storage behavior.
 - The graph remains empty until rights-cleared source material is reviewed. No books/PDFs were imported and no model weights or scoring rules were changed.
