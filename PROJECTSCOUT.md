@@ -2155,3 +2155,13 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Complete Node suite: **246 passed, 0 failed, 0 cancelled, 0 skipped**.
 - Backend syntax checks passed; Vite production build completed successfully (1,636 modules transformed).
 - STAGING only; auto-deploy disabled. Production/main, production Supabase and PFMS/PFSS untouched. PR #47 remains Draft/open/unmerged.
+
+
+## 2026-11-26 – Implicit freshness detection for dynamic football facts
+
+- Extended time-sensitive intent detection beyond explicit words such as “aktuell” or “heute”.
+- Questions such as “Wer trainiert Borussia Dortmund?”, current squad/roster requests, table standings, fixtures and transfer news now require fresh dated sources even when the user does not explicitly say “current”.
+- Explicit historical framing and past-tense questions tied to a year are excluded from the current-information gate.
+- Added tests for implicit dynamic questions, educational questions about coaching, and historical questions.
+- The same 90-day freshness gate and freshness-bounded memory expiry apply; no extra persistence or automatic model changes.
+- Full test/build and manual STAGING deployment pending.
