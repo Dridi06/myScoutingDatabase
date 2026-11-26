@@ -227,7 +227,6 @@ export function buildMessinhoVo2maxApplicationQuery(previousQuestion, reply, lat
   const prompt = String(latestAssistantText || '');
   if (!previous || !current || current.length > 1200) return null;
   if (!prompt.includes('Für eine konkrete Einordnung eines Spielers brauche ich')) return null;
-  if (getMessinhoCanonicalConceptKey(previous) !== 'sports_science.physiology.vo2max') return null;
   if (!isMessinhoVo2maxApplicationDataReply(current)) return null;
   return previous + ' ' + current;
 }
