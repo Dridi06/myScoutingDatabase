@@ -86,16 +86,9 @@ export async function storeMessinhoKnowledgeConcept(db,input,now=new Date()){
    const same=fingerprint([existing.data.domain,existing.data.topic,existing.data.title,existing.data.definition,existing.data.formula||''].join('|'))===fingerprint([record.domain,record.topic,record.title,record.definition,record.formula||''].join('|'));
    return same?{persisted:false,reason:'already_exists',id:existing.data.id,status:existing.data.knowledge_status}:{persisted:false,reason:'conflict_requires_review',id:existing.data.id,existing_version:existing.data.version};
   }
-  const {content_fingerprint,...dbRecord}=record;
-  const inserted=await db.from('messinho_knowledge_concepts').insert(dbRecord).select('id,concept_key,version,knowledge_status').single();
-  if(inserted.error||!inserted.data?.id)throw inserted.error||new Error('concept_insert_unconfirmed');
-  const snapshot={...dbRecord,content_fingerprint};
-  const versionWrite=await db.from('messinho_knowledge_versions').insert({concept_id:inserted.data.id,version:1,snapshot,change_reason:'Initial verified compact knowledge candidate',changed_by:'messinho'});
-  if(versionWrite.error){
-   await db.from('messinho_knowledge_concepts').delete().eq('id',inserted.data.id);
-   throw versionWrite.error;
-  }
-  return {persisted:true,...inserted.data,approval_required:true};
+  const {data,error}=await db.rpc('messinho_create_knowledge_candidate',{p_record:record,p_change_reason:'Initial verified compact knowledge candidate'});
+  if(error||!Array.isArray(data)||!data[0]?.id)throw error||new Error('atomic_candidate_write_unconfirmed');
+  return {persisted:true,...data[0],approval_required:true};
  }catch(error){console.warn('MESSINHO knowledge concept persistence unavailable:',error.code||error.message||'unknown');return {persisted:false,reason:'storage_unavailable'};}
 }
 
