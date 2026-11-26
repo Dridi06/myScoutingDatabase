@@ -3750,3 +3750,15 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - This rule does not prohibit MESSINHO from updating its own permitted knowledge/evidence artifacts under the separately approved knowledge-governance lifecycle. It does not authorize changes to player/scout source records.
 - **Status:** accepted requirement, implementation and enforcement not yet verified. Do not claim protected-write prevention is implemented until code, database policies and adversarial tests demonstrate it.
 
+
+
+## Technical Intelligence Foundation v2.1 — deeper programming mastery — 2026-11-27
+- Continued from the existing 25-concept technical foundation; no restart and no duplicate concept catalogue.
+- Expanded the existing 50 learning tasks to **100 assessment tasks**: every one of the 25 concepts now has four distinct evidence types — explain, transfer, diagnose and verify.
+- Added an explicit assessment model with six dimensions: conceptual accuracy, transfer/application, fault diagnosis, verification quality, security/reliability, and explanation/uncertainty. Critical correctness or security failures block mastery even if an aggregate score is high.
+- Added synthetic debugging and test-design exercises for each concept. They require separating facts from hypotheses, finding root causes from evidence, proposing minimal corrections, testing normal/boundary/invalid cases and never claiming execution that did not occur.
+- Updated the candidate package to version 2.1.0. All concepts remain candidate-only; all 17 source URLs remain pending rights review. Nothing was imported into Supabase or activated.
+- Reinforced governance: curriculum mastery permits code analysis, drafting, debugging and test design only. It does not enable autonomous execution, self-modification, repository writes, deployment, production access, permission changes or guardrail changes.
+- The Admin remains the final authority; MESSINHO's player/scout access remains read/analyze/propose only.
+- Next engineering sequence: inspect current hypothesis governance and tool/agent execution boundaries; define a no-side-effect engineering proposal workflow; add synthetic patch/evaluation tests; only later consider isolated sandbox execution with strict budgets and Admin-controlled staging promotion.
+- No database schema/data changes, no migrations, no source allowlist changes, no production changes and no deployment were performed in this checkpoint.
