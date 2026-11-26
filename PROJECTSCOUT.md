@@ -964,3 +964,39 @@ Ein regulärer Produktions-Go-live ist erst vertretbar, wenn der aktuelle freizu
 
 ### Gesprächsfortsetzung im nächsten Chat
 Der nächste Chat beginnt nicht mit einer Neuentwicklung und fragt den Nutzer nicht erneut nach bereits dokumentierten Projektentscheidungen. Zuerst diesen Abschnitt und den tatsächlichen aktuellen Repository-/Render-Status lesen. Danach direkt mit Schritt 1 „Zustand neu verifizieren“ fortfahren und die Ergebnisse knapp mitteilen. Wenn sich seit diesem Checkpoint etwas geändert hat, den Eintrag anhand tatsächlicher Belege aktualisieren. Keine Produktionsänderung ohne ausdrückliche neue Freigabe.
+
+
+## 23. Re-Verifikation und kontrollierter STAGING-Deploy — 2026-11-26
+
+### Repository / Branch-Abgleich
+- Verifizierter von Render ausgecheckter Branch-Commit: `262cb0cda8634d6b8efd122129ca01cddebd032a` (`docs: save exact MESSINHO staging and go-live handover checkpoint`). Render-Buildlog bestätigt ausdrücklich Branch `feature/messinho-agent-workspace` und genau diese SHA.
+- Der vorherige Commit `fa0d4dfbdd779f280bb3caf44c6cc70be8dcb5b6` entfernte `backend/messinho-data-context.js`; der vorherige Commit `3e4a82f674754788371ef04c7568ebf2cd5338b4` hatte sie hinzugefügt. Aktuelles `backend/server.js` auf dem Branch enthält keinen Import und keinen Aufruf von `buildMessinhoCapabilityContext`; die entfernte Datei war damit im aktuellen Serverpfad nicht referenziert. Kein Wiederherstellen ohne konkreten Verbraucher/Anforderung.
+- Vergleich des im Checkpoint genannten `acc7d6a...` mit `fa0d4df...` ergab `diverged`, 108 Commits ahead / 68 behind, Merge Base `352e76b9c4b0384d0100f3c2581683f206785915`. Der gespeicherte Checkpoint-Commit ist daher kein einfacher linearer Vorgänger des geprüften Branch-Stands; keine automatische Merge-/Reset-Aktion vor zusätzlicher History-Prüfung.
+- GitHub Combined Commit Status für `fa0d4df...` und `262cb0c...` lieferte keine Status-Checks. Die Commit-Workflow-Runs-Abfrage lieferte für beide keine Runs. Das ist **kein** grüner CI-Nachweis. Zuletzt im Übergabe-Checkpoint dokumentierte erfolgreiche Runs beziehen sich auf den älteren Stand `acc7d6a...`; keine aktuelle CI-Erfolgsbehauptung für den geprüften Head.
+- `package.json` enthält `npm test` (Node-Test-Suite) und `npm run build` (Vite-Build). Der Render-Build führt nur `npm install --no-audit --no-fund && npm run build` aus; er ersetzt die Node-Test-Suite nicht.
+
+### Render STAGING — kontrollierter Deploy
+- Service: `myscoutingdatabase-messinho-staging`, ID `srv-dc3chlqjnfac73acd6ig`; Branch `feature/messinho-agent-workspace`; Auto-Deploy weiterhin deaktiviert.
+- Manueller Deploy gestartet: `dep-dc3p9q49v7es73crs2hg`, Commit `262cb0cda8634d6b8efd122129ca01cddebd032a`.
+- Render Build-Event `evt-dc3p9u28ghsc73f2v54g` meldete `build_ended / succeeded`; Buildlog meldete Vite-Build erfolgreich (1.631 Module transformiert).
+- Bei der letzten Statusabfrage befand sich das Deployment noch in `update_in_progress`. Noch kein `deploy_ended / succeeded`, kein bestätigter neuer App-Start und keine frischen Runtime-Logs für diesen Deploy. Deshalb **nicht als live oder vollständig deployed melden**.
+- Der vorherige Deploy `dep-dc3orud6e07s73d5295g` auf Commit `80d8d3a...` war `live`, ist aber nicht der aktuelle Branch-Head.
+
+### STAGING-Konfiguration und Datenbankgrenze
+- Letzter verfügbarer Runtime-Startlog (Deploy `80d8d3a...`, 2026-11-26 01:40:48 UTC) meldete `SUPABASE_SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY missing or empty`, `Tavily=false`, `OpenAI=false`, Modell `gpt-4.1-mini`; API-Prozess startete trotzdem auf Port 10000.
+- Der neue Deploy hat bislang keinen bestätigten App-Start erzeugt. Daher ist eine nachträgliche Konfigurationsänderung durch den Owner weder bestätigt noch ausgeschlossen. Vor jeder weiteren Aussage neue Startup-Logs nach erfolgreichem Rollout prüfen. Keine Secret-Werte auslesen oder ausgeben.
+- Es gibt weiterhin keinen nachgewiesenen separaten myScoutingDatabase-STAGING-Supabase-Projekt. Das einzige bekannte Projekt `vxtybjaabtfhxfwctnyj` bleibt als Produktion geschützt. Task-Ledger-Migration nicht anwenden, keine LIVE-Supabase-Credentials in STAGING übernehmen.
+- Keine Environment-Variablen, Datenbank, Migrationen, Nutzer-, Scout-, Spieler- oder Lerndaten wurden in diesem Prüf-/Deploy-Schritt verändert.
+
+### Status und nächster Schritt
+1. Render-Deployment `dep-dc3p9q49v7es73crs2hg` weiter beobachten, bis ein terminaler Status vorliegt; danach App-Startlogs prüfen.
+2. Nach erfolgreichem Start nur Statusflags (Supabase-Konfiguration, OpenAI, Tavily) prüfen. Wenn weiter fehlend, Owner muss nur STAGING-Provider-Secrets selbst in der STAGING-Environment-Konfiguration hinterlegen. Keine Produktions-Supabase-Schlüssel.
+3. GitHub Actions für den tatsächlichen Code-Head separat nachweisen oder lokal/CI-Workflow erneut ausführen; der aktuelle Commit hat bislang keine belegten Statuschecks.
+4. Erst danach isolierte myScoutingDatabase-STAGING-Supabase-Instanz identifizieren/einrichten; Task-Ledger-Migration ausschließlich dort.
+5. Authentifizierte Chat-, SSE-, Task-Resume-, Rollen-, Provenance- und Owner-Isolation-E2E-Tests mit nicht-produktiven Testdaten durchführen.
+6. Alle 100 Fähigkeiten bleiben `partial`, bis die jeweiligen Contract- und Ende-zu-Ende-Nachweise erfüllt sind. Kein Produktions-Go-live aus diesem Stand ableiten.
+
+### Unveränderte Sicherheitsgrenzen
+- Ausschließlich `Dridi06/myScoutingDatabase` und den dedizierten STAGING-Service bearbeiten.
+- `main`, LIVE-Render, Produktions-Supabase und Produktions-Secrets unverändert lassen.
+- PFMS/PFSS nicht bearbeiten.
