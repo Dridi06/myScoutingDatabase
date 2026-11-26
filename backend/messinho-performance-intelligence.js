@@ -57,13 +57,12 @@ function round(value, digits=3) { return Number(value.toFixed(digits)); }
 export function buildMessinhoPerformanceIntelligence(input={}, goal='') {
   const measurements = {};
   const findings = [];
-  const distance = getMetric(input,['sprint_10m_distance','sprint_distance','distance','strecke']);
   const sprint10 = getMetric(input,['sprint_10m_time','10m_sprint_time','10m_zeit','10m']);
   const sprint30 = getMetric(input,['sprint_30m_time','30m_sprint_time','30m_zeit','30m']);
   const topSpeed = getMetric(input,['top_speed','max_speed','hoechstgeschwindigkeit','maximalgeschwindigkeit']);
   const jump = getMetric(input,['vertical_jump','sprunghoehe','sprunghöhe','countermovement_jump','cmj']);
   const shotSpeed = getMetric(input,['shot_speed','ball_speed','schussgeschwindigkeit','ballgeschwindigkeit']);
-  const mass = getMetric(input,['mass_kg','body_mass','koerpermasse','gewicht_kg']);
+  const ballMass = getMetric(input,['ball_mass_kg','football_mass_kg','ballmasse_kg']);
 
   if (sprint10) {
     const seconds = toSI(sprint10,'time','s');
@@ -102,12 +101,12 @@ export function buildMessinhoPerformanceIntelligence(input={}, goal='') {
       findings.push({type:'measured_physics',metric:'shot_speed',value:round(kmh,1),unit:'km/h',basis:'explizit angegebener Messwert'});
     }
   }
-  if (mass && shotSpeed) {
-    const kg = mass.value;
+  if (ballMass && shotSpeed) {
+    const kg = ballMass.value;
     const speedMs = normalizeKey(shotSpeed.unit || 'kmh') === 'kmh' ? shotSpeed.value/3.6 : shotSpeed.value;
-    if (kg > 0 && kg <= 150 && speedMs >= 0 && speedMs <= 70) {
+    if (kg > 0 && kg <= 1 && speedMs >= 0 && speedMs <= 70) {
       const energy = .5 * kg * speedMs ** 2;
-      findings.push({type:'derived_physics',metric:'body_kinetic_energy_at_shot_speed',value:round(energy,1),unit:'J',formula:'E = ½ · m · v²',basis:'Körpermasse und Schussgeschwindigkeit',interpretation:'Nur eine physikalische Modellrechnung; kein Maß für Schusskraft oder Ballenergie.'});
+      findings.push({type:'derived_physics',metric:'ball_kinetic_energy',value:round(energy,2),unit:'J',formula:'E = ½ · m · v²',basis:'explizite Ballmasse und gemessene Ballgeschwindigkeit',interpretation:'Physikalische Bewegungsenergie des Balls; kein Maß für Schusspräzision oder Torwahrscheinlichkeit.'});
     }
   }
 
