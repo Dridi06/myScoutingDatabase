@@ -2696,3 +2696,9 @@ Im nächsten Chat direkt mit Punkt 1 und 2 fortfahren: aktuellen Feature-HEAD un
 4. Test Scout role denial for the admin queue/review endpoints and cross-role isolation.
 5. Only after the first domain path passes E2E, begin the next foundational domain using exact work-level rights review. Do not add OpenStax/NC/OpenIntro/NIST/other quarantined works without the required written/verified permissions.
 6. Keep production, `main`, production Supabase, PFMS/PFSS and PR merge state untouched. PR #47 remains Draft/open/unmerged.
+
+
+### Branch-base observation after STAGING release
+- At the final checkpoint, GitHub `main` HEAD is `38780d357384c7a2473e16bfabfe949017450042`, commit message `Add bounded independent MESSINHO quality control` (2026-11-26 15:01:11Z), parent `fa0d4dfbdd779f280bb3caf44c6cc70be8dcb5b6`.
+- This `main` commit is separate from the STAGING feature work recorded above; no merge, rebase, production deploy or production database change was performed as part of this checkpoint.
+- PR #47 remains Draft/open/unmerged. Before any future merge, compare the updated `main` base with the feature branch and resolve conflicts deliberately; do not force-reset or rewrite `main`.
