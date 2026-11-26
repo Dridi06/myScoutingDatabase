@@ -7,7 +7,7 @@ const curriculum=JSON.parse(await readFile(packageUrl,'utf8'));
 
 test('technical intelligence package contains a structured 7-level concept foundation',()=>{
  assert.equal(curriculum.package_id,'messinho.technical_intelligence.foundation');
- assert.equal(curriculum.version,'2.0.0');
+ assert.equal(curriculum.version,'2.1.0');
  assert.equal(curriculum.status,'candidate_only_not_imported');
  assert.equal(curriculum.concepts.length,25);
  assert.equal(new Set(curriculum.concepts.map(x=>x.concept_key)).size,25);
@@ -44,16 +44,18 @@ test('all prerequisite references resolve and the dependency graph is acyclic',(
 });
 
 test('each concept has explanation and transfer assessments',()=>{
- assert.equal(curriculum.learning_tasks.length,50);
+ assert.equal(curriculum.learning_tasks.length,100);
  const byConcept=new Map();
  for(const task of curriculum.learning_tasks){
   assert.ok(curriculum.concepts.some(x=>x.concept_key===task.concept_key));
-  assert.ok(['explain','transfer'].includes(task.kind));
+  assert.ok(['explain','transfer','diagnose','verify'].includes(task.kind));
   byConcept.set(task.concept_key,(byConcept.get(task.concept_key)||0)+1);
   assert.ok(task.success_criteria.length>=3);
  }
  assert.equal(byConcept.size,25);
- for(const count of byConcept.values())assert.equal(count,2);
+ for(const count of byConcept.values())assert.equal(count,4);
+ assert.ok(curriculum.learning_tasks.filter(task=>task.kind==='diagnose').length===25);
+ assert.ok(curriculum.learning_tasks.filter(task=>task.kind==='verify').length===25);
 });
 
 test('rights-pending knowledge cannot be activated or executed by this package',()=>{
