@@ -3599,3 +3599,6 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Code/test commit: `92ff4e8bd3de089d30166dc9c7f42228f0c09651` (includes the unconditional exact-key retrieval patch from `e1205c5`).
 - Dedicated STAGING deployment: `dep-dc4b01bl550s738nhlug`, triggered at 22:17:41Z. Verify build/test output and LIVE status before requesting another user test.
 - No DB rows, approval states, rights, or source records were modified. No production changes. Pilot acceptance and systematic knowledge import remain blocked until a successful authenticated Admin response and subsequent Scout/tenant isolation checks.
+
+
+- Deployment verification update: `dep-dc4b01bl550s738nhlug` completed successfully at 22:18:17Z and is `LIVE` on the dedicated STAGING service. Runtime startup banner confirms service live. This deployment includes code/test commit `92ff4e8`; documentation-only follow-up is on branch HEAD.
