@@ -160,3 +160,19 @@ test('birth year alone is not treated as an exact player age', async () => {
   assert.ok(result.follow_up.required_inputs.includes('player_age'));
   assert.equal(result.follow_up.player_context.age_available, false);
 });
+
+
+test('a follow-up turn containing player data is recognized only after the VO2max clarification prompt', async () => {
+  const { isMessinhoVo2maxApplicationDataReply, buildMessinhoKnowledgeApplicationFollowUp } = await import('../backend/messinho-conversation.js');
+  assert.equal(isMessinhoVo2maxApplicationDataReply('56 ml/kg/min'), true);
+  assert.equal(isMessinhoVo2maxApplicationDataReply('Wie ist das Wetter morgen?'), false);
+  const result = buildMessinhoKnowledgeApplicationFollowUp(
+    'Wie kann ich die VO2max für die Leistungsbewertung nutzen? Der Spieler hat 56 ml/kg/min, direkt gemessen per CPET am 2026-11-26, ist 19 Jahre alt, spielt im Mittelfeld und ist Profi.',
+    { conceptKey: 'sports_science.physiology.vo2max', player: { age: 19, positions: ['Mittelfeld'], training_status: 'Profi' } }
+  );
+  assert.deepEqual(result.follow_up.required_inputs, []);
+  assert.equal(result.follow_up.status, 'ready_for_descriptive_context_only');
+  assert.equal(result.follow_up.comparative_norms_available, false);
+  assert.equal(result.follow_up.score_created, false);
+  assert.match(result.reply, /keine Normrangfolge/);
+});
