@@ -678,15 +678,18 @@ async function saveMessinhoAgentTask(ownerId,goal,plan,input,run,role){
 app.get('/api/agent/tasks',async(req,res)=>{
   try{
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    await db.from('messinho_agent_tasks').update({status:'partial',lease_until:null,updated_at:new Date().toISOString()})
+      .eq('owner_id',actor.user.id).eq('status','running').lt('lease_until',new Date().toISOString());
     const {data,error}=await db.from('messinho_agent_tasks')
       .select('id,goal,status,pending_capabilities,attempt_count,created_at,updated_at,expires_at')
-      .eq('owner_id',actor.user.id).in('status',['queued','partial','waiting_for_input'])
+      .eq('owner_id',actor.user.id).in('status',['queued','partial','running','waiting_for_input'])
       .gt('expires_at',new Date().toISOString()).order('updated_at',{ascending:false}).limit(20);
     if(error){if(error.code==='42P01')return res.json({tasks:[],persistence_ready:false});throw error;}
     return res.json({tasks:data||[],persistence_ready:true});
   }catch(error){console.error('MESSINHO task list failed:',error.message);return res.status(500).json({error:'Offene MESSINHO-Aufgaben konnten nicht geladen werden.'});}
 });
 app.post('/api/agent/tasks/:taskId/resume',async(req,res)=>{
+  let claimedTaskId=null,claimedOwnerId=null;
   try{
     const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
     const {data:task,error:loadError}=await db.from('messinho_agent_tasks').select('*')
@@ -697,6 +700,11 @@ app.post('/api/agent/tasks/:taskId/resume',async(req,res)=>{
     if(task.status==='waiting_for_input')return res.status(409).json({error:'Für diese Aufgabe fehlen Eingabedaten. Ergänze sie bitte zuerst im Chat.'});
     if(task.status!=='partial'||!Array.isArray(task.pending_capabilities)||!task.pending_capabilities.length)
       return res.status(409).json({error:'Diese Aufgabe enthält keine fortsetzbaren Arbeitsschritte.'});
+    const {data:claim,error:claimError}=await db.from('messinho_agent_tasks').update({status:'running',lease_until:new Date(Date.now()+120000).toISOString(),updated_at:new Date().toISOString()})
+      .eq('id',task.id).eq('owner_id',actor.user.id).eq('status','partial').select('id').maybeSingle();
+    if(claimError)throw claimError;
+    if(!claim)return res.status(409).json({error:'Diese Aufgabe wird bereits fortgesetzt oder wurde zwischenzeitlich geändert.'});
+    claimedTaskId=task.id;claimedOwnerId=actor.user.id;
     const pending=task.pending_capabilities.slice(0,100);
     const resumePlan={...(task.plan||{}),goal:task.goal,steps:pending.slice(0,20),deferred_capabilities:pending.slice(20),blocked_capabilities:[]};
     const cycle=executeMessinhoAgentPlan({plan:resumePlan,input:task.context||{},role:actor.profile.role});
@@ -708,7 +716,7 @@ app.post('/api/agent/tasks/:taskId/resume',async(req,res)=>{
     const status=stillPending.length?'partial':(newRun.missing_inputs?.length?'waiting_for_input':newRun.results?.some(item=>item.status==='error')?'failed':'completed');
     const {error:updateError}=await db.from('messinho_agent_tasks').update({
       status,completed_results:mergedResults.slice(0,20).map(compactMessinhoTaskResult),pending_capabilities:stillPending.slice(0,100),
-      attempt_count:(Number(task.attempt_count)||0)+1,updated_at:new Date().toISOString(),
+      attempt_count:(Number(task.attempt_count)||0)+1,updated_at:new Date().toISOString(),lease_until:null,
       last_error:newRun.results?.some(item=>item.status==='error')?'Ein oder mehrere Arbeitsschritte meldeten einen Fehler.':null
     }).eq('id',task.id).eq('owner_id',actor.user.id);
     if(updateError)throw updateError;
@@ -719,7 +727,10 @@ app.post('/api/agent/tasks/:taskId/resume',async(req,res)=>{
     return res.json({ok:true,task:{id:task.id,status,pending_capabilities:stillPending,attempt_count:(Number(task.attempt_count)||0)+1},
       reply:formatMessinhoCapabilityResults(mergedRun),agent:{state:cycle.state,validation:cycle.validation,results:mergedResults,
         completed_steps:mergedRun.completed_steps,total_steps:mergedRun.total_steps,next_action:stillPending.length?'resume_deferred_steps':status==='waiting_for_input'?'ask_user_for_missing_inputs':'report_result'}});
-  }catch(error){console.error('MESSINHO task resume failed:',error.message);return res.status(500).json({error:'Die gespeicherte Aufgabe konnte nicht fortgesetzt werden.'});}
+  }catch(error){
+    if(claimedTaskId&&claimedOwnerId)try{await db.from('messinho_agent_tasks').update({status:'partial',lease_until:null,last_error:'Fortsetzung wurde unterbrochen; erneuter Versuch ist möglich.',updated_at:new Date().toISOString()}).eq('id',claimedTaskId).eq('owner_id',claimedOwnerId).eq('status','running');}catch{}
+    console.error('MESSINHO task resume failed:',error.message);return res.status(500).json({error:'Die gespeicherte Aufgabe konnte nicht fortgesetzt werden.'});
+  }
 });
 app.get('/api/messinho/capabilities',async(req,res)=>{
   try{
