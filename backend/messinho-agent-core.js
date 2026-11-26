@@ -74,5 +74,5 @@ export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scou
  state={...state,phase,completed_at:new Date().toISOString(),elapsed_ms:Date.now()-started};
  state.trace=addEvent(state.trace,'agent_cycle_closed',{phase,elapsed_ms:state.elapsed_ms});
  return {plan,contract:autonomousPlanning.contract,observation,run:{...run,performance_intelligence:performanceIntelligence,autonomous_observation:observation,agent_core_version:MESSINHO_AGENT_CORE_VERSION,validation,
-   next_action:hasInputs?'ask_user_for_missing_inputs':hasErrors?'diagnose_and_replan':run.deferred_capabilities?.length?'resume_deferred_steps':'report_result'},state,validation};
+   next_action:hasInputs?'ask_user_for_missing_inputs':hasErrors||observation.replan_recommended?'diagnose_and_replan':run.deferred_capabilities?.length?'resume_deferred_steps':'report_result'},state,validation};
 }
