@@ -1133,7 +1133,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
   const streamingRequested=req.body?.stream===true;
   const sendAgentStreamEvent=(event,payload)=>{
     if(!res.writableEnded&&!res.destroyed&&res.headersSent)
-      res.write('event: '+event+'\\ndata: '+JSON.stringify(payload)+'\n\n');
+      res.write('event: '+event+'\ndata: '+JSON.stringify(payload)+'\n\n');
   };
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
