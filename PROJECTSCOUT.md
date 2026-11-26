@@ -3829,3 +3829,11 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Integration bleibt absichtlich blockiert, bis ein separater isolierter Sandbox-Executor ohne Netzwerk/Secrets und mit adversarialen Player-/Scout-/Tenant-Isolation-Tests implementiert und freigegeben ist.
 - Keine Supabase-Schreiboperation/Migration, kein Render-Deploy, keine Produktionsänderung und keine MESSINHO-Codeausführung.
 - Nächster Schritt: SQL-Migration nochmals fachlich gegen die tatsächlichen Staging-Tabellen/Rollen prüfen; danach separate Freigabe für Staging-Migration und sichere Secret-Konfiguration einholen. Anschließend MESSINHO-Proposal-Gate idempotent anbinden und E2E-Tests durchführen.
+
+
+### myKI — finale UI-/Copy-Korrektur und CI-Verifikation — 2026-11-27
+- Admin myKI-Kopierfunktion um Browser-Fallback für Umgebungen ohne Clipboard API ergänzt; offene Ticketanzahl zählt integrierte/gelöschte Tickets nicht mehr als offen.
+- Finaler Code-/Migrationsstand vor dieser Dokumentationsaktualisierung: `41521858dbd3324b386246f85f8af3c8c680dbeb`.
+- GitHub Actions auf exakt diesem Commit: **349 Tests bestanden, 0 fehlgeschlagen**; Backend-Syntaxprüfung erfolgreich; Staging-Branch-CI inklusive Produktionsbuild erfolgreich; Staging-Health-Smoke erfolgreich.
+- UI, Backend-API, Proposal-Validierung, SQL-Entwurf und atomare Ticket-/Audit-RPCs sind im Feature-Branch vorhanden. Es wurde kein Render-Deploy ausgeführt.
+- Verfügbarkeit bleibt von der noch nicht ausgeführten Staging-Migration und dem noch nicht gesetzten `MESSINHO_MYKI_INGEST_SECRET` abhängig. Der Proposal-Eingang ist noch nicht mit dem Live-Agenten verbunden. Integration bleibt gesperrt, bis der Sandbox-Executor unabhängig geprüft und freigegeben ist.
