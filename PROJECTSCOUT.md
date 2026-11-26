@@ -3711,3 +3711,15 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - No database writes or migrations; active concept count remains 1, candidate count 0, links 0, versions 3, reviews 1. No user/player/scouting data changed.
 - This release deploys the application code and versioned curriculum artifacts. It does **not** import the 25 concepts into Supabase, clear source rights, activate new knowledge, or enable a coding agent.
 - The prior VO2max authenticated follow-up pilot and Admin/Scout/tenant-isolation tests remain open; no user-session tests are claimed.
+
+
+## Technical source rights — EU/German TDM framework review — 2026-11-27
+- Continued from the existing technical curriculum v2; no restart and no repeated implementation work.
+- Re-read the authoritative main-branch PROJECTSCOUT for project boundaries and the current feature-branch checkpoint/rights ledger. Preserved the explicit staging-only rule; no production, main, PFMS/PFSS or Supabase mutation.
+- Verified the exact 17 unique URLs referenced by the v2 technical curriculum package. The earlier rights ledger covered source families but had not yet documented the EU/German TDM framework or several content-license distinctions.
+- Expanded docs/MESSINHO_TECHNICAL_SOURCE_RIGHTS_REVIEW.md with a dated framework analysis of DSM Directive (EU) 2019/790 Articles 3–4, the limited applicability of AI Act Article 53(1)(c), the distinction between facts and protected expression/database extraction, and the need to record machine-readable rights reservations.
+- Added interim source findings: React's own docs repository README identifies submitted react.dev content as CC BY 4.0; the archived TypeScript handbook license cannot automatically be applied to the current migrated handbook; Node.js project MIT licensing does not itself prove the Learn prose license; Git Book exact-edition rights remain unverified. Python/PostgreSQL permissions remain promising but require exact-edition, notice, provenance and TDM checks; MDN and OWASP ShareAlike obligations remain unresolved; NIST non-US/authorship caveats remain unresolved.
+- No technical source is newly allowlisted. The four existing rights-registry entries are unchanged. All 17 technical URLs remain pending; no candidate concepts imported or activated.
+- Documentation commit: d16618867d2b3fcc04f3fcc01bb9f9e4b3368560.
+- This is a legal/technical research record, not a legal opinion or final rights clearance. The candidate package remains blocked from ingestion until exact-work review, rights evidence, independent claim corroboration, prerequisites and Admin approval are complete.
+- Next: inspect current source repositories and exact content-license files for Python, PostgreSQL, React, TypeScript, Node.js and Git Book; record exact commit/tag/page snapshots and attribution conditions. Prioritize a narrow, clearly licensed source set and avoid ShareAlike materials unless the distribution implications are resolved. Then build source-specific tests before any allowlist change.
