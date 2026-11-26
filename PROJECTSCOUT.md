@@ -660,3 +660,57 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - Tests: 98/98 im verifizierten CI-Lauf bestanden.
 - Browser-/manueller End-to-End-Test der Benutzeroberfläche und aller 100 Fähigkeiten: nicht durchgeführt.
 - Nächster Startpunkt: Schritt 1 — Live-API/Admin-Diagnose prüfen, danach Fallback-Verträge systematisch aufarbeiten.
+
+
+## 19. Session checkpoint — 2026-11-26 — Vollständige interne Fähigkeitsintegration (100/100 Speziallogik)
+
+### Branch / Review / Commit
+- Arbeitsbranch: `feature/messinho-unified-capability-agent`
+- Pull Request: #45 — `MESSINHO: integrate full capability catalogue into autonomous planning`
+- PR URL: https://github.com/Dridi06/myScoutingDatabase/pull/45
+- Letzter Implementierungscommit vor diesem Dokumentationscheckpoint: `5a812b5a4992b045b8bf58f9b3e6742caa4c4712`
+- Die Änderungen befinden sich bis zum Merge ausschließlich im Feature-Branch; keine direkte Änderung an `main` und kein Render-Produktivdeploy durch diesen Feature-Branch.
+
+### Fähigkeits-Runtime
+- Alle 100 Katalogfähigkeiten sind registriert und besitzen eine explizite Speziallogik.
+- Runtime-Zählung: 100/100 dispatch-registriert, 100/100 Speziallogik, 0 generische Fallbacks, 0 undokumentierte Kataloglücken.
+- Die vormals 29 generischen Fallback-Fälle wurden mit fachbezogenen Handlern ergänzt:
+  - Technische, taktische, athletische, mentale und Torwart-Bewertung.
+  - Verifizierte Scout-Feedback-Auswertung.
+  - Kontrollierte Lern-/Segmentanalysen (u. a. Position, Altersgruppe, Liga, Land, Talentpfad, Positionswechsel und Verfügbarkeit).
+  - Talentsuche, internationale und ligaübergreifende Auswertung, Jugendtalente, Underdogs und Hidden Gems.
+  - Vereins-, Kader-, Statistik-, Spielbericht-, Kaderbedarfs- und Vergleichsspieler-Recherche.
+- Recherche-Handler werten übergebene Kandidaten- und ASI-Quellenpakete aus. Sie behaupten keine externe Live-Suche, wenn kein Provider-Ergebnis vorliegt.
+- Lernfunktionen werten ausschließlich verifizierte Eingaben aus. Scout-Feedback wird deskriptiv ausgewertet. Lernvorschläge ändern keine aktiven Modellgewichte und trainieren kein Modell automatisch.
+- Runtime-Katalog und Diagnose unterscheiden weiterhin Speziallogik von Ende-zu-Ende-Verifikation. `completion_verified_count` bleibt bewusst 0, bis jede Fähigkeit mit echten Integrations-/Datenpfaden geprüft wurde.
+
+### Autonome interne Integration
+- Der Planner durchsucht den vollständigen 100er-Katalog anhand deutscher und englischer Fachbegriffe sowie exakter natürlicher Fähigkeitsnamen.
+- Alle 100 Katalogeinträge wurden durch einen automatisierten Test anhand ihres natürlichen Namens erfolgreich entdeckt.
+- Die bisher sechs Intent-Vorlagen bleiben kompatibel; zusätzliche Katalogtreffer werden kombiniert, dedupliziert und in definierter Reihenfolge geplant.
+- Explizite Abhängigkeiten werden vor der Ausführung aufgelöst; Ausführungsplan ist auf 20 Schritte begrenzt.
+- Admin-geschützte Lern- und Modellprüfungen bleiben für Nicht-Administratoren gesperrt, auch wenn der Planner sie als relevante Fähigkeiten erkennt.
+- Vorherige Arbeitsergebnisse werden als nicht vertrauenswürdiger Kontext an Folgeschritte weitergegeben. Sie werden nicht automatisch zu verifizierten Quellen, Spielerkennzahlen oder Trainingsresultaten hochgestuft.
+- Fehlende Eingaben, blockierte und zurückgestellte Schritte werden sichtbar ausgewiesen. Bei fehlenden Daten oder Fehlern wird eine erneute Planprüfung empfohlen; unbelegte Ergebnisse werden nicht als erledigt ausgegeben.
+- Die Kernlogik bleibt provider-unabhängig; OpenAI ist keine Voraussetzung für die interne Fähigkeitsauswahl und -ausführung.
+
+### Tests und Build — verifizierter Stand
+- GitHub Actions Commit: `5a812b5a4992b045b8bf58f9b3e6742caa4c4712`
+- MESSINHO Node Tests: `45732685599` — completed/success, 108/108 Tests bestanden.
+- MESSINHO Validation: `45732685637` — completed/success, Tests und Frontend-Build erfolgreich.
+- ASI Quality Checks: `45732685730` — completed/success, ASI-Tests und Frontend-Build erfolgreich.
+- Zusätzliche Regressionstests decken 100er-Namensentdeckung, Berechtigungsschutz, alle 29 ehemals generischen Fähigkeiten, unveränderte Quelldaten, fehlende Eingaben, Kandidatenfilter, Kaderbedarf und nicht-mutierendes Lernen ab.
+
+### Sicherheitsgrenzen / offene Verifikation
+- Keine Supabase-Migration, kein Datenbank-Schreibzugriff und keine Änderung an Nutzer-, Scout-, Spieler- oder Lerndaten.
+- Keine Änderung aktiver Modellgewichte und kein automatisches Training.
+- Keine Aussage, dass alle 100 Fähigkeiten bereits Ende-zu-Ende mit produktiven Daten und externen Providern verifiziert wurden.
+- Vor Livegang: PR prüfen/mergen, Render-Deploy-ID und Status kontrollieren, Live-API-/Admin-Diagnose nur lesend verifizieren. Danach gezielte UI-/API-Smoke-Tests mit Testdaten durchführen.
+- PFMS/PFSS bleiben ausdrücklich außerhalb dieses Projekts.
+
+### Nächster Startpunkt
+1. Diesen Dokumentationscheckpoint in den Feature-Branch übernehmen und CI erneut abwarten.
+2. PR #45 nach erfolgreicher Prüfung freigeben und gemäß Projektfreigabe integrieren.
+3. Render-Deployment überwachen; erst bei Status `live` und passender Commit-SHA als live melden.
+4. Anschließend Live-API/Admin-Diagnose und die wichtigsten natürlichen MESSINHO-Anfragen mit nicht-produktiven Testdaten prüfen.
+5. Danach die Ende-zu-Ende-Verifikation der 100 Fähigkeiten schrittweise ergänzen; Completion-Zähler erst nach realen Tests erhöhen.
