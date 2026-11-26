@@ -284,7 +284,6 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
           aria-describedby="messinho-composer-hint"
           disabled={false}
         />
-        <span id="messinho-composer-hint" className="messinho-composer-hint">Zeilenumbruch mit Enter · Senden nur über den Pfeil</span>
         <button type="button" className="messinho-send" disabled={busy||!draft.trim()} onClick={()=>send()} aria-label="Nachricht senden" title="Nachricht senden"><Send size={18}/></button>
       </div>
     </section>
