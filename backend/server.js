@@ -16,6 +16,7 @@ import { getMessinhoCapabilityCatalog, getMessinhoCapabilitySummary } from './me
 import { executeMessinhoCapability, listExecutableMessinhoCapabilities, getMessinhoRuntimeSummary } from './messinho-capability-runtime.js';
 import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainableAssessment, generateMessinhoHypotheses } from './messinho-development.js';
 import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './messinho-research.js';
+import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -1477,6 +1478,37 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const {data,error}=await db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status,researched_at').eq('owner_id',ownerId).order('researched_at',{ascending:false}).limit(12);
       if(error)return res.status(500).json({error:'Deine Kandidaten konnten nicht geladen werden.'});
       return respond({reply:(data||[]).length?'Ich habe deine zuletzt recherchierten Kandidaten geladen.':'In deinem persönlichen Kandidatenbereich sind noch keine Einträge vorhanden.',intent:'candidates',items:data||[]});
+    }
+    const automaticPlan=planMessinhoCapabilities(interpretedMessage,profile.role);
+    if(automaticPlan){
+      if(automaticPlan.denied)return respond({reply:formatMessinhoCapabilityResults({status:'denied'}),intent:'capability_access_denied',items:[]});
+      const planSearchTerm=extractMessinhoPlayerSearchTerm(interpretedMessage);
+      let player=null,players=[];
+      if(planSearchTerm){
+        const safeName=planSearchTerm.replace(/[%,_()]/g,' ').trim();
+        const query=scopeMessinhoOwner(db.from('players').select('*').ilike('name','%'+safeName+'%').limit(5),actor);
+        const found=await query;
+        if(found.error)return res.status(500).json({error:'Die Daten für die automatische MESSINHO-Analyse konnten nicht geladen werden.'});
+        players=found.data||[];
+        player=players[0]||null;
+        if(!player){
+          const candidates=await db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status,analysis,sources,researched_at').eq('owner_id',ownerId).ilike('player_name','%'+safeName+'%').limit(5);
+          if(candidates.error)return res.status(500).json({error:'Die Kandidatendaten konnten nicht geladen werden.'});
+          players=candidates.data||[];
+          player=players[0]||null;
+        }
+      }
+      if(!player&&/vergleich|vergleiche|gegenüberstellen/i.test(interpretedMessage)){
+        const candidates=await db.from('asi_player_candidates').select('id,player_name,birth_year,nationality,current_club,positions,recommendation,status,analysis,sources,researched_at').eq('owner_id',ownerId).order('researched_at',{ascending:false}).limit(50);
+        if(candidates.error)return res.status(500).json({error:'Die Kandidaten für den automatischen Vergleich konnten nicht geladen werden.'});
+        players=candidates.data||[];
+        player=players[0]||null;
+      }
+      if(!player)return respond({reply:'Ich kann die passende Funktion automatisch ausführen. Dafür benötige ich noch einen konkreten Spieler oder ausreichend zugeordnete Kandidatendaten. Bitte nenne den Spielernamen oder starte eine Spielersuche.',intent:'capability_clarification',pending:true,items:[],planned_capabilities:automaticPlan.steps});
+      const activeModel=await getActiveMessinhoModel();
+      const run=runMessinhoCapabilityPlan(automaticPlan,{player,players:players.length?players:[player],model_profiles:activeModel?.configuration?.profiles||null,sources:Array.isArray(player.sources)?player.sources:[],claims:[]},profile.role);
+      const reply=formatMessinhoCapabilityResults(run,player.name||player.player_name||null);
+      return respond({reply,intent:'automatic_capability_orchestration',items:players.map(p=>({id:p.player_id||p.id,name:p.name||p.player_name,club:p.club||p.current_club,positions:p.positions||[]})),orchestration:{label:run.label,status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,provider_independent:true,model_weights_changed:false},capability_results:profile.role==='admin'?run.results:undefined});
     }
     const searchTerm=extractMessinhoPlayerSearchTerm(interpretedMessage);
     if(searchTerm){
