@@ -1,20 +1,11 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {BrainCircuit,Send,Mic,MicOff,Volume2,VolumeX,ShieldCheck,Database,Search,Users,MessageCircle,Clock3,LoaderCircle} from 'lucide-react';
+import {BrainCircuit,Send,ShieldCheck,Database,Search,Users,MessageCircle,Clock3,LoaderCircle} from 'lucide-react';
 import './messinho.css';
 
-const suggestions=[
-  'Gib mir eine Übersicht über meinen Datenbestand.',
-  'Zeige meine gespeicherten Kandidaten.',
-  'Vergleiche meine Kandidaten und erstelle eine Rangliste.',
-  'Suche Spieler Müller.'
-];
 export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},compact=false}){
   const [messages,setMessages]=useState([{id:'welcome',role:'assistant',text:'Hallo! Ich bin Messinho, dein Scouting-Agent. Ich kann zunächst deinen Datenbestand auswerten, gespeicherte Kandidaten anzeigen und Spieler im vorhandenen Katalog suchen. Deine verifizierten Kalibrierungsdaten helfen, die Bewertungslogik kontrolliert zu verbessern.'}]);
   const [draft,setDraft]=useState('');
   const [busy,setBusy]=useState(false);
-  const [listening,setListening]=useState(false);
-  const [voiceOutput,setVoiceOutput]=useState(true);
-  const [voiceAvailable,setVoiceAvailable]=useState(false);
   const [error,setError]=useState('');
   const [learningPlayers,setLearningPlayers]=useState([]);
   const [selectedLearningPlayer,setSelectedLearningPlayer]=useState('');
@@ -39,26 +30,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   const [outcomeDrafts,setOutcomeDrafts]=useState({});
   const [matchEventsText,setMatchEventsText]=useState('');
   const messagesRef=useRef(null);
-  const recognitionRef=useRef(null);
-  useEffect(()=>{
-    const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-    setVoiceAvailable(Boolean(SpeechRecognition));
-    if(!SpeechRecognition)return;
-    const recognition=new SpeechRecognition();
-    recognition.lang='de-DE';recognition.interimResults=false;recognition.maxAlternatives=1;
-    recognition.onresult=e=>{const transcript=e.results?.[0]?.[0]?.transcript||'';setDraft(v=>v? v+' '+transcript:transcript);setListening(false);};
-    recognition.onerror=()=>setListening(false);
-    recognition.onend=()=>setListening(false);
-    recognitionRef.current=recognition;
-    return()=>{try{recognition.stop()}catch{};recognitionRef.current=null};
-  },[]);
   useEffect(()=>{const container=messagesRef.current;if(!container)return;container.scrollTop=container.scrollHeight;},[messages,busy]);
-  function speak(text){
-    if(!voiceOutput||!('speechSynthesis' in window))return;
-    window.speechSynthesis.cancel();
-    const utterance=new SpeechSynthesisUtterance(text);
-    utterance.lang='de-DE';utterance.rate=1;window.speechSynthesis.speak(utterance);
-  }
   async function send(text=draft){
     const value=String(text||'').trim();
     if(!value||busy)return;
@@ -72,16 +44,9 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       const payload=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(payload.error||'Messinho konnte nicht antworten.');
       const next={id:'a-'+Date.now(),role:'assistant',text:payload.reply||'Ich habe die Anfrage verarbeitet.',intent:payload.intent,items:Array.isArray(payload.items)?payload.items:[],metrics:payload.metrics||null,researchContext:payload.researchContext||((payload.sources?.length||payload.profile)?{player:payload.player||null,profile:payload.profile||null,sources:payload.sources||[],researched_at:payload.researched_at||null}:null),correction:payload.input_correction?.applied?payload.input_correction:null};
-      setMessages(prev=>[...prev,next]);speak(next.text);
+      setMessages(prev=>[...prev,next]);
     }catch(e){setError(e.message||'Verbindung zu Messinho fehlgeschlagen.');}
     finally{setBusy(false);}
-  }
-  function toggleMic(){
-    const recognition=recognitionRef.current;
-    if(!recognition){setError('Sprach-zu-Text wird von diesem Browser nicht unterstützt. Du kannst Messinho weiterhin per Texteingabe nutzen.');return;}
-    if(listening){recognition.stop();setListening(false);return;}
-    setError('');
-    try{recognition.start();setListening(true);}catch{setListening(false);setError('Das Mikrofon konnte nicht gestartet werden. Bitte prüfe die Browserberechtigung.');}
   }
 
   
@@ -301,19 +266,16 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       {capabilityOutput&&<div className="messinho-capability-result"><strong>{capabilityOutput.name||capabilityOutput.capability_id} · {capabilityOutput.status}</strong><pre>{JSON.stringify(capabilityOutput.result??capabilityOutput,null,2)}</pre></div>}
     </section>
     <section className="messinho-chat-card">
-      <div className="messinho-chat-heading"><div><span>SCOUTING CONVERSATION</span><h2>Sprich mit Messinho</h2></div><button type="button" className="messinho-voice-toggle" onClick={()=>{setVoiceOutput(v=>!v);if(voiceOutput&&'speechSynthesis'in window)window.speechSynthesis.cancel();}} title={voiceOutput?'Sprachausgabe ausschalten':'Sprachausgabe einschalten'}>{voiceOutput?<Volume2 size={17}/>:<VolumeX size={17}/>}<span>{voiceOutput?'Sprache an':'Sprache aus'}</span></button></div>
+      <div className="messinho-chat-heading"><div><span>SCOUTING CONVERSATION</span><h2>Sprich mit Messinho</h2></div></div>
       <div className="messinho-messages" ref={messagesRef} aria-live="polite">
         {messages.map(message=><article key={message.id} className={'messinho-message '+message.role}><div className="messinho-avatar">{message.role==='assistant'?<BrainCircuit size={17}/>:<MessageCircle size={16}/>}</div><div className="messinho-bubble"><small>{message.role==='assistant'?'MESSINHO':'DU'}</small><p>{message.text}</p>{message.correction?.corrected&&<small className="messinho-correction-note">Sprachlich verstanden als: „{message.correction.corrected}“</small>}{message.metrics&&<div className="messinho-metrics"><span>{message.metrics.players} Spieler im Katalog</span><span>{message.metrics.candidates} eigene Kandidaten</span></div>}{renderItems(message.items)}</div></article>)}
         {busy&&<div className="messinho-thinking"><LoaderCircle className="messinho-spin" size={17}/> Messinho verarbeitet deine Anfrage …</div>}
       </div>
       {error&&<p className="messinho-error" role="alert">{error}</p>}
-      <div className="messinho-suggestions">{suggestions.map(s=><button type="button" key={s} disabled={busy} onClick={()=>send(s)}>{s}</button>)}</div>
       <form className="messinho-composer" onSubmit={e=>{e.preventDefault();send();}}>
-        <button type="button" className={'messinho-mic '+(listening?'active':'')} onClick={toggleMic} aria-label={listening?'Aufnahme beenden':'Spracheingabe starten'} title={voiceAvailable?'Spracheingabe': 'Spracherkennung in diesem Browser nicht verfügbar'}>{listening?<MicOff size={19}/>:<Mic size={19}/>}</button>
-        <input value={draft} onChange={e=>setDraft(e.target.value)} placeholder={listening?'Ich höre zu …':'Schreibe oder sprich mit Messinho …'} maxLength={1200} aria-label="Nachricht an Messinho"/>
+        <input value={draft} onChange={e=>setDraft(e.target.value)} placeholder="Schreibe deine Nachricht an Messinho …" maxLength={1200} aria-label="Nachricht an Messinho"/>
         <button type="submit" className="messinho-send" disabled={busy||!draft.trim()} aria-label="Nachricht senden"><Send size={18}/></button>
       </form>
-      <p className="messinho-footnote">Sprachfunktionen hängen vom Browser ab. Mikrofonzugriff wird nur nach deiner Aktivierung angefragt.</p>
     </section>
     {!compact&&<aside className="messinho-roadmap"><strong>Ausbaustufen</strong><span><b>Jetzt:</b> Datenbankabfragen und Chatoberfläche</span><span><b>Als Nächstes:</b> eigene Rechercheplanung und rechtlich freigegebene Quellen</span><span><b>Aktiv:</b> Scout-Feedback, Modell-Evaluation und Admin-Freigabe vor Aktivierung</span></aside>}
   </div>;
