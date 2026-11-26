@@ -521,3 +521,36 @@ Correct runtime reporting and diagnostic wording before expanding the planner:
 4. Make the admin diagnostic report specialist coverage and generic fallbacks instead of only `all_registered`.
 5. Run the complete Node test suite; Render's normal production build does not run `npm test`.
 
+
+
+## 16. Mandatory automatic checkpoint protocol — binding owner instruction — 2026-11-26
+
+**Whenever a development stream is interrupted, paused, handed off, or is about to end, the current project state must first be saved to this GitHub file `PROJECTSCOUT.md` on `main`.** Do not rely on chat history as the only record.
+
+This is a mandatory step for every future `myScoutingDatabase` work session:
+
+1. Record the exact current GitHub `main` commit and all commits made during the work session.
+2. Record the exact Render production deployment ID, commit SHA, and verified deployment status. Distinguish `live`, `build_in_progress`, `update_in_progress`, `failed`, and `deactivated`. Never call a deployment live until Render confirms it.
+3. Record what was actually changed, including files/modules and relevant behavior. Separate completed work from planned or partially implemented work.
+4. Record verification evidence: tests actually executed and their outcomes, build logs, startup/health checks, and any checks not performed. Never describe committed tests as passed unless they were executed.
+5. Record open defects, risks, incomplete work, permission/security boundaries, and any changes that must not be repeated.
+6. Record the exact next technical action, including the files/functions to inspect and the reason for the next step.
+7. Record whether database/schema or user data was changed. State explicitly when there was no data/schema impact.
+8. Update the implementation status table and append a dated checkpoint/change-log entry. Keep previous history; do not overwrite or erase earlier decisions.
+9. Fetch/re-read the saved file after committing the checkpoint to verify it is present on GitHub.
+10. Only then report the handoff/interruption status to the user.
+
+**Checkpoint timing:** Save after every meaningful implementation/deployment unit, not only at the end of a long session. If the stream unexpectedly stops, the most recent completed unit must already have a checkpoint. If a final save itself cannot be completed, state that clearly and provide the exact unsaved state rather than claiming it was saved.
+
+**Project boundaries remain binding:** work only in `myScoutingDatabase`; do not modify PFMS/PFSS. Production changes must be accurately labelled and verified. Never claim future background monitoring or autonomous GitHub writes when no such process is running; this protocol is executed as part of each active development stream.
+
+### Checkpoint — 2026-11-26 — owner requested automatic save on interruption
+
+- **Request:** Whenever a stream is interrupted, automatically save the latest development state in this `PROJECTSCOUT.md` file in GitHub.
+- **Decision:** Accepted as a mandatory development/handoff protocol for all subsequent work on `myScoutingDatabase`.
+- **Current latest production deployment at checkpoint time:** commit `af9f1c7ef84b04d4c02bcec45e4ff6485cf979f9`, deployment `dep-dc3o1bt9el5s73ai2b0g`, Render status `live`.
+- **Most recent verified implementation:** Manual single-capability execution is disabled (HTTP 410); capability catalogue is admin-only; multi-intent planning is live for a limited set of goal areas; manual function selector is removed.
+- **Current known audit findings:** 100 catalogue IDs; 100 broad dispatch-set entries; 71 distinct explicit ID branches in source, one unreachable `seasonal_learning` branch, leaving 70 reachable explicit branches and 30 generic fallbacks. These are source audit counts, not end-to-end test results. Runtime reporting still overstates specialist coverage.
+- **Tests:** Seven orchestrator test cases were committed; execution has not yet been verified. Render's production build is not a substitute for `npm test`.
+- **Data/schema impact:** None in the changes recorded above.
+- **Next action:** Correct runtime coverage reporting, fix and test the unreachable seasonal-learning dispatch, then run the complete Node test suite before expanding all 100 skills.
