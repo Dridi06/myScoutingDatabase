@@ -692,16 +692,17 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - Club research requires actual source evidence and cannot report completion from a club name alone.
 
 ### Verification
-- Current tested feature head `7a8f30849b60a10ff2ae103cf2a591cce1c212b2`:
-  - MESSINHO Node tests: **135 passed, 0 failed**.
+- Current tested feature head `4948cca8d96e8aa8be7a64f6ab0190ae92831c38`:
+  - MESSINHO Node tests: **136 passed, 0 failed**.
   - MESSINHO validation: success, including frontend build.
   - ASI quality checks: success, including frontend build.
 - Loader tests verify that scout reads carry the authenticated `owner_id`, admin reads follow the existing admin path, candidate evidence is scoped, and global source registry metadata is handled separately.
+- Failure-path tests verify that an owner-scoped context read error aborts loading rather than returning a partial or misleading context.
 - No Supabase migrations, database writes, user/scout/player data changes, training writes or active model-weight changes were made.
 - All new data reads are read-only. No capability is end-to-end verified merely because specialist logic is registered.
 
 ### Next steps
-1. Confirm the exact staging Render service and staging Supabase project references before any deployment. Do not use the main Render service or production data for smoke tests.
+1. The dedicated Render staging service is `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`), linked to `feature/messinho-agent-workspace` with auto-deploy disabled. The connected Supabase account currently exposes only one active project named `myScoutingDatabase` (`vxtybjaabtfhxfwctnyj`); no separate staging database is available in the current project list. Do not run staging smoke tests against this shared/uncertain database or use the main Render service.
 2. Run staging-only API smoke tests with a dedicated non-production account and test players; verify owner scoping, evidence trust, license checks, natural-language filters and actual per-capability results.
 3. Continue capability-by-capability end-to-end tests and only then raise `completion_verified_count`.
 4. Keep PR #46 open and isolated until staging verification is complete and rollout is explicitly approved.
