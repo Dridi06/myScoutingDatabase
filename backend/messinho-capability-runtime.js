@@ -355,12 +355,19 @@ function researchHandler(id,input){
  const sources=sourceBundle(input),now=input.now||Date.now();
  const candidates=asArray(input.candidates||input.players).filter(item=>item&&typeof item==='object');
  if(id==='automated_talent_search'){
-   const criteria=input.filters||input.criteria||{},filtered=candidates.filter(candidate=>{
-     const age=finite(candidate.age)??(finite(candidate.birth_year)!==null?new Date(now).getFullYear()-finite(candidate.birth_year):null);
+   const criteria=input.filters||input.criteria||{};
+   const hasCriteria=Boolean(criteria.position||finite(criteria.max_age)!==null||finite(criteria.min_age)!==null||
+     finite(criteria.birth_year_from)!==null||finite(criteria.birth_year_to)!==null);
+   if(!hasCriteria)return missingResult(id,['search_filters'],'Bitte nenne mindestens eine Position, Altersgrenze oder einen Jahrgangsbereich.');
+   const filtered=candidates.filter(candidate=>{
+     const birth=finite(candidate.birth_year??candidate.year);
+     const age=finite(candidate.age)??(birth!==null?new Date(now).getFullYear()-birth:null);
      const positions=asArray(candidate.positions||candidate.position).map(norm);
      if(criteria.position&&!positions.some(position=>position.includes(norm(criteria.position))))return false;
      if(finite(criteria.max_age)!==null&&(age===null||age>finite(criteria.max_age)))return false;
      if(finite(criteria.min_age)!==null&&(age===null||age<finite(criteria.min_age)))return false;
+     if(finite(criteria.birth_year_from)!==null&&(birth===null||birth<finite(criteria.birth_year_from)))return false;
+     if(finite(criteria.birth_year_to)!==null&&(birth===null||birth>finite(criteria.birth_year_to)))return false;
      return true;
    }).map(candidate=>({player:playerName(candidate),id:candidate.player_id??candidate.id??null,positions:candidate.positions||candidate.position||[],score:scoreMessinhoPlayer(candidate).score,coverage:profileScores(candidate).coverage}));
    filtered.sort((a,b)=>(b.score??-1)-(a.score??-1));
