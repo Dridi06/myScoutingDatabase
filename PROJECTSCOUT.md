@@ -3130,3 +3130,37 @@ GitHub Action run `45888336042` completed successfully on commit `685cbbc82836b5
 - Knowledge tables remain unpopulated until a real candidate is created and reviewed. Do not mark the first knowledge pilot passed based only on source retrieval.
 - Next action: sign in to STAGING as an existing approved Admin, ask `Was ist VO₂max?`, confirm candidate creation and two-source evidence, approve it in Admin review, then verify retrieval in a fresh chat without external research.
 - Preserve all role and organization boundaries; do not seed the database with synthetic test records.
+
+
+## VO2max candidate verified in STAGING database + UI terminology clarification — 2026-11-26
+
+### Direct database verification
+- Supabase project: `myScoutingDatabase-staging` (`nwqwnrhupbyhshsprxjt`).
+- Confirmed exactly one row in `public.messinho_knowledge_concepts` for the foundation pilot:
+  - ID: `bad81917-fbf7-490d-9bde-ecf227dc6ae7`
+  - key: `sports_science.physiology.vo2max`
+  - title: `VO₂max (maximale Sauerstoffaufnahme)`
+  - status: `candidate` (inactive; not approved)
+  - version: 1
+  - sources: 2
+  - rights status: `verified_permitted`, `ai_tdm=true`
+  - created: `2026-11-26 20:13:53+00`
+- `messinho_knowledge_concepts` row count is 1; `messinho_knowledge_versions` row count is 1; `messinho_knowledge_reviews` remains 0.
+- This proves candidate creation and durable persistence worked. It is not yet approved/active.
+
+### Screenshot interpretation
+- The UI text `Noch keine Kandidaten gespeichert.` comes from `src/asi/PlayerSearchWorkspace.jsx`, where the component queries `asi_player_candidates`.
+- That is the separate **player scouting pipeline**, not the MESSINHO foundational knowledge candidate queue.
+- The knowledge review panel is a separate Admin-only component in `src/asi/MessinhoKnowledgeReviewPanel.jsx`, nested under the collapsed `Hilfe, Erklärungen & Agentenfunktionen` section in `src/asi/MessinhoWorkspace.jsx`. It queries `/api/messinho/knowledge-concepts?status=candidate&limit=50`, which reads the same table where the VO₂max candidate was confirmed.
+- No data loss or candidate-persistence defect is indicated by the screenshot. The problem was ambiguous UI terminology.
+
+### UI clarification committed to STAGING feature branch
+- Changed player pipeline label to `Gespeicherte Spieler-Kandidaten`.
+- Empty state now explains that it contains researched player profiles only and directs Admins to `MESSINHO · Wissensprüfung` for foundational knowledge.
+- No database records were changed or deleted.
+
+### Next required validation
+- Open `Hilfe, Erklärungen & Agentenfunktionen` in the Admin MESSINHO workspace.
+- Open `MESSINHO · Wissensprüfung`; confirm VO₂max appears with status `candidate` and two sources.
+- Admin must independently review and explicitly approve or reject it. Do not auto-approve.
+- After approval, verify status `active` and test knowledge retrieval in a fresh chat.
