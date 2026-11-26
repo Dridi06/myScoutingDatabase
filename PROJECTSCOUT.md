@@ -3270,3 +3270,12 @@ GitHub Action run `45888336042` completed successfully on commit `685cbbc82836b5
 - Second question must apply stored applicability and limitations. If no player measurement is provided, ask for the measured value and test modality; do not fabricate values.
 - External research must show only topic-relevant sources. If relevant independent evidence is insufficient, state that clearly instead of showing unrelated links.
 - Production remains untouched. Only `feature/messinho-unified-ai-integration` and the dedicated MESSINHO staging service are in scope.
+
+
+### Final deployment confirmation — 2026-11-26 21:51 UTC
+- Latest branch commit: `913837e0e0ef969ee73c252cc50f49a9890c03bc` (includes the tested code commit `681ed1c8f356b3c200442c632de3357174dd5e0a) plus this checkpoint.
+- Render staging deployment `dep-dc49msuc6qcc73cthod0`: **LIVE**.
+- Render app startup confirmed: `npm start`, `node backend/server.js`, Supabase server credentials present, API listening on port 10000, Tavily and OpenAI configured.
+- Latest GitHub checks for the final branch commit: Node tests **success**, backend syntax **success**, staging branch CI/build **success**, staging health smoke test **success**.
+- Test count on the exact application-code commit: **319 passed, 0 failed**.
+- This is still a code-level correction with automated CI and staging health verification. The two real Admin chat questions have not yet been re-run by the user after this deployment, so end-to-end conversational acceptance remains pending.
