@@ -822,6 +822,15 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - Moved seasonal comparison into the learning dispatch path; it compares supplied season metrics without training or changing weights.
 - Corrected capability diagnostics to distinguish dispatch from specialist logic and generic fallback. Specialist handlers are marked `partial`, not fully verified.
 - **Tests added:** lifecycle, clarification, duplicate/missing result validation and budget visibility.
-- **Verification:** Pending GitHub Actions after commit. No database integration test is claimed without separate staging credentials. Render staging deployment was not triggered.
+- **Verification:** GitHub Actions passed on commit `dc3435a416b5b82ed9d6ef545d177c231aa469a1`: both staging validation workflows completed the Node test suite and frontend build successfully. No database integration test is claimed without separate staging credentials. Render staging deployment was not triggered.
 - **Known limitations:** Generic fallback capabilities still need specialist handlers. Durable resumable task ledger, SSE streaming, semantic vector retrieval, complete claim-level provenance, and isolated self-evolving code sandbox remain future work.
-- **Next actions:** inspect CI; fix regressions; continue specialist handler coverage and persistent task ledger.
+- **Next actions:** configure separate staging-only Supabase credentials when available; perform authenticated staging integration tests; continue the remaining 24 generic fallback handlers, durable resumable task ledger, streaming, provenance and isolated skill evolution.
+
+
+### Verification update — 2026-11-26
+- **Latest code commit tested:** `dc3435a416b5b82ed9d6ef545d177c231aa469a1`
+- **GitHub Actions:** both staging workflows passed; `npm test` and `npm run build` succeeded.
+- **CI correction:** removed the npm cache option from the workflow because this branch intentionally has no lockfile; dependency installation now runs without a cache-lockfile prerequisite.
+- **Planner correction:** natural German phrases `Erkläre die Bewertung` and `erstelle ein Spielerprofil` now resolve to the relevant skills and their dependencies; the regression test passes.
+- **Render staging:** service `myscoutingdatabase-messinho-staging` remains on `feature/messinho-agent-workspace`, with auto-deploy disabled. No staging deployment was triggered.
+- **LIVE:** production branch/service and production secrets were not changed.
