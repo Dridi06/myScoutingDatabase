@@ -1255,3 +1255,17 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 3. Verify the staging Render service is still pinned to `feature/messinho-unified-ai-integration`, then deploy only that service.
 4. Run staging health and authenticated end-to-end tests with a permitted test account.
 5. Design a separate owner-scoped knowledge store with explicit provenance, freshness, review state, retention limits, and RLS before any durable general-knowledge learning is enabled.
+
+
+### STAGING deployment verification — 2026-11-26
+
+- Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`).
+- Configured branch verified: `feature/messinho-unified-ai-integration`; auto-deploy remains disabled.
+- Deployed commit: `023a176c4107a29f33b3cb1e5da15cfcc171f722`.
+- Render deployment: `dep-dc3s45h7lnhs73elqnq0`, status **live**, completed `2026-11-26T05:23:03Z`.
+- Build command completed successfully; Vite reported 1,636 modules transformed and build completed.
+- Runtime log confirms `node backend/server.js` started and API is listening on port 10000.
+- Runtime log confirms Tavily and OpenAI configuration are present (secret values were not exposed) and Supabase Data API returned HTTP 200.
+- Local isolated test execution of the six new general-research tests: **6/6 passed**.
+- Full repository Node suite was not rerun in this verification; GitHub combined status did not report checks for the tested commit. Authenticated end-to-end chat test was not possible because no dedicated staging Scout test account was confirmed.
+- The deployment is **STAGING only**. Production remains unchanged.
