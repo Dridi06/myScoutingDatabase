@@ -43,7 +43,7 @@ export function buildMessinhoKnowledgeConcept(input={},now=new Date()){
  const conceptKey=clean(input.concept_key,160)||[domain,slug(topic),slug(title)].filter(Boolean).join('.');
  if(!/^[a-z0-9][a-z0-9._:-]{2,159}$/.test(conceptKey))return {eligible:false,reason:'invalid_concept_key'};
  const nowIso=new Date(now).toISOString();
- const sourceRights=rightsList.map(rights=>({source_id:rights.source_id,license:clean(rights.license,120),rights_holder:clean(rights.rights_holder,180),evidence_url:clean(rights.evidence_url,600),ai_tdm:true,commercial_use:true,derivative_use:true,reviewed_at:clean(rights.reviewed_at,40)||nowIso}));
+ const sourceRights=rightsList.map(rights=>({source_id:rights.source_id,status:'verified_permitted',license:clean(rights.license,120),rights_holder:clean(rights.rights_holder,180),evidence_url:clean(rights.evidence_url,600),ai_tdm:true,commercial_use:true,derivative_use:true,reviewed_at:clean(rights.reviewed_at,40)||nowIso}));
  const contentFingerprint=fingerprint([domain,topic,title,definition,input.formula||''].join('|'));
  const record={
   concept_key:conceptKey,domain,topic,title,definition,knowledge_level:level,knowledge_type:type,
@@ -84,7 +84,10 @@ export async function storeMessinhoKnowledgeConcept(db,input,now=new Date()){
   if(existing.error)throw existing.error;
   if(existing.data){
    const same=fingerprint([existing.data.domain,existing.data.topic,existing.data.title,existing.data.definition,existing.data.formula||''].join('|'))===fingerprint([record.domain,record.topic,record.title,record.definition,record.formula||''].join('|'));
-   return same?{persisted:false,reason:'already_exists',id:existing.data.id,status:existing.data.knowledge_status}:{persisted:false,reason:'conflict_requires_review',id:existing.data.id,existing_version:existing.data.version};
+   if(same)return {persisted:false,reason:'already_exists',id:existing.data.id,status:existing.data.knowledge_status};
+   const conflict=await db.from('messinho_knowledge_conflicts').insert({concept_id:existing.data.id,proposed_concept:record,evidence:{claims:record.claims,sources:record.sources,rights:record.rights},conflict_reason:'A newer source-backed proposal differs from the existing concept; manual review required.',status:'open'}).select('id').single();
+   if(conflict.error||!conflict.data?.id)throw conflict.error||new Error('conflict_record_unconfirmed');
+   return {persisted:false,reason:'conflict_requires_review',id:existing.data.id,conflict_id:conflict.data.id,existing_version:existing.data.version};
   }
   const {data,error}=await db.rpc('messinho_create_knowledge_candidate',{p_record:record,p_change_reason:'Initial verified compact knowledge candidate'});
   if(error||!Array.isArray(data)||!data[0]?.id)throw error||new Error('atomic_candidate_write_unconfirmed');
