@@ -2457,7 +2457,7 @@ Mathematics; statistics; physics; biology; medicine; sports science; football; c
 - Updated the conflict-review API to call the atomic RPC rather than directly updating the conflict table.
 - Verified in STAGING: prior-state column exists; both conflict RPCs are SECURITY DEFINER and executable only by service_role (plus postgres owner); conflict/review tables retain RLS with no browser policies. No conflict or concept rows were inserted for testing.
 - Current knowledge counts remain concepts 0, links 0, versions 0, conflicts 0, reviews 0. Rights allowlist remains empty.
-- Latest feature branch HEAD c8c8a351534330728a6e2bf14c605e144181fd2c has successful Node test and backend syntax checks. Its only changes after the deployed code commit are source-register/checkpoint documentation updates.
+- Latest feature branch HEAD 188a89c98b132de02294e17ae015e34fdf6db191 has successful Node test and backend syntax checks. Its only changes after the deployed code commit are source-register/checkpoint documentation updates.
 - Render dedicated STAGING deployment dep-dc47t5vvdc3s73be8km0 is **live** on commit 8e06b553d34b51ca324db8bdd4d85b7f60611d5f. This commit includes the conflict-restoration code and migrations. Render build repeated the suite: 274 passed, 0 failed, then Vite production build succeeded. Startup logs confirm the API is listening and Supabase Data API returned HTTP 200.
 - Authenticated admin/scout E2E remains outstanding; build, startup and Supabase connectivity do not prove the protected review/approval routes or actual chat retrieval with a logged-in user.
 - No production/main, production Supabase, PFMS/PFSS or PR merge changes. PR #47 remains Draft/open/unmerged.
@@ -2466,7 +2466,7 @@ Mathematics; statistics; physics; biology; medicine; sports science; football; c
 ### Additional source screening
 - Added the Dartmouth/CHANCE GNU FDL version of Grinstead and Snell's *Introduction to Probability* as a quarantined probability/statistics candidate. The official source states it is freely redistributable under GNU FDL; GNU FDL 1.3 explicitly permits commercial redistribution and modification but applies copyleft to modified versions. It is not approved for ingestion yet: legal review must determine how the terms apply to compact knowledge records and retain the exact version/licence notice.
 - Added explicit exclusions for Richard Hammack's *Book of Proof* (CC BY-NC-ND) and MIT OCW 6.042J (CC BY-NC-SA) because their current terms are incompatible with commercial derivative use.
-- Source register now has 10 entries/resources, 0 approved works; allowlist remains 0.
+- Source register now has 14 entries/resources, 0 approved works; allowlist remains 0.
 
 
 ### OpenStax work-level licence exception review
