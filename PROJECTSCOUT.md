@@ -3336,3 +3336,55 @@ This confirms the knowledge route was reached, but response rendering crashed be
 Repeat the exact Admin prompt:
 `Was ist VO₂max? Erkläre mir den Wert, seine physiologische Bedeutung und seine Grenzen.`
 Expected: a substantive response built from the approved active knowledge graph record, with no generic greeting and no chat processing error. Confirm that applicability and limitations render even if their stored values have different JSON types. If the response still fails, inspect new Render runtime logs before making another code change.
+
+
+## Admin acceptance test and knowledge citation UI checkpoint — 2026-11-26 22:18 CET
+
+### User-provided live staging result
+The Admin repeated the exact foundation question:
+`Was ist VO₂max? Erkläre mir den Wert, seine physiologische Bedeutung und seine Grenzen.`
+
+The supplied screenshot shows a substantive answer body (including the physiological limitation that overall player quality must not be inferred from one fitness metric) and a linked knowledge result named `VO₂max (maximale Sauerstoffaufnahme)`. The result carries the `sports_science · foundational` classification and two source-title links. This is evidence that the canonical knowledge response path is now reached and that the saved foundation entry and its evidence references are being surfaced. It is not yet proof of the full second-stage player-specific application test.
+
+### Additional UI defect identified and fixed
+The screenshot showed the knowledge metadata and source links visually concatenated (e.g. the knowledge level immediately followed by source title text). The generic player-result renderer was being reused for a knowledge-graph item, presenting knowledge references with a player icon and inline generic metadata.
+
+Implemented on the feature branch:
+- `src/asi/MessinhoWorkspace.jsx`: dedicated renderer for `knowledge-concept-*` items; uses a knowledge/brain icon, separate concept title, distinct domain/level metadata, and a clearly labelled source list. Player result rendering remains unchanged.
+- `src/asi/messinho.css`: mobile-friendly spacing, separate metadata pill, readable stacked source links, and safe text wrapping.
+- Source links remain ordinary external links and are rendered only when a source URL is present.
+
+### Verified code and CI
+- UI implementation commit: `543e1f8d015c5321cf8c9d2c9a0e943631bcedf0`.
+- UI styling commit / code deployment target: `cf396444ab831d5c3f41f79aee0e5cab52bb6e0e`.
+- Latest feature-branch checks for `cf396444ab831d5c3f41f79aee0e5cab52bb6e0e`: backend syntax **success**, Node tests **success**, staging branch CI/build **success**, staging health smoke test **success**.
+- Node suite remains **321 passed, 0 failed**.
+- The runtime mixed-field formatter fix remains included in the deployed code ancestor `a90c8b55551c1583924ebeb49f9c6918826ff600`.
+- Dedicated staging deployment requested for UI commit: `dep-dc4a3nc9v7es73eahqh0`; deployment status must be confirmed LIVE before this checkpoint is treated as fully deployed.
+- No production, `main`, PFMS, or PFSS changes.
+
+### Acceptance status
+1. Canonical VO2max intent recognition and knowledge retrieval: **visually confirmed by Admin screenshot**.
+2. Stored concept and source references surfaced in the chat: **visually confirmed**.
+3. Runtime crash caused by string-valued applicability: **fixed**, with 321 passing tests.
+4. Knowledge source-card layout: **fixed in code; staging deployment confirmation pending**.
+5. Player-specific application with no measurement supplied: **not yet accepted**. MESSINHO must explain the metric, request the measured VO2max value and test modality, and avoid fabricating a player rating.
+6. Full knowledge-ingestion readiness: **not yet declared** until the player-application check, source rendering retest, and final role/data-isolation checks are complete.
+
+### Next work plan (continue, do not repeat completed tasks)
+1. Confirm Render deployment `dep-dc4a3nc9v7es73eahqh0` is LIVE on `cf396444ab831d5c3f41f79aee0e5cab52bb6e0e`; verify health and absence of the previous runtime exception.
+2. Admin retest the VO2max foundation question once more and verify that the concept, classification, and two source links are visually separated and readable on mobile.
+3. Ask a player-specific question without providing a measurement; verify that MESSINHO asks for the actual measurement and test modality and does not invent an assessment.
+4. Inspect the exact response metadata and source evidence quality; confirm only active, approved knowledge is reused and source links are relevant.
+5. Run final Admin/Scout permission and tenant-isolation regression checks for knowledge read/review; candidates remain inactive until authorised Admin approval.
+6. Only after steps 1–5 pass, mark the VO2max pilot acceptance complete and begin the first planned systematic knowledge import. Keep the import limited to the agreed pilot scope, with evidence, source-rights verification, deduplication, conflict handling, versioning, durable storage, and explicit Admin release.
+7. Expand to further knowledge domains only after the pilot demonstrates retention, retrieval, explanation, application, and forecast limitations without fabricated evidence.
+
+### Binding project rules reaffirmed
+- Project: **myScoutingDatabase** only; MESSINHO is its integrated autonomous scouting-intelligence module, not a separate product.
+- Work only on `feature/messinho-unified-ai-integration` and the dedicated MESSINHO STAGING service.
+- Never modify production, `main`, PFMS, or PFSS.
+- Read this checkpoint and inspect current GitHub/CI/Render state before continuing; do not repeat completed tasks.
+- Preserve the established black/navy and gold premium visual design, responsive mobile layout, clear source presentation, and uncluttered workspace.
+- No unreviewed knowledge activation, no automatic approval, no unsupported claims of permanent knowledge, and no fabricated sources or player metrics.
+- Document every completed change, test, deployment, failure, and next action in this file.
