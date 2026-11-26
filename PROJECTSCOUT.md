@@ -2702,3 +2702,12 @@ Im nächsten Chat direkt mit Punkt 1 und 2 fortfahren: aktuellen Feature-HEAD un
 - At the final checkpoint, GitHub `main` HEAD is `38780d357384c7a2473e16bfabfe949017450042`, commit message `Add bounded independent MESSINHO quality control` (2026-11-26 15:01:11Z), parent `fa0d4dfbdd779f280bb3caf44c6cc70be8dcb5b6`.
 - This `main` commit is separate from the STAGING feature work recorded above; no merge, rebase, production deploy or production database change was performed as part of this checkpoint.
 - PR #47 remains Draft/open/unmerged. Before any future merge, compare the updated `main` base with the feature branch and resolve conflicts deliberately; do not force-reset or rewrite `main`.
+
+
+### Final handoff — authenticated E2E still required
+- The final live deployment remains `dep-dc485ff5hvus73dg1svg` on code commit `6a76f6be03f39e477f1262707d0921c161311470`; Render reports `live` and the runtime start logs confirm the API listener and live service.
+- The latest branch checkpoint before this note is `d3a3e8caaf7cd8107ac64e765b63f8f6b74dfef5`; its documentation-only update has green GitHub checks. Node tests remain 299/299 passing; backend syntax is successful.
+- Supabase STAGING remains healthy with 56 recorded migrations and no migration added for this task. The five knowledge graph/review tables remain empty (0 rows each), so there is no candidate to approve yet.
+- No authenticated Admin or Scout browser session was available to this execution. Therefore the real authenticated chat, Admin queue approve/reject, Scout 403/tenant-isolation and post-approval retrieval tests have **not** been run. No credentials or session tokens were requested, read, generated or stored; no replacement accounts were created.
+- Next action is to run those exact E2E steps using the owner's already-approved STAGING Admin and Scout sessions. Until then, the VO₂max learning code is CI-verified and deployed to STAGING, but its first real candidate creation and approval lifecycle are not yet E2E-verified.
+- PR #47 remains open, Draft and unmerged. No merge, rebase, production deployment or production database change was performed.
