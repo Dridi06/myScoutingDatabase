@@ -32,7 +32,7 @@ const FOUNDATION_CONFIGS=Object.freeze([
  },
  {
   concept_key:'mathematics.linear_algebra.matrix_multiplication',
-  source_ids:['libretexts_kuttler_matrix_multiplication_2022','austin_matrix_multiplication_2026'],
+  source_ids:['libretexts_kuttler_matrix_multiplication_2023','austin_matrix_multiplication_2023'],
   topic:'Lineare Algebra',
   title:'Matrixmultiplikation',
   search_topic:'matrix multiplication matrix product matrices columns rows linear algebra',
