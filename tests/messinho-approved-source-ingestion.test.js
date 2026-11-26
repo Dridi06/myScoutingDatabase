@@ -15,6 +15,10 @@ test('PLOS source retrieval uses the approved JATS endpoint and returns only com
  assert.equal(result.status,'completed');
  assert.equal(result.retrieval_method,'plos_jats_xml');
  assert.equal(result.storage_policy,'transient_excerpts_only');
+ assert.ok(result.source.tdm_evidence_url);
+ assert.equal(result.source.retrieval_url,requested);
+ assert.equal(result.source.retrieval_method,'plos_jats_xml');
+ assert.ok(result.source.reviewed_at);
  assert.match(requested,/type=manuscript/);
  assert.ok(result.excerpts.length>=1);
  assert.match(result.excerpts.map(x=>x.text).join(' '),/VO2max/);
