@@ -330,3 +330,24 @@ test('learning context includes only verified outcomes and preserves approval pr
   assert.equal(context.predictions[0].actual_score, 82);
   assert.equal(context.verified_scout_feedback.length, 1);
 });
+
+test('metric-based analyses use dated observations and do not report empty metrics as completed', () => {
+  const player = { name: 'Test Player', positions: ['Stürmer'], ratings: { technical: 75 } };
+  const observed = executeMessinhoCapability('minutes_analysis', {
+    player,
+    history: [
+      { date: '2026-01-01', minutes: 90 },
+      { date: '2026-02-01', minutes: 75 }
+    ]
+  });
+  assert.equal(observed.status, 'completed');
+  assert.equal(observed.result.metric, 'minutes');
+  assert.equal(observed.result.mean_value, 82.5);
+
+  const missing = executeMessinhoCapability('availability_history_analysis', {
+    player,
+    history: [{ date: '2026-01-01', score: 75 }, { date: '2026-02-01', score: 80 }]
+  });
+  assert.equal(missing.status, 'insufficient_data');
+  assert.ok(missing.missing_inputs.includes('availability_rate_metrics'));
+});
