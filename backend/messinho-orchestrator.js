@@ -277,7 +277,8 @@ export async function runMessinhoCapabilityPlan(plan,input={},role='scout',optio
         error_code:error?.code||'CAPABILITY_EXECUTION_ERROR'});
     }
     if(typeof options.onStep==='function'){
-      const pending=unique([...steps.slice(results.length),...(plan.deferred_capabilities||[])]);
+      const lastResult=results.at(-1);
+      const pending=unique([...(lastResult?.status==='error'?[id]:[]),...steps.slice(results.length),...(plan.deferred_capabilities||[])]);
       try{await options.onStep({capability_id:id,result:results.at(-1),completed_results:results.slice(),pending_capabilities:pending,execution_index:results.length});}
       catch{ /* A failed checkpoint must not invalidate the actual capability result. */ }
     }
