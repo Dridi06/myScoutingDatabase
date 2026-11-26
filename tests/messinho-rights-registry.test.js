@@ -19,7 +19,7 @@ const openStaxClaim={
   ai_tdm:true,commercial_use:true,derivative_use:true
 };
 
-test('only two individually rights-cleared CC BY 4.0 article works are allowlisted',()=>{
+test('only four individually rights-cleared CC BY 4.0 works are allowlisted',()=>{
   assert.equal(getMessinhoVerifiedSourceRightsCount(),4);
   for(const id of ['plos_one_vo2max_prediction_2023','pmc_cardiorespiratory_fitness_2022','libretexts_kuttler_matrix_multiplication_2022','austin_matrix_multiplication_2026']){
     const rights=getMessinhoVerifiedSourceRightsById(id);
