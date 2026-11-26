@@ -59,3 +59,44 @@ test('user-facing result language does not expose internal capability input keys
 test('unknown conversational intent does not force a capability', () => {
   assert.equal(planMessinhoCapabilities('Guten Abend Messinho', 'scout'), null);
 });
+
+
+import { executeMessinhoCapability, getMessinhoRuntimeSummary, listExecutableMessinhoCapabilities } from '../backend/messinho-capability-runtime.js';
+
+test('seasonal_learning is dispatched to specialist learning logic and compares seasons without training', () => {
+  const result = executeMessinhoCapability('seasonal_learning', {
+    seasonal_metrics: [
+      { season: '2024/25', score: 61 },
+      { season: '2024/25', score: 65 },
+      { season: '2025/26', score: 70 },
+      { season: '2025/26', score: 74 }
+    ]
+  });
+  assert.equal(result.status, 'completed');
+  assert.equal(result.implementation_level, 'specialist_logic');
+  assert.equal(result.result.season_count, 2);
+  assert.equal(result.result.change, 9);
+  assert.equal(result.result.training_performed, false);
+  assert.equal(result.result.model_weights_changed, false);
+});
+
+test('runtime summary separates dispatch, specialist logic, generic fallback and verified completion', () => {
+  const summary = getMessinhoRuntimeSummary();
+  assert.equal(summary.total_catalogue_entries, 100);
+  assert.equal(summary.all_dispatched, true);
+  assert.ok(summary.specialist_logic_count > 0);
+  assert.ok(summary.generic_fallback_count > 0);
+  assert.equal(summary.completion_verified_count, 0);
+  assert.equal(summary.specialist_logic_count + summary.generic_fallback_count, summary.dispatched_capabilities);
+});
+
+test('admin capability catalogue exposes honest implementation levels', () => {
+  const groups = listExecutableMessinhoCapabilities();
+  const all = groups.flatMap(group => group.functions);
+  const seasonal = all.find(item => item.id === 'seasonal_learning');
+  assert.equal(seasonal.dispatch_registered, true);
+  assert.equal(seasonal.specialist_logic_available, true);
+  assert.equal(seasonal.implementation_level, 'specialist_logic');
+  assert.equal(seasonal.completion_verified, false);
+  assert.ok(all.some(item => item.implementation_level === 'generic_fallback'));
+});
