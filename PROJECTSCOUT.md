@@ -1027,3 +1027,43 @@ Der nächste Chat beginnt nicht mit einer Neuentwicklung und fragt den Nutzer ni
 - Render STAGING läuft weiterhin auf Code-Commit `262cb0c...`; die drei nachfolgenden Commits bis `fef74a2...` sind ausschließlich PROJECTSCOUT-Dokumentationsänderungen. Auto-Deploy bleibt deaktiviert. Kein weiterer Render-Deploy ausgelöst.
 - Der aktuelle Node-Test- und Frontend-Build-CI-Nachweis ist damit vorhanden. Authentifizierte Datenbank-, Provider-, Browser-, SSE-Unterbrechungs- und Task-Resume-E2E-Nachweise fehlen weiterhin.
 - Supabase-Projektinventur: kein dediziertes `myScoutingDatabase-staging` vorhanden. Die Erstellung ist der nächste blockierende Schritt. Vorher muss der Owner die Zielorganisation bestätigen; mögliche Projektkosten sind vor kostenpflichtiger Erstellung zu klären. Kein Projekt erstellt und keine Migration angewendet.
+
+
+## 24. Separates Supabase-STAGING-Projekt eingerichtet — 2026-11-26
+
+### Projektanlage und Isolation
+- Neues dediziertes Supabase-Projekt erfolgreich angelegt: `myScoutingDatabase-staging`.
+- Projekt-Ref: `nwqwnrhupbyhshsprxjt`.
+- Organisation: `bangnexqniqfddvyiaie`.
+- Region: `eu-central-1` (Frankfurt).
+- Supabase meldet `ACTIVE_HEALTHY`; PostgreSQL-Version 17.12.
+- Eine read-only Inventur ergab zunächst keine anwendungseigenen Tabellen im Projekt. Es wurden keine Produktionsdaten kopiert und keine Produktionszugänge verwendet.
+- Das Projekt ist damit ein eigenständiges STAGING-Ziel. Es ist noch nicht an den Render-STAGING-Service angebunden.
+
+### Vom Owner angeordnete Projektbereinigung
+- `PFFS-Test` (`oolvpbzbqiojioazsoun`) wurde erfolgreich pausiert.
+- `PFSS` (`nkkajhjdvfjzrvxkbokg`) war bereits inaktiv und blieb unverändert; eine Löschung wurde nicht ausgeführt.
+- Das produktive Projekt `myScoutingDatabase` (`vxtybjaabtfhxfwctnyj`) blieb unangetastet.
+
+### Kritischer Migrations-Audit — keine Migration ausgeführt
+Die vorhandene Migrationsfolge auf `feature/messinho-agent-workspace` ist in ihrem aktuellen Zustand nicht sicher auf einer leeren Datenbank ausführbar. Die Prüfung ergab unter anderem:
+1. `001_initial_schema.sql` erstellt `profiles` ohne `approval_status` und erstellt `players` bereits mit `player_id`, `name`, `year`, `foot`, `observed_on`, `height`, `contract` und `agent`.
+2. `002_align_schema_with_app.sql` erwartet dagegen `approval_status` und benennt alte Spalten `players.id`, `player_name`, `birth_year`, `dominant_foot`, `assessment_date`, `height_cm`, `contract_exists` und `agent_exists` um. Diese Spalten werden durch Migration 001 nicht erzeugt. Außerdem referenziert Migration 002 private Hilfsfunktionen und Spalten, die durch Migration 001 nicht bereitgestellt werden.
+3. `003_duplicate_and_position_constraints.sql` fügt `players_positions_valid` hinzu, obwohl Migration 001 bereits eine Constraint mit demselben Namen erstellt.
+4. Spätere Migrationen setzen zusätzliche, in der geprüften Basisfolge nicht angelegte Objekte voraus, unter anderem `player_deletion_logs`, `asi_external_sources`, `asi_scout_calibration_records`, `asi_training_runs`, `asi_model_versions` sowie weitere Helper-Funktionen.
+5. Deshalb wurden weder die Basis-Migrationen noch die MESSINHO-Memory-/Task-Ledger-Migrationen angewendet. Das neue Projekt bleibt bis zur Reparatur des Migrationsplans leer und sicher.
+
+### Nächster technischer Schritt
+- Vollständigen Soll-Schema-Vertrag aus den aktuellen Backend-/Frontend-Zugriffen, sämtlichen SQL-Migrationen und den dokumentierten Rollen-/RLS-Regeln ableiten.
+- Eine konsistente, reproduzierbare Fresh-Install-Migrationsfolge für genau dieses leere STAGING-Projekt erstellen; keine Produktionsdaten oder Produktionsschema-Exports verwenden.
+- Alle Abhängigkeiten und RLS-/GRANT-Regeln vor Anwendung prüfen; danach Migrationen ausschließlich auf `nwqwnrhupbyhshsprxjt` anwenden und mit SQL-Checks sowie Supabase Security Advisors verifizieren.
+- Erst nach erfolgreicher Datenbankprüfung die ausschließlich für STAGING bestimmten Supabase-URL-/Server-Secrets im Render-STAGING-Service hinterlegen. Keine Secrets in Git oder Chat schreiben.
+- Danach authentifizierte Tests für Profile, Spieler, MESSINHO-Memory, Task-Ledger, RLS, Owner-Isolation und Resume ausführen.
+
+### Statusgrenzen
+- Supabase STAGING-Projekt: erstellt und gesund.
+- Anwendungsschema: noch nicht installiert.
+- MESSINHO-Memory-/Task-Ledger: noch nicht installiert.
+- Render-STAGING-Verbindung mit Supabase-STAGING: noch nicht eingerichtet/verifiziert.
+- Authentifizierte DB-/Agent-E2E: noch nicht durchgeführt.
+- Produktion und Produktionsdaten: unverändert.
