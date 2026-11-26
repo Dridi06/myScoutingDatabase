@@ -1098,3 +1098,23 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - Fixed the quantity lookahead to accept U-age notation with whitespace or hyphen in `backend/messinho-validation.js` (commit `32daabc9b1e92308ff263e16cb6c644e079f7ac1`).
 - Both changes are isolated and covered by the existing regression tests for Berlin time/date and U19/U-19/U 19 count=3.
 - **Status:** Waiting for CI results on the latest head. No deployment until all required checks pass. Production untouched.
+
+
+---
+
+## 2026-11-26 — Controlled MESSINHO knowledge-gap and capability evolution foundation
+
+- **Source requirement:** User-provided 15-page Word document describes unknown-question detection, new capability development, durable knowledge, versioned upgrades, regression testing, and feedback-based self-improvement.
+- **Architecture decision:** Adopt the evolutionary loop, but do not copy the supplied Python/LangGraph code verbatim. Its dynamic `exec`/module-import approach and incomplete sandbox are not an acceptable security boundary for a multi-user web service.
+- **Implemented on the Staging candidate branch:**
+  - Added `backend/messinho-evolution.js` with explicit knowledge-gap classification, bounded/sanitized declarative proposals, version metadata, approved-example matching, and a promotion gate.
+  - Proposal operations are restricted to a reviewed allowlist (`system_clock`, `calendar_date`, `basic_arithmetic`, `unit_conversion`). Arbitrary Python/JavaScript source is rejected and never evaluated.
+  - Protected side-effect/sensitive requests are marked for human review rather than being converted into autonomous executable capabilities.
+  - Promotion requires valid schema, at least two test cases, passing regression tests, and an explicit approver. Candidate proposals are not automatically executable.
+  - Integrated knowledge-gap metadata into the existing `backend/messinho-agent-core.js` no-plan outcome and pass the original user goal from the chat route.
+  - Added tests for gap detection, protected requests, schema validation, executable-code rejection, test/approval gates, approved-example reuse, and agent-core reporting.
+- **Files:** `backend/messinho-evolution.js`, `backend/messinho-agent-core.js`, `backend/server.js`, `tests/messinho-evolution.test.js`, `tests/messinho-agent-core.test.js`.
+- **Initial CI findings:** First test run exposed regex escaping and missing original-goal propagation. Both root causes were corrected and a new CI run was triggered. The exact latest commit must pass all required checks before Staging deployment.
+- **Current intended boundary:** Staging candidate branch only; no Render deployment, no Supabase migration applied, no Production changes, no PR merge.
+- **Not yet complete:** Durable database storage for evolution proposals/approved capability versions, runtime execution adapters for newly approved declarative operations, semantic embedding retrieval, automatic candidate generation from provider/tool research, user-feedback ingestion, and end-to-end chat integration of unknown-question fallback. The current code is a secure foundation, not the complete self-evolving agent.
+- **Next:** Verify latest CI; correct failures; then implement owner-/admin-scoped persistence and safe reviewed operation handlers. Deploy only after all required tests and staging migration review are complete.
