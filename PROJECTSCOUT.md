@@ -1072,3 +1072,19 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - **Files:** `backend/messinho-validation.js`, `tests/messinho-validation.test.js`.
 - **Code commits:** parser `f234d1f1a3528e8182e776da0be7a6c6624d2920`; tests `4062245ce17962d727bc096d9aae5eea3e8c9f96`.
 - **Status:** Not deployed. Waiting for CI on the latest branch head. Production untouched.
+
+---
+
+## 2026-11-26 — Autonomous question resolution and live system clock
+
+- **User requirement:** MESSINHO should not be limited to known commands. For unfamiliar questions it should inspect context, identify what is needed, use an appropriate source/tool, verify the result, and answer logically; it should ask a follow-up only if required. Example: “Wie spät ist es?” must be answered from the live clock (the user gave 05:31 as an example), not guessed from model training.
+- **Implemented:**
+  - Added provider-independent `resolveMessinhoLiveQuestion` in `backend/messinho-conversation.js`.
+  - Added authoritative runtime clock resolution for current time, date/day, and combined date/time questions using `Intl.DateTimeFormat` with the explicit `Europe/Berlin` time zone. It returns the verified timestamp and tool provenance.
+  - Routed live time/date questions in the existing authenticated `/api/agent/chat` path before social small talk and before the LLM fallback. These answers do not consume OpenAI quota and do not depend on model memory.
+  - Strengthened the conversation system instruction: treat all messages as possible questions/tasks, inspect context and available tools first, use live runtime data for current facts, research and validate evidence when supported, separate fact/inference/uncertainty, and ask only necessary clarifying questions. No fabricated tool results.
+  - Added regression tests proving a UTC clock at 2026-11-26 04:31 returns 05:31 in Berlin, date/day and combined queries work, and unrelated questions are not falsely answered by the clock resolver.
+- **Files:** `backend/messinho-conversation.js`, `backend/server.js`, `tests/messinho-conversation.test.js`.
+- **Current code commits:** live resolver `f3e2802a5f0a8c05f509aea685bf20e269b1d5d4`; chat integration `b624ca3d95587927f5d4b9d77637e20063ecc600`; tests `abd3a013fe939ca48ed96b9a7d4773ab94fd7a64`.
+- **Status:** Candidate branch only; automated CI results for current head have not yet been returned. No deployment performed. Production untouched.
+- **Next:** confirm exact PR head and CI, inspect any failures, then manually deploy to Staging only and verify exact Render commit. Continue expanding the tool resolver registry only for tools with authoritative sources; unknown/unverifiable questions must be researched or transparently clarified, never guessed.
