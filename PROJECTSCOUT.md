@@ -1936,3 +1936,21 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Render auto-deploy remains disabled. No production or PFMS/PFSS deployment was triggered.
 - Authenticated UI/API end-to-end tests still require a controlled Scout/Admin login session; no credentials were created, exposed or reused during this run. Therefore the feature is deployed to STAGING, but the feedback submission and administrator review flow is not yet declared end-to-end accepted.
 - The only commits after the deployed SHA in this checkpoint are documentation updates; no runtime code change is pending deployment.
+
+
+### Follow-up quality-signal hardening — 2026-11-26
+- Staging audit confirmed the only currently provisioned profiles are one approved admin and one approved scout; the existing authenticated MESSINHO guard intentionally admits only these two roles. No additional test accounts or credentials were created.
+- Found a semantic issue in the first feedback implementation: factual corrections, bug reports and feature requests could carry a numerical rating. This risked mixing qualitative corrections with answer-quality metrics.
+- Fixed the contract: only `quality_rating` may carry a 1–5 rating; other feedback categories must store `rating = null`.
+- Updated chat submission so factual corrections/bug reports/feature requests send a null rating.
+- Tightened `isMessinhoFeedbackEligibleForQualityMetrics` so only explicitly categorized `quality_rating` records can enter answer-quality metrics. This helper does not enable model training.
+- Added unit regression coverage for the category/rating boundary.
+- Applied STAGING migration `20261126161000_messinho_feedback_signal_semantics`; live catalog confirms the check constraint `messinho_feedback_rating_type_semantics` is installed.
+- Render manual deployment for SHA `ab909ea784a10e0e2d4e594ad77b7c42b7d2d925`: build event reports `succeeded`; the `npm run build` script executes the full Node test suite, backend syntax checks and Vite build. Deployment rollout status was still `update_in_progress` at the last poll; do not call the new runtime version live until Render reports `live` and a matching `deploy_ended/succeeded` event.
+- Authenticated Scout/Admin end-to-end submission and review tests remain outstanding; no credentials were accessed or generated.
+- Production, PFMS/PFSS and the main branch remain untouched; staging auto-deploy remains disabled.
+
+### Immediate next action
+1. Confirm Render deployment `dep-dc45838u01pc73etpvmg` reaches `live` on SHA `ab909ea784a10e0e2d4e594ad77b7c42b7d2d925`.
+2. With the user's controlled Scout/Admin sessions, run the positive rating, negative rating, correction, duplicate, admin queue, role denial, HTTPS evidence and immutable audit smoke tests.
+3. Record results and only then begin quality-metric aggregation. No automatic self-training from ratings or unverified feedback.
