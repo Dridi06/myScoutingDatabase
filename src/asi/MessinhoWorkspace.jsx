@@ -257,7 +257,30 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   useEffect(()=>{if(profile?.role==='admin'||profile?.role==='scout'){loadLearningStatus();}if(profile?.role==='admin')loadFeedbackQueue();},[profile?.role]);
   function renderItems(items){
     if(!items?.length)return null;
-    return <div className="messinho-results">{items.map((item,index)=><article key={String(item.id||item.name||index)} className="messinho-result-row"><div className="messinho-result-icon"><Users size={16}/></div><div className="messinho-result-copy"><strong>{index+1}. {item.name||item.player_name||'Unbenannter Eintrag'}</strong><span>{[item.club||item.current_club||item.currentClub,item.year||item.birth_year||item.birthYear,item.positions?.join(', '),item.analysis?.fit_score!==null&&item.analysis?.fit_score!==undefined?'Fit '+item.analysis.fit_score+'/100':null,item.analysis?.tactical_fit?.score!==null&&item.analysis?.tactical_fit?.score!==undefined?'Taktischer Fit '+item.analysis.tactical_fit.score+'/100':null,item.kind,item.analysis?.recommendation?.label||item.recommendation?.label||item.recommendation].filter(Boolean).join(' · ')}</span>{item.messinho_rating&&<small>{item.messinho_rating.score===null?'MESSINHO-Score: nicht ausreichend belegt':'MESSINHO-Score: '+item.messinho_rating.score+'/100'} · Datenabdeckung {item.messinho_rating.evidence_coverage}% · {item.messinho_rating.confidence}</small>}{item.analysis?.analysis&&<small>{item.analysis.analysis}</small>}{item.sources?.map(source=><span key={source.url} className="messinho-source-link"><a href={source.url} target="_blank" rel="noreferrer">{source.publisher||source.title||'Quelle öffnen'}</a>{source.quality&&<small>{source.quality.freshness==='fresh'?'Aktualitätsdatum vorhanden':source.quality.freshness==='stale'?'Ältere Quelle':'Datum unbekannt'} · {source.quality.secure_transport?'HTTPS':'nicht sicher'}</small>}</span>)}</div></article>)}</div>;
+    return <div className="messinho-results">{items.map((item,index)=>{
+      const isKnowledge=String(item.id||'').startsWith('knowledge-concept-')||Boolean(item.domain&&item.knowledge_level);
+      if(isKnowledge){
+        const sources=Array.isArray(item.sources)?item.sources:[];
+        return <article key={String(item.id||item.name||index)} className="messinho-result-row messinho-knowledge-result">
+          <div className="messinho-result-icon"><BrainCircuit size={17}/></div>
+          <div className="messinho-result-copy">
+            <strong>{item.name||'Freigegebener Wissenseintrag'}</strong>
+            {item.kind&&<small className="messinho-knowledge-meta">{item.kind}</small>}
+            {sources.length>0&&<div className="messinho-knowledge-sources"><small>Fachquellen</small>{sources.map((source,sourceIndex)=><a key={String(source.url||source.title||sourceIndex)} href={source.url||undefined} target={source.url?'_blank':undefined} rel={source.url?'noreferrer':undefined}>{source.title||source.publisher||'Quelle '+(sourceIndex+1)}</a>)}</div>}
+          </div>
+        </article>;
+      }
+      return <article key={String(item.id||item.name||index)} className="messinho-result-row">
+        <div className="messinho-result-icon"><Users size={16}/></div>
+        <div className="messinho-result-copy">
+          <strong>{index+1}. {item.name||item.player_name||'Unbenannter Eintrag'}</strong>
+          <span>{[item.club||item.current_club||item.currentClub,item.year||item.birth_year||item.birthYear,item.positions?.join(', '),item.analysis?.fit_score!==null&&item.analysis?.fit_score!==undefined?'Fit '+item.analysis.fit_score+'/100':null,item.analysis?.tactical_fit?.score!==null&&item.analysis?.tactical_fit?.score!==undefined?'Taktischer Fit '+item.analysis.tactical_fit.score+'/100':null,item.kind,item.analysis?.recommendation?.label||item.recommendation?.label||item.recommendation].filter(Boolean).join(' · ')}</span>
+          {item.messinho_rating&&<small>{item.messinho_rating.score===null?'MESSINHO-Score: nicht ausreichend belegt':'MESSINHO-Score: '+item.messinho_rating.score+'/100'} · Datenabdeckung {item.messinho_rating.evidence_coverage}% · {item.messinho_rating.confidence}</small>}
+          {item.analysis?.analysis&&<small>{item.analysis.analysis}</small>}
+          {item.sources?.map(source=><span key={source.url} className="messinho-source-link"><a href={source.url} target="_blank" rel="noreferrer">{source.publisher||source.title||'Quelle öffnen'}</a>{source.quality&&<small>{source.quality.freshness==='fresh'?'Aktualitätsdatum vorhanden':source.quality.freshness==='stale'?'Ältere Quelle':'Datum unbekannt'} · {source.quality.secure_transport?'HTTPS':'nicht sicher'}</small>}</span>)}
+        </div>
+      </article>;
+    })}</div>;
   }
   return <div className="messinho-workspace">
     {!compact&&<header className="messinho-hero"><div className="messinho-emblem"><BrainCircuit size={29}/></div><div className="messinho-hero-copy"><span>MYSCOUTINGDATABASE · KI-ASSISTENT</span><h1>Messinho</h1><p>Dein persönlicher Scouting-Agent</p></div><div className="messinho-status"><i/> Modul geladen</div></header>}
