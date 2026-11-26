@@ -2183,3 +2183,6 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Added regression tests for 7/30/90-day topic windows, rejecting two-week-old standings sources, and seven-day memory expiry.
 - No schema migration. No changes to the separate player scouting evidence pipeline, model weights or production.
 - Release gate: full Node test suite, backend syntax checks, Vite build, then manual STAGING deployment only. Render auto-deploy remains disabled; PR #47 remains Draft/open/unmerged.
+
+
+- First release attempt exposed three outdated/incomplete regression assertions after the stricter topic windows were introduced (coach-source fixture still used a 42-day-old source, missing helper import, and an old generic 90-day wording assertion). These were test-fixture issues; the implementation was retained and the tests corrected. The failed build did not replace the prior live STAGING deployment.
