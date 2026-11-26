@@ -35,6 +35,9 @@ create table if not exists public.messinho_improvement_hypothesis_events (
 );
 create index if not exists messinho_improvement_hypothesis_events_history_idx
   on public.messinho_improvement_hypothesis_events(hypothesis_id, created_at desc);
+create index if not exists messinho_improvement_hypotheses_created_by_idx on public.messinho_improvement_hypotheses(created_by);
+create index if not exists messinho_improvement_hypotheses_reviewed_by_idx on public.messinho_improvement_hypotheses(reviewed_by) where reviewed_by is not null;
+create index if not exists messinho_improvement_hypothesis_events_actor_idx on public.messinho_improvement_hypothesis_events(actor_id);
 alter table public.messinho_improvement_hypotheses enable row level security;
 alter table public.messinho_improvement_hypothesis_events enable row level security;
 revoke all on table public.messinho_improvement_hypotheses from public, anon, authenticated;
