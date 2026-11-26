@@ -61,9 +61,9 @@ export function rankMessinhoDomainKnowledge(question,records=[],limit=5){
   .sort((a,b)=>b.score-a.score).slice(0,Math.max(1,Math.min(10,limit)));
 }
 export async function storeMessinhoDomainKnowledge(db,input,now=new Date()){
+ if(!db)return {persisted:false,reason:'storage_unavailable'};
  const built=buildMessinhoDomainKnowledgeRecord(input,now);
  if(!built.eligible)return {persisted:false,reason:built.reason};
- if(!db)return {persisted:false,reason:'storage_unavailable'};
  const {data,error}=await db.from('messinho_domain_knowledge').upsert(built.record,{onConflict:'fingerprint'})
   .select('id,fingerprint,domain,version,verified_at').maybeSingle();
  if(error||!data?.id)return {persisted:false,reason:'storage_unavailable'};
