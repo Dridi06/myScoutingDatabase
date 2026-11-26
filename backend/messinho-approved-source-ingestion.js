@@ -3,7 +3,7 @@ import {
   verifyMessinhoSourceRights
 } from './messinho-rights-registry.js';
 
-const clean=value=>String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim();
+const clean=value=>String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/[₀₁₂₃₄₅₆₇₈₉]/g,d=>String('₀₁₂₃₄₅₆₇₈₉'.indexOf(d))).replace(/\s+/g,' ').trim();
 const decodeXml=value=>String(value??'')
   .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
   .replace(/&quot;/g,'"').replace(/&apos;/g,"'")
@@ -11,7 +11,7 @@ const decodeXml=value=>String(value??'')
   .replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16)));
 
 function stripMarkup(value){
- return decodeXml(String(value??'').replace(/<[^>]*>/g,' ')).replace(/\s+/g,' ').trim();
+ return decodeXml(String(value??'').replace(/<\/?(?:sub|sup)\b[^>]*>/gi,'').replace(/<[^>]*>/g,' ')).replace(/\s+/g,' ').trim();
 }
 function queryTerms(topic){
  return [...new Set(clean(topic).toLocaleLowerCase('de-DE').split(/[^\p{L}\p{N}]+/u).filter(x=>x.length>2))];
