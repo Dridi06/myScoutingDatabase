@@ -550,7 +550,7 @@ function buildMessinhoCapabilityProvenance(id,input,output){
      value:output.result.overall.score,derived_from:metrics.map(metric=>metric.key)});
  }
  return {schema_version:'1.0',capability_id:id,
-   origin:input._trusted_source_bundle===true?'server_validated_ASI_bundle':records.length?'owner_scoped_database_records':sources.length?'supplied_source_bundle':'supplied_input',
+   origin:safeInput._trusted_source_bundle===true?'server_validated_ASI_bundle':records.length?'owner_scoped_database_records':sources.length?'supplied_source_bundle':'supplied_input',
    record_refs:records,metric_evidence:metrics.map(metric=>({field:metric.key,normalized_value:metric.value})),
    source_evidence:sources,verified_outcome_count:outcomes.length,
    claims,limitations:[
