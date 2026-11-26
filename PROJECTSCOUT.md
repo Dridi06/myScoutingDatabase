@@ -3279,3 +3279,32 @@ GitHub Action run `45888336042` completed successfully on commit `685cbbc82836b5
 - Latest GitHub checks for the final branch commit: Node tests **success**, backend syntax **success**, staging branch CI/build **success**, staging health smoke test **success**.
 - Test count on the exact application-code commit: **319 passed, 0 failed**.
 - This is still a code-level correction with automated CI and staging health verification. The two real Admin chat questions have not yet been re-run by the user after this deployment, so end-to-end conversational acceptance remains pending.
+
+
+## Canonical knowledge chat routing correction — 2026-11-26 21:00 UTC
+
+### Screenshot finding
+The Admin retest showed that MESSINHO correctly displayed the interpreted VO2max question but answered with its generic introduction. This is a routing failure: the final conversational fallback was reached instead of the approved knowledge answer. The prior knowledge lookup and source filtering fixes alone were not sufficient.
+
+### Implemented correction
+- Added `getMessinhoCanonicalConceptKey()` to the knowledge-graph module. It resolves VO2max aliases including Unicode `VO₂max`, `VO2max`, maximal oxygen uptake, and cardiorespiratory fitness to the canonical key `sports_science.physiology.vo2max`.
+- The `/api/agent/chat` route now checks for a canonical foundation topic immediately after live-question and small-talk handling, before scouting intent parsing, player-name extraction, or generic conversation fallback.
+- For a matching question, the chat directly retrieves only the active canonical concept through the knowledge graph and returns its stored definition, applicability, formula, limitations, prerequisites and source references.
+- If no active approved concept can be retrieved, MESSINHO now returns an explicit knowledge-unavailable response rather than the generic introduction or invented content.
+- Added regression coverage for Unicode and German VO2max aliases, and for nonmatching football questions.
+
+### Validation and staging
+- Current application code commit: `6eaa27e00051e79cc7f5aeb08d6366ff87501d86` (chat routing and resolver implementation).
+- Test-import correction commit: `20dabada8ded780762102cf02eb6aaba103a810e`.
+- Latest full test suite: **320 passed, 0 failed**.
+- Backend syntax: **success**.
+- Combined staging CI/build: **success**.
+- Staging health smoke test: **success**.
+- Render staging deploy `dep-dc49qm97lnhs73fqeog0`: **LIVE** on commit `20dabada8ded780762102cf02eb6aaba103a810e`.
+- Runtime logs confirm API startup, Supabase HTTP 200, Tavily and OpenAI configuration. Production remains untouched.
+
+### Next acceptance test
+Re-run the exact question:
+`Was ist VO₂max? Erkläre mir den Wert, seine physiologische Bedeutung und seine Grenzen.`
+Expected response intent: `structured_knowledge_graph_hit`; expected metadata: `knowledge_memory.reused=true`, kind `hierarchical_knowledge_graph`, canonical VO2max domain. The answer must include the active stored foundation content and its limitations.
+Then test a player-specific VO2max application question. If no actual measurement and test protocol are provided, MESSINHO must explain the metric and ask for the missing player measurement instead of inventing a player assessment.
