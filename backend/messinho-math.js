@@ -64,8 +64,9 @@ export function calculateMessinhoMathQuestion(question){
  const q=clean(question);if(!q||q.length>1200)return null;
  try{
   const ph=physics(q);if(ph)return ph;const pr=probability(q);if(pr)return pr;
-  let m=q.match(/(?:wie viel sind|was sind|berechne|rechne|calculate)?\s*(-?\d+(?:[.,]\d+)?\s*(?:\+|plus|minus|−|-)\s*-?\d+(?:[.,]\d+)?(?:\s*(?:\*|×|mal|x|\/|÷|geteilt durch|%)\s*-?\d+(?:[.,]\d+)?)*)/i);
-  if(m){const e=m[1].replace(/,/g,'.').replace(/plus/gi,'+').replace(/minus/gi,'-').replace(/geteilt durch/gi,'/').replace(/mal|×|x/gi,'*').replace(/÷/g,'/');const v=evaluate(e);return out('arithmetic','Mathematische Berechnung',v,e,['Ausdruck: '+e,'Punktrechnung vor Strichrechnung; Klammern zuerst.']);}
+  const expressionText=q.replace(/\bgeteilt durch\b/gi,'/').replace(/\bplus\b/gi,'+').replace(/\bminus\b/gi,'-').replace(/\bmal\b/gi,'*').replace(/÷/g,'/').replace(/×/g,'*');
+  let m=expressionText.match(/(?:wie viel sind|was sind|berechne|rechne|calculate)?\s*([0-9.,\s()+\-*/%^·]+)\s*[?]?$/i);
+  if(m&&/[+*/%^·-]/.test(m[1])&&(m[1].match(/\d+(?:[.,]\d+)?/g)||[]).length>=2){const e=m[1].replace(/,/g,'.').replace(/·/g,'*');const v=evaluate(e);return out('arithmetic','Mathematische Berechnung',v,e,['Ausdruck: '+e,'Punktrechnung vor Strichrechnung; Klammern zuerst.']);}
   m=q.match(/(-?\d+(?:[.,]\d+)?)\s*(?:%|prozent)\s*(?:von|aus)\s*(-?\d+(?:[.,]\d+)?)/i);
   if(m){const a=Number(m[1].replace(',','.')),b=Number(m[2].replace(',','.')),v=b*a/100;return out('arithmetic','Prozentrechnung',v,a+' % von '+b+' = '+b+' · '+a+' / 100',[a+' % = '+a/100,b+' · '+a/100+' = '+fmt(v)]);}
   m=q.match(/dreisatz\D{0,40}(\d+(?:[.,]\d+)?)\D{1,15}(\d+(?:[.,]\d+)?)\D{1,30}(\d+(?:[.,]\d+)?)/i);
