@@ -54,7 +54,7 @@ export function isMessinhoSourceUrlWithinPrefix(url, prefix, exact = false) {
   try {
     const candidate = new URL(url), base = new URL(prefix);
     if (candidate.protocol !== 'https:' || base.protocol !== 'https:' || candidate.origin !== base.origin) return false;
-    if (exact) return candidate.pathname === base.pathname && candidate.search === base.search;
+    if (exact) return candidate.pathname.replace(/\\/$/,'') === base.pathname.replace(/\\/$/,'') && candidate.search === base.search;
     const basePath = base.pathname.endsWith('/') ? base.pathname : base.pathname + '/';
     return candidate.pathname === base.pathname || candidate.pathname.startsWith(basePath);
   } catch { return false; }
@@ -69,7 +69,7 @@ export function isMessinhoRegisteredSourceUrl(sourceId, url) {
 
 export function getMessinhoVerifiedSourceRightsForUrl(url) {
   if (typeof url !== 'string' || !/^https:\/\//i.test(url)) return null;
-  const entry = VERIFIED_SOURCE_RIGHTS.find(item => item.status === 'verified_permitted' && Array.isArray(item.source_url_prefixes) && item.source_url_prefixes.some(prefix => typeof prefix === 'string' && isMessinhoSourceUrlWithinPrefix(url,prefix,entry.source_url_exact===true)));
+  const entry = VERIFIED_SOURCE_RIGHTS.find(item => item.status === 'verified_permitted' && Array.isArray(item.source_url_prefixes) && item.source_url_prefixes.some(prefix => typeof prefix === 'string' && isMessinhoSourceUrlWithinPrefix(url,prefix,item.source_url_exact===true)));
   return entry ? { ...entry, source_url_prefixes: [...entry.source_url_prefixes] } : null;
 }
 
