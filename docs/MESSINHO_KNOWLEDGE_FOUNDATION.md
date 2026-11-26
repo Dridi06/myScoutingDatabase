@@ -61,10 +61,10 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 
 ## Current legal/source gate
 
-- backend/messinho-rights-registry.js currently contains **0 approved sources**. The four OpenStax PDF editions that initially appeared to carry CC BY 4.0 have separate book-specific OpenStax notices prohibiting LLM ingestion or use in generative-AI offerings without prior written permission; OpenStax's current library default is also CC BY-NC-SA 4.0. They remain quarantined and are not in the allowlist.
-- The source register contains 16 entries/resources and 0 approved works. OpenIntro and Grinstead/Snell remain quarantined; OpenStax is excluded pending written permission; PLOS remains a discovery pool pending article-by-article review.
+- backend/messinho-rights-registry.js currently contains **2 approved exact scientific works**: Wiecha et al. (2023), PLOS ONE on external validation of VO2max prediction models (CC BY 4.0 with PLOS's explicit TDM/reuse policy), and LaMonte (2022), *Cardiorespiratory Fitness in the Prevention and Management of Cardiovascular Disease* (PMCID PMC11269081, CC BY 4.0; retrieved only through PMC BioC). Both are scoped to exact article identities and approved retrieval methods.
+- The source register contains 18 entries/resources and 2 approved works. OpenIntro and Grinstead/Snell remain quarantined; OpenStax is excluded pending written AI permission; NIST and other sources remain quarantined.
 - STAGING canonical domain knowledge and answer-memory tables currently contain 0 rows; no source PDF/full text or knowledge concept was imported.
-- The code can store a compact candidate from one exact rights-cleared work in future, but with the allowlist empty no candidate can currently be persisted. Activation still requires two independent rights-cleared source domains, corroborated claims, active prerequisites and administrator review.
+- The VO2max foundation adapter can create a compact candidate only after both approved works are retrieved and independently corroborate the same claim. The general learner can create a candidate from one rights-cleared work when supported by retrieved excerpts, but all candidates remain inactive. Activation requires two independent rights-cleared source domains, corroborated claims, active prerequisites and administrator review.
 - Next legal research task: work-level review for mathematics, physics, biology, statistics, football/sports science, medicine, risk management, banking and financial markets, with Germany-based commercial use considered. If rights remain unclear, retain quarantine.
 
 ## Implemented in this milestone
@@ -81,7 +81,7 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 - Added an admin-only review queue/API, an append-only review ledger, and a conflict table that retains competing source-backed proposals instead of silently discarding them. Conflicts require explicit review.
 - Conflict recording is atomic: the competing proposal and evidence are retained, the currently active concept is quarantined as conflicting, and a new immutable version snapshot is written in the same database transaction.
 - Added append-only privileges for the review ledger and indexed its foreign keys.
-- The graph remains empty until a source receives explicit work-level AI/TDM and commercial permission. No source works are currently approved; no books/PDFs were imported and no model weights or scoring rules were changed.
+- The graph remains empty until an authenticated foundation question completes the approved-source retrieval and candidate write. Two exact scientific works are approved for compact extraction; no books/PDFs were imported and no model weights or scoring rules were changed.
 
 ## Verification still required
 - Complete CI on the latest feature commit.
@@ -112,3 +112,13 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 - Book of Proof (CC BY-NC-ND) and MIT OCW 6.042J (CC BY-NC-SA) are excluded under their current non-commercial/no-derivatives terms.
 - U.S. federal/NIST works may be public domain in the United States, but official government guidance warns that third-party content may remain protected and that U.S. public-domain status alone does not settle international rights. NIST candidates therefore remain quarantined for the Germany-based product.
 - No source was promoted into the rights allowlist. The allowlist remains empty; no source content was imported.
+
+
+## Approved-source retrieval and first curriculum adapter
+
+- `backend/messinho-approved-source-ingestion.js` retrieves only the exact approved PLOS article through its JATS XML endpoint and the exact PMC article through PMC's BioC JSON endpoint.
+- Relevant excerpts are transient, bounded and used only to verify source support. The candidate record stores no excerpt, PDF, full-text, figure or table payload.
+- `backend/messinho-approved-knowledge-learning.js` is the first domain adapter for VO2max/cardiorespiratory-fitness foundations. It requires both approved source domains to support the same compact claim and creates a candidate only.
+- `backend/messinho-knowledge-learning.js` provides the general foundation-query learning path for other future approved sources; it verifies official excerpts before storing compact claims.
+- Both learning paths call the same canonical graph store, preserve exact source/licence/attribution/retrieval metadata, and leave the record inactive until the administrator review workflow approves it.
+- The VO2max knowledge is not a player-specific prediction. The PLOS validation paper reports that existing prediction models have only moderate accuracy in its endurance-athlete cohort; direct CPET measurement remains the reference method. MESSINHO must retain these limitations in any scouting explanation.
