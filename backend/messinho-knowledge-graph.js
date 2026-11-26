@@ -128,8 +128,14 @@ export async function findMessinhoKnowledgeConcepts(db,question,{limit=6}={}){
   const ranked=rank(question,data||[],limit);
   // Canonical, approved foundations must be retrievable even when a natural
   // language question contains several explanatory words and only one exact
-  // technical concept anchor. Do not let lexical dilution hide active memory.
+  // technical concept anchor. Promote an already-ranked canonical row before
+  // slicing to the requested limit; otherwise a row ranked just below the
+  // cutoff would be silently discarded by the route's canonical-key filter.
   const canonical=CANONICAL_CONCEPT_MATCHERS.find(item=>item.pattern.test(String(question||'')));
+  if(canonical){
+   const canonicalIndex=ranked.findIndex(item=>item.record.concept_key===canonical.key);
+   if(canonicalIndex>0)ranked.unshift(ranked.splice(canonicalIndex,1)[0]);
+  }
   if(canonical&&!ranked.some(item=>item.record.concept_key===canonical.key)){
    // Keep canonical retrieval independent of the broad-query validity OR
    // expression. A malformed/overly restrictive PostgREST OR filter must not
