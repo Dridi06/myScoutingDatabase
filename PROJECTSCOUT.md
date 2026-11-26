@@ -1332,3 +1332,14 @@ Before the next staging deployment, the general research path was hardened:
 - `f5dc8c03f807079f2b4805dedc3d96feb60a84ac` — storage failure semantics
 
 **Deployment:** Pending. Do not describe this milestone as live until the staging deployment commit and runtime are verified. Production is untouched.
+
+
+### Deployment verification — owner-scoped knowledge memory (2026-11-26)
+
+- Render STAGING service confirmed on branch `feature/messinho-unified-ai-integration`.
+- Runtime commit `e8f1c8e12889fe4454c262297b8f59146cf00cda`; deployment `dep-dc3s6puc6qcc73bosk8g`; Render status `live`, deploy-ended event `2026-11-26T05:28:41Z`.
+- Build succeeded. Runtime started `node backend/server.js`, API listened on port 10000, Supabase Data API returned HTTP 200, and Tavily/OpenAI configuration was detected.
+- The new knowledge-memory table exists on STAGING, RLS is enabled, four owner policies are present, anonymous grants are absent, and only CRUD privileges are granted to authenticated/service_role. Row count remains zero.
+- Seven isolated knowledge-memory tests passed locally; the full repository suite and authenticated live chat test are not yet verified.
+- The staging deployment includes the memory lookup/write integration. It is not yet proven through a real authenticated user conversation because no staging test account has been authorized/created.
+- Production remains untouched; PR #47 remains Draft and unmerged.
