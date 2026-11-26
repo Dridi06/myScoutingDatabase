@@ -1737,15 +1737,6 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(liveAnswer)return respond({reply:liveAnswer.reply,intent:liveAnswer.intent,tool:liveAnswer.tool,verified_at:liveAnswer.verified_at,time_zone:liveAnswer.time_zone,items:[]});
     const smallTalkReply=getMessinhoSocialReply(interpretedMessage,history);
     if(smallTalkReply)return respond({reply:smallTalkReply,intent:'small_talk',items:[]});
-    // Deterministic mathematics and physics run before language-model fallback.
-    // The calculation engine never evaluates arbitrary JavaScript or uses an LLM for arithmetic.
-    const mathResult=calculateMessinhoMathQuestion(interpretedMessage);
-    if(mathResult){
-      const reply=mathResult.status==='completed'
-        ? mathResult.title+': '+mathResult.formatted+(mathResult.unit?' '+mathResult.unit:'')+'.\nFormel: '+mathResult.formula+'.\n'+(mathResult.steps||[]).map((step,index)=>(index+1)+'. '+step).join('\n')+(mathResult.scouting_interpretation?'\nEinordnung: '+mathResult.scouting_interpretation:'')+(mathResult.assumptions?.length?'\nAnnahmen: '+mathResult.assumptions.join(' '):'')
-        : mathResult.message||'Die Berechnung konnte nicht sicher durchgeführt werden.';
-      return respond({reply,intent:'mathematics_'+mathResult.kind,calculation:mathResult,items:[]});
-    }
     const isPlayerFollowUp=Boolean(resolveMessinhoPlayerFollowUp(interpretedMessage,history));
     const help=/\b(hilfe|befehle|funktionen)\b/.test(normalized)||(/\bwas kannst du\b/.test(normalized)&&!isPlayerFollowUp);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
@@ -1753,11 +1744,11 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const wantsSummary=/\b(übersicht|zusammenfassung|bestand|wie viele|anzahl|status)\b/.test(normalized);
     if(dialog.shouldHandle){
       if(dialog.missing.length)return respond({reply:'Damit ich die Suche sauber eingrenzen kann, brauche ich noch: '+dialog.missing.join(', ')+'.',intent:'scouting_clarification',items:[],pending:true});
-      const {quantity,yearFrom,yearTo,ageGroup,position,region,targetLevel}=dialog.request;
+      const {quantity,yearFrom,yearTo,ageGroup,age,position,region,targetLevel}=dialog.request;
       const modelYear=new Date().getFullYear();
       const ageGroupNumber=ageGroup?Number(String(ageGroup).replace(/\\D/g,'')):null;
-      const ageMin=yearFrom?Math.max(16,Math.min(30,modelYear-yearTo)):ageGroupNumber?Math.max(14,ageGroupNumber-3):16;
-      const ageMax=yearFrom?Math.max(ageMin,Math.min(30,modelYear-yearFrom)):ageGroupNumber?Math.max(ageMin,ageGroupNumber-1):30;
+      const ageMin=age?age:yearFrom?Math.max(16,Math.min(30,modelYear-yearTo)):ageGroupNumber?Math.max(14,ageGroupNumber-3):16;
+      const ageMax=age?age:yearFrom?Math.max(ageMin,Math.min(30,modelYear-yearFrom)):ageGroupNumber?Math.max(ageMin,ageGroupNumber-1):30;
       const origin=req.protocol+'://'+req.get('host');
       const research=await fetch(origin+'/api/asi/player-search',{method:'POST',signal:AbortSignal.timeout(60000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({mode:'discover',filters:{ageMin,ageMax,birthYearFrom:yearFrom,birthYearTo:yearTo,position,region,targetLevel,limit:quantity}})});
       const payload=await research.json().catch(()=>({}));
@@ -1766,7 +1757,16 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const activeModel=await getActiveMessinhoModel();
       const ranked=rankMessinhoPlayers(candidates,activeModel?.configuration?.profiles||null).slice(0,quantity);
       const reply='Die Recherche wurde über die vorhandene ASI-Quellenpipeline ausgeführt und anschließend durch MESSINHOs eigene positionsgewichtete Bewertungslogik sortiert. Ich habe '+candidates.length+' belegte Kandidaten erhalten und zeige '+ranked.length+' davon. Altersfilter: '+(ageGroup||('Jahrgang '+yearFrom+(yearTo!==yearFrom?' bis '+yearTo:'')))+'. '+(payload.underfilled?'Die gewünschte Anzahl konnte mit der verfügbaren Quellenlage nicht vollständig belegt werden.':'Nicht belegte Leistungswerte wurden nicht geschätzt.');
-      return respond({reply,intent:'scouting_results',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null,requested:{quantity,yearFrom,yearTo,ageGroup,position,region,targetLevel},sources:payload.sources||[],source_count:payload.source_count||0,saved_count:payload.saved_count||0,duplicate_count:payload.duplicate_count||0,underfilled:!!payload.underfilled,provider:payload.provider||null,limitations:payload.limitations||[]});
+      return respond({reply,intent:'scouting_results',items:ranked,engine_version:ranked[0]?.messinho_rating?.engine_version||'1.1.0',active_model:activeModel?.version||null,requested:{quantity,yearFrom,yearTo,ageGroup,age,position,region,targetLevel},sources:payload.sources||[],source_count:payload.source_count||0,saved_count:payload.saved_count||0,duplicate_count:payload.duplicate_count||0,underfilled:!!payload.underfilled,provider:payload.provider||null,limitations:payload.limitations||[]});
+    }
+    // Deterministic mathematics and physics run before language-model fallback.
+    // The calculation engine never evaluates arbitrary JavaScript or uses an LLM for arithmetic.
+    const mathResult=calculateMessinhoMathQuestion(interpretedMessage);
+    if(mathResult){
+      const reply=mathResult.status==='completed'
+        ? mathResult.title+': '+mathResult.formatted+(mathResult.unit?' '+mathResult.unit:'')+'.\nFormel: '+mathResult.formula+'.\n'+(mathResult.steps||[]).map((step,index)=>(index+1)+'. '+step).join('\n')+(mathResult.scouting_interpretation?'\nEinordnung: '+mathResult.scouting_interpretation:'')+(mathResult.assumptions?.length?'\nAnnahmen: '+mathResult.assumptions.join(' '):'')
+        : mathResult.message||'Die Berechnung konnte nicht sicher durchgeführt werden.';
+      return respond({reply,intent:'mathematics_'+mathResult.kind,calculation:mathResult,items:[]});
     }
     if(isPlayerFollowUp){
       const rememberedPlayer=resolveMessinhoPlayerFollowUp(interpretedMessage,history);
