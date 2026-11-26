@@ -1173,3 +1173,50 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 4. Memory-/Trace-/Task-Ledger-Persistenz, SSE-Unterbrechung, Resume, Lease-Ablauf, Idempotenz und Cross-User-Denial prüfen.
 5. Keine Produktionspromotion oder Merge-Freigabe aus diesem Checkpoint ableiten.
 
+
+
+## 2026-11-26 — Sichere MESSINHO-Task-Wiederaufnahme und Persistenzbestätigung
+
+### Befund und Korrektur
+- Zusätzlicher Audit des Task-Ledgers zeigte, dass `GET /api/agent/tasks` abgelaufene `running`-Leases bisher auf `partial` setzte. Damit konnte die anschließende Resume-Route einen möglicherweise bereits teilweise wirksamen Lauf erneut ausführen, obwohl ihr eigener Sicherheitszweig abgelaufene Läufe korrekt quarantänisierte.
+- Neue Datei: `backend/messinho-task-policy.js`.
+  - Einheitliche Lease-Ablaufprüfung.
+  - Einheitliche Quarantäne-Aktualisierung: `status=failed`, `lease_until=null`, erklärender `last_error`.
+  - Bestätigung, dass eine Datenbankänderung tatsächlich genau die erwartete Task-ID zurückgegeben hat.
+- `backend/server.js`:
+  - Abgelaufene Tasks werden bereits beim Listen als `failed` quarantänisiert und bleiben im Aufgabenstatus sichtbar; sie werden nicht in `partial` zurückgestuft.
+  - Resume verwendet dieselbe Lease-Policy und denselben Quarantänegrund.
+  - Checkpoint- und Finalisierungsupdates verwenden jetzt `.select('id').maybeSingle()` und melden Erfolg nur, wenn genau die erwartete Task-Zeile tatsächlich aktualisiert wurde.
+- Neue Tests: `tests/messinho-task-policy.test.js` — Ablaufzeit, aktive/fehlende Lease, Quarantäne-Patch und bestätigte Task-ID.
+- Commits: Policy-Modul `124cf5efc04792d167dd963cf38e0a44bc012b96`; Serverintegration `e7ee6adc4dc7fd9cfa2c35e8b44656d85c907c34`; Tests `eb9173027477f27141db50149f9d776160a16fdc`.
+
+### CI und Render STAGING
+- Exakter Code-/Test-Commit: `eb9173027477f27141db50149f9d776160a16fdc`.
+- MESSINHO Node tests: Run `45760237377` — **140/140 bestanden**, 0 fehlgeschlagen.
+- MESSINHO validation: Run `45760237464` — Tests und Frontend-Build erfolgreich.
+- ASI quality checks: Run `45760237296` — Tests und Frontend-Build erfolgreich.
+- MESSINHO backend syntax: Run `45760237334` — erfolgreich.
+- Staging health smoke: Run `45760237347` — erfolgreich; vor dem neuen Deploy ausgeführt.
+- Render STAGING Deployment: `dep-dc3s0e56e07s73ddqh9g`, exakter Commit `eb9173027477f27141db50149f9d776160a16fdc`, Status `live`; Render meldete `deploy_ended / succeeded` um `2026-11-26T05:15:03Z`.
+- Frische Runtime-Logs bestätigen API-Start auf Port 10000, STAGING-Supabase-Secret vorhanden, Supabase Data API HTTP 200, Tavily=true und OpenAI=true.
+
+### Read-only STAGING-Dateninventur
+- Projekt `myScoutingDatabase-staging`, Ref `nwqwnrhupbyhshsprxjt`.
+- `profiles`: 1 Profil, Rolle Admin, approved=true.
+- `players`, `asi_player_candidates`, `messinho_agent_memory`, `messinho_agent_traces`, `messinho_agent_tasks`: jeweils 0 Datensätze.
+- Die fünf genannten Tabellen haben RLS aktiviert; die Task-Tabelle erlaubt den Status `failed`.
+- Es wurden ausschließlich SELECT-/Inventurabfragen ausgeführt. Keine Zeile, kein Schema und keine Migration geändert.
+
+### Auswirkungen und Grenzen
+- Keine Datenbankmigration und keine Datenänderung.
+- Keine Nutzer-, Scout-, Spieler-, Memory-, Trace-, Task- oder Lerndaten geschrieben.
+- Keine Modellgewichte verändert; kein Training ausgeführt.
+- Produktionsbranch `main`, LIVE-Render, Produktions-Supabase und PFMS/PFSS unverändert.
+- PR #47 bleibt Draft und ungemergt; keine Produktionspromotion.
+
+### Nächster Schritt
+1. Authentifizierte STAGING-E2E mit einem ausdrücklich dafür vorgesehenen Test-Scout-Konto durchführen; aktuell ist im Staging nur ein genehmigtes Admin-Profil vorhanden.
+2. Memory-/Trace-/Task-Schreibvorgänge, Task-Resume, abgelaufene Lease, parallelen Resume-Claim und Cross-Owner-Zugriff mit zwei getrennten Konten prüfen.
+3. MESSINHO-Chat auf dem aktuell live geschalteten STAGING-Commit testen: normale Frage, Knowledge-Gap, Live-Uhrzeit, Recherche mit Quellen, Provider-Ausfall und Kontingentfehler.
+4. Erst nach diesen E2E-/Sicherheitsnachweisen den Status der betroffenen Fähigkeiten erhöhen. Keine Live- oder Produktionsfreigabe aus diesem Checkpoint ableiten.
+
