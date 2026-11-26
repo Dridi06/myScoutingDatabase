@@ -10,6 +10,7 @@ import { parseMessinhoScoutingRequest, matchesPosition, sourceSupportsRegion } f
 import { correctMessinhoInput } from './messinho-input-correction.js';
 import { rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFollowUp, extractMessinhoPlayerSearchTerm, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
+import { normalizeMessinhoFeedback, normalizeMessinhoFeedbackReview } from './messinho-feedback.js';
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
 import { getMessinhoCapabilitySummary } from './messinho-capabilities.js';
@@ -1234,6 +1235,94 @@ app.get('/api/messinho/learning/players',async(req,res)=>{
     return res.json({players});
   }catch(error){console.error('MESSINHO calibration player list failed:',error.message);return res.status(500).json({error:'Spielerliste für die Kalibrierung konnte nicht geladen werden.'});}
 });
+const messinhoFeedbackLimiter=rateLimit({windowMs:60*60*1000,limit:12,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Feedback-Einträge. Bitte später erneut versuchen.'}});
+app.post('/api/messinho/feedback',messinhoFeedbackLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    const normalized=normalizeMessinhoFeedback(req.body||{});
+    if(!normalized.ok)return res.status(400).json({error:normalized.error});
+    const {data,error}=await db.from('messinho_feedback').insert({
+      owner_id:actor.user.id,submitted_role:actor.profile.role,...normalized.value
+    }).select('id,status,created_at').single();
+    if(error?.code==='23505')return res.status(409).json({error:'Für diese MESSINHO-Antwort wurde bereits Feedback abgegeben.'});
+    if(error){console.error('MESSINHO feedback insert failed:',error.code||error.message);return res.status(500).json({error:'Feedback konnte nicht revisionssicher gespeichert werden. Staging-Migration prüfen.'});}
+    return res.status(201).json({ok:true,feedback:data,message:'Danke. Dein Feedback wurde gespeichert und wird getrennt von verifizierten Spielergebnissen ausgewertet.'});
+  }catch(error){console.error('MESSINHO feedback submission failed:',error.message);return res.status(500).json({error:'Feedback konnte nicht gespeichert werden.'});}
+});
+app.get('/api/messinho/feedback',async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    if(actor.profile.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen Feedback einsehen.'});
+    const allowedStatuses=new Set(['pending','reviewed','verified','rejected','applied']);
+    const status=allowedStatuses.has(String(req.query?.status||''))?String(req.query.status):'pending';
+    const {data,error}=await db.from('messinho_feedback')
+      .select('id,owner_id,submitted_role,message_id,question,answer,feedback_type,rating,comment,intent,engine_version,model_version,capability_ids,status,review_reason,evidence_url,created_at,updated_at')
+      .eq('status',status).order('created_at',{ascending:false}).limit(50);
+    if(error)return res.status(500).json({error:'Feedback-Prüfliste konnte nicht geladen werden. Staging-Migration prüfen.'});
+    const ownerIds=[...new Set((data||[]).map(row=>row.owner_id))];
+    const profiles=ownerIds.length?await db.from('profiles').select('id,username').in('id',ownerIds):{data:[],error:null};
+    if(profiles.error)return res.status(500).json({error:'Feedback-Absender konnten nicht zugeordnet werden.'});
+    const names=new Map((profiles.data||[]).map(row=>[row.id,row.username]));
+    return res.json({feedback:(data||[]).map(row=>({...row,owner_username:names.get(row.owner_id)||'Unbekannter Nutzer'})),status});
+  }catch(error){console.error('MESSINHO feedback queue failed:',error.message);return res.status(500).json({error:'Feedback-Prüfliste konnte nicht geladen werden.'});}
+});
+app.post('/api/messinho/feedback/:feedbackId/review',messinhoFeedbackLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    if(actor.profile.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen Feedback prüfen.'});
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(req.params.feedbackId||'')))return res.status(400).json({error:'Ungültige Feedback-ID.'});
+    const normalized=normalizeMessinhoFeedbackReview(req.body||{});
+    if(!normalized.ok)return res.status(400).json({error:normalized.error});
+    const {data,error}=await db.rpc('asi_review_messinho_feedback',{
+      p_feedback_id:req.params.feedbackId,p_decision:normalized.value.decision,
+      p_reason:normalized.value.reason,p_evidence_url:normalized.value.evidence_url,p_actor_id:actor.user.id
+    });
+    if(error){console.error('MESSINHO feedback review failed:',error.code||error.message);const status=error.code==='42501'?403:error.code==='P0002'?404:409;return res.status(status).json({error:'Feedback-Prüfung wurde abgelehnt. Status, Beleg und Berechtigung kontrollieren.'});}
+    return res.json({ok:true,feedback:data,message:'Feedback-Prüfung und Audit-Eintrag wurden atomar gespeichert.'});
+  }catch(error){console.error('MESSINHO feedback review failed:',error.message);return res.status(500).json({error:'Feedback konnte nicht geprüft werden.'});}
+});
+app.post('/api/messinho/calibration/:recordId/review',messinhoFeedbackLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    if(actor.profile.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen Kalibrierungen prüfen.'});
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(req.params.recordId||'')))return res.status(400).json({error:'Ungültige Kalibrierungs-ID.'});
+    const body=req.body||{},decision=body.decision;
+    const reason=String(body.reason||'').trim();
+    if(!['verify','reject'].includes(decision)||reason.length<8||reason.length>1200)return res.status(400).json({error:'Prüfentscheidung und nachvollziehbarer Prüfgrund fehlen.'});
+    let outcome=null,observedOn=null,sourceUrl=null;
+    if(decision==='verify'){
+      outcome=Number(body.verified_outcome);observedOn=String(body.observed_on||'');
+      try{const url=new URL(String(body.source_url||''));if(url.protocol!=='https:'||url.username||url.password)throw new Error('invalid');sourceUrl=url.toString();}catch{return res.status(400).json({error:'Eine gültige HTTPS-Quelle ist erforderlich.'});}
+      if(!Number.isFinite(outcome)||outcome<0||outcome>100||!/^\\d{4}-\\d{2}-\\d{2}$/.test(observedOn)||observedOn>new Date().toISOString().slice(0,10))return res.status(400).json({error:'Ergebniswert oder Beobachtungsdatum ist ungültig.'});
+    }
+    const {data,error}=await db.rpc('asi_review_scout_calibration',{
+      p_record_id:req.params.recordId,p_decision:decision,p_reason:reason,
+      p_verified_outcome:outcome,p_observed_on:observedOn,p_source_url:sourceUrl,p_actor_id:actor.user.id
+    });
+    if(error){console.error('MESSINHO calibration review failed:',error.code||error.message);const status=error.code==='42501'?403:error.code==='P0002'?404:409;return res.status(status).json({error:'Kalibrierung konnte nicht geprüft werden. Status, Ergebnis und Beleg kontrollieren.'});}
+    return res.json({ok:true,record:data,message:decision==='verify'?'Kalibrierung verifiziert.':'Kalibrierung abgelehnt.'});
+  }catch(error){console.error('MESSINHO calibration review failed:',error.message);return res.status(500).json({error:'Kalibrierung konnte nicht geprüft werden.'});}
+});
+app.post('/api/messinho/models/:modelVersionId/review',messinhoFeedbackLimiter,async(req,res)=>{
+  try{
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const actor=await messinhoAuthenticatedUser(req,res);if(!actor)return;
+    if(actor.profile.role!=='admin')return res.status(403).json({error:'Nur Administratoren dürfen Modellkandidaten freigeben.'});
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(req.params.modelVersionId||'')))return res.status(400).json({error:'Ungültige Modell-ID.'});
+    const decision=String(req.body?.decision||'approve'),reason=String(req.body?.reason||'').trim();
+    if(!['approve','reject'].includes(decision)||reason.length<8||reason.length>1200)return res.status(400).json({error:'Modellentscheidung und nachvollziehbarer Prüfgrund fehlen.'});
+    const {data,error}=await db.rpc('asi_review_model_candidate',{
+      p_model_version_id:req.params.modelVersionId,p_decision:decision,p_reason:reason,p_actor_id:actor.user.id
+    });
+    if(error){console.error('MESSINHO model review failed:',error.code||error.message);const status=error.code==='42501'?403:error.code==='P0002'?404:409;return res.status(status).json({error:'Modellfreigabe wurde abgelehnt. Holdout-Evaluation und Kandidatenstatus kontrollieren.'});}
+    return res.json({ok:true,model:data,message:decision==='approve'?'Modellkandidat atomar freigegeben.':'Modellkandidat abgelehnt.'});
+  }catch(error){console.error('MESSINHO model review failed:',error.message);return res.status(500).json({error:'Modellkandidat konnte nicht geprüft werden.'});}
+});
+
 const messinhoCalibrationLimiter=rateLimit({windowMs:60*60*1000,limit:30,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Kalibrierungseinträge. Bitte später erneut versuchen.'}});
 app.post('/api/messinho/calibration',messinhoCalibrationLimiter,async(req,res)=>{
   try{
