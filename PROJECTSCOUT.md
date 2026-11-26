@@ -2318,3 +2318,19 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Build: **262 Tests bestanden, 0 fehlgeschlagen**; Vite-Build erfolgreich (`built in 2.38s`); Render meldet `Build successful`.
 - Weiterhin keine Quellen freigegeben und keine Wissenseinträge importiert. Rechte-Allowlist: 0. Wissensbestand: 0.
 - Alle Betriebsgrenzen eingehalten: nur STAGING und Feature-Branch; Produktion/main/PFMS/PFSS unberührt; PR #47 unverändert; Auto-Deploy aus.
+
+
+## 2026-11-26 — Umsetzungsschritt 3b: sechs vorhandene Lernhandler korrekt als Speziallogik klassifiziert
+
+- **Ausgangsbefund:** Die Runtime-Klassifizierung wies sechs Fähigkeiten weiterhin als generische Fallbacks aus, obwohl `learningHandler()` bereits konkrete, datenabhängige Fachlogik für alle sechs enthält. Die Klassifizierung und die dazugehörigen Tests waren damit veraltet.
+- **Betroffene Fähigkeiten:** `supervised_learning`, `weight_optimization`, `country_learning`, `talent_pathway_learning`, `breakthrough_learning`, `controlled_self_optimization`.
+- **Korrektur:** Die sechs IDs wurden in `specialistCapabilityIds` aufgenommen. Es wurde keine zweite oder parallele Lernimplementierung angelegt; die bereits vorhandenen Handler werden weiterverwendet.
+- **Verhalten/Sicherheitsgrenzen:** Supervised Learning, Weight Optimization und Controlled Self Optimization erzeugen ausschließlich datenbasierte Vorschläge aus verifizierten Outcomes. Sie trainieren nicht automatisch und verändern keine aktiven Modellgewichte; Aktivierung bleibt admin-freigabepflichtig. Country Learning vergleicht verifizierte Outcomes nach Ländern. Talent Pathway und Breakthrough werten verifizierte longitudinale Entwicklungsverläufe aus.
+- **Geänderte Dateien:** `backend/messinho-capability-runtime.js`, `tests/messinho-capability-runtime.test.js`, `tests/messinho-orchestrator.test.js`.
+- **Commits:** Runtime-Klassifizierung `06379b1dd7d507e3dccaeec58401a60e5cc1cb73`; Laufzeittests `0a3d6a368db6cf503a7105244f2ce1f1c00b7da1`; Orchestrator-Regressionstests `b10c14d228432d8d14d9d7c49bab595cdf6f3ea0`.
+- **Erwarteter Coverage-Stand nach Korrektur:** 100/100 dispatch-registriert, 100/100 mit Speziallogik klassifiziert, 0 generische Fallbacks. `completion_verified_count` bleibt unverändert 0; das ist keine Ende-zu-Ende-Fertigmeldung.
+- **Tests:** Neue Regressionstests prüfen alle sechs bestehenden Fachpfade mit verifizierten Testeingaben und die Nicht-Mutation aktiver Modellgewichte. Die vollständige Node-Suite wurde über diesen GitHub-Connector noch nicht ausgeführt/verifiziert; CI-Status und Workflow-Runs für Commit `b10c14d` waren bei der Prüfung leer. Daher noch keine Test-Erfolgsmeldung.
+- **Daten/Schema:** Keine Migration, keine Supabase-Abfrage oder -Änderung, keine Änderung an Nutzer-, Spieler-, Scout-, Wissens- oder Lerndaten.
+- **Deployment:** Kein Render-Deploy ausgelöst. Staging-Bereitstellung muss nach erfolgreicher CI und nach expliziter Auswahl des Render-Workspaces geprüft werden. Produktion/`main`, PFMS/PFSS und PR-Merge blieben unangetastet.
+- **Nächste Schritte:** (1) CI für den aktuellen Branch-HEAD nachweisen und Fehler beheben; (2) dedizierten STAGING-Workspace/Service verifizieren und erst nach Freigabe gezielt deployen; (3) 94 bisherige Handler fachlich und datenbezogen auditieren, ohne 100/100 End-to-End zu behaupten; (4) 100 Quellen einzeln auf Werk-, Lizenz-, AI/TDM-, kommerzielle und Bearbeitungsrechte prüfen; nur tatsächlich belegte Werke in die Allowlist aufnehmen; (5) danach Import-/Extraktions-, Versions-/Konflikt- und Backup/Restore-Tests durchführen.
+
