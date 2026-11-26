@@ -185,7 +185,7 @@ test('VO2max continuation preserves the original canonical question for knowledg
     'Für eine konkrete Einordnung eines Spielers brauche ich die folgenden Angaben.'
   );
   assert.match(combined, /VO2max/);
-  assert.match(combined, /56 ml\\/kg\\/min/);
+  assert.match(combined, /56 ml\/kg\/min/);
   assert.equal(buildMessinhoVo2maxApplicationQuery(
     'Wie kann ich VO2max für die Leistungsbewertung nutzen?',
     'Wie ist das Wetter morgen?',
