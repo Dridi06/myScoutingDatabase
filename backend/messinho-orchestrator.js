@@ -1,8 +1,8 @@
 import { executeMessinhoCapability } from './messinho-capability-runtime.js';
 
 const PLANS = [
-  { match: /\b(analysiere|analyse|profil|stärken|schwächen|spielstil|taktik)\b/i, ids: ['holistic_player_analysis','strength_weakness_analysis','position_analysis','overall_score','explainable_rating'], label: 'Spieleranalyse' },
   { match: /\b(potenzial|talent|entwicklung|prognose)\b/i, ids: ['potential_analysis','performance_development','potential_score','development_projection'], label: 'Potenzial- und Entwicklungsanalyse' },
+  { match: /\b(analysiere|analyse|profil|stärken|schwächen|spielstil|taktik)\b/i, ids: ['holistic_player_analysis','strength_weakness_analysis','position_analysis','overall_score','explainable_rating'], label: 'Spieleranalyse' },
   { match: /\b(vergleiche|vergleich|gegenüberstellen)\b/i, ids: ['peer_comparison_analysis','competition_comparison','overall_score'], label: 'Spielervergleich' },
   { match: /\b(datenqualität|datenlücken|vollständigkeit|quellen prüfen|quellenqualität)\b/i, ids: ['data_quality_score','source_trust_score','source_cross_check'], label: 'Daten- und Quellenprüfung' },
   { match: /\b(risiko|risiken|transferbewertung|transfer priorität)\b/i, ids: ['risk_score','transfer_priority','value_for_money'], label: 'Risiko- und Transferbewertung' },
