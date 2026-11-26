@@ -252,7 +252,7 @@ async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=n
   // 8. MESSINHO – echte providerunabhängige Funktionstests
   await safe('MESSINHO-Runtime-Katalog','MESSINHO',async()=>{
     const runtime=getMessinhoRuntimeSummary();
-    return {ok:runtime.all_registered&&runtime.registered_handlers>0,detail:`Runtime ${runtime.version}: ${runtime.registered_handlers} Handler für ${runtime.total_catalogue_entries} Katalogeinträge; vollständig registriert: ${runtime.all_registered}.`};
+    return {ok:runtime.all_dispatched&&runtime.registered_handlers>0,detail:`Runtime ${runtime.version}: ${runtime.dispatched_capabilities}/${runtime.total_catalogue_entries} Fähigkeiten an Domain-Handler verteilt; ${runtime.specialist_logic_count} mit expliziter Speziallogik, ${runtime.generic_fallback_count} mit generischem Fallback, ${runtime.undispatched_count} ohne Dispatch. Keine End-to-End-Vollständigkeit behauptet.`};
   });
   await safe('MESSINHO-Scoring-Selbsttest','MESSINHO',async()=>{
     const scored=scoreMessinhoPlayer({player:{positions:['Stürmer']},ratings:{technical:80,tactical:70,athletic:75,mental:65}});
@@ -333,8 +333,8 @@ async function executeMessinhoDiagnostics(actorProfileId){
   if(!db)throw new Error('Supabase-Service-Client ist nicht verfügbar.');
   await safe('MESSINHO-Runtime und Handler','Runtime',async()=>{
     const runtime=getMessinhoRuntimeSummary();
-    const ok=runtime.all_registered===true&&runtime.registered_handlers>0;
-    return {ok,detail:`Runtime ${runtime.version}: ${runtime.registered_handlers} Handler, ${runtime.total_catalogue_entries} Katalogeinträge; vollständig registriert: ${runtime.all_registered}.`};
+    const ok=runtime.all_dispatched===true&&runtime.registered_handlers>0;
+    return {ok,detail:`Runtime ${runtime.version}: ${runtime.dispatched_capabilities}/${runtime.total_catalogue_entries} Fähigkeiten an Domain-Handler verteilt; ${runtime.specialist_logic_count} mit expliziter Speziallogik, ${runtime.generic_fallback_count} mit generischem Fallback, ${runtime.undispatched_count} ohne Dispatch. Keine End-to-End-Vollständigkeit behauptet.`};
   });
   await safe('Positions-Scoring und Wertebereich','Modellqualität',async()=>{
     const sample={player:{positions:['Stürmer']},ratings:{technical:80,tactical:70,athletic:75,mental:65}};

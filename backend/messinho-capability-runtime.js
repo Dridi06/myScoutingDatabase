@@ -1,6 +1,7 @@
 /**
  * MESSINHO 100-capability runtime.
- * Every catalogue ID resolves to an executable, deterministic handler.
+ * Catalogue registration, domain dispatch, specialist logic and verified completion are reported separately.
+ * Generic fallbacks are never presented as complete specialist implementations.
  * The runtime never fabricates absent player metrics, evidence, outcomes or market data.
  * Provider-dependent research consumes a validated research bundle supplied by the ASI pipeline.
  */
@@ -133,7 +134,7 @@ function analysisHandler(id,input){
    const potential=base===null?null:Math.round(clamp(base+(growth===null?0:Math.max(-5,Math.min(10,growth)))*.5));
    return result(id,'completed',{current_score:base,observed_change:growth,age:derivedAge,potential_indicator:potential,confidence:t?'longitudinal':'cross_sectional_only',limitations:t?[]:['Keine belastbare mehrzeitige Entwicklungshistorie; Potenzialindikator ist deshalb eingeschränkt.']});
  }
- if(id==='performance_development'||id==='form_curve_analysis'||id==='consistency_analysis'||id==='development_score'||id==='consistency_score'||id==='seasonal_learning'||id==='seasonal_metrics'){
+ if(id==='performance_development'||id==='form_curve_analysis'||id==='consistency_analysis'||id==='development_score'||id==='consistency_score'||id==='seasonal_metrics'){
    const key=input.metric_key||'score',t=trend(timeSeries,key);
    if(!t)return missingResult(id,['dated_metrics'],'Mindestens zwei datierte Messwerte derselben Kennzahl sind erforderlich.');
    const values=sortedDated(timeSeries).map(x=>finite(x[key])).filter(v=>v!==null);
@@ -258,6 +259,22 @@ function evaluationHandler(id,input){
  return missingResult(id,['evaluation_inputs']);
 }
 function learningHandler(id,input){
+ if(id==='seasonal_learning'){
+   const observations=asArray(input.seasonal_metrics||input.time_series||input.history);
+   const key=input.metric_key||'score';
+   const grouped=new Map();
+   for(const item of observations){
+     const season=String(item?.season||item?.season_label||item?.season_year||'').trim();
+     const value=finite(item?.[key]);
+     if(!season||value===null)continue;
+     if(!grouped.has(season))grouped.set(season,[]);
+     grouped.get(season).push(value);
+   }
+   const seasons=[...grouped.entries()].map(([season,values])=>({season,observations:values.length,mean:round(avg(values))})).sort((a,b)=>a.season.localeCompare(b.season,'de'));
+   if(seasons.length<2)return missingResult(id,['mindestens_zwei_Saisons_mit_Messwerten'],'Für einen Saisonvergleich werden mindestens zwei eindeutig bezeichnete Saisons mit Messwerten benötigt.');
+   const first=seasons[0],last=seasons.at(-1),change=round(last.mean-first.mean);
+   return result(id,'completed',{metric:key,seasons,season_count:seasons.length,change,direction:change>0?'improving':change<0?'declining':'stable',training_performed:false,model_weights_changed:false,interpretation:'Deskriptiver Saisonvergleich; keine Modellgewichte oder Trainingsdaten wurden verändert.'});
+ }
  const rows=verifiedOutcomes(input);
  const min=Number.isInteger(input.minimum_examples)?Math.max(5,input.minimum_examples):30;
  if(id==='dataset_quality_improvement'||id==='data_error_learning'){
@@ -334,10 +351,17 @@ const evaluationIds=new Set(['overall_score','position_score','potential_score',
 const learningIds=new Set(['supervised_learning','position_specific_learning','scout_feedback_learning','prediction_audit','error_pattern_detection','weight_optimization','age_group_learning','league_learning','country_learning','talent_pathway_learning','false_positive_learning','breakthrough_learning','scout_accuracy_analysis','scout_calibration','model_benchmarking','regression_guard','dataset_quality_improvement','data_error_learning','position_change_learning','availability_outcome_learning','probability_calibration','seasonal_learning','verified_long_term_memory','model_versioning','controlled_self_optimization']);
 const researchIds=new Set(['automated_talent_search','international_research','cross_league_research','youth_talent_discovery','underdog_detection','hidden_gem_detection','club_research','squad_research','contract_research','contract_expiry_monitor','rumour_verification','market_monitoring','source_cross_check','identity_verification','birth_year_verification','position_verification','statistics_research','video_source_research','match_report_research','competition_monitoring','club_need_research','comparable_player_research','player_data_refresh','new_talent_monitoring','research_report_generation']);
 
+
+const specialistCapabilityIds=new Set(["holistic_player_analysis","player_profile_synthesis","position_analysis","multi_position_analysis","creativity_analysis","decision_quality_analysis","strength_weakness_analysis","technical_detail_analysis","play_style_detection","game_intelligence_analysis","potential_analysis","potential_score","talent_score","development_projection","performance_development","form_curve_analysis","consistency_analysis","development_score","consistency_score","tactical_behaviour_analysis","game_phase_analysis","duel_analysis","video_event_analysis","minutes_analysis","availability_history_analysis","running_performance_analysis","speed_analysis","anomaly_detection","peer_comparison_analysis","competition_comparison","age_relative_analysis","overall_score","position_score","explainable_rating","data_quality_score","source_trust_score","system_fit_score","coach_fit_score","club_fit_score","league_fit_score","market_value_assessment","value_for_money","risk_score","transfer_priority","scout_rating_agreement","seasonal_learning","dataset_quality_improvement","data_error_learning","model_versioning","verified_long_term_memory","regression_guard","model_benchmarking","prediction_audit","error_pattern_detection","false_positive_learning","probability_calibration","scout_accuracy_analysis","scout_calibration","identity_verification","birth_year_verification","position_verification","video_source_research","contract_expiry_monitor","contract_research","source_cross_check","rumour_verification","research_report_generation","player_data_refresh","new_talent_monitoring","market_monitoring","competition_monitoring"]);
+
 const allCatalog=getMessinhoCapabilityCatalog();
 const catalogById=new Map(allCatalog.flatMap(g=>g.functions).map(x=>[x.id,x]));
 export function listExecutableMessinhoCapabilities(){
- return allCatalog.map(group=>({...group,functions:group.functions.map(fn=>({...fn,execution_handler_available:true,runtime_version:MESSINHO_CAPABILITY_RUNTIME_VERSION}))}));
+ return allCatalog.map(group=>({...group,functions:group.functions.map(fn=>{
+   const dispatched=analysisIds.has(fn.id)||evaluationIds.has(fn.id)||learningIds.has(fn.id)||researchIds.has(fn.id);
+   const specialist=specialistCapabilityIds.has(fn.id);
+   return {...fn,dispatch_registered:dispatched,execution_handler_available:dispatched,specialist_logic_available:specialist,implementation_level:specialist?'specialist_logic':'generic_fallback',completion_verified:false,runtime_version:MESSINHO_CAPABILITY_RUNTIME_VERSION};
+ })}));
 }
 export function executeMessinhoCapability(id,input={}){
  const meta=catalogById.get(id);
@@ -349,9 +373,15 @@ export function executeMessinhoCapability(id,input={}){
  else if(learningIds.has(id))output=learningHandler(id,input);
  else if(researchIds.has(id))output=researchHandler(id,input);
  else output=missingResult(id,meta.required_inputs);
- return {...output,name:meta.name,domain:allCatalog.find(g=>g.functions.some(f=>f.id===id))?.id||null,description:meta.description};
+ const specialist=specialistCapabilityIds.has(id);
+ return {...output,name:meta.name,domain:allCatalog.find(g=>g.functions.some(f=>f.id===id))?.id||null,description:meta.description,implementation_level:specialist?'specialist_logic':'generic_fallback',specialist_logic_available:specialist,completion_verified:false};
 }
 export function getMessinhoRuntimeSummary(){
  const ids=[...analysisIds,...evaluationIds,...learningIds,...researchIds];
- return {version:MESSINHO_CAPABILITY_RUNTIME_VERSION,registered_handlers:ids.length,unique_handlers:new Set(ids).size,total_catalogue_entries:catalogById.size,all_registered:ids.length===catalogById.size&&new Set(ids).size===catalogById.size};
+ const uniqueIds=new Set(ids);
+ const catalogIds=[...catalogById.keys()];
+ const dispatched=catalogIds.filter(id=>uniqueIds.has(id));
+ const specialist=catalogIds.filter(id=>uniqueIds.has(id)&&specialistCapabilityIds.has(id));
+ const fallback=catalogIds.filter(id=>uniqueIds.has(id)&&!specialistCapabilityIds.has(id));
+ return {version:MESSINHO_CAPABILITY_RUNTIME_VERSION,registered_handlers:ids.length,unique_handlers:uniqueIds.size,total_catalogue_entries:catalogById.size,dispatched_capabilities:dispatched.length,specialist_logic_count:specialist.length,generic_fallback_count:fallback.length,undispatched_count:catalogIds.length-dispatched.length,all_dispatched:dispatched.length===catalogIds.length,all_registered:dispatched.length===catalogIds.length&&uniqueIds.size===ids.length,completion_verified_count:0,note:'Dispatch-Registrierung und Speziallogik sind keine Aussage über vollständige oder end-to-end verifizierte Implementierung.'};
 }

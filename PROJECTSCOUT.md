@@ -554,3 +554,56 @@ This is a mandatory step for every future `myScoutingDatabase` work session:
 - **Tests:** Seven orchestrator test cases were committed; execution has not yet been verified. Render's production build is not a substitute for `npm test`.
 - **Data/schema impact:** None in the changes recorded above.
 - **Next action:** Correct runtime coverage reporting, fix and test the unreachable seasonal-learning dispatch, then run the complete Node test suite before expanding all 100 skills.
+
+
+## 17. Runtime-Coverage-Korrektur und saisonales Lernen — 2026-11-26
+
+### Implementierung auf separatem Prüf-Branch
+
+- **Branch:** `fix/messinho-runtime-coverage`
+- **Pull Request:** [#44 — MESSINHO: truthful capability coverage and seasonal learning](https://github.com/Dridi06/myScoutingDatabase/pull/44)
+- **Branch-Head vor diesem Checkpoint:** `e426762d5fab70e36acfce47e4442691648340f6`
+- **Produktionsstatus:** Noch nicht in `main` übernommen; keine neue Produktionsbereitstellung aus diesem Branch.
+- **Ausgangsstand Produktion:** `main` commit `8df9960a5b1c48da6dca47337bb3cd9f6414e92e`; Render deployment `dep-dc3o1rgjo6nc73amadeg` war als `live` bestätigt.
+
+### Tatsächlich implementiert
+
+1. `backend/messinho-capability-runtime.js`
+   - Die interne Diagnose trennt jetzt Katalogeinträge, Domain-Dispatch, explizite Speziallogik, generischen Fallback und nachgewiesene End-to-End-Vollständigkeit.
+   - Der Katalog weist pro Fähigkeit `dispatch_registered`, `specialist_logic_available`, `implementation_level` und `completion_verified` aus.
+   - Generische Fallbacks werden nicht mehr als vollständige Spezialfunktionen dargestellt.
+   - Die Laufzeitübersicht berechnet `dispatched_capabilities`, `specialist_logic_count`, `generic_fallback_count`, `undispatched_count` und `completion_verified_count` getrennt.
+   - `seasonal_learning` wurde aus dem falschen Analyse-Handler entfernt und dem Lern-Handler zugeordnet. Die neue Logik vergleicht mindestens zwei explizit bezeichnete Saisons anhand vorhandener Messwerte. Sie trainiert nicht und verändert keine Modellgewichte.
+2. `backend/server.js`
+   - System- und MESSINHO-Administratordiagnosen beschreiben Dispatch-Abdeckung, Speziallogik und generische Fallbacks getrennt. Eine vollständige Implementierung wird nicht mehr aus der bloßen Registrierung abgeleitet.
+3. `tests/messinho-orchestrator.test.js`
+   - Zusätzliche Tests für Saisonvergleich, unveränderte Modellgewichte, Laufzeit-Coverage und ehrliche Admin-Katalogkennzeichnung.
+4. `.github/workflows/messinho-tests.yml`
+   - GitHub Actions führt die Node-Tests bei Push auf `main` und den Prüf-Branch sowie bei Pull Requests nach `main` aus.
+
+### Verifikation
+
+- **GitHub Actions Run:** `45731280435`
+- **Ergebnis:** `completed / success`
+- **Ausgeführt:** `npm install --no-audit --no-fund`, danach `npm test`
+- **Testergebnis:** 98 Tests bestanden, 0 fehlgeschlagen, 0 übersprungen.
+- **Hinweis:** Die CI belegt die automatisierten Tests. Sie ist kein browserbasierter Live-Test und keine End-to-End-Prüfung jeder einzelnen Katalogfähigkeit.
+- **Supabase / Daten / Schema:** Keine Datenbankmigration, keine Änderung an Nutzerdaten, Spielerakten, Lernhistorie oder Modellgewichten.
+- **Produktionsbereitstellung:** Noch nicht erfolgt. Merge und Render-Live-Status müssen separat bestätigt werden.
+
+### Status nach diesem Arbeitsschritt
+
+| Bereich | Status | Nächster Schritt |
+|---|---|---|
+| Runtime-Coverage | Implementiert, CI-geprüft | Nach Merge Admin-Diagnose live kontrollieren |
+| Generische Fallbacks | Werden separat ausgewiesen | Fähigkeiten systematisch durch echte Fachlogik ersetzen |
+| `seasonal_learning` | Fachlogik ergänzt und getestet | Mit realen, berechtigten Saisonmesswerten im Produkt prüfen |
+| Node-Test-Suite | 98/98 bestanden | CI dauerhaft auf `main` aktiv halten |
+| 100 Fähigkeiten | Noch nicht vollständig end-to-end verifiziert | Verträge, Datenbedarf, Berechtigungen und Tests pro Fähigkeit weiter ausbauen |
+| Produktionsdeployment dieses Arbeitsschritts | Noch nicht erfolgt | Erst nach erfolgreicher PR-Prüfung mergen und Render-Status kontrollieren |
+
+### Change-Log — 2026-11-26
+
+| Datum | Änderung | Status | Hinweis |
+|---|---|---|---|
+| 2026-11-26 | Runtime-Coverage, saisonale Lernlogik, Admin-Diagnosen und Node-CI | Implementiert auf Prüf-Branch; 98 Tests bestanden | Noch nicht in Produktion; keine Daten-/Schemaänderung |
