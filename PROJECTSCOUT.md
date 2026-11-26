@@ -3631,3 +3631,14 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Build verification: Node test suite **331 passed, 0 failed**; build output includes successful frontend production build; runtime starts on port 10000 and Supabase Data API responds HTTP 200.
 - Next acceptance: owner repeats the canonical VO2max question in authenticated Admin STAGING chat. Expected result is the stored concept explanation and a focused request for missing player-specific test details. Then provide the requested data in the immediate next turn to test continuation. Scout role and tenant isolation acceptance remains required.
 - The corrected code is deployed, but the user-facing conversation has not yet been re-tested after this final fix. Do not claim pilot acceptance. Knowledge import stays gated. No production, `main`, PFMS, PFSS, or Supabase data mutations.
+
+
+### VO2max foundation pilot — first authenticated Admin round successful — 2026-11-26 23:52 CET
+- Owner supplied four screenshots from the Admin chat after deployment `67f6984`.
+- The exact VO2max foundation retrieval is now successful: MESSINHO explicitly states it retrieved approved foundation knowledge, explains VO2max, provides football-scouting applicability and limitations, asks for the required player-specific inputs (measurement with unit, test method, date, age, position, training status), avoids generating a score, and displays the two stored specialist sources in the knowledge card.
+- This confirms the prior status-field projection defect is fixed in the live Admin first-turn path. The first round of the VO2max pilot has passed.
+- Screenshot review also identified a presentation defect: literal `\\n\\n` escape sequences were shown in the response instead of line breaks, and array/object knowledge values were concatenated with semicolons. Fixed the canonical response string to use actual newlines and changed structured arrays/objects to readable multiline formatting.
+- Added regression expectations for multiline knowledge formatting. Commits: `fa573ce1223aff44a3d78edd3c4539f63f4c8713` (response line breaks), `ff3310e778209fc4bb34846d1fcb75f11bf4b9ea` (formatter), `c632d7dfee9bed5679353143780a7b5eac59d523` (formatter tests).
+- Deployment `dep-dc4bh0lg1s2s73dte15g` triggered for STAGING commit `c632d7d`; verify build and LIVE before asking owner to assess presentation.
+- Remaining pilot acceptance: verify second-turn follow-up with real player data, then test Scout role and tenant isolation. Do not yet start the systematic knowledge import.
+- No production changes and no Supabase knowledge records, rights or approval state modified.
