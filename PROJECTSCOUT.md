@@ -2095,5 +2095,5 @@ All the following were applied only to STAGING Supabase project `nwqwnrhupbyhshs
 - Multiple league choices are preserved rather than only taking the first regex match. “3. Liga oder Regionalliga” is retained as both alternatives in the requested target-level field and in the research focus.
 - The previously added preferred-foot criterion remains source-evidence gated; it is not inferred from position.
 - Added regression tests for nationality-vs-location separation, alias matching, and multi-league alternatives.
-- An initial build attempt exposed an alias-normalization mismatch in the new nationality helper. The helper was corrected to canonicalize all country aliases before the release retry. The failed attempt did not replace the previously live STAGING deployment.
+- Initial build attempts exposed an outdated regression expectation that treated the adjective “deutsch” as a Germany location filter. The intended behavior is to keep nationality and location separate; the test now asserts that distinction. The failed attempts did not replace the previously live STAGING deployment.
 - Release gate: latest branch tip must pass the complete Node suite, backend syntax checks and Vite build before the next manual STAGING deploy. Production/main and PFMS/PFSS remain untouched; auto-deploy stays disabled; PR #47 stays Draft/open/unmerged.
