@@ -1088,3 +1088,13 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - **Current code commits:** live resolver `f3e2802a5f0a8c05f509aea685bf20e269b1d5d4`; chat integration `b624ca3d95587927f5d4b9d77637e20063ecc600`; tests `abd3a013fe939ca48ed96b9a7d4773ab94fd7a64`.
 - **Status:** Candidate branch only; automated CI results for current head have not yet been returned. No deployment performed. Production untouched.
 - **Next:** confirm exact PR head and CI, inspect any failures, then manually deploy to Staging only and verify exact Render commit. Continue expanding the tool resolver registry only for tools with authoritative sources; unknown/unverifiable questions must be researched or transparently clarified, never guessed.
+
+### CI failure corrections — 2026-11-26
+
+- Inspected the four failed workflow logs on head `d7c35a801f2335fef2784aebf193cfb4fcdf0c48`; failures reduced to two implementation defects exposed by tests:
+  1. Live clock/date intent regexes were double-escaped, so the resolver returned `null` for ordinary questions such as “Wie spät ist es?”.
+  2. Candidate-count regex allowed a U-age token only with optional whitespace, not a hyphen; “drei U-19-Mittelfeldspieler” therefore defaulted to 10.
+- Fixed the live time/date regex literals in `backend/messinho-conversation.js` (commit `1a69f9f4de41331343b277da62c36df26d5ad279`).
+- Fixed the quantity lookahead to accept U-age notation with whitespace or hyphen in `backend/messinho-validation.js` (commit `32daabc9b1e92308ff263e16cb6c644e079f7ac1`).
+- Both changes are isolated and covered by the existing regression tests for Berlin time/date and U19/U-19/U 19 count=3.
+- **Status:** Waiting for CI results on the latest head. No deployment until all required checks pass. Production untouched.
