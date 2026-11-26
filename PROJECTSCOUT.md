@@ -936,3 +936,16 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 3. Verify health/startup logs and then execute authenticated E2E checks for chat, ASI, capability execution, memory/task persistence, owner isolation, resume safety, provider fallback and mobile UI.
 4. Review and apply the two versioned MESSINHO migrations to the Staging Supabase project only after schema/RLS review and backup.
 5. Keep PR #47 unmerged and production untouched until all gates pass and the owner explicitly authorizes promotion.
+
+## Checkpoint – 2026-11-26 – MESSINHO backend syntax repair and Staging startup
+
+- Environment: Staging only. Production branch `main` and production Render service were not changed.
+- Branch: `feature/messinho-unified-ai-integration`
+- Repair commit: `fb2a1a8a1b9b94fbee462c2656da6d05a3a17b2a`
+- Root cause: a second, incomplete registration of `GET /api/messinho/capabilities` appeared immediately before the `/api/agent/chat` limiter. The original complete, admin-protected catalogue route already existed earlier in the file. The duplicate incomplete route was removed; the original route and intervening backend endpoints were preserved.
+- Validation: MESSINHO backend syntax workflow passed; MESSINHO Node tests passed; MESSINHO validation passed; ASI quality checks passed.
+- Render Staging deployment: `dep-dc3qh3ei0phs7388kdu0` – status `live`; build succeeded; application started and logged `myScoutingDatabase API listening on 10000`.
+- Supabase Staging connectivity: Data API returned HTTP 200.
+- Important runtime observation: startup diagnostics reported `TAVILY_API_KEY=false` and `OPENAI_API_KEY=false`. The backend process is live, but provider-backed research/conversational fallback cannot be considered operational until the corresponding Staging environment configuration is verified. Do not expose or request secret values in chat; inspect environment-variable presence through Render's secure settings.
+- Remaining verification: authenticated smoke test of `/api/agent/chat` and `/api/messinho/capabilities`, provider configuration check, then controlled AI-agent behavior tests. No production promotion or PR merge authorized.
+
