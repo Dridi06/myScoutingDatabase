@@ -334,8 +334,12 @@ For each meaningful feature, record:
 2. Before the next runtime change, inspect current `main` and run the existing system/MESSINHO diagnostics with authorized access.
 3. Audit `backend/messinho-capability-runtime.js` and `backend/messinho-capabilities.js`; correct capability status/coverage reporting.
 4. Build tests around truthful handler availability, missing data, invalid input, authorization, and owner isolation.
-5. Continue toward the autonomous Agent Core while preserving the current chat interface and design baseline.
-6. Update this file with implementation details and next actions after each meaningful change; append a LIVE release record after every feature deployment.
+5. Expand the orchestrator from first-match phrase rules to multi-intent goal composition with bounded execution and permission-aware capability selection.
+6. Improve natural-language interpretation, follow-up context, response quality, and deterministic fallback behavior without making OpenAI mandatory.
+7. Audit and integrate all 100 catalogue capabilities as internal agent skills; clearly distinguish implemented, partial, data-blocked, policy-blocked, and missing behavior.
+8. Review the remaining direct capability API routes and retire or restrict manual execution so the agent, not the user, controls skill selection.
+9. Update this file with implementation details and next actions after each meaningful change; append a LIVE release record after every feature deployment.
+7. MESSINHO's 100 capabilities are internal agent skills, not user-selectable tools. The user describes a goal in the existing chat; the agent chooses and combines skills automatically. Do not reintroduce a manual per-capability selector in the normal workspace.
 
 ---
 
@@ -369,3 +373,59 @@ This exclusion is explicit, permanent for this project record, and may be change
 | Date | Request / decision | Status | Notes |
 |---|---|---|---|
 | 2026-11-26 | PFMS and PFSS are other projects and must not be considered in myScoutingDatabase work. | Binding exclusion | No requirements, code, infrastructure, assets, or progress from those projects are in scope. |
+
+
+## 15. Autonomous capability integration — owner decision and current progress
+
+### Binding owner decision — 2026-11-26
+
+The 100 MESSINHO capabilities must no longer be presented as 100 individual functions for the user to select and execute. They are internal skills that form the behavior of the autonomous MESSINHO agent.
+
+- The user communicates goals and questions in the existing chat using normal language.
+- MESSINHO determines which internal capabilities are relevant, combines them into a coherent task plan, executes them within role/ownership/policy limits, validates results, and explains the outcome naturally.
+- The user must not need to know capability IDs, technical names, or internal execution order.
+- Capabilities should be composed when a request spans several domains (for example, player analysis + potential assessment + data quality + comparison).
+- Missing data, missing integrations, blocked permissions, and errors must be distinguished. A capability must not be described as complete merely because its ID exists.
+- The existing chat is the sole user-facing AI conversation surface. Do not add a second MESSINHO chat.
+
+### First implementation slice — 2026-11-26
+
+- **LIVE commit:** `6ddccade9d65702950a69bfd2c78bd1132b70de0`
+- **Render deployment:** `dep-dc3nv3dbedkc73cl2keg`
+- **Status:** `live` (Render reports the deployment finished successfully)
+- **Changed file:** `src/asi/MessinhoWorkspace.jsx`
+- **Completed:** Removed the 100-item capability dropdown, selected-capability state, manual “Funktion ausführen” action, and its result panel from the MESSINHO workspace.
+- **Completed:** Replaced the manual function laboratory with a concise autonomous-work-mode explanation.
+- **Completed:** Updated the welcome message to invite normal-language goals and explain that currently available analysis/scouting steps are selected automatically.
+- **Verification:** Re-read the committed source and confirmed the manual selector/state/actions are absent. Render build completed successfully and the deployment is `live`.
+- **Not yet verified:** A browser-based visual smoke test of the live workspace has not been performed in this release.
+- **Important remaining item:** The backend still contains a direct per-capability execution endpoint. It is no longer called by the workspace UI, but it must be reviewed and retired or restricted after checking all remaining consumers. Do not claim individual execution is fully disabled yet.
+
+### Updated implementation status
+
+| Area | Status | Next action |
+|---|---|---|
+| Manual capability selector in MESSINHO workspace | Removed and live | Perform browser smoke test on desktop/mobile. |
+| Automatic capability selection in chat | Existing limited regex orchestrator | Replace first-match selection with multi-intent, goal-driven composition. |
+| Full integration of all 100 capabilities | In progress; not complete | Audit real behavior and connect skills to agent planning/execution. |
+| Natural-language understanding and chat response behavior | Partially present | Improve normalization, context resolution, clarification policy, response formatting, and provider-independent fallback. |
+| Direct single-capability backend endpoint | Still present | Audit consumers; restrict/retire safely so capability selection remains internal to MESSINHO. |
+
+### New LIVE release record — 2026-11-26 — Remove manual capability selection
+
+- **Status:** live
+- **Production commit:** `6ddccade9d65702950a69bfd2c78bd1132b70de0`
+- **Render deployment ID:** `dep-dc3nv3dbedkc73cl2keg`
+- **What changed:** The normal MESSINHO workspace no longer exposes a per-capability dropdown or manual execution button. It explains the intended autonomous interaction and directs users to describe their goals in chat.
+- **Files/modules:** `src/asi/MessinhoWorkspace.jsx`
+- **Tests run and results:** Source-level verification completed; Render build succeeded. No automated UI test or browser smoke test was run.
+- **Live verification performed:** Render deployment status confirmed `live`.
+- **Known issues / limitations:** The chat orchestrator is still limited and currently chooses the first matching fixed plan. The direct backend capability endpoint remains and needs a consumer/security review.
+- **Data or schema impact:** None.
+- **Next steps:** Multi-intent autonomous planning; truthful capability coverage; integrate all 100 internal skills; improve language and answer quality; review direct endpoint.
+
+### New change-log entry — 2026-11-26
+
+| Date | Request / decision | Status | Notes |
+|---|---|---|---|
+| 2026-11-26 | All 100 MESSINHO capabilities become internal skills of the autonomous agent, not individual user-selectable functions. The chat should improve in language use, conversation behavior, and answer quality. | Binding target; implementation in progress | First LIVE slice removed the manual selector from the workspace. Full autonomous orchestration and language improvements remain roadmap work. |
