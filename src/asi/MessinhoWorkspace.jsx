@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {BrainCircuit,Send,ShieldCheck,Database,Search,Users,MessageCircle,Clock3,LoaderCircle} from 'lucide-react';
+import {BrainCircuit,Send,ShieldCheck,Database,Search,Users,MessageCircle,Clock3,LoaderCircle,ThumbsUp,ThumbsDown} from 'lucide-react';
 import './messinho.css';
 
 export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},compact=false}){
@@ -23,6 +23,14 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   const [hypotheses,setHypotheses]=useState(null);
   const [outcomeDrafts,setOutcomeDrafts]=useState({});
   const [matchEventsText,setMatchEventsText]=useState('');
+  const [feedbackOpenId,setFeedbackOpenId]=useState(null);
+  const [feedbackDrafts,setFeedbackDrafts]=useState({});
+  const [feedbackNotices,setFeedbackNotices]=useState({});
+  const [feedbackError,setFeedbackError]=useState('');
+  const [feedbackQueue,setFeedbackQueue]=useState([]);
+  const [feedbackQueueBusy,setFeedbackQueueBusy]=useState(false);
+  const [feedbackQueueError,setFeedbackQueueError]=useState('');
+  const [feedbackReviewDrafts,setFeedbackReviewDrafts]=useState({});
   const messagesRef=useRef(null);
   useEffect(()=>{const container=messagesRef.current;if(!container)return;container.scrollTop=container.scrollHeight;},[messages,busy]);
   async function send(text=draft){
@@ -37,13 +45,40 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       const response=await fetch('/api/agent/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({message:value,history:messages.map(m=>({role:m.role,text:m.text,researchContext:m.researchContext})).slice(-20)})});
       const payload=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(payload.error||'Messinho konnte nicht antworten.');
-      const next={id:'a-'+Date.now(),role:'assistant',text:payload.reply||'Ich habe die Anfrage verarbeitet.',intent:payload.intent,items:Array.isArray(payload.items)?payload.items:[],metrics:payload.metrics||null,researchContext:payload.researchContext||((payload.sources?.length||payload.profile)?{player:payload.player||null,profile:payload.profile||null,sources:payload.sources||[],researched_at:payload.researched_at||null}:null),correction:payload.input_correction?.applied?payload.input_correction:null};
+      const next={id:'a-'+Date.now(),role:'assistant',text:payload.reply||'Ich habe die Anfrage verarbeitet.',intent:payload.intent,items:Array.isArray(payload.items)?payload.items:[],metrics:payload.metrics||null,engineVersion:payload.engine_version||payload.engineVersion||null,modelVersion:typeof payload.active_model==='string'?payload.active_model:payload.active_model?.version||payload.model_version||null,capabilityIds:Array.isArray(payload.capability_ids)?payload.capability_ids:Array.isArray(payload.capabilities)?payload.capabilities.map(item=>typeof item==='string'?item:item?.capability_id).filter(Boolean):[],researchContext:payload.researchContext||((payload.sources?.length||payload.profile)?{player:payload.player||null,profile:payload.profile||null,sources:payload.sources||[],researched_at:payload.researched_at||null}:null),correction:payload.input_correction?.applied?payload.input_correction:null};
       setMessages(prev=>[...prev,next]);
     }catch(e){setError(e.message||'Verbindung zu Messinho fehlgeschlagen.');}
     finally{setBusy(false);}
   }
 
   
+
+  function openMessageFeedback(message){
+    setFeedbackDrafts(prev=>({...prev,[message.id]:prev[message.id]||{feedback_type:'quality_rating',comment:''}}));
+    setFeedbackOpenId(message.id);setFeedbackError('');
+  }
+  function setFeedbackDraft(messageId,key,value){setFeedbackDrafts(prev=>({...prev,[messageId]:{...(prev[messageId]||{feedback_type:'quality_rating',comment:''}),[key]:value}}));}
+  async function submitMessageFeedback(message,index,rating,feedbackType){
+    const previousUser=[...messages.slice(0,index)].reverse().find(item=>item.role==='user');
+    if(!previousUser){setFeedbackError('Die zugehörige Frage ist nicht mehr im Gesprächsverlauf verfügbar.');return;}
+    const draft=feedbackDrafts[message.id]||{feedback_type:feedbackType||'quality_rating',comment:''};
+    if(draft.feedback_type!=='quality_rating'&&String(draft.comment||'').trim().length<8){setFeedbackError('Bitte beschreibe die Korrektur oder den Fehler mit mindestens 8 Zeichen.');return;}
+    setFeedbackError('');
+    try{
+      const {data:{session}}=await supabase.auth.getSession();
+      if(!session?.access_token)throw new Error('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
+      const response=await fetch('/api/messinho/feedback',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({
+        message_id:message.id,question:previousUser.text,answer:message.text,feedback_type:draft.feedback_type||feedbackType||'quality_rating',rating,
+        comment:draft.comment||'',intent:message.intent||null,engine_version:message.engineVersion||null,model_version:message.modelVersion||null,capability_ids:message.capabilityIds||[]
+      })});
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(payload.error||'Feedback konnte nicht gespeichert werden.');
+      setMessages(prev=>prev.map(item=>item.id===message.id?{...item,feedbackSubmitted:true}:item));
+      setFeedbackNotices(prev=>({...prev,[message.id]:'Danke. Dein Feedback wurde gespeichert.'}));
+      setFeedbackOpenId(null);
+    }catch(error){setFeedbackError(error.message||'Feedback konnte nicht gespeichert werden.');}
+  }
+
   async function learningRequest(path,method='GET',body=null){
     const {data:{session}}=await supabase.auth.getSession();
     if(!session?.access_token)throw new Error('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
@@ -53,6 +88,23 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     const payload=await response.json().catch(()=>({}));
     if(!response.ok)throw new Error(payload.error||'Lernfunktion konnte nicht ausgeführt werden.');
     return payload;
+  }
+  async function loadFeedbackQueue(){
+    setFeedbackQueueBusy(true);setFeedbackQueueError('');
+    try{const payload=await learningRequest('/api/messinho/feedback?status=pending');setFeedbackQueue(payload.feedback||[]);}
+    catch(error){setFeedbackQueueError(error.message||'Feedback-Prüfliste konnte nicht geladen werden.');}
+    finally{setFeedbackQueueBusy(false);}
+  }
+  function setFeedbackReviewDraft(id,key,value){setFeedbackReviewDrafts(prev=>({...prev,[id]:{...(prev[id]||{}),[key]:value}}));}
+  async function reviewFeedback(id,decision){
+    const draft=feedbackReviewDrafts[id]||{};
+    const reason=draft.reason||'Feedbackinhalt fachlich geprüft.';
+    setFeedbackQueueBusy(true);setFeedbackQueueError('');
+    try{
+      await learningRequest('/api/messinho/feedback/'+encodeURIComponent(id)+'/review','POST',{decision,reason,evidence_url:draft.evidence_url||null});
+      await loadFeedbackQueue();
+    }catch(error){setFeedbackQueueError(error.message||'Feedback konnte nicht geprüft werden.');}
+    finally{setFeedbackQueueBusy(false);}
   }
   async function loadLearningStatus(){
     try{
@@ -94,8 +146,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   async function approveLearningModel(id){
     setLearningBusy(true);setLearningError('');
     try{
-      const {error}=await supabase.rpc('asi_review_model_candidate',{p_model_version_id:id,p_decision:'approve',p_reason:'MESSINHO-Modell anhand der gespeicherten Holdout-Evaluation geprüft und freigegeben.'});
-      if(error)throw new Error(error.message||'Modellfreigabe fehlgeschlagen.');
+      await learningRequest('/api/messinho/models/'+encodeURIComponent(id)+'/review','POST',{decision:'approve',reason:'MESSINHO-Modell anhand der gespeicherten Holdout-Evaluation geprüft und freigegeben.'});
       await loadLearningStatus();
       setMessages(prev=>[...prev,{id:'approve-'+Date.now(),role:'assistant',text:'Das Modell wurde über die bestehende ASI-Modellverwaltung freigegeben und ist jetzt aktiv.'}]);
     }catch(e){setLearningError(e.message||'Modellfreigabe fehlgeschlagen.');}
@@ -105,13 +156,12 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     const draft=calibrationDrafts[id]||{};
     setLearningBusy(true);setLearningError('');
     try{
-      const {error}=await supabase.rpc('asi_review_scout_calibration',{
-        p_record_id:id,p_decision:decision,p_reason:draft.reason||'Ergebnis anhand der dokumentierten Quelle geprüft.',
-        p_verified_outcome:decision==='verify'?Number(draft.verified_outcome):null,
-        p_observed_on:decision==='verify'?draft.observed_on:null,
-        p_source_url:decision==='verify'?draft.source_url:null
+      await learningRequest('/api/messinho/calibration/'+encodeURIComponent(id)+'/review','POST',{
+        decision,reason:draft.reason||'Ergebnis anhand der dokumentierten Quelle geprüft.',
+        verified_outcome:decision==='verify'?Number(draft.verified_outcome):null,
+        observed_on:decision==='verify'?draft.observed_on:null,
+        source_url:decision==='verify'?draft.source_url:null
       });
-      if(error)throw new Error(error.message||'Kalibrierung konnte nicht geprüft werden.');
       await loadLearningStatus();
       setMessages(prev=>[...prev,{id:'cal-review-'+Date.now(),role:'assistant',text:decision==='verify'?'Kalibrierung wurde verifiziert und kann bei der nächsten Evaluation berücksichtigt werden.':'Kalibrierung wurde abgelehnt und wird nicht zum Lernen verwendet.'}]);
     }catch(e){setLearningError(e.message||'Kalibrierung konnte nicht geprüft werden.');}
@@ -160,7 +210,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     catch(e){setDevelopmentError(e.message||'Hypothesen konnten nicht erzeugt werden.');}
     finally{setDevelopmentBusy(false);}
   }
-  useEffect(()=>{if(profile?.role==='admin'||profile?.role==='scout'){loadLearningStatus();}},[profile?.role]);
+  useEffect(()=>{if(profile?.role==='admin'||profile?.role==='scout'){loadLearningStatus();}if(profile?.role==='admin')loadFeedbackQueue();},[profile?.role]);
   function renderItems(items){
     if(!items?.length)return null;
     return <div className="messinho-results">{items.map((item,index)=><article key={String(item.id||item.name||index)} className="messinho-result-row"><div className="messinho-result-icon"><Users size={16}/></div><div className="messinho-result-copy"><strong>{index+1}. {item.name||item.player_name||'Unbenannter Eintrag'}</strong><span>{[item.club||item.current_club||item.currentClub,item.year||item.birth_year||item.birthYear,item.positions?.join(', '),item.analysis?.fit_score!==null&&item.analysis?.fit_score!==undefined?'Fit '+item.analysis.fit_score+'/100':null,item.analysis?.tactical_fit?.score!==null&&item.analysis?.tactical_fit?.score!==undefined?'Taktischer Fit '+item.analysis.tactical_fit.score+'/100':null,item.kind,item.analysis?.recommendation?.label||item.recommendation?.label||item.recommendation].filter(Boolean).join(' · ')}</span>{item.messinho_rating&&<small>{item.messinho_rating.score===null?'MESSINHO-Score: nicht ausreichend belegt':'MESSINHO-Score: '+item.messinho_rating.score+'/100'} · Datenabdeckung {item.messinho_rating.evidence_coverage}% · {item.messinho_rating.confidence}</small>}{item.analysis?.analysis&&<small>{item.analysis.analysis}</small>}{item.sources?.map(source=><span key={source.url} className="messinho-source-link"><a href={source.url} target="_blank" rel="noreferrer">{source.publisher||source.title||'Quelle öffnen'}</a>{source.quality&&<small>{source.quality.freshness==='fresh'?'Aktualitätsdatum vorhanden':source.quality.freshness==='stale'?'Ältere Quelle':'Datum unbekannt'} · {source.quality.secure_transport?'HTTPS':'nicht sicher'}</small>}</span>)}</div></article>)}</div>;
@@ -176,7 +226,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     <section className="messinho-chat-card">
       <div className="messinho-chat-heading"><div><span>SCOUTING CONVERSATION</span><h2>Sprich mit Messinho</h2></div></div>
       <div className="messinho-messages" ref={messagesRef} aria-live="polite">
-        {messages.map(message=><article key={message.id} className={'messinho-message '+message.role}><div className="messinho-avatar">{message.role==='assistant'?<BrainCircuit size={17}/>:<MessageCircle size={16}/>}</div><div className="messinho-bubble"><small>{message.role==='assistant'?'MESSINHO':'DU'}</small><p>{message.text}</p>{message.correction?.corrected&&<small className="messinho-correction-note">Sprachlich verstanden als: „{message.correction.corrected}“</small>}{message.metrics&&<div className="messinho-metrics"><span>{message.metrics.players} Spieler im Katalog</span><span>{message.metrics.candidates} eigene Kandidaten</span></div>}{renderItems(message.items)}</div></article>)}
+        {messages.map((message,index)=><article key={message.id} className={'messinho-message '+message.role}><div className="messinho-avatar">{message.role==='assistant'?<BrainCircuit size={17}/>:<MessageCircle size={16}/>}</div><div className="messinho-bubble"><small>{message.role==='assistant'?'MESSINHO':'DU'}</small><p>{message.text}</p>{message.correction?.corrected&&<small className="messinho-correction-note">Sprachlich verstanden als: „{message.correction.corrected}“</small>}{message.metrics&&<div className="messinho-metrics"><span>{message.metrics.players} Spieler im Katalog</span><span>{message.metrics.candidates} eigene Kandidaten</span></div>}{renderItems(message.items)}{message.role==='assistant'&&message.id!=='welcome'&&<div className="messinho-feedback"><div className="messinho-feedback-actions">{message.feedbackSubmitted?<small>{feedbackNotices[message.id]||'Feedback gespeichert.'}</small>:<><span>War diese Antwort hilfreich?</span><button type="button" aria-label="Antwort hilfreich" title="Hilfreich" onClick={()=>submitMessageFeedback(message,index,5,'quality_rating')}><ThumbsUp size={15}/></button><button type="button" aria-label="Antwort nicht hilfreich" title="Nicht hilfreich" onClick={()=>openMessageFeedback(message)}><ThumbsDown size={15}/></button></>}</div>{feedbackOpenId===message.id&&!message.feedbackSubmitted&&<div className="messinho-feedback-form"><label>Art des Feedbacks<select value={feedbackDrafts[message.id]?.feedback_type||'quality_rating'} onChange={e=>setFeedbackDraft(message.id,'feedback_type',e.target.value)}><option value="quality_rating">Antwortqualität</option><option value="factual_correction">Fachliche Korrektur</option><option value="bug_report">Fehler melden</option><option value="feature_request">Verbesserung vorschlagen</option></select></label><textarea rows={2} maxLength={1200} value={feedbackDrafts[message.id]?.comment||''} onChange={e=>setFeedbackDraft(message.id,'comment',e.target.value)} placeholder="Was war falsch oder könnte besser sein? (optional bei Antwortqualität)"/><div><button type="button" disabled={feedbackDrafts[message.id]?.feedback_type!=='quality_rating'&&String(feedbackDrafts[message.id]?.comment||'').trim().length<8} onClick={()=>submitMessageFeedback(message,index,1,feedbackDrafts[message.id]?.feedback_type||'quality_rating')}>Feedback senden</button><button type="button" className="secondary" onClick={()=>{setFeedbackOpenId(null);setFeedbackError('');}}>Abbrechen</button></div>{feedbackError&&<small role="alert">{feedbackError}</small>}</div>}</div>}</div></article>)}
         {busy&&<div className="messinho-thinking"><LoaderCircle className="messinho-spin" size={17}/> Messinho verarbeitet deine Anfrage …</div>}
       </div>
       {error&&<p className="messinho-error" role="alert">{error}</p>}
@@ -188,6 +238,14 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     <details className="messinho-help-bundle">
       <summary><span><strong>Hilfe, Erklärungen & Agentenfunktionen</strong><small>Gebündelte Informationen, Lernwerkzeuge, Entwicklungszyklus und Status</small></span><span className="messinho-help-chevron">⌄</span></summary>
       <div className="messinho-help-content">
+    {profile?.role==='admin'&&<section className="messinho-feedback-admin">
+      <div className="messinho-learning-summary"><strong>MESSINHO · Feedback-Prüfung</strong><small>{feedbackQueue.length} offene Rückmeldungen · getrennt von verifizierten Spielergebnissen</small></div>
+      <div className="messinho-feedback-admin-actions"><button type="button" className="secondary" disabled={feedbackQueueBusy} onClick={loadFeedbackQueue}>{feedbackQueueBusy?'Lädt …':'Feedback aktualisieren'}</button></div>
+      {feedbackQueueError&&<p role="alert" className="messinho-error">{feedbackQueueError}</p>}
+      {!feedbackQueue.length&&!feedbackQueueBusy&&<small>Keine offenen Feedback-Einträge vorhanden.</small>}
+      {feedbackQueue.map(item=>{const draft=feedbackReviewDrafts[item.id]||{};return <article key={item.id} className="messinho-feedback-review"><div><b>{({quality_rating:'Antwortqualität',factual_correction:'Fachliche Korrektur',bug_report:'Fehlermeldung',feature_request:'Verbesserungsvorschlag'})[item.feedback_type]||item.feedback_type} · {item.owner_username}</b><small>{item.rating?('Bewertung '+item.rating+'/5 · '):''}{new Date(item.created_at).toLocaleString('de-DE')} · {item.submitted_role}</small></div><small>Frage</small><p>{item.question}</p><small>MESSINHO-Antwort</small><p>{item.answer}</p>{item.comment&&<div className="messinho-feedback-comment"><small>Rückmeldung</small><p>{item.comment}</p></div>}<div className="messinho-feedback-review-fields"><label>Prüfgrund<input value={draft.reason||''} maxLength={1200} onChange={e=>setFeedbackReviewDraft(item.id,'reason',e.target.value)} placeholder="Fachlich geprüft …"/></label>{item.feedback_type==='factual_correction'&&<label>HTTPS-Beleg zur Verifizierung<input type="url" value={draft.evidence_url||''} onChange={e=>setFeedbackReviewDraft(item.id,'evidence_url',e.target.value)} placeholder="https://…"/></label>}</div><div className="messinho-feedback-review-actions"><button type="button" disabled={feedbackQueueBusy} onClick={()=>reviewFeedback(item.id,'reviewed')}>Als geprüft markieren</button>{item.feedback_type==='factual_correction'&&<button type="button" disabled={feedbackQueueBusy||!String(draft.evidence_url||'').startsWith('https://')} onClick={()=>reviewFeedback(item.id,'verified')}>Korrektur verifizieren</button>}<button type="button" className="secondary" disabled={feedbackQueueBusy} onClick={()=>reviewFeedback(item.id,'rejected')}>Ablehnen</button></div></article>;})}
+      <small>Auch verifiziertes Feedback verändert keine Modellgewichte automatisch. Nur geprüfte Spieler-Outcomes gehören in die bestehende Trainingspipeline.</small>
+    </section>}
     <section className="messinho-learning-panel">
       <div className="messinho-learning-summary"><strong>MESSINHO · Lern- und Kalibrierungssystem</strong><small>{learningData?.calibration_count??'–'} Kalibrierungen · {learningData?.active_model?.version?(learningData.active_model.trained?'Gelerntes Modell ':'Deterministisches Basisprofil ')+learningData.active_model.version:'Positions-Basisprofil aktiv'}</small><small>Nur administrativ verifizierte Ergebnisse fließen in neue Modellversionen ein.</small></div>
       <div className="messinho-calibration-entry">
