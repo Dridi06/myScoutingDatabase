@@ -87,3 +87,23 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 - Add a governed admin approval/promotion workflow and explicit conflict review.
 - Complete work-level rights review before seeding the first concepts.
 - Do not manually deploy until CI passes; STAGING auto-deploy is disabled. Production and main remain untouched.
+
+
+## Governed ingestion, review and conflict handling (STAGING)
+
+- Candidate concept plus initial version snapshot is written through the transactional database function `messinho_create_knowledge_candidate`; the operation rolls back as one transaction if either insert fails.
+- Candidate records remain inactive. Only active concepts are available to normal knowledge retrieval.
+- Admin review uses `POST /api/messinho/knowledge/:id/review`; the backend verifies an authenticated, approved admin and rechecks the source allowlist, exact URL scopes, independent source domains, claim corroboration, active prerequisites and open conflicts before approval.
+- Approval/rejection/conflict decisions are written through `messinho_review_knowledge_concept`, which updates the concept, appends a version snapshot and records the reviewer decision atomically.
+- Competing source-backed proposals are retained in `messinho_knowledge_conflicts`; they are never silently overwritten. Admin-only routes list and decide open conflicts:
+  - `GET /api/messinho/knowledge-conflicts`
+  - `POST /api/messinho/knowledge-conflicts/:id/review`
+- Conflict decisions currently support rejecting the proposed alternative or explicitly retaining the existing knowledge. The existing concept is not overwritten by this conflict-resolution endpoint.
+- The review ledger and version ledger are append-only from the backend role; browser roles have no grants or RLS policies.
+
+## Initial source-rights screening (26 November 2026)
+
+- OpenIntro's official licensing page says most Statistics textbooks are CC BY-SA 3.0, which permits commercial reuse with attribution and ShareAlike; exceptions and third-party figures/files still require exact edition/file review. It remains quarantined pending that review.
+- OpenStax's current textbook library uses CC BY-NC-SA 4.0 by default and disallows commercial use. It is excluded unless OpenStax grants written commercial and AI-project permission.
+- U.S. federal/NIST works may be public domain in the United States, but official government guidance warns that third-party content may remain protected and that U.S. public-domain status alone does not settle international rights. NIST candidates therefore remain quarantined for the Germany-based product.
+- No source was promoted into the rights allowlist. The allowlist remains empty; no source content was imported.
