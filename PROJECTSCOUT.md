@@ -3615,3 +3615,6 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Fix commit: `4a234660114e8caa23872dd5d135608d0250fdf8`.
 - Manual deployment to dedicated STAGING triggered: `dep-dc4bdtlg1s2s73dt5f50` at 22:47:18Z. Verify build and LIVE status, then check runtime canonical lookup diagnostic. No user retest until deployment is LIVE and runtime evidence is checked.
 - No Supabase data, knowledge approval, source rights, production, main, PFMS or PFSS changes.
+
+
+- Deployment verification: `dep-dc4bdtlg1s2s73dt5f50` is `LIVE` (finished 22:47:53Z); build succeeded; runtime started on port 10000 and Supabase Data API returned HTTP 200. The code commit deployed is `4a234660114e8caa23872dd5d135608d0250fdf8`. User-facing retest is now requested; no claim of pilot acceptance until response is verified.
