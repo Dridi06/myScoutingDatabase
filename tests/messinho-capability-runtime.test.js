@@ -94,3 +94,10 @@ test('unverified structured contract snapshots are surfaced for review, never tr
  assert.equal(out.result.unverified_contract_records,1);
  assert.equal(out.result.verified_contract_records,undefined);
 });
+
+
+test('club research never claims completion from a club name alone',()=>{
+ const out=executeMessinhoCapability('club_research',{club_profile:{name:'Test FC'},sources:[]});
+ assert.equal(out.status,'insufficient_data');
+ assert.ok(out.missing_inputs.includes('club_sources'));
+});
