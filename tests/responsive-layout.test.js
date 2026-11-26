@@ -41,3 +41,7 @@ test('MESSINHO chat uses a fixed frame with an independently scrolling message l
 test('MESSINHO mobile composer uses at least 16px text to prevent iOS input auto-zoom', () => {
   assert.match(messinhoCss, /@media\(max-width:760px\)[\s\S]*?\.messinho-chat-card \.messinho-composer input\s*\{[^}]*font-size:16px !important/s);
 });
+
+test('MESSINHO chat preserves multiline assistant reply formatting', () => {
+  assert.match(messinhoCss, /\.messinho-bubble p\s*\{[^}]*white-space:pre-line/s);
+});
