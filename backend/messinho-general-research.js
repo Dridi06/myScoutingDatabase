@@ -4,9 +4,9 @@
  * persisted automatically. A generated synthesis is accepted only when every
  * claim cites URLs from the retrieved HTTPS source set.
  */
-const clean=(value,max=1400)=>String(value??'').replace(/[\\u0000-\\u001f\\u007f]/g,' ').replace(/\\s+/g,' ').trim().slice(0,max);
+const clean=(value,max=1400)=>String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
 const safeUrl=value=>{try{const url=new URL(value);return url.protocol==='https:'?url.toString():null;}catch{return null;}};
-const normalize=value=>String(value??'').normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[^\\p{L}\\p{N}]+/gu,' ').trim();
+const normalize=value=>String(value??'').normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 const STOP=new Set(['aber','auch','dass','diese','dieser','einer','eines','eine','einem','einen','oder','wenn','warum','wieso','weshalb','welche','welcher','welches','kannst','bitte','mir','mich','sich','über','unter','the','and','for','with','from','that','this','what','when','where','which','how']);
 export function isMessinhoGeneralClaimSupported(claim,sources=[]){
  const tokens=normalize(claim).split(' ').filter(token=>token.length>=4&&!STOP.has(token));
@@ -20,16 +20,16 @@ export function isMessinhoGeneralClaimSupported(claim,sources=[]){
 export function isMessinhoGeneralResearchQuestion(message){
  const text=clean(message,700),n=normalize(text);
  if(n.length<12||n.length>700)return false;
- if(/\\b(hallo|hi|hey|moin|guten morgen|guten tag|guten abend|danke|tsch[uü]ss|ciao|wer bist du|wie geht es dir)\\b/i.test(text))return false;
- if(/\\b(suche|such|scoute|recherchiere|analysiere|vergleiche|bewerte|erstelle|kandidat|shortlist|spieler|talent|transfer|marktwert|datenbank|position|jahrgang|u\\s?\\d{1,2})\\b/i.test(text))return false;
+ if(/\b(hallo|hi|hey|moin|guten morgen|guten tag|guten abend|danke|tsch[uü]ss|ciao|wer bist du|wie geht es dir)\b/i.test(text))return false;
+ if(/\b(suche|such|scoute|recherchiere|analysiere|vergleiche|bewerte|erstelle|kandidat|shortlist|spieler|talent|transfer|marktwert|datenbank|position|jahrgang|u\s?\d{1,2})\b/i.test(text))return false;
  return /[?]$/.test(text)||/^(wer|was|wie|warum|wieso|weshalb|wann|wo|wodurch|woraus|erkl[aä]re|beschreibe|nenn|nenne|gib mir|ist |sind |kann |k[oö]nnen )/i.test(text);
 }
 export function normalizeMessinhoGeneralSources(results=[]){
  const seen=new Set(),rows=[];
  for(const item of Array.isArray(results)?results:[]){
   const url=safeUrl(item?.url);if(!url||seen.has(url))continue;
-  let host='';try{host=new URL(url).hostname.replace(/^www\\./i,'').toLowerCase();}catch{}
-  if(!host||/(^|\\.)fussball\\.de$/i.test(host))continue;
+  let host='';try{host=new URL(url).hostname.replace(/^www\./i,'').toLowerCase();}catch{}
+  if(!host||/(^|\.)fussball\.de$/i.test(host))continue;
   const title=clean(item.title,220),snippet=clean(item.content||item.snippet,1400);
   if(!title||snippet.length<50)continue;
   seen.add(url);rows.push({title,url,publisher:host,published_date:clean(item.published_date||item.publishedDate,40)||null,snippet});
@@ -45,7 +45,7 @@ export function assessMessinhoGeneralEvidence(sources=[]){
 }
 function sourceOnlyDigest(sources,assessment){
  if(!assessment.can_answer)return 'Ich habe recherchiert, aber die Quellenlage reicht für eine verlässliche Antwort noch nicht aus. '+assessment.limitations.join(' ');
- return 'Ich habe mehrere unabhängige Quellen gefunden. Die wichtigsten belegten Hinweise sind:\\n'+sources.slice(0,4).map((source,index)=>(index+1)+'. '+source.title+' ('+source.publisher+'): '+source.snippet.slice(0,520)).join('\\n\\n')+'\\n\\nDas sind Quellenauszüge, keine abschließend verifizierte Gesamtaussage. Ich trenne deshalb die belegten Hinweise von einer Schlussfolgerung.';
+ return 'Ich habe mehrere unabhängige Quellen gefunden. Die wichtigsten belegten Hinweise sind:\n'+sources.slice(0,4).map((source,index)=>(index+1)+'. '+source.title+' ('+source.publisher+'): '+source.snippet.slice(0,520)).join('\n\n')+'\n\nDas sind Quellenauszüge, keine abschließend verifizierte Gesamtaussage. Ich trenne deshalb die belegten Hinweise von einer Schlussfolgerung.';
 }
 export async function researchMessinhoGeneralQuestion(question,env=process.env,fetchImpl=fetch){
  const query=clean(question,700);
@@ -68,7 +68,7 @@ export async function researchMessinhoGeneralQuestion(question,env=process.env,f
     const data=await aiResponse.json(),parsed=JSON.parse(data.choices?.[0]?.message?.content||'{}');
     const allowed=new Set(sources.map(source=>source.url));
     const checked=(Array.isArray(parsed.claims)?parsed.claims:[]).filter(claim=>clean(claim?.text,700)&&Array.isArray(claim.source_urls)&&claim.source_urls.length&&claim.source_urls.every(url=>allowed.has(url))&&claim.source_urls.some(url=>isMessinhoGeneralClaimSupported(claim.text,sources.filter(source=>source.url===url))));
-    if(clean(parsed.answer,4000)&&checked.length){claims=checked.map(claim=>({text:clean(claim.text,700),source_urls:claim.source_urls}));answer=claims.map(claim=>claim.text).join('\\n');}
+    if(clean(parsed.answer,4000)&&checked.length){claims=checked.map(claim=>({text:clean(claim.text,700),source_urls:claim.source_urls}));answer=claims.map(claim=>claim.text).join('\n');}
    }
   }catch(error){/* Evidence-only fallback below is intentional. */}
  }
