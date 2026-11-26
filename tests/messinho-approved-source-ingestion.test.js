@@ -75,6 +75,12 @@ test('unapproved source IDs never trigger network retrieval',async()=>{
  assert.equal(called,false);
 });
 
+test('approved retrieval rejects cross-host redirects',async()=>{
+ const result=await fetchMessinhoApprovedSource('plos_one_vo2max_prediction_2023',{
+  fetchImpl:async()=>({ok:true,url:'https://unapproved.example/article.xml',text:async()=>'<article><p>Should never be parsed.</p></article>'})
+ });
+ assert.equal(result.status,'retrieval_redirect_not_approved');
+});
 test('source retrieval rejects HTTP failures and oversized PLOS payloads',async()=>{
  const failed=await fetchMessinhoApprovedSource('plos_one_vo2max_prediction_2023',{fetchImpl:async()=>({ok:false,status:503})});
  assert.equal(failed.status,'source_fetch_failed');
