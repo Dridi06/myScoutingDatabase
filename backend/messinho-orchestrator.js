@@ -222,7 +222,9 @@ export function planMessinhoCapabilities(message, role='scout', context={}) {
     ...matchedLegacy.map(plan=>plan.label),
     ...scored.slice(0,6).map(item=>item.capability.group_name)
   ]);
-  if (!steps.length && blocked.length) {
+  const requestedActionable = requested.filter(id => !DEPENDENCIES[id] || requested.includes(id));
+  const requestedProtected = requestedActionable.length>0 && requestedActionable.every(id=>ADMIN_ONLY.has(id));
+  if (requestedProtected && role!=='admin') {
     return {denied:true,goal,label:labels.join(' + ')||'Geschützte MESSINHO-Funktion',steps:[],
       blocked_capabilities:blocked,matched_intents:matchedLegacy.map(plan=>plan.id),
       discovered_capabilities:requested,mode:matchedLegacy.length?'goal_composed_deterministic':'goal_composed_capability_discovery',role};
