@@ -23,7 +23,7 @@ export function classifyMessinhoKnowledgeDomain(text=''){
   ['financial_markets',/\b(börse|börse|aktie|aktien|anleihe|etf|orderbuch|volatilität|derivat|börse|finanzmarkt|börse)\b/],
   ['statistics',/\b(statistik|regression|korrelation|kovarianz|zeitreihe|monte carlo|prognose|prognostiz)\b/],
   ['sports_science',/\b(sportwissenschaft|biomechanik|trainingslehre|belastung|regeneration|leistungsdiagnostik|vo\s*2\s*max|maximale sauerstoffaufnahme|cardiorespiratory fitness|kardiorespiratorische fitness|aerobe leistungsfähigkeit)\b/],
-  ['football',/\b(fußball|fussball|spieler|scouting|transfer|mannschaft|verein)\b/],
+  ['football',/\b(fußball\p{L}*|fussball\p{L}*|spieler\p{L}*|scouting|transfer\p{L}*|mannschaft\p{L}*|verein\p{L}*)\b/u],
   ['computer_science',/\b(informatik|programmier(?:ung|en|er|sprache)?|programming|coding|code|algorithm(?:us|en)?|datenbank(?:en)?|database(?:s)?|software(?:entwicklung|architektur|engineering)?|python|javascript|typescript|java|c\+\+|rust|golang|sql|postgres(?:ql)?|supabase|react|node(?:\.js)?|html|css|api(?:s)?|git|github|debug(?:ging)?|test(?:ing|s)?|qualitätssicherung|ci\s*\/\s*cd|devops|it\s*sicherheit|cybersecurity|informatik|ki|künstliche intelligenz|machine learning|deep learning|neuronale netze|llm|rag|embedding|datenstruktur(?:en)?)\b/]
  ];
  return rules.find(([,re])=>re.test(q))?.[0]||'general';
