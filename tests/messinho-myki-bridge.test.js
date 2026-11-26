@@ -53,3 +53,10 @@ test('returns a stable duplicate outcome without fabricating a new ticket',async
  const r=await persistMessinhoMyKiProposal({db,proposal,id:'abcdef123456'});
  assert.equal(r.ok,true);assert.equal(r.duplicate,true);assert.equal(r.code,'MYKI_DUPLICATE');
 });
+
+test('does not dispatch proposals from partial or incomplete agent runs',async()=>{
+ let called=false;
+ const run={status:'partial',completed_steps:1,total_steps:2,results:[{capability_id:'x',status:'proposal_ready',result:{myki_engineering_proposal:proposal}}]};
+ const r=await dispatchMessinhoMyKiProposals({role:'admin',run,onProposal:async()=>{called=true;return {ok:true};}});
+ assert.equal(r.skipped,'agent_run_incomplete');assert.equal(called,false);
+});
