@@ -259,6 +259,49 @@ function evaluationHandler(id,input){
  return missingResult(id,['evaluation_inputs']);
 }
 function learningHandler(id,input){
+ const verified=verifiedOutcomes(input);
+ const minimum=Number.isInteger(input.minimum_examples)?Math.max(5,input.minimum_examples):30;
+ if(['supervised_learning','position_specific_learning','weight_optimization','controlled_self_optimization'].includes(id)){
+   const scope=id==='position_specific_learning'?String(input.position_group||input.position||'').toLowerCase():null;
+   const rows=scope?verified.filter(row=>String(row.position_group||'').toLowerCase()===scope):verified;
+   const uniquePlayers=new Set(rows.map(row=>String(row.player_id))).size;
+   if(rows.length<minimum||uniquePlayers<10)return result(id,'insufficient_data',{verified_examples:rows.length,unique_players:uniquePlayers,required_examples:minimum,required_unique_players:10,proposal_generated:false,training_performed:false,model_weights_changed:false,scope:scope||'all_verified'});
+   const proposal=buildMessinhoLearningProposal(rows.map(row=>({player_id:String(row.player_id),position_group:row.position_group,target_score:finite(row.target_score??row.verified_outcome),dimension_scores:row.dimension_scores||{}})),input.baseline_profiles||{},{minExamples:minimum});
+   return result(id,proposal.status==='proposal_ready'?'proposal_ready':'no_reliable_improvement',{proposal,scope:scope||'all_verified',verified_examples:rows.length,proposal_generated:proposal.status==='proposal_ready',training_performed:false,activation:'admin_approval_required',model_weights_changed:false});
+ }
+ if(id==='scout_feedback_learning'){
+   const feedback=asArray(input.verified_scout_feedback||input.scout_feedback).filter(item=>item&&item.verified===true&&item.verified_by);
+   if(!feedback.length)return missingResult(id,['verified_scout_feedback']);
+   const ratings=feedback.map(item=>finite(item.rating??item.score)).filter(value=>value!==null);
+   const categories={};for(const item of feedback){const category=String(item.category||item.dimension||'uncategorized');categories[category]=(categories[category]||0)+1;}
+   return result(id,'completed',{verified_feedback_count:feedback.length,verified_scouts:new Set(feedback.map(item=>item.scout_id).filter(Boolean)).size,mean_rating:ratings.length?round(avg(ratings)):null,category_counts:categories,training_performed:false,model_weights_changed:false,interpretation:'Verifiziertes Scout-Feedback wird deskriptiv ausgewertet; es verändert keine Bewertungen oder Modellgewichte.'});
+ }
+ if(['age_group_learning','league_learning','country_learning'].includes(id)){
+   const field=id==='age_group_learning'?'age_group':id==='league_learning'?'league':'country',groups=new Map();
+   for(const row of verified){const value=row[field]??(field==='age_group'?(row.age_group??(finite(row.age)!==null?Math.floor(finite(row.age)/5)*5+'-'+(Math.floor(finite(row.age)/5)*5+4):null)):null);if(value===null||value===undefined||value==='')continue;const key=String(value);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(finite(row.target_score??row.verified_outcome));}
+   const rows=[...groups.entries()].map(([label,values])=>{const valid=values.filter(v=>v!==null);return {label,examples:valid.length,mean:valid.length?round(avg(valid)):null};});
+   if(rows.length<2)return missingResult(id,[field+'_verified_outcomes'],'Für einen belastbaren Gruppenvergleich werden bestätigte Ergebnisse aus mindestens zwei Gruppen benötigt.');
+   return result(id,'completed',{grouping:field,groups:rows,verified_examples:verified.length,training_performed:false,model_weights_changed:false,interpretation:'Deskriptiver Vergleich verifizierter Ergebnisse; keine automatische Kalibrierung.'});
+ }
+ if(['talent_pathway_learning','breakthrough_learning'].includes(id)){
+   const paths=asArray(input.development_paths||input.longitudinal_outcomes).filter(path=>path&&path.verification_status==='verified');
+   const analysed=paths.map(path=>{const points=sortedDated(asArray(path.observations||path.history));const values=points.map(point=>finite(point.score??point.overall_score)).filter(v=>v!==null);return {player_id:path.player_id??null,observations:values.length,change:values.length>=2?round(values.at(-1)-values[0]):null,breakthrough:values.length>=2&&values.at(-1)-values[0]>=15};}).filter(path=>path.observations>=2);
+   if(!analysed.length)return missingResult(id,['verified_longitudinal_outcomes']);
+   return result(id,'completed',{verified_players:analysed.length,mean_change:round(avg(analysed.map(path=>path.change).filter(v=>v!==null))),breakthrough_count:analysed.filter(path=>path.breakthrough).length,paths:analysed,training_performed:false,model_weights_changed:false});
+ }
+ if(id==='position_change_learning'){
+   const changes=asArray(input.position_history).filter(item=>item&&item.verification_status==='verified'&&item.verified_by&&item.from_position&&item.to_position);
+   const joined=changes.map(change=>({change,outcome:verified.find(row=>String(row.player_id)===String(change.player_id)&&row.position_change_verified===true)})).filter(item=>item.outcome);
+   if(!joined.length)return missingResult(id,['verified_position_history','verified_outcomes']);
+   return result(id,'completed',{verified_position_changes:joined.length,changes:joined.map(item=>({from_position:item.change.from_position,to_position:item.change.to_position,verified_outcome:item.outcome.target_score??item.outcome.verified_outcome})),training_performed:false,model_weights_changed:false});
+ }
+ if(id==='availability_outcome_learning'){
+   const records=asArray(input.availability_records).filter(item=>item&&item.verification_status==='verified'&&item.verified_by&&finite(item.availability_rate)!==null);
+   const joined=records.map(record=>({record,outcome:verified.find(row=>String(row.player_id)===String(record.player_id))})).filter(item=>item.outcome);
+   if(!joined.length)return missingResult(id,['verified_availability_records','verified_outcomes']);
+   return result(id,'completed',{verified_pairs:joined.length,mean_availability:round(avg(joined.map(item=>finite(item.record.availability_rate)))),mean_outcome:round(avg(joined.map(item=>finite(item.outcome.target_score??item.outcome.verified_outcome)).filter(v=>v!==null))),training_performed:false,model_weights_changed:false,scope:'verified availability metrics only; no medical inference'});
+ }
+
  if(id==='seasonal_learning'){
    const observations=asArray(input.seasonal_metrics||input.time_series||input.history);
    const key=input.metric_key||'score';
@@ -305,6 +348,79 @@ function learningHandler(id,input){
 }
 function researchHandler(id,input){
  const sources=sourceBundle(input),now=input.now||Date.now();
+ const candidates=asArray(input.candidates||input.players).filter(item=>item&&typeof item==='object');
+ if(id==='automated_talent_search'){
+   const criteria=input.filters||input.criteria||{},filtered=candidates.filter(candidate=>{
+     const age=finite(candidate.age)??(finite(candidate.birth_year)!==null?new Date(now).getFullYear()-finite(candidate.birth_year):null);
+     const positions=asArray(candidate.positions||candidate.position).map(norm);
+     if(criteria.position&&!positions.some(position=>position.includes(norm(criteria.position))))return false;
+     if(finite(criteria.max_age)!==null&&(age===null||age>finite(criteria.max_age)))return false;
+     if(finite(criteria.min_age)!==null&&(age===null||age<finite(criteria.min_age)))return false;
+     return true;
+   }).map(candidate=>({player:playerName(candidate),id:candidate.player_id??candidate.id??null,positions:candidate.positions||candidate.position||[],score:scoreMessinhoPlayer(candidate).score,coverage:profileScores(candidate).coverage}));
+   filtered.sort((a,b)=>(b.score??-1)-(a.score??-1));
+   if(!filtered.length)return missingResult(id,['candidate_pool','search_provider_results']);
+   return result(id,'completed',{candidate_count:filtered.length,criteria,results:filtered.slice(0,50),external_search_performed:false,provider_independent:true});
+ }
+ if(id==='international_research'){
+   if(!sources.length)return missingResult(id,['international_sources_from_ASI']);
+   const coverage={};for(const source of sources){const key=source.country||source.region||'country_unknown';coverage[key]=(coverage[key]||0)+1;}
+   const audited=sourceAudit(sources,now),eligible=audited.filter(item=>item.assessment.url_valid&&item.assessment.secure_transport).length;
+   return result(id,'completed',{source_count:sources.length,eligible_sources:eligible,country_or_region_coverage:coverage,sources:audited,provider_execution:'uses_ASI_retrieved_sources'});
+ }
+ if(id==='cross_league_research'){
+   const leagues=[...new Set(candidates.map(candidate=>candidate.league||candidate.competition).filter(Boolean))];
+   if(candidates.length<2||leagues.length<2)return missingResult(id,['players_from_at_least_two_leagues']);
+   return result(id,'completed',{league_count:leagues.length,leagues,comparison:leagues.map(league=>{const rows=candidates.filter(candidate=>(candidate.league||candidate.competition)===league);return {league,players:rows.length,mean_score:avg(rows.map(row=>scoreMessinhoPlayer(row).score).filter(v=>v!==null))};}),interpretation:'Vergleich nur der übergebenen Spieler; keine externe Ligaabdeckung behauptet.'});
+ }
+ if(id==='youth_talent_discovery'){
+   const maxAge=finite(input.max_age)??21,currentYear=new Date(now).getFullYear(),eligible=candidates.filter(candidate=>{const birth=finite(candidate.birth_year??candidate.year);return birth!==null&&currentYear-birth<=maxAge&&currentYear-birth>=14;}).map(candidate=>({player:playerName(candidate),id:candidate.player_id??candidate.id??null,birth_year:finite(candidate.birth_year??candidate.year),age:currentYear-finite(candidate.birth_year??candidate.year),score:scoreMessinhoPlayer(candidate).score}));
+   if(!eligible.length)return missingResult(id,['candidates_with_verified_birth_year']);
+   return result(id,'completed',{max_age:maxAge,eligible:eligible.sort((a,b)=>(b.score??-1)-(a.score??-1)),birth_year_required:true});
+ }
+ if(id==='underdog_detection'){
+   const threshold=finite(input.max_visibility_score)??35,eligible=candidates.filter(candidate=>finite(candidate.visibility_score)!==null&&finite(candidate.visibility_score)<=threshold&&scoreMessinhoPlayer(candidate).score!==null).map(candidate=>({player:playerName(candidate),visibility_score:finite(candidate.visibility_score),sporting_score:scoreMessinhoPlayer(candidate).score,club:candidate.club||candidate.current_club||null}));
+   if(!eligible.length)return missingResult(id,['visibility_scores','player_metrics']);
+   return result(id,'completed',{threshold,underdogs:eligible.sort((a,b)=>b.sporting_score-a.sporting_score),interpretation:'Geringe dokumentierte Sichtbarkeit bei vorhandenen Leistungswerten; kein Marktwerturteil.'});
+ }
+ if(id==='hidden_gem_detection'){
+   const eligible=candidates.map(candidate=>({player:playerName(candidate),score:scoreMessinhoPlayer(candidate).score,value:finite(candidate.market_value??candidate.estimated_value)})).filter(candidate=>candidate.score!==null&&candidate.score>0&&candidate.value!==null&&candidate.value>0);
+   if(eligible.length<2)return missingResult(id,['player_metrics','comparable_market_values']);
+   const meanValue=avg(eligible.map(item=>item.value)),meanScore=avg(eligible.map(item=>item.score));
+   return result(id,'completed',{candidates:eligible.map(item=>({...item,value_per_score:round(item.value/item.score,2),below_group_value:item.value<meanValue&&item.score>=meanScore})).sort((a,b)=>a.value_per_score-b.value_per_score),group_mean_value:round(meanValue),group_mean_score:round(meanScore),estimate_only:true});
+ }
+ if(id==='club_research'){
+   const club=input.club||input.club_profile;if(!club&&!sources.length)return missingResult(id,['club_identity','club_sources']);
+   return result(id,'completed',{club:club?{name:club.name||null,country:club.country||null,league:club.league||null,website:club.website||null}:null,source_count:sources.length,sources:sourceAudit(sources,now),verified_facts:asArray(input.claims).filter(claim=>claim&&claim.verified===true)});
+ }
+ if(id==='squad_research'){
+   const squad=asArray(input.squad||input.players);if(!squad.length)return missingResult(id,['squad_players']);
+   const positions={};for(const player of squad){for(const position of asArray(player.positions||player.position)){positions[position]=(positions[position]||0)+1;}}
+   return result(id,'completed',{squad_size:squad.length,position_counts:positions,players:squad.map(player=>({name:playerName(player),positions:player.positions||player.position||[],score:scoreMessinhoPlayer(player).score}))});
+ }
+ if(id==='statistics_research'){
+   const records=sources.flatMap(source=>asArray(source.statistics||source.stats).map(stat=>({...stat,source_url:source.url||null,source_title:source.title||null})));
+   if(!records.length)return missingResult(id,['structured_statistics_in_research_sources']);
+   return result(id,'completed',{statistics:records.slice(0,200),record_count:records.length,source_count:sources.length,provenance_required:true});
+ }
+ if(id==='match_report_research'){
+   const reports=sources.filter(source=>source.type==='match_report'||/spielbericht|match report|match recap/i.test(String(source.title||'')));
+   if(!reports.length)return missingResult(id,['match_report_sources']);
+   return result(id,'completed',{reports:reports.map(source=>({title:source.title||null,url:source.url||null,published_date:source.published_date||null,events:asArray(source.events),content_excerpt:String(source.content||'').slice(0,1200)})),report_count:reports.length,source_assessment:sourceAudit(reports,now)});
+ }
+ if(id==='club_need_research'){
+   const squad=asArray(input.squad||input.players),needs=asArray(input.club_profile?.required_positions||input.club_needs||input.required_positions);
+   if(!squad.length||!needs.length)return missingResult(id,['squad_players','club_required_positions']);
+   const counts={};for(const player of squad){for(const position of asArray(player.positions||player.position)){counts[position]=(counts[position]||0)+1;}}
+   const gaps=needs.map(item=>{const position=typeof item==='string'?item:item.position,minimum=typeof item==='string'?1:(finite(item.minimum)||1),current=counts[position]||0;return {position,current,minimum,gap:Math.max(0,minimum-current)};});
+   return result(id,'completed',{position_counts:counts,needs:gaps,priority_positions:gaps.filter(item=>item.gap>0).sort((a,b)=>b.gap-a.gap),interpretation:'Kaderbedarf aus den explizit übergebenen Sollvorgaben und Spielerdaten.'});
+ }
+ if(id==='comparable_player_research'){
+   const target=getPlayer(input),pool=candidates.filter(candidate=>String(candidate.player_id??candidate.id)!==String(target.player_id??target.id)),targetDims=metricsByDimension(metricEntries(target));
+   const ranked=pool.map(candidate=>{const dims=metricsByDimension(metricEntries(candidate)),shared=Object.keys(targetDims).filter(key=>targetDims[key]!==null&&dims[key]!==null),distance=shared.length?avg(shared.map(key=>Math.abs(targetDims[key]-dims[key]))):null;return {player:playerName(candidate),id:candidate.player_id??candidate.id??null,shared_dimensions:shared.length,mean_distance:distance,similarity:distance===null?null:Math.round(clamp(100-distance))};}).filter(item=>item.similarity!==null&&item.shared_dimensions>=2).sort((a,b)=>b.similarity-a.similarity);
+   if(!ranked.length)return missingResult(id,['target_player_metrics','candidate_pool_metrics']);
+   return result(id,'completed',{target:playerName(target),comparables:ranked.slice(0,20),similarity_basis:'shared performance dimensions',market_or_identity_equivalence:false});
+ }
  const audited=sourceAudit(sources,now);
  const claims=asArray(input.claims||input.evidence);
  if(id==='identity_verification'||id==='birth_year_verification'||id==='position_verification'){
@@ -352,7 +468,7 @@ const learningIds=new Set(['supervised_learning','position_specific_learning','s
 const researchIds=new Set(['automated_talent_search','international_research','cross_league_research','youth_talent_discovery','underdog_detection','hidden_gem_detection','club_research','squad_research','contract_research','contract_expiry_monitor','rumour_verification','market_monitoring','source_cross_check','identity_verification','birth_year_verification','position_verification','statistics_research','video_source_research','match_report_research','competition_monitoring','club_need_research','comparable_player_research','player_data_refresh','new_talent_monitoring','research_report_generation']);
 
 
-const specialistCapabilityIds=new Set(["holistic_player_analysis","player_profile_synthesis","position_analysis","multi_position_analysis","creativity_analysis","decision_quality_analysis","strength_weakness_analysis","technical_detail_analysis","play_style_detection","game_intelligence_analysis","potential_analysis","potential_score","talent_score","development_projection","performance_development","form_curve_analysis","consistency_analysis","development_score","consistency_score","tactical_behaviour_analysis","game_phase_analysis","duel_analysis","video_event_analysis","minutes_analysis","availability_history_analysis","running_performance_analysis","speed_analysis","anomaly_detection","peer_comparison_analysis","competition_comparison","age_relative_analysis","overall_score","position_score","explainable_rating","data_quality_score","source_trust_score","system_fit_score","coach_fit_score","club_fit_score","league_fit_score","market_value_assessment","value_for_money","risk_score","transfer_priority","scout_rating_agreement","seasonal_learning","dataset_quality_improvement","data_error_learning","model_versioning","verified_long_term_memory","regression_guard","model_benchmarking","prediction_audit","error_pattern_detection","false_positive_learning","probability_calibration","scout_accuracy_analysis","scout_calibration","identity_verification","birth_year_verification","position_verification","video_source_research","contract_expiry_monitor","contract_research","source_cross_check","rumour_verification","research_report_generation","player_data_refresh","new_talent_monitoring","market_monitoring","competition_monitoring"]);
+const specialistCapabilityIds=new Set(["holistic_player_analysis","player_profile_synthesis","position_analysis","multi_position_analysis","creativity_analysis","decision_quality_analysis","strength_weakness_analysis","technical_detail_analysis","play_style_detection","game_intelligence_analysis","potential_analysis","potential_score","talent_score","development_projection","performance_development","form_curve_analysis","consistency_analysis","development_score","consistency_score","tactical_behaviour_analysis","game_phase_analysis","duel_analysis","video_event_analysis","minutes_analysis","availability_history_analysis","running_performance_analysis","speed_analysis","anomaly_detection","peer_comparison_analysis","competition_comparison","age_relative_analysis","overall_score","position_score","explainable_rating","data_quality_score","source_trust_score","system_fit_score","coach_fit_score","club_fit_score","league_fit_score","market_value_assessment","value_for_money","risk_score","transfer_priority","scout_rating_agreement","seasonal_learning","dataset_quality_improvement","data_error_learning","model_versioning","verified_long_term_memory","regression_guard","model_benchmarking","prediction_audit","error_pattern_detection","false_positive_learning","probability_calibration","scout_accuracy_analysis","scout_calibration","identity_verification","birth_year_verification","position_verification","video_source_research","contract_expiry_monitor","contract_research","source_cross_check","rumour_verification","research_report_generation","player_data_refresh","new_talent_monitoring","market_monitoring","competition_monitoring", "technical_score", "tactical_score", "athletic_score", "mental_score", "goalkeeper_score", "supervised_learning", "position_specific_learning", "weight_optimization", "age_group_learning", "league_learning", "country_learning", "talent_pathway_learning", "breakthrough_learning", "position_change_learning", "availability_outcome_learning", "controlled_self_optimization", "automated_talent_search", "international_research", "cross_league_research", "youth_talent_discovery", "underdog_detection", "hidden_gem_detection", "club_research", "squad_research", "statistics_research", "match_report_research", "club_need_research", "comparable_player_research", "scout_feedback_learning"]);
 
 const allCatalog=getMessinhoCapabilityCatalog();
 const catalogById=new Map(allCatalog.flatMap(g=>g.functions).map(x=>[x.id,x]));
