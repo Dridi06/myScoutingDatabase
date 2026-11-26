@@ -154,3 +154,22 @@ test('does not impose current-source rules on explicitly historical questions',(
  assert.equal(isMessinhoTimeSensitiveQuestion('Wer war 2014 Trainer von Borussia Dortmund?'),false);
  assert.equal(isMessinhoTimeSensitiveQuestion('Historischer Rückblick auf die Bundesliga-Tabelle 1998'),false);
 });
+
+
+test('uses short freshness windows for live standings and fixtures',()=>{
+ assert.equal(messinhoFreshnessWindowDays('Wie ist der aktuelle Tabellenstand?'),7);
+ assert.equal(messinhoFreshnessWindowDays('Welche Spiele finden morgen statt?'),7);
+ assert.equal(messinhoFreshnessWindowDays('Wer trainiert Borussia Dortmund?'),30);
+ assert.equal(messinhoFreshnessWindowDays('Warum ist der Himmel blau?'),90);
+});
+
+test('rejects a two-week-old source for live league standings',()=>{
+ const now=new Date('2026-11-26T12:00:00Z');
+ const sources=[
+  {publisher:'a.example',snippet:'x'.repeat(150),published_date:'2026-11-10'},
+  {publisher:'b.example',snippet:'y'.repeat(150),published_date:'2026-11-12'}
+ ];
+ const evidence=assessMessinhoGeneralEvidence(sources,'Wie ist aktuell der Tabellenstand?',now);
+ assert.equal(evidence.can_answer,false);
+ assert.equal(evidence.freshness.max_age_days,7);
+});
