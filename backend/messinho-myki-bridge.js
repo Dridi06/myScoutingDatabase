@@ -35,6 +35,7 @@ export async function persistMessinhoMyKiProposal({db,proposal,now=new Date(),id
 /** Only explicit, validated engineering proposals from successful admin agent steps are eligible. */
 export async function dispatchMessinhoMyKiProposals({role='scout',run,onProposal}={}) {
   if(role!=='admin'||typeof onProposal!=='function') return {eligible:0,submitted:0,rejected:0,skipped:'role_or_callback'};
+  if(run?.status!=='completed'||!Number.isFinite(run?.completed_steps)||run.completed_steps!==run.total_steps) return {eligible:0,submitted:0,rejected:0,skipped:'agent_run_incomplete'};
   const results=Array.isArray(run?.results)?run.results:[];
   const candidates=results.filter(item=>item?.status==='proposal_ready'&&item?.result?.myki_engineering_proposal);
   const outcomes=[];
