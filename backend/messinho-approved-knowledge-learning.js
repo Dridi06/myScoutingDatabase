@@ -10,7 +10,11 @@ const VO2MAX_SOURCE_IDS=Object.freeze([
 const VO2MAX_TOPIC=/\b(vo\s*[₂2]\s*max|vo2max|vo₂max|maximale sauerstoffaufnahme|kardiorespiratorische fitness|cardiorespiratory fitness)\b/i;
 
 export function isMessinhoApprovedFoundationTopic(question){
- return VO2MAX_TOPIC.test(String(question??''));
+ const text=String(question??'').trim();
+ if(!VO2MAX_TOPIC.test(text))return false;
+ if(/\\b(?:spieler|player|vergleich|vergleiche|analysiere|berechne|prognose|mein(?:e|en)?|bei mir|ich habe)\\b/i.test(text))return false;
+ return /^(?:was ist|was bedeutet|erkl[aä]re(?: mir)?|definition|grundlagen|einf[uü]hrung|what is|define)\\b/i.test(text)
+  ||/^(?:vo\\s*[₂2]\\s*max|vo2max|vo₂max|maximale sauerstoffaufnahme|kardiorespiratorische fitness|cardiorespiratory fitness)[?.! ]*$/i.test(text);
 }
 
 export async function learnMessinhoApprovedFoundationConcept(db,question,{fetchImpl=globalThis.fetch}={}){
