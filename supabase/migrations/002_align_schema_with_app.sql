@@ -124,14 +124,14 @@ end;
 $$;
 
 create or replace function public.scout_heartbeat()
-returns void language plpgsql security invoker set search_path = ''
+returns void language plpgsql security definer set search_path = ''
 as $$ begin
   update public.profiles set last_seen_at=pg_catalog.now()
   where id=(select auth.uid()) and role='scout' and approved=true;
 end; $$;
 
 create or replace function public.scout_mark_login()
-returns void language plpgsql security invoker set search_path = ''
+returns void language plpgsql security definer set search_path = ''
 as $$ begin
   update public.profiles set last_login_at=pg_catalog.now(),last_seen_at=pg_catalog.now()
   where id=(select auth.uid());
