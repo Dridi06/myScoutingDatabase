@@ -65,7 +65,7 @@ test('foundation learning does not write if two sources fail to corroborate the 
  const result=await learnMessinhoApprovedFoundationConcept(db,'Was ist VO2max?',{
   fetchImpl:async(url)=>{calls++;return url.includes('journals.plos.org')
    ?{ok:true,text:async()=>'<article><abstract><p>Unrelated astronomy content about distant galaxies and stars.</p></abstract></article>'}
-   :{ok:true,json:async()=>({collection:{documents:[{passages:[{infons:{section_type:'ABSTRACT'},text:'A different unrelated topic about ocean currents and marine biology.'}]}]}})};
+   :{ok:true,json:async()=>({collection:{documents:[{passages:[{infons:{section_type:'ABSTRACT'},text:'A different unrelated topic about ocean currents and marine biology, with enough additional detail to pass the minimum source excerpt length.'}]}]}})};
   }
  });
  assert.equal(result.status,'insufficient_corroboration');
