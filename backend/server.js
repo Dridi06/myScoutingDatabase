@@ -13,6 +13,8 @@ import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from '.
 import { normalizeMessinhoFeedback, normalizeMessinhoFeedbackReview } from './messinho-feedback.js';
 import { buildMessinhoQualityIntelligence } from './messinho-quality-intelligence.js';
 import { normalizeMessinhoHypothesisCreate, normalizeMessinhoHypothesisTransition } from './messinho-improvement-governance.js';
+import { normalizeMyKiTicketProposal, createMyKiTicketRecord, buildMyKiCopyPacket } from './messinho-myki-tickets.js';
+
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
 import { getMessinhoCapabilitySummary } from './messinho-capabilities.js';
@@ -1362,6 +1364,82 @@ async function requireApprovedMessinhoAdmin(req,res){
   }
   return actor;
 }
+
+const myKiTicketLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele myKI-Anfragen. Bitte später erneut versuchen.'}});
+async function requireMyKiTable(res){
+  if(!db){res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});return false;}
+  return true;
+}
+app.get('/api/admin/myki/tickets',myKiTicketLimiter,async(req,res)=>{
+  try{
+    const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
+    if(!await requireMyKiTable(res))return;
+    const {data,error}=await db.from('messinho_myki_tickets')
+      .select('id,ticket_id,title,explanation,status,created_at,updated_at,error_code,error_message,files,tests')
+      .neq('status','deleted').order('created_at',{ascending:false}).limit(100);
+    if(error){console.error('myKI ticket list failed:',error.code||error.message);return res.status(error.code==='42P01'?503:500).json({error:error.code==='42P01'?'myKI-Ticketdatenbank ist noch nicht eingerichtet.':'myKI-Tickets konnten nicht geladen werden.'});}
+    return res.json({ok:true,tickets:data||[]});
+  }catch(error){console.error('myKI ticket list failed:',error.message);return res.status(500).json({error:'myKI-Tickets konnten nicht geladen werden.'});}
+});
+app.get('/api/admin/myki/tickets/:ticketId',myKiTicketLimiter,async(req,res)=>{
+  try{
+    const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
+    if(!await requireMyKiTable(res))return;
+    const {data,error}=await db.from('messinho_myki_tickets').select('*').eq('id',req.params.ticketId).maybeSingle();
+    if(error||!data||data.status==='deleted')return res.status(404).json({error:'myKI-Ticket wurde nicht gefunden.'});
+    const {data:events,eventError}=await db.from('messinho_myki_ticket_events').select('actor_type,action,from_status,to_status,error_code,safe_message,created_at').eq('ticket_id',data.id).order('created_at',{ascending:true}).limit(100);
+    if(eventError)console.warn('myKI event history unavailable:',eventError.code||eventError.message);
+    return res.json({ok:true,ticket:data,events:events||[]});
+  }catch(error){console.error('myKI ticket detail failed:',error.message);return res.status(500).json({error:'myKI-Ticket konnte nicht geladen werden.'});}
+});
+app.get('/api/admin/myki/tickets/:ticketId/copy',myKiTicketLimiter,async(req,res)=>{
+  try{
+    const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
+    if(!await requireMyKiTable(res))return;
+    const {data,error}=await db.from('messinho_myki_tickets').select('*').eq('id',req.params.ticketId).maybeSingle();
+    if(error||!data)return res.status(404).json({error:'myKI-Ticket wurde nicht gefunden.'});
+    const packet=buildMyKiCopyPacket(data);if(!packet.ok)return res.status(404).json({error:packet.error});
+    return res.json({ok:true,text:packet.text});
+  }catch(error){console.error('myKI copy packet failed:',error.message);return res.status(500).json({error:'Kopierbericht konnte nicht erstellt werden.'});}
+});
+app.post('/api/admin/myki/tickets/:ticketId/integrate',myKiTicketLimiter,async(req,res)=>{
+  try{
+    const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
+    if(!await requireMyKiTable(res))return;
+    return res.status(409).json({ok:false,code:'MYKI_SANDBOX_NOT_READY',error:'Integration ist derzeit gesperrt. Die isolierte, sicherheitsgeprüfte Staging-Umgebung ist noch nicht freigegeben. Es wurde nichts verändert.'});
+  }catch(error){console.error('myKI integrate request failed:',error.message);return res.status(500).json({error:'Integrationsanfrage konnte nicht verarbeitet werden.'});}
+});
+app.delete('/api/admin/myki/tickets/:ticketId',myKiTicketLimiter,async(req,res)=>{
+  try{
+    const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
+    if(!await requireMyKiTable(res))return;
+    const {data:ticket,error:lookupError}=await db.from('messinho_myki_tickets').select('id,status').eq('id',req.params.ticketId).maybeSingle();
+    if(lookupError||!ticket)return res.status(404).json({error:'myKI-Ticket wurde nicht gefunden.'});
+    if(ticket.status==='integrating')return res.status(409).json({error:'Ein Ticket kann während einer Integration nicht gelöscht werden.'});
+    const now=new Date().toISOString();
+    const {error:updateError}=await db.from('messinho_myki_tickets').update({status:'deleted',deleted_at:now,updated_at:now}).eq('id',ticket.id);
+    if(updateError)return res.status(500).json({error:'Ticket konnte nicht gelöscht werden.'});
+    const {error:eventError}=await db.from('messinho_myki_ticket_events').insert({ticket_id:ticket.id,actor_id:actor.user.id,actor_type:'admin',action:'deleted',from_status:ticket.status,to_status:'deleted',safe_message:'Ticket aus dem aktiven myKI-Eingang entfernt.'});
+    if(eventError)console.error('myKI delete audit event failed:',eventError.code||eventError.message);
+    return res.json({ok:true,message:'Ticket wurde aus dem aktiven Eingang entfernt.'});
+  }catch(error){console.error('myKI ticket delete failed:',error.message);return res.status(500).json({error:'Ticket konnte nicht gelöscht werden.'});}
+});
+// Trusted MESSINHO submission endpoint. It is intentionally not wired into the live agent yet.
+app.post('/api/internal/messinho/myki-tickets',myKiTicketLimiter,async(req,res)=>{
+  try{
+    const expected=process.env.MESSINHO_MYKI_INGEST_SECRET||'';
+    const supplied=String(req.headers['x-messinho-ticket-secret']||'');
+    if(!expected||supplied.length!==expected.length||!crypto.timingSafeEqual(Buffer.from(supplied),Buffer.from(expected)))return res.status(403).json({error:'Interne Ticketübermittlung nicht autorisiert.'});
+    if(!await requireMyKiTable(res))return;
+    const normalized=normalizeMyKiTicketProposal(req.body||{});if(!normalized.ok)return res.status(400).json({error:normalized.error});
+    const record=createMyKiTicketRecord(normalized.value,{id:randomUUID()});if(!record.ok)return res.status(400).json({error:record.error});
+    const {data,error}=await db.from('messinho_myki_tickets').insert(record.ticket).select('id,ticket_id,status,created_at').single();
+    if(error){const status=error.code==='23505'?409:error.code==='42P01'?503:500;return res.status(status).json({error:error.code==='23505'?'Dieser Verbesserungsvorschlag wurde bereits eingereicht.':'KI-Ticket konnte nicht angelegt werden.'});}
+    const {error:eventError}=await db.from('messinho_myki_ticket_events').insert({ticket_id:data.id,actor_type:'messinho',action:'submitted',to_status:'submitted',safe_message:'MESSINHO hat einen Verbesserungsvorschlag eingereicht.'});
+    if(eventError)console.error('myKI create audit event failed:',eventError.code||eventError.message);
+    return res.status(201).json({ok:true,ticket:data});
+  }catch(error){console.error('myKI internal ticket create failed:',error.message);return res.status(500).json({error:'KI-Ticket konnte nicht angelegt werden.'});}
+});
 app.get('/api/messinho/improvement-hypotheses',messinhoHypothesisLimiter,async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
