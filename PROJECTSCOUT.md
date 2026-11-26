@@ -992,3 +992,20 @@ This is automated CI evidence only. It is not a substitute for a deployed stagin
 - **Validation:** first CI attempt exposed two failing new regression tests caused by over-escaped regex literals and an unchanged narrow position/quantity regex. Those were corrected in the latest parser commit. A fresh full test run is still required; do not report this fix as verified until it passes.
 - **Release boundary:** staging candidate branch only. Production branch, production Render, and production Supabase untouched. Do not deploy until tests pass.
 - **Next:** run full MESSINHO tests and build, inspect all results, then deploy only to the designated staging Render service and verify the exact deployment SHA and health.
+
+---
+
+## 2026-11-26 — MESSINHO natural conversation and provider error handling
+
+- **User request:** Make MESSINHO behave naturally in everyday conversation (e.g. hello ↔ hello, “how are you?” ↔ “I'm well, thank you, and you?”), and integrate everyday conversational behavior as a normal capability.
+- **Observed production-like Staging failure:** The global player-selection call reached OpenAI but returned HTTP 429 with `insufficient_quota` / `credit_balance_exhausted`. Tavily and OpenAI credentials were detected by the Staging process; provider billing quota, not request parsing, blocked analysis.
+- **Implemented on Staging candidate branch:**
+  - Added provider failure classifier distinguishing exhausted quota, invalid API key, rate limit, temporary provider outage, and generic provider errors.
+  - Discovery endpoint now returns a clear, safe German user-facing message and stable error code rather than the generic “global player selection” message.
+  - Added provider-independent natural small-talk handling for greetings, “Wie geht's?”, thanks, and farewells. It executes before scouting intent parsing and does not consume model/API credits.
+  - Everyday non-small-talk conversation continues through the existing conversational model path when available; scouting and factual research remain evidence-based and are not fabricated by the small-talk shortcut.
+  - Added unit tests for greeting flow, how-are-you, thanks/goodbye, ordinary messages not swallowed, and provider failure distinctions.
+- **Files changed:** `backend/messinho-conversation.js`, `backend/server.js`, `tests/messinho-conversation.test.js`.
+- **Commits:** helper `0724f2a7f3de4cbcb359882e3f6b216dc8c22def`; server integration `1653bcf6dba39a33ddebee9f1258e8f8e62c8947`; tests `1e79947be49b548fbd151cd1bafffbf2d5530cba`.
+- **Release boundary:** candidate branch only. No deployment yet. Production untouched.
+- **Next:** run full tests, backend syntax and frontend build; inspect failures; deploy only to Staging when all gates pass. After deployment test “Hallo”, “Wie geht's?” and the quota-error message. General everyday Q&A still relies on the existing provider conversation path; the new deterministic local layer covers common social exchanges.
