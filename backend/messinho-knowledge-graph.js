@@ -131,12 +131,15 @@ export async function findMessinhoKnowledgeConcepts(db,question,{limit=6}={}){
   // technical concept anchor. Do not let lexical dilution hide active memory.
   const canonical=CANONICAL_CONCEPT_MATCHERS.find(item=>item.pattern.test(String(question||'')));
   if(canonical&&!ranked.some(item=>item.record.concept_key===canonical.key)){
+   // Keep canonical retrieval independent of the broad-query validity OR
+   // expression. A malformed/overly restrictive PostgREST OR filter must not
+   // hide an explicitly active canonical foundation. Enforce validity in JS.
    const {data:exact,error:exactError}=await db.from('messinho_knowledge_concepts')
     .select('id,concept_key,domain,topic,title,definition,knowledge_level,knowledge_type,parent_concept_key,prerequisites,formula,formula_variables,applicability,limitations,claims,sources,rights,evidence_grade,confidence,version,valid_from,valid_until,review_due_at')
-    .eq('knowledge_status','active').eq('concept_key',canonical.key)
-    .or('valid_until.is.null,valid_until.gt.'+new Date().toISOString()).limit(1);
+    .eq('knowledge_status','active').eq('concept_key',canonical.key).limit(1);
    if(exactError)throw exactError;
-   if(Array.isArray(exact)&&exact[0])ranked.unshift({record:exact[0],score:1});
+   const exactActive=Array.isArray(exact)?exact.find(record=>!record.valid_until||new Date(record.valid_until).getTime()>Date.now()):null;
+   if(exactActive)ranked.unshift({record:exactActive,score:1});
   }
   const items=ranked.map(item=>({...item.record,relevance:Number(item.score.toFixed(3))})).slice(0,Math.max(1,Math.min(12,limit)));
   if(!items.length)return {status:'miss',items:[]};
