@@ -18,7 +18,7 @@ function evaluate(s){
  const v=add();if(i!==t.length||!Number.isFinite(v))throw Error('Der Ausdruck ist ungültig oder das Ergebnis nicht endlich.');return v;
 }
 const out=(kind,title,value,formula,steps,extra={})=>({status:'completed',kind,title,value:round(value),formatted:fmt(value),formula,steps,assumptions:[],...extra});
-function params(q){const p={};for(const m of q.matchAll(/\b(n|p|k|lambda|λ|a|b|c|m|v|v0|v1|t|s|g|h|energie|volumen|kraft|flaeche|r)\s*[:=]\s*(-?\d+(?:[.,]\d+)?)/giu)){p[m[1].toLowerCase().replace('λ','lambda')]=Number(m[2].replace(',','.'));}return p;}
+function params(q){const p={};for(const m of q.matchAll(/\b(n|p|k|lambda|λ|a|b|c|m|v|v0|v1|t|s|g|h|energie|volumen|kraft|flaeche|r|x|u|i|f|frequenz|wellenlaenge|wellenlänge)\s*[:=]\s*(-?\d+(?:[.,]\d+)?)/giu)){p[m[1].toLowerCase().replace('λ','lambda')]=Number(m[2].replace(',','.'));}return p;}
 function probability(q){
  const p=params(q),n=p.n,k=p.k,prob=p.p;
  if(/binomial|binomialverteilung|scouting.*wahrscheinlichkeit|wahrscheinlichkeit.*scouting/i.test(q)&&Number.isInteger(n)&&n>=0&&n<=1000&&prob>=0&&prob<=1&&Number.isInteger(k)&&k>=0&&k<=n){
@@ -34,6 +34,10 @@ function probability(q){
  if(/bayes|bedingte wahrscheinlichkeit/i.test(q)&&[p.a,p.b,p.c].every(x=>Number.isFinite(x)&&x>=0&&x<=1)){
   const v=p.b*p.a/(p.b*p.a+p.c*(1-p.a));return out('probability','Bayes-Update',v*100,'P(A|B)=P(B|A)P(A)/[P(B|A)P(A)+P(B|¬A)P(¬A)]',['Prior = '+p.a,'Sensitivität = '+p.b,'Falsch-Positiv-Rate = '+p.c],{unit:'%',probability:v});
  }
+ if(/wilson|konfidenzintervall|trefferquote.*intervall/i.test(q)&&Number.isInteger(p.n)&&Number.isInteger(p.k)&&p.n>0&&p.k>=0&&p.k<=p.n){
+  const z=1.96,phat=p.k/p.n,z2=z*z,den=1+z2/p.n,center=(phat+z2/(2*p.n))/den,margin=z*Math.sqrt((phat*(1-phat)+z2/(4*p.n))/p.n)/den;
+  return out('probability','95-%-Konfidenzintervall (Wilson)',phat*100,'Wilson-Intervall: (p̂ + z²/2n ± z·√(p̂(1−p̂)/n + z²/4n²)) / (1+z²/n)',['Erfolge = '+p.k+' von '+p.n+' Versuchen','Beobachtete Quote = '+(phat*100).toFixed(2)+' %','95-%-Intervall = '+(Math.max(0,center-margin)*100).toFixed(2)+' % bis '+(Math.min(1,center+margin)*100).toFixed(2)+' %'],{unit:'%',probability:phat,confidence_interval:{level:0.95,lower:Math.max(0,center-margin),upper:Math.min(1,center+margin)},scouting_interpretation:'Beschreibt statistische Unsicherheit der beobachteten Quote; keine individuelle Spielerprognose.'});
+ }
  return null;
 }
 function physics(q){
@@ -47,6 +51,11 @@ function physics(q){
  if(/dichte/i.test(q)&&has('m','volumen')&&p.volumen!==0)return out('physics','Dichte',p.m/p.volumen,'ρ = m / V',['m = '+p.m+' kg','V = '+p.volumen+' m³'],{unit:'kg/m³'});
  if(/druck/i.test(q)&&has('kraft','flaeche')&&p.flaeche!==0)return out('physics','Druck',p.kraft/p.flaeche,'p = F / A',['F = '+p.kraft+' N','A = '+p.flaeche+' m²'],{unit:'Pa'});
  if(/impuls/i.test(q)&&has('m','v'))return out('physics','Impuls',p.m*p.v,'p = m · v',['m = '+p.m+' kg','v = '+p.v+' m/s'],{unit:'kg·m/s'});
+ if(/arbeit/i.test(q)&&has('kraft','s'))return out('physics','Mechanische Arbeit',p.kraft*p.s,'W = F · s',['F = '+p.kraft+' N','s = '+p.s+' m'],{unit:'J'});
+ if(/hooke|federkraft/i.test(q)&&has('k','x'))return out('physics','Federkraft nach Hooke',p.k*p.x,'F = k · x',['k = '+p.k+' N/m','x = '+p.x+' m'],{unit:'N'});
+ if(/ohm|spannung/i.test(q)&&has('u','i'))return out('physics','Elektrischer Widerstand',p.u/p.i,'R = U / I',['U = '+p.u+' V','I = '+p.i+' A'],{unit:'Ω'});
+ if(/elektrische leistung/i.test(q)&&has('u','i'))return out('physics','Elektrische Leistung',p.u*p.i,'P = U · I',['U = '+p.u+' V','I = '+p.i+' A'],{unit:'W'});
+ if(/wellengeschwindigkeit/i.test(q)&&has('frequenz','wellenlaenge'))return out('physics','Wellengeschwindigkeit',p.frequenz*p.wellenlaenge,'v = f · λ',['f = '+p.frequenz+' Hz','λ = '+p.wellenlaenge+' m'],{unit:'m/s'});
  if(/kreisumfang/i.test(q)&&has('r'))return out('physics','Kreisumfang',2*Math.PI*p.r,'U = 2πr',['r = '+p.r+' m'],{unit:'m'});
  if(/kreisfläche/i.test(q)&&has('r'))return out('physics','Kreisfläche',Math.PI*p.r**2,'A = πr²',['r = '+p.r+' m'],{unit:'m²'});
  return null;
