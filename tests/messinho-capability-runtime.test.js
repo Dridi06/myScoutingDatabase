@@ -108,7 +108,8 @@ test('automated talent search maps natural-language position groups to stored sc
    now:'2026-01-01T00:00:00.000Z',
    candidates:[
      {id:'striker',name:'Centre Forward',birth_year:2007,positions:['9er'],ratings:{technical:80,tactical:70,athletic:75,mental:70}},
-     {id:'keeper',name:'Goalkeeper',birth_year:2007,positions:['Torwart'],ratings:{technical:80,tactical:70,athletic:75,mental:70}}
+     {id:'keeper',name:'Goalkeeper',birth_year:2007,positions:['Torwart'],ratings:{technical:80,tactical:70,athletic:75,mental:70}},
+     {id:'unknown',name:'Unknown Position',birth_year:2007,ratings:{technical:80,tactical:70,athletic:75,mental:70}}
    ],
    filters:{position:'Stürmer',max_age:21}
  });
