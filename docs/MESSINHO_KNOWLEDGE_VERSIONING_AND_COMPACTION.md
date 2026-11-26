@@ -72,3 +72,17 @@ A challenger must meet all critical safety/factual gates and improve a predeclar
 This document is an accepted product requirement, not a claim that the replacement engine already exists. Current storeMessinhoKnowledgeConcept behavior records a differing proposal as an open conflict for manual review; it does not automatically replace the active concept. The existing domain knowledge store upserts by content fingerprint, which can still allow multiple fingerprints for similar content. These behaviors must be reconciled through a tested canonical lifecycle rather than bypassing it.
 
 No Supabase schema or data change, source-rights allowlist change, knowledge import, activation, production deployment or code-execution/self-modification capability is authorized by this requirement. All implementation remains STAGING-only.
+
+## 9. Protected operational records and Admin authority
+
+This knowledge lifecycle applies only to MESSINHO's own governed knowledge artifacts. It must never be interpreted as permission to alter operational player or scout records.
+
+- MESSINHO has read/analyze/propose authority only for player records and registered scout accounts.
+- It may inspect existing player values and validate them for plausibility, consistency, completeness, contradictions, outliers and freshness.
+- When it discovers or receives new player values, it may validate provenance and source rights, compare them with stored values, recalculate metrics, re-analyze and re-assess the player, and produce an evidence-backed proposed update. It must not write the new values into the player record.
+- MESSINHO must never create, edit, delete, approve/release, activate/deactivate, lock/unlock or change permissions for a player record or registered scout account.
+- The Admin remains the sole final authority for protected player/scout data and account operations. Automated confidence, model output, scheduled work or an agent plan is never Admin approval.
+- Enforce this at server/API/service/database/RLS boundaries with least-privilege read-only access. Prompts and UI restrictions alone are insufficient. Proposals must remain separate from source records and pending until an authenticated, authorized Admin explicitly approves and applies them through an audited workflow.
+- No indirect bypass through tools, generic CRUD endpoints, background jobs, RPCs, service-role credentials, retries, learning or compaction.
+- Required tests: direct and indirect write/delete/approval denial for MESSINHO; allowed read and analysis; proposal separation; Admin-only application; forged-role and cross-tenant denial; audit verification.
+- This requirement is accepted but not yet implemented/verified. It does not authorize any database migration or data write. It does not restrict separately governed updates to MESSINHO's own knowledge artifacts.
