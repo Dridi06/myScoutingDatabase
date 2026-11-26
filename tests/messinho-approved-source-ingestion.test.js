@@ -19,6 +19,7 @@ test('PLOS source retrieval uses the approved JATS endpoint and returns only com
  assert.equal(result.source.retrieval_url,requested);
  assert.equal(result.source.retrieval_method,'plos_jats_xml');
  assert.ok(result.source.reviewed_at);
+ assert.equal(result.source.review_due_at,'2027-11-26');
  assert.match(requested,/type=manuscript/);
  assert.ok(result.excerpts.length>=1);
  assert.match(result.excerpts.map(x=>x.text).join(' '),/VO2max/);
@@ -86,4 +87,15 @@ test('source retrieval rejects HTTP failures and oversized PLOS payloads',async(
  assert.equal(failed.status,'source_fetch_failed');
  const oversized=await fetchMessinhoApprovedSource('plos_one_vo2max_prediction_2023',{fetchImpl:async()=>({ok:true,text:async()=>'x'.repeat(2_000_001)})});
  assert.equal(oversized.status,'source_payload_rejected');
+});
+
+
+test('expired source-rights review blocks retrieval before any network request',async()=>{
+ let called=false;
+ const result=await fetchMessinhoApprovedSource('plos_one_vo2max_prediction_2023',{
+  now:new Date('2027-11-27T00:00:00.000Z'),
+  fetchImpl:async()=>{called=true;return {ok:true,text:async()=>'<article/>'};}
+ });
+ assert.equal(result.status,'source_not_approved');
+ assert.equal(called,false);
 });
