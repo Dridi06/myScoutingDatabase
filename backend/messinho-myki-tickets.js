@@ -22,10 +22,13 @@ export function normalizeMyKiTicketProposal(input={}) {
   const candidateId=cleanText(input.candidate_id,100);
   if(!title||!explanation||!rationale||!diff.trim()||diff.length>MAX_DIFF||!files.length||!tests.length||!rollback||!baselineId||!candidateId)
     return {ok:false,error:'Der Vorschlag ist unvollständig oder überschreitet die zulässige Größe.'};
-  if(files.some(path=>path.startsWith('/')||path.includes('..')||path.includes('\\')||/^(supabase\/migrations|\.github|infra|deploy)(\/|$)/i.test(path)||/\.(sql|env|pem|key|crt)$/i.test(path)))
+  const protectedFiles=new Set(['backend/server.js','backend/messinho-capabilities.js','backend/messinho-capability-runtime.js','backend/messinho-orchestrator.js','backend/messinho-agent-core.js','backend/messinho-autonomy.js','backend/messinho-access.js','backend/messinho-rights-registry.js','backend/messinho-knowledge-graph.js','backend/messinho-domain-knowledge.js']);
+  if(files.some(path=>!(path.startsWith('backend/')||path.startsWith('tests/')||path.startsWith('docs/'))||path.startsWith('/')||path.includes('..')||path.includes('\\')||/^(supabase\/migrations|\.github|infra|deploy)(\/|$)/i.test(path)||/\.(sql|env|pem|key|crt)$/i.test(path)||protectedFiles.has(path)))
     return {ok:false,error:'Der Vorschlag enthält einen geschützten oder nicht zulässigen Dateipfad.'};
   if(/(?:OPENAI_API_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|JWT_SECRET|BEGIN (?:RSA|OPENSSH|EC) PRIVATE KEY)/i.test(diff))
     return {ok:false,error:'Der Vorschlag enthält möglicherweise geheime Zugangsdaten.'};
+  if(/(?:child_process|\bexec\s*\(|\bspawn\s*\(|\beval\s*\(|new\s+Function|process\.env|https?:\/\/|\bfetch\s*\()/i.test(diff))
+    return {ok:false,error:'Der Vorschlag enthält nicht freigegebene Ausführungs-, Netzwerk- oder Umgebungszugriffe.'};
   const fingerprint=createHash('sha256').update(JSON.stringify({title,explanation,rationale,diff,files,baselineId,candidateId})).digest('hex');
   return {ok:true,value:{title,explanation,rationale,diff,files,tests,risks,rollback,baseline_id:baselineId,candidate_id:candidateId,fingerprint}};
 }
