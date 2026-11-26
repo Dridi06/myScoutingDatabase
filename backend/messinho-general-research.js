@@ -38,12 +38,33 @@ export function normalizeMessinhoGeneralSources(results=[]){
  }
  return rows.slice(0,8);
 }
-export function assessMessinhoGeneralEvidence(sources=[]){
+export function isMessinhoTimeSensitiveQuestion(question){
+ return /\\b(aktuell|heute|jetzt|derzeit|momentan|zurzeit|neueste[nr]?|aktuellste[nr]?|diese woche|diesen monat|gestern|morgen|live|stand heute|202[6-9])\\b/i.test(String(question||''));
+}
+export function assessMessinhoGeneralEvidence(sources=[],question='',now=new Date()){
  const domains=[...new Set(sources.map(source=>source.publisher).filter(Boolean))];
  const substantial=sources.filter(source=>source.snippet.length>=120);
- const sufficient=sources.length>=2&&domains.length>=2&&substantial.length>=2;
- return {status:sufficient?'cross_checked':sources.length?'limited':'unusable',source_count:sources.length,distinct_domains:domains.length,substantial_source_count:substantial.length,can_answer:sufficient,
-  limitations:[...(sources.length<2?['Weniger als zwei geeignete Quellen.']:[]),...(domains.length<2?['Keine unabhängigen Domains zum Gegencheck.']:[]),...(substantial.length<2?['Zu wenige ausführliche Quellenauszüge.']:[])]};
+ const fresh=sources.filter(source=>{
+  const timestamp=Date.parse(source.published_date||'');
+  if(!Number.isFinite(timestamp))return false;
+  const age=(new Date(now).getTime()-timestamp)/86400000;
+  return age>=0&&age<=90;
+ });
+ const stale=sources.filter(source=>{
+  const timestamp=Date.parse(source.published_date||'');
+  if(!Number.isFinite(timestamp))return false;
+  return (new Date(now).getTime()-timestamp)/86400000>90;
+ });
+ const freshDomains=[...new Set(fresh.map(source=>source.publisher).filter(Boolean))];
+ const freshnessRequired=isMessinhoTimeSensitiveQuestion(question);
+ const enoughFresh=!freshnessRequired||(fresh.length>=2&&freshDomains.length>=2);
+ const sufficient=sources.length>=2&&domains.length>=2&&substantial.length>=2&&enoughFresh;
+ const freshnessStatus=!freshnessRequired?'not_required':enoughFresh?'current_sources':fresh.length||stale.length?'insufficient_current_sources':'undated_sources';
+ return {status:sufficient?'cross_checked':freshnessRequired&&!enoughFresh?'stale':sources.length?'limited':'unusable',
+  source_count:sources.length,distinct_domains:domains.length,substantial_source_count:substantial.length,
+  freshness:{required:freshnessRequired,status:freshnessStatus,fresh_source_count:fresh.length,fresh_distinct_domains:freshDomains.length,stale_source_count:stale.length,undated_source_count:Math.max(0,sources.length-fresh.length-stale.length),max_age_days:90},
+  can_answer:sufficient,
+  limitations:[...(sources.length<2?['Weniger als zwei geeignete Quellen.']:[]),...(domains.length<2?['Keine unabhängigen Domains zum Gegencheck.']:[]),...(substantial.length<2?['Zu wenige ausführliche Quellenauszüge.']:[]),...(freshnessRequired&&!enoughFresh?['Für diese aktuelle Frage fehlen mindestens zwei datierte, höchstens 90 Tage alte Quellen aus unabhängigen Domains.']:[])]};
 }
 function sourceOnlyDigest(sources,assessment){
  if(!assessment.can_answer)return 'Ich habe recherchiert, aber die Quellenlage reicht für eine verlässliche Antwort noch nicht aus. '+assessment.limitations.join(' ');
@@ -56,7 +77,7 @@ export async function researchMessinhoGeneralQuestion(question,env=process.env,f
  const response=await fetchImpl('https://api.tavily.com/search',{method:'POST',signal:AbortSignal.timeout(22000),headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:env.TAVILY_API_KEY,query,search_depth:'advanced',max_results:8,include_answer:false,include_raw_content:false,topic:'general'})});
  if(!response.ok)throw new Error('Die externe Recherche ist derzeit nicht erreichbar.');
  const payload=await response.json(),sources=normalizeMessinhoGeneralSources(payload.results||[]);
- const evidence=assessMessinhoGeneralEvidence(sources);
+ const evidence=assessMessinhoGeneralEvidence(sources,query);
  if(!evidence.can_answer)return {status:sources.length?'insufficient_evidence':'no_sources',question:query,sources,evidence,answer:'Ich habe die Frage geprüft, aber noch keine ausreichende unabhängige Quellenbasis gefunden. Ich möchte dir keine ungesicherte Antwort geben.'};
  const evidenceInput=sources.map(({title,url,publisher,published_date,snippet})=>({title,url,publisher,published_date,snippet}));
  const quality=env.OPENAI_API_KEY?await runMessinhoQualityLoop({
