@@ -23,6 +23,10 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
  if(!db)return {ok:false,code:'DATABASE_UNAVAILABLE'};
  const schedule=getMessinhoEngineeringReviewSchedule(now);
  if(!schedule.due)return {ok:true,skipped:'not_due',review_date:schedule.review_date};
+ const {data:control,error:controlError}=await db.from('messinho_agent_control')
+  .select('mode,stop_requested').eq('id','global').maybeSingle();
+ if(controlError)return {ok:false,code:'CONTROL_STATE_UNAVAILABLE'};
+ if(control?.mode!=='developing'||control?.stop_requested)return {ok:true,skipped:'admin_mode_not_developing',review_date:schedule.review_date};
  const {data:claim,error:claimError}=await db.from('messinho_engineering_review_runs')
   .insert({review_date:schedule.review_date,status:'running',started_at:now.toISOString()})
   .select('id').maybeSingle();
@@ -33,7 +37,13 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
   if(error)throw new Error('review_state_persist_failed');
  };
  try{
-  const generated=await generate({goal:'Führe die tägliche technische Selbstprüfung von MESSINHO durch. Finde höchstens eine konkrete, belegbare und sichere Verbesserung. Erzeuge keinen Vorschlag, wenn der Nutzen nicht nachweisbar ist.'});
+  const generated=await generate({goal:'Führe die technische Selbstprüfung von MESSINHO durch. Finde höchstens eine konkrete, belegbare und sichere Verbesserung. Erzeuge keinen Vorschlag, wenn der Nutzen nicht nachweisbar ist.'});
+  const {data:afterGenerate,error:afterGenerateError}=await db.from('messinho_agent_control')
+    .select('mode,stop_requested').eq('id','global').maybeSingle();
+  if(afterGenerateError||afterGenerate?.mode!=='developing'||afterGenerate?.stop_requested){
+    await finish('stopped',{source_sha:generated.source_sha||null,error_code:'ADMIN_STOP_REQUESTED'});
+    return {ok:true,status:'stopped',review_date:schedule.review_date};
+  }
   if(!generated.ok){await finish('failed',{error_code:generated.code||'REVIEW_FAILED'});return {ok:false,code:generated.code||'REVIEW_FAILED'};}
   if(!generated.proposal){await finish('no_improvement',{source_sha:generated.source_sha||null});return {ok:true,status:'no_improvement',review_date:schedule.review_date};}
   const saved=await persist({db,proposal:generated.proposal});
