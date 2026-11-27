@@ -6,16 +6,16 @@
 export const MESSINHO_MODEL_RUNTIME_VERSION='1.0.0';
 
 export function resolveMessinhoModelConfig(env=process.env){
-  const baseUrl=String(env.MESSINHO_MODEL_BASE_URL||env.OPENAI_BASE_URL||'https://api.openai.com/v1').trim().replace(/\\/+$/u,'');
+  const baseUrl=String(env.MESSINHO_MODEL_BASE_URL||env.OPENAI_BASE_URL||'https://api.openai.com/v1').trim().replace(/\/+$/u,'');
   const apiKey=String(env.MESSINHO_MODEL_API_KEY||env.OPENAI_API_KEY||'').trim();
   const model=String(env.MESSINHO_MODEL_NAME||env.OPENAI_MODEL||'gpt-4.1-mini').trim();
-  return {baseUrl,apiKey,model,requiresApiKey:!/(?:localhost|127\\.0\\.0\\.1|\\[::1\\])(?::\\d+)?(?:\\/|$)/iu.test(baseUrl)};
+  return {baseUrl,apiKey,model,requiresApiKey:!/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/|$)/iu.test(baseUrl)};
 }
 
 function endpointFor(baseUrl){
-  const base=String(baseUrl||'').trim().replace(/\\/+$/u,'');
+  const base=String(baseUrl||'').trim().replace(/\/+$/u,'');
   if(!base)return null;
-  return /\\/chat\\/completions$/iu.test(base)?base:base+'/chat/completions';
+  return /\/chat\/completions$/iu.test(base)?base:base+'/chat/completions';
 }
 
 function extractProviderError(payload,status){
@@ -38,7 +38,7 @@ export async function requestMessinhoModelCompletion({
 }={}){
   const endpoint=endpointFor(baseUrl);
   if(!endpoint||typeof fetchImpl!=='function')return {status:'unavailable',content:null,error_code:'model_endpoint_unavailable'};
-  if(!apiKey&& !/(?:localhost|127\\.0\\.0\\.1|\\[::1\\])(?::\\d+)?(?:\\/|$)/iu.test(String(baseUrl||''))){
+  if(!apiKey&& !/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/|$)/iu.test(String(baseUrl||''))){
     return {status:'unavailable',content:null,error_code:'model_api_key_missing'};
   }
   const baseBody={model:String(model||'').trim(),messages,temperature};
