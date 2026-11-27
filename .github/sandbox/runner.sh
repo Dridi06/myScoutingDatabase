@@ -60,4 +60,12 @@ node --version; python3 --version; javac -version; go version; rustc --version
 gcc --version | head -n 1; clang --version | head -n 1; php --version | head -n 1
 dotnet --version; tsc --version; mvn --version | head -n 1; phpunit --version; html-validate --version; stylelint --version
 shellcheck --version | head -n 1; psql --version
+echo "=== Disposable PostgreSQL and engineering-memory contract ==="
+PG_BIN="$(dirname "$(find /usr/lib/postgresql -name initdb -type f -print -quit)")"
+mkdir -p /tmp/pgdata /tmp/pgsocket
+chmod 0700 /tmp/pgsocket
+"$PG_BIN/initdb" -D /tmp/pgdata -U messinho -A trust --no-locale >/dev/null
+"$PG_BIN/pg_ctl" -D /tmp/pgdata -o "-h '' -k /tmp/pgsocket" -w start >/dev/null
+psql -h /tmp/pgsocket -d postgres -v ON_ERROR_STOP=1 -f /src/.github/sandbox/engineering-memory-contract.sql
+"$PG_BIN/pg_ctl" -D /tmp/pgdata -m fast -w stop >/dev/null
 echo "MESSINHO_SANDBOX_OUTCOME=toolchain_smoke_passed"
