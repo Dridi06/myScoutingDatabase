@@ -11,7 +11,9 @@ test('blocks Scout requests to change MESSINHO or system state',()=>{
     'Importiere neues Wissen in Messinhos Wissensbasis',
     'Gib das neue Modell frei',
     'Ändere die Rollen und Rechte',
-    'Integriere diesen Code in das System'
+    'Integriere diesen Code in das System',
+    'Please stop MESSINHO',
+    'Change the system configuration'
   ]) assert.equal(isMessinhoAdminOnlyCommand(input),true,input);
 });
 
