@@ -6200,3 +6200,29 @@ Make the existing approved grammar, vocabulary, pragmatics and conversation know
 - MESSINHO Node tests: success; backend syntax: success; full STAGING CI: success.
 - Render STAGING deployment `dep-dc50vmc9v7es738ododg`: **live**, exact commit `659a8e16f6623a19c2433a75633da24baf794803`, completed `2026-11-27T23:19:30Z`.
 - The authenticated end-to-end chat smoke test remains outstanding; deployment success alone does not prove a full user chat exchange.
+
+
+## 25. Block 5 — Evidence-aware conversational reasoning — 2026-11-28
+
+**Implementation commit tested: `324d72cd1092e59fcf8c49f01ef8d7eaea992f44`.**
+
+### Implementation
+- Added `backend/messinho-reasoning-context.js`.
+  - Builds a bounded evidence index from the current conversation's already owner-scoped history.
+  - Attributes each statement to the user or assistant.
+  - Carries structured player/club/team references from stored research context separately from ordinary statements.
+  - Includes bounded follow-up signals, pending question, prior user goal and entity-resolution status.
+  - Explicitly labels evidence policy `attributed_not_verified`; it does not certify claims or infer new facts.
+- Updated `backend/server.js` to construct the reasoning context from the current owner-scoped history, dialogue state and grounded entity-resolution result.
+- Updated `backend/messinho-conversational-intelligence.js`.
+  - Critical integration fix: forwards approved language knowledge, conversation-local memory and reasoning context through `classifyMessinhoTurn` into the actual model request. Previously, server arguments for language/memory context were accepted by the server call but omitted from the classifier signature/forwarding path.
+  - Adds explicit reasoning discipline: distinguish user assertions, assistant suggestions, structured research evidence and hypotheses; explain conditional conclusions and assumptions; do not invent player measurements or scouting observations.
+  - Tactical examples such as pace vs. recovery runs are framed as hypotheses dependent on role, positioning, anticipation and team structure.
+- Added `tests/messinho-reasoning-context.test.js` and an integration test verifying that all three context types reach the same model request.
+
+### Verification
+- First regression run exposed a text-normalization regex defect in the new evidence index (it altered names). Fixed before release; the corrected implementation passed Node tests, backend syntax and full STAGING CI.
+- Verified test workflows on commit `324d72cd1092e59fcf8c49f01ef8d7eaea992f44`: Node tests success; full STAGING branch CI success.
+- Render STAGING deployment `dep-dc511pec6qcc73fal28g` was triggered against the exact tested commit; build succeeded. Deployment rollout was still progressing at checkpoint.
+- Authenticated end-to-end chat smoke test remains outstanding. Do not equate unit/CI success with proof of live natural dialogue quality.
+- No production branch/service changes, no database migration, no automatic model training or weight modification. PR #58 remains Draft/Open/unmerged.
