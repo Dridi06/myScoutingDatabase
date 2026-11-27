@@ -18,9 +18,9 @@ export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
 
 const WORDS = {
  de: new Set('der die das ein eine und oder aber nicht bitte danke hallo guten gutenmorgen gutenabend ich du er sie wir ihr ist sind war haben sein kann möchte warum wie was wer wo wann eigentlich vielleicht noch schon heute spieler team erkläre erklären erklär mir den im progressiven pass scouting fußball begriff begriffe dieser dieses diese einen einem einer für mit aus auf zu von dass weil wenn sehr gut stark schwach leistung analyse bewertung spielerprofil'.split(' ')),
- en: new Set('the a an and or but not please thanks hello hi good morning good evening i you he she we they is are was have be can would why how what who where when actually maybe still already today player team explain explains explained english morphology word formation verb inflection football scouting tactics analysis assessment performance this that these those for with of to in from because if then very strong weak good'.split(' ')),
+ en: new Set('the a an and or but not please thanks hello hi good morning good evening i you he she we they is are was have be can would why how what who where when actually maybe still already today player team explain explains explained english morphology word formation verb inflection football scouting tactics analysis assessment performance this that these those for with of to in from because if then very strong weak good needs more time'.split(' ')),
  fr: new Set('le la les un une et ou mais pas ne merci bonjour salut bonsoir bonjournee je tu il elle nous vous est sont était avoir être peut pourquoi comment quoi qui où quand peut-être déjà aujourd hui joueur équipe comment allez vous ca va explique expliquer français francaise française conjugaison accords accord pronoms phrase dans avec pour des très tres fort faible performance analyse évaluation joueurs football tactique'.split(' ')),
- ar: new Set('الذي التي هذا هذه من في على إلى عن هو هي نحن انت أنا و أو لكن ليس لا نعم كيف ماذا لماذا متى أين كان يكون السلام عليكم مرحبا أهلا شكرا صباح مساء أريد أحتاج ممكن جيد جيد جدا اليوم لاعب فريق كيف حالك اللغة العربية الفصحى اشرح الجذور الأوزان تصريف الأفعال فعل اسم صفة لاعبين مدرب مدافع مهاجم وسط جناح تمرير ضغط تكتيك أداء تحليل تقييم مركز الفريق'.split(' ')),
+ ar: new Set('الذي التي هذا هذه من في على إلى عن هو هي نحن انت أنا و أو لكن ليس لا نعم كيف ماذا لماذا متى أين كان يكون السلام عليكم مرحبا أهلا شكرا صباح مساء أريد أحتاج ممكن جيد جيد جدا اليوم لاعب فريق كيف حالك اللغة العربية الفصحى اشرح الجذور الأوزان تصريف الأفعال فعل اسم صفة لاعبين مدرب مدافع مهاجم وسط جناح تمرير ضغط تكتيك أداء تحليل تقييم مركز الفريق اللاعب قوي'.split(' ')),
  'ar-tn': new Set('chnowa chnowa kifech kifesh aleh علاش برشا barcha yesser mrigel behi labes aslema عسلامة لاباس شنوة شنوا وين قداش توة توا فما ma fama win wa9tech taw 3lech 5ater 7atta fassar fassarli nefhem nheb n7eb nal3ab nal3abch ma3neha ma3naha el hedha hedhi hedhouma tounsi derja tunisien joueur équipe equipe match coach fel fi mta3 mte3'.split(' ')),
  es: new Set('el la los las un una y o pero no por favor gracias yo tú él ella nosotros es son era tener ser puede por qué cómo qué quién dónde cuándo todavía ya hola buenos días buenas tardes buenas noches quiero este jugador entender sus puntos fuertes equipo hoy explica explicar español conjugación conjugacion verbal concordancia gramatical frase pronombres fútbol futbol jugadores entrenador rendimiento análisis analisis evaluación evaluacion táctica tactica fuerte débil debil con para en de por'.split(' '))
 };
@@ -96,11 +96,67 @@ export function normalizeMessinhoArabizi(input) {
   });
 }
 
-function splitLanguageSegments(text) {
-  return clean(text).split(/(?<=[.!?؟۔؛;])\s+/u).filter(Boolean).slice(0,12).map((value,index)=>({
-    index, text:value.slice(0,500), scripts:scriptOf(value)
-  }));
+function tokenLanguageHint(token) {
+  const ranked=Object.keys(WORDS).map(id=>({id,score:scoreProfile(id,[token],token)}))
+    .sort((a,b)=>b.score-a.score);
+  const best=ranked[0], second=ranked[1];
+  if(!best||best.score<=1||best.score-(second?.score||0)<0.5)return null;
+  return best.id;
 }
+
+function splitSentenceByLanguage(sentence) {
+  const matches=[...sentence.matchAll(/[\p{L}\p{N}]+/gu)];
+  if(matches.length<4)return [{text:sentence,language_hint:null}];
+  const rawLabels=matches.map(match=>tokenLanguageHint(match[0]));
+  const counts=new Map();
+  for(const label of rawLabels)if(label)counts.set(label,(counts.get(label)||0)+1);
+  const activeLanguages=[...counts].filter(([,count])=>count>=2).map(([language])=>language);
+  if(activeLanguages.length<2)return [{text:sentence,language_hint:null}];
+  const active=new Set(activeLanguages);
+  const labels=rawLabels.map(label=>label&&active.has(label)?label:null);
+  for(let i=0;i<labels.length;i++){
+    if(labels[i])continue;
+    let left=-1,right=-1;
+    for(let j=i-1;j>=0;j--)if(labels[j]){left=j;break;}
+    for(let j=i+1;j<labels.length;j++)if(labels[j]){right=j;break;}
+    if(left<0&&right<0)continue;
+    if(left<0)labels[i]=labels[right];
+    else if(right<0)labels[i]=labels[left];
+    else if(labels[left]===labels[right])labels[i]=labels[left];
+    else labels[i]=(i-left<=right-i)?labels[left]:labels[right];
+  }
+  const segments=[];
+  let runStart=0,runLanguage=labels[0];
+  for(let i=1;i<matches.length;i++){
+    if(labels[i]===runLanguage)continue;
+    const boundary=matches[i].index;
+    const value=sentence.slice(runStart,boundary).trim();
+    if(value)segments.push({text:value,language_hint:runLanguage});
+    runStart=boundary;
+    runLanguage=labels[i];
+  }
+  const tail=sentence.slice(runStart).trim();
+  if(tail)segments.push({text:tail,language_hint:runLanguage});
+  return segments.length>1?segments:[{text:sentence,language_hint:null}];
+}
+
+function splitLanguageSegments(text) {
+  const sentences=clean(text).split(/(?<=[.!?؟۔؛;])\s+/u).filter(Boolean);
+  const output=[];
+  for(const sentence of sentences){
+    for(const segment of splitSentenceByLanguage(sentence)){
+      output.push({
+        index:output.length,
+        text:segment.text.slice(0,500),
+        scripts:scriptOf(segment.text),
+        language_hint:segment.language_hint||null
+      });
+      if(output.length>=12)return output;
+    }
+  }
+  return output;
+}
+
 const ACTION_PATTERNS = {
   translate: /(?<![\p{L}\p{N}])(?:übersetz(?:e|en)?|translate|tradu(?:is|ire|ce|zca)|ترجم|tarjem|tarjemli)(?![\p{L}\p{N}])/u,
   correct: /(?<![\p{L}\p{N}])(?:korrigier(?:e|en)?|verbesser(?:e|n)?|correct|corrig(?:e|ez)|corrige|صحح|salla7|sa77a7)(?![\p{L}\p{N}])/u,
@@ -201,10 +257,16 @@ export function buildMessinhoLinguisticContext(message, history = []) {
     conversation_language_hint:current.primary_language||continuityLanguage||null,
     // Detect language independently for each segment. Mixed messages are not
     // flattened to one language merely because one profile wins the global score.
-    segments:splitLanguageSegments(clean(message)).map(segment=>({
-      ...segment,
-      language_analysis:analyzeMessinhoLanguage(segment.text)
-    })),
+    segments:splitLanguageSegments(clean(message)).map(segment=>{
+      const analysis=analyzeMessinhoLanguage(segment.text);
+      return {
+        ...segment,
+        language_analysis:{
+          ...analysis,
+          primary_language:analysis.primary_language||segment.language_hint
+        }
+      };
+    }),
     action:detectLanguageAction(message,current.primary_language||continuityLanguage||null),
     conversation_policy:[
       'Reply in the language of the latest user message unless the user requests another language.',
