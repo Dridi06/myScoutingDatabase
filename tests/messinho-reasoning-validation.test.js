@@ -54,3 +54,17 @@ test('a structured metric for another unit cannot validate a speed claim',()=>{
  const result=validateMessinhoReasoning({intent:'conversation',reply:'Seine Geschwindigkeit liegt bei 32,4 km/h.',reasoningContext});
  assert.equal(result.ok,false);
 });
+
+test('cognitive model reply is guarded before it leaves the conversational classifier',async()=>{
+ const { classifyMessinhoTurn }=await import('../backend/messinho-conversational-intelligence.js');
+ const modelDecision={intent:'conversation',confidence:0.95,reply:'Seine Sprintgeschwindigkeit beträgt 32,4 km/h.',clarification_question:'',memory_items:[]};
+ const result=await classifyMessinhoTurn({
+  message:'Der Spieler ist langsam.',apiKey:'test-key',baseUrl:'https://model.example/v1',model:'test-model',
+  fetchImpl:async()=>({ok:true,status:200,json:async()=>({choices:[{message:{content:JSON.stringify(modelDecision)}}]})})
+ });
+ assert.equal(result.status,'completed');
+ assert.equal(result.reasoning_validation.status,'guarded');
+ assert.equal(result.reasoning_validation.code,'unsupported_player_metric');
+ assert.match(result.decision.reply,/keine verifizierten Messdaten/);
+ assert.deepEqual(result.decision.memory_items,[]);
+});
