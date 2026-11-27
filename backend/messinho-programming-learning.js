@@ -47,7 +47,8 @@ export const MESSINHO_PROGRAMMING_CURRICULUM=Object.freeze([
   'Betrieb: strukturierte Logs, Metriken, Traces, Alarmierung, Fehlerbudgets und Incident-Postmortems',
   'Technische Entscheidungen: Alternativen, Kosten, Risiken, Annahmen und nachvollziehbare Architekturentscheidungen'
  ],mastery:'Kann eine technische Änderung mit nachvollziehbaren Belegen, Risikoanalyse, Alternativen, Testmatrix und Rollback-Plan professionell begründen.'}
-]);\nexport function buildMessinhoProgrammingLearningContext({maxTopics=24,includeExamples=true}={}) {
+]);
+export function buildMessinhoProgrammingLearningContext({maxTopics=24,includeExamples=true}={}) {
  const lessons=MESSINHO_PROGRAMMING_CURRICULUM.map(level=>({
   level:level.level,title:level.title,topics:level.topics.slice(0,Math.max(1,Math.min(12,maxTopics))),
   mastery:level.mastery
