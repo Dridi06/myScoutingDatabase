@@ -1,4 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import { createMyKiTicketRecord } from './messinho-myki-tickets.js';
+import { dispatchMessinhoSandboxJob, isMessinhoSandboxStagingAllowed, MESSINHO_SANDBOX_BRANCH } from './messinho-sandbox-dispatch.js';
+import { hashMessinhoEngineeringPatch } from './messinho-engineering-memory.js';
 import { normalizeMessinhoEngineeringProposal } from './messinho-engineering-proposals.js';
 
 /**
@@ -49,4 +52,37 @@ export async function dispatchMessinhoMyKiProposals({role='scout',run,onProposal
   }
   return {eligible:candidates.length,submitted:outcomes.filter(x=>x.ok&&!x.duplicate).length,
     duplicates:outcomes.filter(x=>x.ok&&x.duplicate).length,rejected:outcomes.filter(x=>!x.ok).length,outcomes};
+}
+
+
+/**
+ * Persists an Admin-approved proposal and optionally queues an isolated test run.
+ * Auto-dispatch requires two explicit staging-only environment gates; it never
+ * applies the patch or authorizes integration/deployment.
+ */
+export async function persistAndDispatchMessinhoMyKiProposal({
+  db,proposal,role='scout',env=process.env,fetchImpl=fetch
+}={}) {
+  if(role!=='admin')return {ok:false,code:'MYKI_ADMIN_REQUIRED'};
+  const saved=await persistMessinhoMyKiProposal({db,proposal});
+  if(!saved.ok||saved.duplicate)return saved;
+  if(env.MESSINHO_AUTO_SANDBOX_REVIEW_ENABLED!=='true')
+    return {...saved,sandbox:{status:'not_dispatched',reason:'explicit_auto_review_opt_in_required'}};
+  if(!isMessinhoSandboxStagingAllowed(env))
+    return {...saved,sandbox:{status:'not_dispatched',reason:'staging_gate_closed'}};
+  const match=String(proposal?.benchmark_id||'').match(new RegExp('^'+MESSINHO_SANDBOX_BRANCH.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'@([a-f0-9]{40})$','i'));
+  if(!match||typeof proposal?.patch!=='string')
+    return {...saved,sandbox:{status:'not_dispatched',reason:'proposal_revision_not_pinned_to_sandbox_branch'}};
+  const jobId=randomUUID(),patchSha=hashMessinhoEngineeringPatch(proposal.patch);
+  const job={job_id:jobId,ticket_id:saved.ticket_id,source_sha:match[1],patch_sha256:patchSha,patch:proposal.patch};
+  const {error:insertError}=await db.from('messinho_engineering_jobs').insert({
+    id:jobId,ticket_id:saved.ticket_id,requested_by:null,source_sha:match[1],patch_sha256:patchSha,status:'queued'
+  });
+  if(insertError)return {...saved,sandbox:{status:'failed',reason:'job_persistence_failed',error_code:insertError.code||'unknown'}};
+  const dispatched=await dispatchMessinhoSandboxJob({job,env,fetchImpl});
+  if(!dispatched.ok){
+    await db.from('messinho_engineering_jobs').update({status:'failed',error_code:dispatched.code,finished_at:new Date().toISOString()}).eq('id',jobId);
+    return {...saved,sandbox:{status:'failed',reason:dispatched.code,job_id:jobId}};
+  }
+  return {...saved,sandbox:{status:'queued',job_id:jobId,source_sha:match[1],branch:MESSINHO_SANDBOX_BRANCH}};
 }

@@ -5768,3 +5768,14 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Added deterministic tests for specialist-vs-fallback classification, role restrictions, missing inputs, and unknown input contracts.
 - No new external tool provider or API key is required. Existing semantic planning remains optional; deterministic fallback continues to work.
 - Validation status: pending CI for this commit. No deployment or production change.
+
+
+### 45. Engineering Intelligence — isolated test automation — 2026-11-27
+
+- Repointed engineering source pinning, sandbox dispatch, ticket baseline validation, and the isolated workflow to the active feature branch `feature/messinho-autonomous-agent-semantic-planner`. The former configuration pointed at the PR's staging-integration base branch, which could test the wrong source revision.
+- The isolated workflow now accepts only the active feature branch for dispatch and validates that the source SHA equals the exact workflow checkout SHA.
+- Added an Admin-only bridge that persists the validated proposal as a myKI ticket and can automatically queue a sandbox run only when both explicit environment gates are enabled: MESSINHO_AUTO_SANDBOX_REVIEW_ENABLED=true and the existing Render staging service identity gate.
+- The sandbox runs baseline and candidate builds/tests inside the disposable network-disabled container; evidence is accepted only through the existing GitHub Actions OIDC verification callback.
+- No patch is automatically applied to the repository. No integration or deployment is authorized; the Admin ticket remains the review and approval point.
+- The automatic sandbox gate is opt-in and remains inactive unless the staging environment variables and GitHub credential are configured. The branch change is code-only; no Render deployment or production action occurred.
+- Validation status: pending CI. A real staging sandbox dispatch and OIDC callback still require the staging environment's configured credentials and explicit Admin-side verification.

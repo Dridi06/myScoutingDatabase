@@ -33,7 +33,7 @@ test('generates a validated proposal from pinned source revision without applyin
  };
  const r=await generateMessinhoEngineeringProposal({goal:'Prüfe MESSINHO auf konkrete sichere Verbesserungen',env:{OPENAI_API_KEY:'test-key'},fetchImpl});
  assert.equal(r.ok,true);
- assert.equal(r.proposal.benchmark_id,'feature/messinho-unified-ai-integration@'+sha);
+ assert.equal(r.proposal.benchmark_id,'feature/messinho-autonomous-agent-semantic-planner@'+sha);
  assert.equal(r.tests_executed,false);
  assert.equal(r.execution_mode,'proposal_only');
  assert.equal(calls.length,19,'the expanded safe source allowlist is fetched at the pinned revision');

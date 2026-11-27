@@ -14,7 +14,7 @@ import { normalizeMessinhoFeedback, normalizeMessinhoFeedbackReview } from './me
 import { buildMessinhoQualityIntelligence } from './messinho-quality-intelligence.js';
 import { normalizeMessinhoHypothesisCreate, normalizeMessinhoHypothesisTransition } from './messinho-improvement-governance.js';
 import { normalizeMyKiTicketProposal, createMyKiTicketRecord, buildMyKiCopyPacket } from './messinho-myki-tickets.js';
-import { persistMessinhoMyKiProposal } from './messinho-myki-bridge.js';
+import { persistMessinhoMyKiProposal, persistAndDispatchMessinhoMyKiProposal } from './messinho-myki-bridge.js';
 import { generateMessinhoEngineeringProposal, isMessinhoEngineeringRequest } from './messinho-myki-engineer.js';
 import { startMessinhoEngineeringReviewScheduler, runMessinhoScheduledEngineeringReview, getMessinhoEngineeringReviewSchedule, isMessinhoEngineeringAutoReviewEnabled, isMessinhoEngineeringStagingService, buildMessinhoSelfRepairGoal } from './messinho-engineering-scheduler.js';
 import { runMessinhoProjectAudit } from './messinho-project-audit.js';
@@ -1665,7 +1665,7 @@ app.post('/api/admin/myki/tickets/:ticketId/sandbox',myKiTicketLimiter,async(req
     const {data:ticket,error}=await db.from('messinho_myki_tickets').select('*').eq('id',req.params.ticketId).maybeSingle();
     if(error||!ticket||ticket.status==='deleted')return res.status(404).json({error:'myKI-Ticket wurde nicht gefunden.'});
     if(['integrating','integrated'].includes(ticket.status))return res.status(409).json({error:'Dieses Ticket kann in seinem aktuellen Status nicht erneut getestet werden.'});
-    const match=String(ticket.baseline_id||'').match(/^feature\/messinho-unified-ai-integration@([a-f0-9]{40})$/i);
+    const match=String(ticket.baseline_id||'').match(/^feature\\/messinho-autonomous-agent-semantic-planner@([a-f0-9]{40})$/i);
     if(!match)return res.status(409).json({error:'Der Vorschlag ist nicht an einen zulässigen Feature-Branch-Commit gebunden.'});
     const proposal=normalizeMessinhoEngineeringProposal({
       id:ticket.candidate_id,title:ticket.title,rationale:ticket.rationale,patch:ticket.diff,
@@ -2168,7 +2168,7 @@ app.post('/api/agent/tasks/:taskId/resume',async(req,res)=>{
     const oldResults=Array.isArray(task.completed_results)?task.completed_results.map(compactMessinhoTaskResult):[];
     const cycle=await executeMessinhoAgentPlan({plan:resumePlan,input:task.context||{},role:actor.profile.role,
       onStep:checkpoint=>checkpointMessinhoAgentTask(task.id,actor.user.id,checkpoint.completed_results,checkpoint.pending_capabilities,oldResults),
-      onEngineeringProposal:proposal=>persistMessinhoMyKiProposal({db,proposal})});
+      onEngineeringProposal:proposal=>persistAndDispatchMessinhoMyKiProposal({db,proposal,role:actor.profile.role})});
     const newRun=cycle.run;
     const byId=new Map([...oldResults,...(newRun.results||[]).map(compactMessinhoTaskResult)].map(item=>[item.capability_id,item]));
     const mergedResults=[...byId.values()];
@@ -2607,7 +2607,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
           const {data:control,error}=await db.from('messinho_agent_control').select('mode,stop_requested').eq('id','global').maybeSingle();
           return Boolean(error||control?.stop_requested);
         },
-        onEngineeringProposal:proposal=>persistMessinhoMyKiProposal({db,proposal})});
+        onEngineeringProposal:proposal=>persistAndDispatchMessinhoMyKiProposal({db,proposal,role:actor.profile.role})});
       const run=agentCycle.run;
       const predictionPersistence=forecastRelevant?await persistMessinhoForecastPredictions({player,actorId:ownerId,run,forecastContext}):{stored:0,skipped:'not_forecast_request'};
       const finalizedTask=taskRecord?await finalizeMessinhoAgentTask(taskRecord.id,ownerId,run):null;
