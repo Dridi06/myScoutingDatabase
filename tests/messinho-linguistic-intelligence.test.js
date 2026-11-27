@@ -5,11 +5,12 @@ import {
   MESSINHO_LANGUAGE_PROFILES,
   analyzeMessinhoLanguage,
   buildMessinhoLinguisticContext,
-  getMessinhoLanguageProfile
+  getMessinhoLanguageProfile,
+  normalizeMessinhoArabizi
 } from '../backend/messinho-linguistic-intelligence.js';
 
 test('registers six separate language profiles including Tunisian Derja',()=>{
-  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.0.0');
+  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.1.0');
   assert.deepEqual(MESSINHO_LANGUAGE_PROFILES.map(item=>item.id),['de','en','fr','ar','ar-tn','es']);
   assert.equal(getMessinhoLanguageProfile('ar-tn').name,'تونسي / Derja');
   assert.equal(getMessinhoLanguageProfile('ar').name,'العربية الفصحى');
@@ -87,4 +88,36 @@ test('does not claim translation or dictionary coverage',()=>{
   assert.equal(result.policy.translated,false);
   assert.equal(result.policy.dictionary_corpus_included,false);
   assert.equal(result.policy.claims_fluency,false);
+});
+
+
+test('segments multilingual messages and preserves each original segment',()=>{
+  const result=buildMessinhoLinguisticContext('Hello! Bonjour. السلام عليكم؟',[]);
+  assert.equal(result.segments.length,3);
+  assert.equal(result.segments[0].text,'Hello!');
+  assert.ok(result.segments.some(segment=>segment.scripts.includes('Arabic')));
+});
+test('detects translation and explicit target languages',()=>{
+  const german=buildMessinhoLinguisticContext('Bitte übersetze das auf Englisch.',[]);
+  const french=buildMessinhoLinguisticContext('Translate this into French.',[]);
+  assert.equal(german.action.mode,'translate');
+  assert.equal(german.action.target_language,'en');
+  assert.equal(french.action.target_language,'fr');
+});
+test('detects correction, explanation and rephrasing actions',()=>{
+  assert.equal(buildMessinhoLinguisticContext('Please correct this sentence.',[]).action.mode,'correct');
+  assert.equal(buildMessinhoLinguisticContext('Explique cette expression.',[]).action.mode,'explain');
+  assert.equal(buildMessinhoLinguisticContext('Rephrase this for me.',[]).action.mode,'rephrase');
+});
+test('recognizes Tunisian Arabizi and normalizes common digit letters separately',()=>{
+  const result=buildMessinhoLinguisticContext('Tarjemli hedha bil anglais, 3lech?',[]);
+  assert.equal(result.action.mode,'translate');
+  assert.equal(result.action.target_language,null);
+  assert.equal(normalizeMessinhoArabizi('3lech 5ater 7atta 9addech'),'عlech خater حatta قaddech');
+});
+test('normal conversation defaults to answer mode',()=>{
+  const result=buildMessinhoLinguisticContext('Hola, quiero analizar este jugador.',[]);
+  assert.equal(result.action.mode,'answer');
+  assert.equal(result.action.explicit,false);
+  assert.equal(result.action.preserve_original,true);
 });
