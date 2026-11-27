@@ -27,7 +27,7 @@ export function buildMessinhoMaturityReport() {
     scale:LEVELS.map(({min,max,label})=>({min,max,label})),
     pillars:PILLARS.map(item=>({...item})),
     verified_snapshot:'2026-11-27',
-    basis_commit:'95a571cb3a501daf11dcbdad9e76df7082d76c1a',
+    basis_commit:'0559ad94ad97f8524f7bdc30e9e00f0cda63ec13',
     score_policy:'Punkte werden nur nach überprüfbarer Implementierung, bestandenen Tests und – wo erforderlich – erfolgreicher Staging-Verifikation erhöht. Vorhandene Funktionsnamen oder Katalogeinträge allein reichen nicht.',
     release_gate:'100 Punkte und LIVE-Freigabe erst nach bestandenen Prognose-, Autonomie-, Sicherheits-, Sandbox-, Rollen- und Betriebsprüfungen.',
     next_milestones:[

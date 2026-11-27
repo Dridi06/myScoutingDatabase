@@ -4175,3 +4175,13 @@ Dieser Abschnitt ersetzt für die autonome Engineering-Planung die ältere Angab
 **Status:** Zentrale Befehlsprüfung im Feature-Branch implementiert; Tests hinzugefügt. Vollständiger End-to-End-Audit aller schreibenden API-Endpunkte/RPCs, CI-Ausführung und STAGING-Browserprüfung sind noch offen. Keine Production-Änderung.
 
 | 2026-11-27 | Scouts dürfen keine wichtigen Befehle geben, die MESSINHO oder das System verändern. | Accepted; server-side guard implemented in feature branch; verification pending | Scout-Chat bleibt für normale Scouting-Aufgaben offen. Systemsteuerung, Kernwissen, Lern-/Modelländerungen, Sandbox und administrative Befehle sind Admin-only. Vollständigen Schreib-Endpunkt-Audit vor STAGING-Freigabe durchführen. |
+
+
+### 15.1 Prüfstand nach Commit 0559ad94
+
+- 409/409 automatisierte Node-Tests bestanden.
+- Backend-JavaScript-Syntaxprüfung bestanden.
+- Staging-Branch-CI bestanden.
+- Staging-Health-Smoke-Test bestanden.
+- Isolierter Engineering-Sandbox-Workflow läuft als Push-Baseline. Da kein validierter Job-Payload über workflow_dispatch übergeben wurde, ist damit noch kein echter Kandidaten-Patch geprüft und kein STAGING-Ergebnis-Callback belegt.
+- Render-STAGING ist separat manuell zu deployen; Auto-Deploy ist deaktiviert. Production wurde nicht verändert.
