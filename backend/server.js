@@ -472,33 +472,67 @@ app.get('/api/admin/messinho-diagnostics',requireSupabaseAdmin,async(req,res)=>{
   if(error)return res.status(500).json({error:'MESSINHO-Diagnosehistorie konnte nicht geladen werden.',detail:error.message});
   return res.json(data||[]);
 });
-app.get('/api/admin/myki/status',requireSupabaseAdmin,async(req,res)=>{
+app.get('/api/admin/myki/status',requireApprovedMessinhoAdmin,async(req,res)=>{
   if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
   try{
-    const {data,error}=await db.from('messinho_engineering_review_runs')
-      .select('review_date,status,started_at,finished_at,ticket_id,error_code')
-      .order('review_date',{ascending:false}).limit(1).maybeSingle();
-    if(error)return res.status(500).json({error:'Der MESSINHO-Aktivitätsstatus konnte nicht geladen werden.'});
+    const [{data:review,error:reviewError},{data:control,error:controlError},{data:activeTasks,error:taskError}]=await Promise.all([
+      db.from('messinho_engineering_review_runs').select('review_date,status,started_at,finished_at,ticket_id,error_code')
+        .order('review_date',{ascending:false}).limit(1).maybeSingle(),
+      db.from('messinho_agent_control').select('mode,stop_requested,current_task,status_message,updated_at,stopped_at').eq('id','global').maybeSingle(),
+      db.from('messinho_agent_tasks').select('id,goal,status,updated_at,pending_capabilities').eq('owner_id',req.user.id).eq('status','running').order('updated_at',{ascending:false}).limit(1)
+    ]);
+    if(reviewError||controlError||taskError)return res.status(500).json({error:'Der MESSINHO-Aktivitätsstatus konnte nicht vollständig geladen werden. Bitte Staging-Migration prüfen.'});
     const schedule=getMessinhoEngineeringReviewSchedule();
+    const mode=control?.mode||'paused';
+    const activeTask=activeTasks?.[0]||null;
     return res.json({
-      scheduler_enabled:isMessinhoEngineeringAutoReviewEnabled(process.env),
+      scheduler_enabled:isMessinhoEngineeringAutoReviewEnabled(process.env)&&mode==='developing'&&!control?.stop_requested,
       maturity:buildMessinhoMaturityReport(),
-      autonomy_mode:isMessinhoEngineeringAutoReviewEnabled(process.env)?'bounded_admin_review':'interactive_only',
+      autonomy_mode:mode,
+      control:{mode,stop_requested:!!control?.stop_requested,current_task:control?.current_task||activeTask?.goal||null,
+        status_message:control?.status_message||null,updated_at:control?.updated_at||null},
+      current_work:activeTask?{task_id:activeTask.id,goal:activeTask.goal,status:activeTask.status,
+        pending_steps:Array.isArray(activeTask.pending_capabilities)?activeTask.pending_capabilities.length:0,updated_at:activeTask.updated_at}:null,
       sandbox:{
         enabled:isMessinhoSandboxStagingAllowed(process.env),
         github_credential_configured:Boolean(process.env.MESSINHO_SANDBOX_GITHUB_TOKEN),
         state:!isMessinhoSandboxStagingAllowed(process.env)?'disabled':
           !process.env.MESSINHO_SANDBOX_GITHUB_TOKEN?'credential_missing':'configured_not_yet_end_to_end_verified'
       },
-      run_state:data?.status==='running'?'running':'paused',
+      run_state:activeTask?'running':review?.status==='running'?'running':mode,
       schedule:{time_zone:'Europe/Berlin',daily_at:'20:00',review_date:schedule.review_date,due:schedule.due},
-      last_run:data||null,
-      status_unavailable:false
+      last_run:review||null,status_unavailable:false
     });
   }catch(error){
     console.error('myKI status failed:',error.message);
     return res.status(500).json({error:'Der MESSINHO-Aktivitätsstatus ist vorübergehend nicht verfügbar.'});
   }
+});
+app.post('/api/admin/myki/control',myKiTicketLimiter,async(req,res)=>{
+  try{
+    const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const action=String(req.body?.action||'');
+    const mode=String(req.body?.mode||'');
+    if(action==='stop'){
+      const {data,error}=await db.from('messinho_agent_control').update({
+        mode:'paused',stop_requested:true,status_message:'Stopp angefordert. MESSINHO beendet den aktuellen Arbeitsschritt kontrolliert.',
+        updated_by:actor.user.id,updated_at:new Date().toISOString()
+      }).eq('id','global').select('mode,stop_requested,status_message,updated_at').single();
+      if(error||!data)return res.status(503).json({error:'Der Stopp konnte nicht dauerhaft gespeichert werden.'});
+      return res.json({ok:true,control:data,message:'Stopp angefordert. Laufende Arbeit wird am nächsten sicheren Haltepunkt beendet.'});
+    }
+    if(action!=='set_mode'||!['paused','working','developing'].includes(mode))
+      return res.status(400).json({error:'Ungültiger Betriebsmodus.'});
+    const {data,error}=await db.from('messinho_agent_control').update({
+      mode,stop_requested:false,status_message:mode==='paused'?'MESSINHO ist pausiert.':
+        mode==='working'?'MESSINHO wartet auf konkrete Admin-Aufträge.':
+        'MESSINHO darf freigegebene Entwicklungsprüfungen selbstständig ausführen.',
+      updated_by:actor.user.id,updated_at:new Date().toISOString(),stopped_at:null
+    }).eq('id','global').select('mode,stop_requested,status_message,updated_at').single();
+    if(error||!data)return res.status(503).json({error:'Der Betriebsmodus konnte nicht dauerhaft gespeichert werden.'});
+    return res.json({ok:true,control:data,message:'Der MESSINHO-Betriebsmodus wurde gespeichert.'});
+  }catch(error){console.error('myKI control update failed:',error.message);return res.status(500).json({error:'Die MESSINHO-Steuerung ist vorübergehend nicht verfügbar.'});}
 });
 
 app.post('/api/admin/messinho-diagnostics/run',requireSupabaseAdmin,async(req,res)=>{
