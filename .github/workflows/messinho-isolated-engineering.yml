@@ -1,0 +1,133 @@
+name: MESSINHO isolated engineering sandbox
+
+on:
+  push:
+    branches:
+      - feature/messinho-unified-ai-integration
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: messinho-sandbox-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-engineering:
+    name: Isolated toolchain and project validation
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'feature/messinho-unified-ai-integration'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      MESSINHO_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact candidate revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Set up host Node for dependency download only
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # Lifecycle scripts are deliberately disabled on the host. Dependencies
+      # are mounted read-only into the isolated runtime container below.
+      - name: Install dependencies without lifecycle scripts
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Build dedicated compiler image
+        run: docker build --pull -f .github/sandbox/Dockerfile -t messinho-engineering-sandbox:local .
+
+      - name: Run candidate inside network-disabled, resource-limited container
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Candidate revision: ${MESSINHO_SOURCE_SHA}"
+          timeout 12m docker run --rm \
+            --network none \
+            --read-only \
+            --memory 3g --memory-swap 3g --cpus 2 --pids-limit 128 \
+            --cap-drop ALL --security-opt no-new-privileges:true \
+            --user 10001:10001 \
+            --tmpfs /work:rw,nosuid,nodev,size=1536m,mode=1777 \
+            --tmpfs /tmp:rw,nosuid,nodev,size=512m,mode=1777 \
+            --mount "type=bind,src=${GITHUB_WORKSPACE},dst=/src,readonly" \
+            --mount "type=bind,src=${GITHUB_WORKSPACE}/node_modules,dst=/deps,readonly" \
+            --env CI=true \
+            --env MESSINHO_SOURCE_SHA="${MESSINHO_SOURCE_SHA}" \
+            messinho-engineering-sandbox:local \
+            bash -lc '
+              set -euo pipefail
+              mkdir -p /work /tmp/messinho-home
+              tar --exclude=.git --exclude=node_modules -C /src -cf - . | tar -C /work -xf -
+              ln -s /deps /work/node_modules
+              cd /work
+
+              echo "=== Exact candidate ==="
+              echo "$MESSINHO_SOURCE_SHA"
+
+              echo "=== Installed toolchain versions ==="
+              node --version
+              npm --version
+              python3 --version
+              javac -version
+              go version
+              rustc --version
+              gcc --version | head -n 1
+              clang --version | head -n 1
+              php --version | head -n 1
+              tsc --version
+              html-validate --version
+              stylelint --version
+              shellcheck --version | head -n 1
+              psql --version
+
+              echo "=== Project tests, backend syntax and frontend build ==="
+              npm run build
+
+              echo "=== Python compiler smoke test ==="
+              printf "print(6 * 7)\\n" > /tmp/messinho-smoke.py
+              python3 -m py_compile /tmp/messinho-smoke.py
+
+              echo "=== Java compiler smoke test ==="
+              printf "class Smoke { public static void main(String[] a) {} }\\n" > /tmp/Smoke.java
+              javac /tmp/Smoke.java
+
+              echo "=== C compiler smoke test ==="
+              printf "int main(void) { return 0; }\\n" > /tmp/smoke.c
+              gcc /tmp/smoke.c -o /tmp/smoke-c
+
+              echo "=== C++ compiler smoke test ==="
+              printf "int main() { return 0; }\\n" > /tmp/smoke.cpp
+              g++ /tmp/smoke.cpp -o /tmp/smoke-cpp
+
+              echo "=== Go compiler smoke test ==="
+              mkdir -p /tmp/go-smoke
+              cd /tmp/go-smoke
+              go mod init messinho-smoke
+              printf "package main\\nfunc main() {}\\n" > main.go
+              GOPROXY=off GOSUMDB=off go build -o /tmp/smoke-go .
+
+              echo "=== Rust compiler smoke test ==="
+              printf "fn main() {}\\n" > /tmp/smoke.rs
+              rustc /tmp/smoke.rs -o /tmp/smoke-rust
+
+              echo "=== PHP syntax smoke test ==="
+              printf "<?php echo 42;\\n" > /tmp/smoke.php
+              php -l /tmp/smoke.php
+
+              echo "=== Bash syntax smoke test ==="
+              printf "set -euo pipefail\\necho smoke\\n" > /tmp/smoke.sh
+              bash -n /tmp/smoke.sh
+              shellcheck /tmp/smoke.sh
+
+              echo "=== SQL client availability ==="
+              psql --version
+              echo "Sandbox validation completed for $MESSINHO_SOURCE_SHA"
+            '
