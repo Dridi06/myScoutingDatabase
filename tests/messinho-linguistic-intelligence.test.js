@@ -165,3 +165,20 @@ test('recognizes Arabic and Derja negation, contrast, uncertainty and politeness
 test('does not treat ordinary standalone statistics as Arabizi digits',()=>{
   assert.equal(normalizeMessinhoArabizi('7 2026 2:1 3 goals'),'7 2026 2:1 3 goals');
 });
+
+
+test('splits Latin-script code-switching inside one sentence without losing the original wording',()=>{
+  const result=buildMessinhoLinguisticContext('Le joueur is strong but needs more time.',[]);
+  assert.equal(result.segments.length,2);
+  assert.equal(result.segments[0].language_analysis.primary_language,'fr');
+  assert.equal(result.segments[1].language_analysis.primary_language,'en');
+  assert.equal(result.segments.map(segment=>segment.text).join(' '),'Le joueur is strong but needs more time.');
+});
+
+test('splits Arabic and English code-switching inside one sentence',()=>{
+  const result=buildMessinhoLinguisticContext('اللاعب قوي but needs more time.',[]);
+  assert.equal(result.segments.length,2);
+  assert.equal(result.segments[0].language_analysis.primary_language,'ar');
+  assert.equal(result.segments[1].language_analysis.primary_language,'en');
+  assert.equal(result.segments.map(segment=>segment.text).join(' '),'اللاعب قوي but needs more time.');
+});
