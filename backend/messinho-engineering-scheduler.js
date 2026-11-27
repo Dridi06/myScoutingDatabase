@@ -25,15 +25,29 @@ export function getMessinhoEngineeringReviewSchedule(now=new Date()){
   phase,due:Boolean(window)};
 }
 
+
+export function buildMessinhoSelfRepairGoal(checks=[]) {
+ const findings=(Array.isArray(checks)?checks:[]).filter(item=>item&&item.ok===false).slice(0,8).map(item=>({
+  name:String(item.name||'Unbekannte Prüfung').slice(0,120),
+  category:String(item.category||'System').slice(0,80),
+  severity:String(item.severity||'warning').slice(0,30),
+  detail:String(item.detail||'Keine Detailbeschreibung verfügbar.').replace(/[\\u0000-\\u001f\\u007f]/g,' ').slice(0,500),
+  recommendation:String(item.recommendation||item.next_action||'Ursache untersuchen.').replace(/[\\u0000-\\u001f\\u007f]/g,' ').slice(0,350)
+ }));
+ if(!findings.length)return {ok:false,reason:'no_failed_diagnostics',findings:[]};
+ return {ok:true,findings,goal:'Führe eine gezielte MESSINHO-Fehleranalyse und Fehlerbehebung ausschließlich für die folgenden tatsächlich fehlgeschlagenen Systemprüfungen durch. Lies die betroffenen Quellmodule und Aufrufer, belege die Ursache, erstelle höchstens einen kleinen sicheren Patch innerhalb der bestehenden Allowlist und definiere Regressionstests. Erfinde keine Fehler. Wenn die Ursache in geschützten Dateien, Datenbank, Zugangsdaten oder Infrastruktur liegt, erstelle keinen unsicheren Patch. Diagnosebefunde: '+JSON.stringify(findings)};
+}
+
 /** One idempotent review per Berlin date and allowed work window. */
-export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),getCurrentTime=()=>new Date(),generate=generateMessinhoEngineeringProposal,persist=persistMessinhoMyKiProposal,env=process.env,sandboxAllowed=isMessinhoSandboxStagingAllowed,dispatch=dispatchMessinhoSandboxJob,hashPatch=hashMessinhoEngineeringPatch,makeJobId=randomUUID}={}){
+export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),getCurrentTime=()=>new Date(),generate=generateMessinhoEngineeringProposal,persist=persistMessinhoMyKiProposal,env=process.env,sandboxAllowed=isMessinhoSandboxStagingAllowed,dispatch=dispatchMessinhoSandboxJob,hashPatch=hashMessinhoEngineeringPatch,makeJobId=randomUUID,mode='developing',goal=null}={}){
  if(!db)return {ok:false,code:'DATABASE_UNAVAILABLE'};
+ if(!['developing','working'].includes(mode))return {ok:false,code:'INVALID_REVIEW_MODE'};
  const schedule=getMessinhoEngineeringReviewSchedule(now);
  if(!schedule.due)return {ok:true,skipped:schedule.phase,review_date:schedule.review_date,phase:schedule.phase};
  const {data:control,error:controlError}=await db.from('messinho_agent_control')
   .select('mode,stop_requested,updated_by').eq('id','global').maybeSingle();
  if(controlError)return {ok:false,code:'CONTROL_STATE_UNAVAILABLE'};
- if(control?.mode!=='developing'||control?.stop_requested)return {ok:true,skipped:'admin_mode_not_developing',review_date:schedule.review_date,review_slot:schedule.review_slot};
+ if(control?.mode!==mode||control?.stop_requested)return {ok:true,skipped:'admin_mode_not_active',review_date:schedule.review_date,review_slot:schedule.review_slot};
  const {data:claim,error:claimError}=await db.from('messinho_engineering_review_runs')
   .insert({review_date:schedule.review_date,review_slot:schedule.review_slot,status:'running',started_at:now.toISOString()})
   .select('id').maybeSingle();
@@ -44,7 +58,7 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
   if(error)throw new Error('review_state_persist_failed');
  };
  try{
-  const generated=await generate({goal:'Führe die technische Selbstprüfung von MESSINHO durch. Finde höchstens eine konkrete, belegbare und sichere Verbesserung. Erzeuge keinen Vorschlag, wenn der Nutzen nicht nachweisbar ist.'});
+  const generated=await generate({goal:goal|| (mode==='working'?'Führe eine gezielte technische Fehlerprüfung von MESSINHO durch. Erstelle nur bei belegter Ursache einen kleinen sicheren Reparaturvorschlag.':'Führe die technische Selbstprüfung von MESSINHO durch. Finde höchstens eine konkrete, belegbare und sichere Verbesserung. Erzeuge keinen Vorschlag, wenn der Nutzen nicht nachweisbar ist.')});
   const {data:afterGenerate,error:afterGenerateError}=await db.from('messinho_agent_control')
     .select('mode,stop_requested').eq('id','global').maybeSingle();
   const afterSchedule=getMessinhoEngineeringReviewSchedule(getCurrentTime());
@@ -52,7 +66,7 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
     await finish('failed',{source_sha:generated.source_sha||null,error_code:'WORK_WINDOW_ENDED'});
     return {ok:true,status:'stopped',review_date:schedule.review_date,review_slot:schedule.review_slot};
   }
-  if(afterGenerateError||afterGenerate?.mode!=='developing'||afterGenerate?.stop_requested){
+  if(afterGenerateError||afterGenerate?.mode!==mode||afterGenerate?.stop_requested){
     await finish('failed',{source_sha:generated.source_sha||null,error_code:'ADMIN_STOP_REQUESTED'});
     return {ok:true,status:'stopped',review_date:schedule.review_date,review_slot:schedule.review_slot};
   }
@@ -65,7 +79,7 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
   const {data:postPersistControl,error:postPersistControlError}=await db.from('messinho_agent_control')
     .select('mode,stop_requested,updated_by').eq('id','global').maybeSingle();
   const postPersistSchedule=getMessinhoEngineeringReviewSchedule(getCurrentTime());
-  if(!saved.duplicate&&!postPersistControlError&&postPersistControl?.mode==='developing'&&!postPersistControl?.stop_requested&&
+  if(!saved.duplicate&&!postPersistControlError&&postPersistControl?.mode===mode&&!postPersistControl?.stop_requested&&
      postPersistSchedule.due&&postPersistSchedule.review_slot===schedule.review_slot&&
      sandboxAllowed(env)&&env.MESSINHO_SANDBOX_GITHUB_TOKEN&&postPersistControl.updated_by){
     const {data:ticket,error:ticketError}=await db.from('messinho_myki_tickets').select('id,diff,baseline_id')
@@ -95,7 +109,7 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
         }
       }else{sandboxStatus='job_persist_failed';sandboxCode=jobError.code||'SANDBOX_JOB_PERSIST_FAILED';}
     }else{sandboxStatus='ticket_or_source_invalid';sandboxCode='SANDBOX_TICKET_LOOKUP_FAILED';}
-  }else if(postPersistControlError||postPersistControl?.mode!=='developing'||postPersistControl?.stop_requested){
+  }else if(postPersistControlError||postPersistControl?.mode!==mode||postPersistControl?.stop_requested){
     sandboxStatus='stopped_by_admin';
   }else if(!postPersistSchedule.due||postPersistSchedule.review_slot!==schedule.review_slot){
     sandboxStatus='work_window_ended';
