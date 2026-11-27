@@ -54,10 +54,11 @@ export default function MyKiChat({supabase}){
   const value=draft.trim();
   const statusQuestion=/\b(woran arbeitest du|was arbeitest du gerade|was machst du gerade|aktueller arbeitsstand|was ist dein status|arbeitest du gerade)\b/i.test(value);
   if(!value||(busy&&!statusQuestion))return;
+  const alreadyBusy=busy;
   setDraft('');setError('');
   const history=messages.slice(-20).map(item=>({role:item.role,text:item.text}));
   setMessages(prev=>[...prev,{id:'u-'+Date.now(),role:'user',text:value}]);
-  setBusy(true);
+  if(!alreadyBusy)setBusy(true);
   try{
    const {data:{session}}=await supabase.auth.getSession();
    if(!session?.access_token)throw new Error('Deine Admin-Sitzung ist abgelaufen. Bitte melde dich erneut an.');
@@ -66,7 +67,7 @@ export default function MyKiChat({supabase}){
    if(!response.ok)throw new Error(payload.error||'MESSINHO konnte nicht antworten.');
    setMessages(prev=>[...prev,{id:'a-'+Date.now(),role:'assistant',text:payload.reply||'Ich habe deine Nachricht verarbeitet.'}]);
   }catch(err){setError(err.message||'Die Verbindung zu MESSINHO ist fehlgeschlagen.');setDraft(value);}
-  finally{setBusy(false);}
+  finally{if(!alreadyBusy)setBusy(false);}
  }
 
  const schedulerRunning=status.last_run?.status==='running'||status.run_state==='running';
