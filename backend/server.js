@@ -45,6 +45,7 @@ import { persistMessinhoSandboxResult, normalizeMessinhoSandboxResult, hashMessi
 import { loadMessinhoApprovedEngineeringMemory } from './messinho-engineering-memory-context.js';
 import { verifyMessinhoGitHubActionsIdentity } from './messinho-github-oidc.js';
 import { buildMessinhoMaturityReport } from './messinho-maturity.js';
+import { persistMessinhoDiagnosticTicket } from './messinho-diagnostic-ticket.js';
 import { buildMessinhoForecastContext } from './messinho-forecast-context.js';
 import { isMessinhoAdminOnlyCommand } from './messinho-command-access.js';
 import { buildMessinhoLinguisticContext } from './messinho-linguistic-intelligence.js';
@@ -561,21 +562,20 @@ async function runMessinhoSelfRepairCycle(actorProfileId){
   }
   const repair=buildMessinhoSelfRepairGoal(failed);
   const review=await runMessinhoScheduledEngineeringReview({db,mode:'working',goal:repair.goal});
-  if(review.skipped==='already_claimed'){
-   await updateStatus('Fehler gefunden ('+failed.length+'). In diesem Arbeitszeitfenster existiert bereits ein Entwicklungsprüflauf; bitte dessen Ticket/Ergebnis prüfen.');
-   return {ok:true,status:'already_reviewed',failed:failed.length};
-  }
   if(review.status==='ticket_created'){
    const sandbox=review.sandbox_status==='queued'?'Die isolierte Reparaturprüfung wurde gestartet.':'Die Sandbox-Prüfung konnte nicht automatisch gestartet werden ('+review.sandbox_status+').';
-   await updateStatus('Fehler gefunden ('+failed.length+'). KI-Ticket '+review.ticket_id+' erstellt. '+sandbox+' Der Vorschlag wird nicht ungeprüft in das laufende System übernommen.');
+   await updateStatus('Fehler gefunden ('+failed.length+'). Reparaturticket '+review.ticket_id+' erstellt. '+sandbox+' Der Vorschlag wird nicht ungeprüft in das laufende System übernommen.');
    return {ok:true,status:'ticket_created',failed:failed.length,ticket_id:review.ticket_id,sandbox_status:review.sandbox_status};
   }
-  if(review.status==='no_improvement'){
-   await updateStatus('Fehler gefunden ('+failed.length+'), aber MESSINHO konnte keinen ausreichend belegten und sicheren Reparaturvorschlag erstellen. Die Diagnose bleibt gespeichert und benötigt Admin-Prüfung.');
-   return {ok:true,status:'repair_candidate_not_found',failed:failed.length};
+  const diagnosticTicket=await persistMessinhoDiagnosticTicket({db,checks:failed});
+  if(diagnosticTicket.ok){
+   const reason=review.skipped==='already_claimed'?'Ein anderer Prüflauf ist in diesem Zeitfenster bereits registriert.':
+    review.status==='no_improvement'?'Es konnte kein sicherer Codepatch belegt werden.':'Die automatische Patchprüfung konnte nicht sicher abgeschlossen werden.';
+   await updateStatus('Fehler gefunden ('+failed.length+'). Diagnose-Ticket '+diagnosticTicket.ticket_id+' erstellt. '+reason+' Kein Code wurde verändert; Admin-Prüfung erforderlich.');
+   return {ok:true,status:'diagnostic_ticket_created',failed:failed.length,ticket_id:diagnosticTicket.ticket_id,repair_code:review.code||null};
   }
-  await updateStatus('Fehler gefunden ('+failed.length+'). Der automatische Reparaturvorschlag konnte nicht sicher abgeschlossen werden ('+(review.code||'unbekannter Fehler')+'). Bitte Diagnose prüfen.');
-  return {ok:false,status:'repair_failed',failed:failed.length,code:review.code||'REPAIR_FAILED'};
+  await updateStatus('Fehler gefunden ('+failed.length+'), aber das Diagnose-Ticket konnte nicht gespeichert werden. Bitte Diagnosehistorie prüfen.');
+  return {ok:false,status:'diagnostic_ticket_failed',failed:failed.length,code:diagnosticTicket.code||'DIAGNOSTIC_TICKET_FAILED'};
  }catch(error){
   console.error('MESSINHO self-repair cycle failed:',error.message);
   await updateStatus('Die Selbstprüfung konnte nicht vollständig abgeschlossen werden. Bitte Admin-Diagnose prüfen.');
