@@ -6,7 +6,7 @@
 import { analyzeMessinhoLanguage, buildMessinhoLinguisticContext, MESSINHO_LANGUAGE_PROFILES, normalizeMessinhoArabicForAnalysis } from './messinho-linguistic-intelligence.js';
 
 const VERSION = '1.2.1';
-const STOP = new Set('der die das ein eine und oder aber nicht bitte danke ich du er sie wir ihr ist sind the a an and or but not please thanks i you he she we they is are was have be le la les un une et ou mais pas ne merci je tu il elle nous vous el los las una y pero por favor gracias yo tú él ella من في على إلى عن هو هي نحن انت أنا و أو لكن لا نعم كيف ماذا لماذا متى أين'.split(' '));
+const STOP = new Set('der die das ein eine und oder aber nicht bitte danke ich du er sie wir ihr ist sind the a an and or but not please thanks i you he she we they is are was have be le la les un une et ou mais pas ne merci je tu il elle nous vous el los las una y pero por favor gracias yo tú él ella من في على إلى عن هو هي نحن انت أنا و أو لكن لا نعم كيف ماذا لماذا متى أين'.split(' ').map(normalizeMessinhoArabicForAnalysis));
 const norm = value => normalizeMessinhoArabicForAnalysis(
   String(value ?? '').normalize('NFKC').toLocaleLowerCase().normalize('NFD')
     .replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss')
