@@ -22,7 +22,7 @@ const TOOLCHAINS=Object.freeze({
  'html-css':{tools:['HTML validator','Stylelint','Lighthouse','axe'],checks:[['HTML validation','<file>'],['CSS lint','<file>'],['Accessibility audit','targeted page']]},
  java:{tools:['JDK','Maven or Gradle'],checks:[['mvn','test'],['mvn','verify']]},
  'csharp-dotnet':{tools:['.NET SDK'],checks:[['dotnet','build'],['dotnet','test']]},
- go:{tools:['Go toolchain'],checks:[['gofmt','-w','<files>'],['go','vet','./...'],['go','test','./...'],['go','test','-race','./...']]},
+ go:{tools:['Go toolchain'],checks:[['gofmt','-d','<files>'],['go','vet','./...'],['go','test','./...'],['go','test','-race','./...']]},
  rust:{tools:['Rust toolchain','Cargo'],checks:[['cargo','fmt','--check'],['cargo','clippy','--','-D','warnings'],['cargo','test']]},
  'cpp-c':{tools:['Clang or GCC','CMake','Sanitizers'],checks:[['cmake','--build','<build-dir>'],['ctest','--test-dir','<build-dir>'],['AddressSanitizer/UBSan','targeted tests']]},
  php:{tools:['PHP','Composer','PHPUnit'],checks:[['php','-l','<file>'],['vendor/bin/phpunit']]},
@@ -48,8 +48,10 @@ export function detectMessinhoSourceLanguage(path=''){
 }
 
 export function buildMessinhoCodebaseIntelligence({files=[],availableTools=[]}={}){
+ const safeFiles=Array.isArray(files)?files:[];
+ const safeTools=Array.isArray(availableTools)?availableTools:[];
  const groups=new Map(),excluded=[],unsupported=[];
- for(const file of files.slice(0,500)){
+ for(const file of safeFiles.slice(0,500)){
   const path=String(file?.path||'');
   const detected=detectMessinhoSourceLanguage(path);
   if(!detected.supported){
@@ -62,12 +64,12 @@ export function buildMessinhoCodebaseIntelligence({files=[],availableTools=[]}={
  const languages=[...groups.values()].sort((a,b)=>a.priority-b.priority).map(group=>{
   const toolchain=TOOLCHAINS[group.language_id];
   return {...group,toolchain:toolchain.tools,validation_plan:toolchain.checks,
-   available_tools:toolchain.tools.filter(tool=>availableTools.includes(tool)),
-   missing_tools:toolchain.tools.filter(tool=>!availableTools.includes(tool))};
+   available_tools:toolchain.tools.filter(tool=>safeTools.includes(tool)),
+   missing_tools:toolchain.tools.filter(tool=>!safeTools.includes(tool))};
  });
  return {
   version:MESSINHO_CODE_INTELLIGENCE_VERSION,
-  analyzed_file_count:files.length,
+  analyzed_file_count:safeFiles.length,
   supported_file_count:languages.reduce((n,item)=>n+item.files.length,0),
   language_count:languages.length,languages,excluded_paths:excluded.slice(0,100),unsupported_paths:unsupported.slice(0,100),
   policy:'Plan-only. Tool names and commands are suggestions, not proof that tools exist or ran.',
