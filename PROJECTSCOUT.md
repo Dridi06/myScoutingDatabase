@@ -5258,3 +5258,43 @@ Make subject-language routing work when the scout asks in German (the primary pr
 - Keep detection, response-language selection, subject-language retrieval and translation as separately measured capabilities.
 - Do not claim human-level fluency or verified translation quality from deterministic detection tests alone.
 
+
+
+## 29. MESSINHO Linguistic Intelligence 1.3.6 — response-language API contract — STAGING verified — 2026-11-27
+
+### Implemented and released
+- Language analysis version: 1.3.6.
+- The mixed-language response selector is now passed through a stable response metadata helper.
+- The authenticated MESSINHO chat route returns:
+  - aggregate primary language for analysis;
+  - response_language for the actual reply;
+  - latest_segment_language and conversation_language_hint;
+  - action and original language segments.
+- The system prompt explicitly prioritizes response_language and uses latest_segment_language as the fallback. Aggregate primary_language must not override the last confidently detected segment.
+- The approved language knowledge retrieval and prompt injection remain in the existing authenticated chat path.
+- Original user text and segment order are preserved.
+
+### Traceability
+- Metadata helper: bb30abe414b93594bd4339a91c41e23c922f1157.
+- Metadata contract tests: 26d21525892d0931935777b35aa60a52ab5257e9.
+- Chat API integration: 8bd085bebfdc825690efd49357ccce9f458ba6ce.
+- Explicit system-prompt priority: e01b85fb5ba5ca1ac309133b0f88be05cf78445f.
+- Prompt/API integration regression tests: acada315561b7bf2080871e779c644f9067ba537.
+
+### Build and deployment verification
+- First attempts exposed a stale source-level test assertion that still expected the former inline response metadata object. The actual route had been refactored to use buildMessinhoLinguisticResponseMetadata(). The assertion was updated to test the current API contract; no runtime behavior was weakened.
+- Final verified deployment: dep-dc4nvk5vbd1s73br0320.
+- Exact deployed commit: a11faade62ee198558f9d68a77f3264753828f1b.
+- Render status: live; finished at 2026-11-27T13:05:36.810695Z.
+- Full Node suite: 494 tests, 494 passed, 0 failed.
+- Backend syntax checks passed; Vite production build succeeded in 2.49 seconds.
+- Runtime log confirmed node backend/server.js started and myScoutingDatabase API listening on port 10000.
+- A second deployment was created for the same exact commit and also reached live; no code difference between the two deployments.
+
+### Boundaries and remaining verification
+- No Supabase migration or persistent language-knowledge write was required.
+- No player, scout, account or user data was changed.
+- Production branch, production Render service and production Supabase remain untouched.
+- Authenticated human Admin/Scout chat acceptance is still pending. Automated tests verify the language selection and API response contract, but not a real signed-in browser conversation.
+- Next work: improve phrase-level semantic interpretation and dialect-aware retrieval ranking using only the existing approved corpus; then perform authenticated STAGING chat checks for MSA, Derja, Arabizi, mixed language, translation target and negation/uncertainty preservation.
+
