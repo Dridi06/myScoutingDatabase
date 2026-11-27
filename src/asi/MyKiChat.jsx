@@ -59,6 +59,8 @@ export default function MyKiChat({supabase}){
   </div>
   <div className="myki-agent-meta">
    <span><Activity size={14}/> Selbstprüfung: {status.scheduler_enabled?'aktiviert':'derzeit deaktiviert'}</span>
+   <span>Autonomie: {status.autonomy_mode==='bounded_admin_review'?'begrenzter Admin-Prüfmodus':'interaktiver Modus'}</span>
+   <span>Programmier-Sandbox: {status.sandbox?.state==='configured_not_yet_end_to_end_verified'?'Zugangsdaten konfiguriert – E2E-Prüfung offen':status.sandbox?.state==='credential_missing'?'GitHub-Zugangsdaten fehlen':'derzeit gesperrt'}</span>
    <span><PauseCircle size={14}/> Geplanter Rhythmus: täglich 20:00 Uhr (Berlin)</span>
    <span>Letzte Prüfung: {lastRun?.finished_at?new Date(lastRun.finished_at).toLocaleString('de-DE'):lastRun?.started_at?new Date(lastRun.started_at).toLocaleString('de-DE'):'Noch kein Lauf gespeichert'}</span>
    {lastRun?.status&&<span>Ergebnis: {({ticket_created:'Ticket erstellt',no_improvement:'Keine sichere Verbesserung gefunden',duplicate:'Vorschlag bereits vorhanden',failed:'Prüfung fehlgeschlagen',running:'Läuft'})[lastRun.status]||lastRun.status}</span>}
