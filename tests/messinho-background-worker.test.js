@@ -7,7 +7,7 @@ import {
 
 const task = overrides => ({
   id:'task-1',owner_id:'owner-1',goal:'Analysiere den Spieler',
-  status:'running',autonomous_resume_enabled:true,expires_at:'2026-11-27T00:00:00.000Z',
+  status:'running',autonomous_resume_enabled:true,expires_at:'2036-11-27T00:00:00.000Z',
   attempt_count:1,pending_capabilities:['overall_score'],lease_token:'lease-1',
   claimed_by:'worker-1',plan:{role:'scout',label:'Analyse'},
   context:{player:{name:'Testspieler',performance_metrics:{technical:80}}},
