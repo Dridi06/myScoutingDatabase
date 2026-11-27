@@ -15,7 +15,7 @@ function fallback(goal,role,context,status,detail=null){
 }
 
 export async function planMessinhoGoalWithModel({
-  goal,role='scout',context={},apiKey,model='gpt-4.1-mini',
+  goal,role='scout',context={},linguisticContext=null,apiKey,model='gpt-4.1-mini',
   previousResults=[],failedCapabilities=[],fetchImpl=fetch,timeoutMs=12000
 }={}){
   const objective=typeof goal==='string'?goal.normalize('NFKC').trim().slice(0,MAX_GOAL_LENGTH):'';
