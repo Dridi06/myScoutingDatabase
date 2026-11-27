@@ -5511,3 +5511,19 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Next: rerun the complete STAGING build and deploy only after all semantic tests, syntax checks and Vite build pass.
 - No database write/migration or production change occurred.
 
+
+
+### First 1.3.9 STAGING build feedback and corrections — 2026-11-27
+- First 1.3.9 build attempt dep-dc4o3jtg1s2s73f6mh5g ran 508 tests: 505 passed, 3 failed.
+- Findings:
+  1. The existing Derja test uses “موش بالضرورة خايب”; the phrase recognizer initially handled “موش خايب” but not the intervening qualifier.
+  2. Arabic negation required an explicit normalized-script boundary fallback so particles such as ليس are recognized reliably without matching substrings inside other words.
+  3. A metadata test assumed cue-array order, although the cue labels are semantically an unordered set.
+- Corrections:
+  - Source commit 9ad60cc74ada8ba87fcd5259103e49e45b91de81 extends the qualified Derja phrase and adds bounded Arabic negation detection.
+  - Source commit 264d017a5202efca58182edfa24b1dda642e7fab corrects Unicode letter-class escaping in the Arabic token boundary.
+  - The metadata test now compares sorted cue labels, not incidental declaration order.
+- The Arabizi-specific, not-necessarily, phrase and source-preservation regressions passed in this first run.
+- No database, language knowledge rows, player/scout/account data or production resources were changed.
+- Next: rerun the full build gate and deploy only after every test and build stage is green.
+
