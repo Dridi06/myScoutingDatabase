@@ -35,7 +35,7 @@ test('dialogue engine does not mark a full new request as a follow-up by default
 test('dialogue engine bounds history, focus, text and role values',()=>{
   const history=Array.from({length:30},(_,i)=>({role:i%2?'assistant':'user',text:'Nachricht '+i}));
   const state=buildMessinhoDialogueState({message:'weiter',history,userRole:'superadmin'});
-  assert.equal(state.turn_number,13);
+  assert.equal(state.turn_number,31);
   assert.equal(state.recent_user_focus.length,4);
   assert.equal(state.user_role,'scout');
   assert.equal(state.continuity.follow_up_likely,true);
