@@ -39,24 +39,6 @@ function scoreEntry(queryTokens, row, languageIds) {
   return {row,score:score+(anchor?0.3:0)+(languageMatch?0.08:0),overlap};
 }
 
-function selectBalanced(candidates, languageIds, limit=8) {
-  const languages=[...languageIds].sort();
-  if(languages.length<=1)return candidates.slice(0,limit);
-  const groups=new Map(languages.map(language=>[language,candidates.filter(item=>item.row.language_code===language)]));
-  const selected=[];
-  for(let round=0;round<3&&selected.length<limit;round++){
-    for(const language of languages){
-      const item=groups.get(language)?.[round];
-      if(item&&selected.length<limit)selected.push(item);
-    }
-  }
-  for(const item of candidates.filter(candidate=>candidate.row.language_code==='shared')){
-    if(selected.length>=limit)break;
-    selected.push(item);
-  }
-  return selected.slice(0,limit);
-}
-
 export async function findMessinhoLanguageKnowledge(db, message, history=[]) {
   const detection = analyzeMessinhoLanguage(message);
   const linguisticContext = buildMessinhoLinguisticContext(message,history);
