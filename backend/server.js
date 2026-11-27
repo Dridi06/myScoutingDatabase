@@ -1665,7 +1665,7 @@ app.post('/api/admin/myki/tickets/:ticketId/sandbox',myKiTicketLimiter,async(req
     const {data:ticket,error}=await db.from('messinho_myki_tickets').select('*').eq('id',req.params.ticketId).maybeSingle();
     if(error||!ticket||ticket.status==='deleted')return res.status(404).json({error:'myKI-Ticket wurde nicht gefunden.'});
     if(['integrating','integrated'].includes(ticket.status))return res.status(409).json({error:'Dieses Ticket kann in seinem aktuellen Status nicht erneut getestet werden.'});
-    const match=String(ticket.baseline_id||'').match(new RegExp('^feature/messinho-autonomous-agent-semantic-planner@([a-f0-9]{40});
+    const match=String(ticket.baseline_id||'').match(new RegExp('^feature/messinho-autonomous-agent-semantic-planner@([a-f0-9]{40})$','i'));
     if(!match)return res.status(409).json({error:'Der Vorschlag ist nicht an einen zulässigen Feature-Branch-Commit gebunden.'});
     const proposal=normalizeMessinhoEngineeringProposal({
       id:ticket.candidate_id,title:ticket.title,rationale:ticket.rationale,patch:ticket.diff,
