@@ -501,6 +501,32 @@ app.get('/api/admin/myki/status',async(req,res)=>{
     });
   }catch(error){console.error('myKI status failed:',error.message);return res.status(500).json({error:'Der MESSINHO-Aktivitätsstatus ist vorübergehend nicht verfügbar.'});}
 });
+app.post('/api/admin/myki/control',myKiTicketLimiter,async(req,res)=>{
+  try{
+    const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const action=String(req.body?.action||''),mode=String(req.body?.mode||'');
+    if(action==='stop'){
+      const {data,error}=await db.from('messinho_agent_control').update({
+        mode:'paused',stop_requested:true,status_message:'Stopp angefordert. MESSINHO beendet den aktuellen Arbeitsschritt kontrolliert.',
+        updated_by:actor.user.id,updated_at:new Date().toISOString()
+      }).eq('id','global').select('mode,stop_requested,status_message,updated_at').single();
+      if(error||!data)return res.status(503).json({error:'Der Stopp konnte nicht dauerhaft gespeichert werden.'});
+      return res.json({ok:true,control:data,message:'Stopp angefordert. Laufende Arbeit wird am nächsten sicheren Haltepunkt beendet.'});
+    }
+    if(action!=='set_mode'||!['paused','working','developing'].includes(mode))
+      return res.status(400).json({error:'Ungültiger Betriebsmodus.'});
+    const {data,error}=await db.from('messinho_agent_control').update({
+      mode,stop_requested:mode==='paused',
+      status_message:mode==='paused'?'MESSINHO ist pausiert. Laufende Aufgaben werden am nächsten sicheren Haltepunkt gestoppt.':
+        mode==='working'?'MESSINHO wartet auf konkrete Admin-Aufträge.':
+        'MESSINHO darf freigegebene Entwicklungsprüfungen selbstständig ausführen.',
+      updated_by:actor.user.id,updated_at:new Date().toISOString(),stopped_at:null
+    }).eq('id','global').select('mode,stop_requested,status_message,updated_at').single();
+    if(error||!data)return res.status(503).json({error:'Der Betriebsmodus konnte nicht dauerhaft gespeichert werden.'});
+    return res.json({ok:true,control:data,message:'Der MESSINHO-Betriebsmodus wurde gespeichert.'});
+  }catch(error){console.error('myKI control update failed:',error.message);return res.status(500).json({error:'Die MESSINHO-Steuerung ist vorübergehend nicht verfügbar.'});}
+});
 app.post('/api/admin/messinho-diagnostics/run',requireSupabaseAdmin,async(req,res)=>{
   try{
     const run=await executeMessinhoDiagnostics(req.user.sub);
