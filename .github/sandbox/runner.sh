@@ -28,7 +28,7 @@ if [[ -n "${MESSINHO_PATCH_PATH:-}" ]]; then
   [[ -f "$MESSINHO_PATCH_PATH" ]] || { echo "MESSINHO_SANDBOX_OUTCOME=inconclusive_patch_missing"; exit 22; }
   git apply --check "$MESSINHO_PATCH_PATH" || { echo "MESSINHO_SANDBOX_OUTCOME=rejected_patch_context"; exit 22; }
   git apply "$MESSINHO_PATCH_PATH"
-  git add -A -- backend tests docs
+  git add -A -- backend tests docs src
   changed_files="$(git diff --cached --name-only)"
   echo "=== CANDIDATE: npm run build ==="
   set +e
