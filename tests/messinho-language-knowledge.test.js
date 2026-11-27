@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {findMessinhoLanguageKnowledge,formatMessinhoLanguageKnowledge,getMessinhoLanguageKnowledgeSummary} from '../backend/messinho-language-knowledge.js';
 
-function fakeDb(rows) {
- const query={select(){return this;},eq(){return this;},order(){return this;},limit(){return Promise.resolve({data:rows,error:null});}};
+function fakeDb(rows, selected=[]) {
+ const query={select(columns){selected.push(columns);return this;},eq(){return this;},order(){return this;},limit(){return Promise.resolve({data:rows,error:null});}};
  return {from(name){assert.equal(name,'messinho_language_knowledge');return query;}};
 }
 
@@ -64,4 +64,13 @@ test('ambiguous text never loads an unrelated language pack',async()=>{
  const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'OK');
  assert.equal(result.language_id,null);
  assert.equal(result.items.length,0);
+});
+
+test('database selection uses only columns present in the versioned migration',async()=>{
+ const selected=[];
+ const db=fakeDb([{entry_key:'de.grammar.main_clause',version:1,language_code:'de',entry_type:'grammar',topic:'Satzbau',title:'Verbzweit',content:{explanation:'Das finite Verb steht an zweiter Position.'},tags:['Verbzweit'],knowledge_status:'active'}],selected);
+ await findMessinhoLanguageKnowledge(db,'Wie funktioniert die Verbzweitstellung im deutschen Hauptsatz?');
+ assert.equal(selected.length,1);
+ assert.match(selected[0],/created_at/);
+ assert.doesNotMatch(selected[0],/updated_at/);
 });
