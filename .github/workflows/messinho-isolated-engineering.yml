@@ -113,7 +113,7 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const meta=JSON.parse(fs.readFileSync(process.env.JOB_META_PATH,'utf8'));
-          const code=Number(process.env.EXIT_CODE);
+          const rawCode=String(process.env.EXIT_CODE||'').trim();\n          const code=rawCode===''?Number.NaN:Number(rawCode);
           const outcome=code===0?'passed':code===21?'failed':'inconclusive';
           const logs=fs.existsSync(process.env.LOG_PATH)?fs.readFileSync(process.env.LOG_PATH,'utf8').slice(-12000):'No sandbox log captured.';
           const payload={...meta,outcome,summary:outcome==='passed'?'Baseline und Kandidat haben die Sandbox-Prüfung bestanden.':outcome==='failed'?'Der Kandidat hat mindestens eine Prüfung nicht bestanden.':'Die Prüfung war nicht vollständig oder der Baseline-Stand war bereits fehlerhaft.',evidence:{exit_code:Number.isFinite(code)?code:null,logs},toolchain:{image:'messinho-engineering-sandbox:local',node:'24',python:'3',java:'17',go:true,rust:true,c_cpp:true,php:true,dotnet:'8',postgresql:true},github_run_id:Number(process.env.RUN_ID),github_run_attempt:Number(process.env.RUN_ATTEMPT),source_sha:process.env.SOURCE_SHA};
