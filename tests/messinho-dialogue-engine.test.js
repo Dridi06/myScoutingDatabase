@@ -51,7 +51,7 @@ test('dialogue state validator rejects forged or malformed snapshots',()=>{
 test('server attaches dialogue state to cognitive routing without changing owner-scoped history loading',async()=>{
   const {readFile}=await import('node:fs/promises');
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
-  assert.match(source,/buildMessinhoDialogueState\\(\\{message,history,userRole:profile\\.role,linguisticContext\\}\\)/);
-  assert.match(source,/linguisticContext:\\{\\.\\.\\.linguisticContext,dialogue_state:dialogueState\\}/);
-  assert.match(source,/\\.eq\\('owner_id',ownerId\\)/);
+  assert.match(source,/buildMessinhoDialogueState\(\{message,history,userRole:profile\.role,linguisticContext\}\)/);
+  assert.match(source,/linguisticContext:\{\.\.\.linguisticContext,dialogue_state:dialogueState\}/);
+  assert.match(source,/\.eq\('owner_id',ownerId\)/);
 });
