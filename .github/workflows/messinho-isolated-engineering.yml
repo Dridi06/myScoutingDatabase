@@ -107,8 +107,6 @@ jobs:
         if: always() && github.event_name == 'workflow_dispatch' && steps.job.outputs.payload_dir != ''
         env:
           CALLBACK_URL: https://myscoutingdatabase-messinho-staging.onrender.com/api/internal/messinho/engineering-results
-          OIDC_REQUEST_URL: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL }}
-          OIDC_REQUEST_TOKEN: ${{ env.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}
           JOB_META_PATH: ${{ steps.job.outputs.payload_dir }}/meta.json
           LOG_PATH: ${{ runner.temp }}/messinho-sandbox.log
           EXIT_CODE: ${{ steps.sandbox.outputs.exit_code }}
@@ -123,10 +121,10 @@ jobs:
           const outcome=code===0?'passed':code===21?'failed':'inconclusive';
           const logs=fs.existsSync(process.env.LOG_PATH)?fs.readFileSync(process.env.LOG_PATH,'utf8').slice(-12000):'No sandbox log captured.';
           const payload={...meta,outcome,summary:outcome==='passed'?'Baseline und Kandidat haben die Sandbox-Prüfung bestanden.':outcome==='failed'?'Der Kandidat hat mindestens eine Prüfung nicht bestanden.':'Die Prüfung war nicht vollständig oder der Baseline-Stand war bereits fehlerhaft.',evidence:{exit_code:Number.isFinite(code)?code:null,logs},toolchain:{image:'messinho-engineering-sandbox:local',node:'24',python:'3',java:'17',go:true,rust:true,c_cpp:true,php:true,dotnet:'8',postgresql:true},github_run_id:Number(process.env.RUN_ID),github_run_attempt:Number(process.env.RUN_ATTEMPT),source_sha:process.env.SOURCE_SHA};
-          if(!process.env.CALLBACK_URL||!process.env.OIDC_REQUEST_URL||!process.env.OIDC_REQUEST_TOKEN)throw new Error('sandbox_oidc_configuration_missing');
-          const tokenUrl=new URL(process.env.OIDC_REQUEST_URL);
+          if(!process.env.CALLBACK_URL||!process.env.ACTIONS_ID_TOKEN_REQUEST_URL||!process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN)throw new Error('sandbox_oidc_configuration_missing');
+          const tokenUrl=new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
           tokenUrl.searchParams.set('audience','myscoutingdatabase-messinho-sandbox');
-          const tokenResponse=await fetch(tokenUrl,{headers:{Authorization:'Bearer '+process.env.OIDC_REQUEST_TOKEN}});
+          const tokenResponse=await fetch(tokenUrl,{headers:{Authorization:'Bearer '+process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}});
           if(!tokenResponse.ok)throw new Error('github_oidc_token_request_failed');
           const identityToken=(await tokenResponse.json()).value;
           if(!identityToken)throw new Error('github_oidc_token_missing');
