@@ -16,10 +16,19 @@ test('review schedule uses Berlin local time and becomes due at 20:00',()=>{
 });
 function mockDb({claimError=null}={}){
  const state={claim:null,update:null};
- return {state,from(table){assert.equal(table,'messinho_engineering_review_runs');return {
-  insert(row){state.claim=row;return {select(){return {maybeSingle:async()=>claimError?{data:null,error:claimError}:{data:{id:'run-1'},error:null}}};}},
-  update(row){state.update=row;return {eq:async()=>({error:null})};}
- };}};
+ return {
+  state,
+  from(table){
+   assert.equal(table,'messinho_engineering_review_runs');
+   return {
+    insert(row){
+     state.claim=row;
+     return {select(){return {maybeSingle:async()=>claimError?{data:null,error:claimError}:{data:{id:'run-1'},error:null}};}};
+    },
+    update(row){state.update=row;return {eq:async()=>({error:null})};}
+   };
+  }
+ };
 }
 test('claims one review per date and records no-improvement result without creating a ticket',async()=>{
  const db=mockDb();
