@@ -5330,3 +5330,33 @@ A user may request not only a translation, but also an explanation, correction o
 - Next: run full STAGING build, verify all tests, then deploy exact commit to STAGING only.
 - No Supabase schema/data migration is required. Production remains untouched.
 
+
+
+## 30. MESSINHO Language Knowledge 1.2.5 — phrase-aware and segment-scoped retrieval — 2026-11-27
+
+### Owner continuation
+Continue improving the language system after the verified Linguistic Intelligence 1.3.6 release. Use only the existing approved first-party language corpus; do not add unreviewed dictionary content or change persistent knowledge rows.
+
+### Implementation on STAGING feature branch
+- backend/messinho-language-knowledge.js:
+  - Access-layer version advanced from 1.2.4 to 1.2.5.
+  - Ranking now considers exact normalized phrase matches from approved aliases, phrases, term labels/transliterations and example text, in addition to token overlap.
+  - Phrase comparison uses the existing detection-only normalization, including Arabic diacritic/tatweel normalization; original user text and stored knowledge are not rewritten.
+  - Mixed-language retrieval now scopes token and phrase scoring to the matching detected segment when a confident segment exists.
+  - Explicitly requested subject-language retrieval still falls back to the full request when the target language is not the language of the input segment (e.g. an English question about Derja).
+  - Shared knowledge continues to use the complete request context.
+  - Existing active-only, first-party-authored, append-only and eight-item retrieval limits remain unchanged.
+- tests/messinho-language-knowledge.test.js:
+  - Updated the knowledge access-layer version assertion.
+  - Added regressions for exact Derja phrase aliases, mixed English/French segment isolation, and vocalized Arabic alias retrieval.
+
+### Traceability
+- Implementation commit: e81398ebbec8b8edf71d98c533dfc9aae6f13cbd.
+- Regression tests commit: 9e0da8eae66b729e18d5df159c8aa8094b240247.
+
+### Verification status
+- Linguistic Intelligence 1.3.6 and the chat response-language metadata/prompt integration are live on STAGING as recorded in section 29.
+- Language Knowledge 1.2.5 is committed but not yet tested or deployed.
+- Next: run full Node tests, backend syntax checks and Vite build. Fix any regression before deployment.
+- No Supabase migration or knowledge-row write is part of this code-only change. Production remains untouched.
+
