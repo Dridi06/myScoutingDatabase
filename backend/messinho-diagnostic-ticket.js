@@ -10,7 +10,7 @@ function safeFinding(item){
  };
 }
 export function buildMessinhoDiagnosticTicket({checks=[],now=new Date(),id=randomUUID()}={}){
- const findings=(Array.isArray(checks)?checks:[]).filter(item=>item&&item.ok===false).slice(0,8).map(safeFinding);
+ const findings=(Array.isArray(checks)?checks:[]).filter(item=>item&&item.ok===false).slice(0,20).map(safeFinding);
  if(!findings.length)return {ok:false,code:'NO_FAILED_DIAGNOSTICS'};
  const date=now instanceof Date?now:new Date(now);
  if(Number.isNaN(date.getTime()))return {ok:false,code:'INVALID_TIMESTAMP'};
