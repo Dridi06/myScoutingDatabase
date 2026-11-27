@@ -5751,3 +5751,18 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - No new Render deployment was triggered. Auto-Deploy remains disabled. The grammar engine is merged to the STAGING source branch but is not yet running in the STAGING web service.
 - Production `main`, production Render service and production Supabase remain untouched.
 - Next: obtain explicit owner approval for a STAGING-only Render deployment, deploy the exact merged integration commit, then verify health and authenticated Admin/Scout chat behavior. Continue expanding language-specific grammar coverage after runtime verification.
+
+
+### STAGING deployment completed — 2026-11-27
+- Owner approved deployment to the dedicated STAGING Render service only.
+- Service: `myscoutingdatabase-messinho-staging` — https://myscoutingdatabase-messinho-staging.onrender.com
+- Render deploy: `dep-dc4v78e1egvs73a004ug` — status `live`.
+- Deployed integration branch commit: `b0372754a56ddd5b02aa29929d035ad5a2712253` (includes merged grammar engine and checkpoint documentation).
+- Build completed successfully; 531/531 automated tests passed in the Render build; Vite production bundle completed; Node API started and logged listening on port 10000; Render reported “Your service is live”. Supabase Data API startup check returned HTTP 200.
+- Deployment was manually triggered because Render auto-deploy is disabled. No cache clear was used.
+- Production/LIVE service, production branch and production Supabase were not changed.
+
+### Runtime observation requiring follow-up
+- During the successful build/test/start sequence, the application logged `MESSINHO language knowledge lookup unavailable: 42P01`. PostgreSQL code `42P01` means an undefined relation/table. The code path is designed to fail closed and the related regression tests pass, so no fabricated language knowledge is injected; however, DB-backed approved language-knowledge retrieval may be unavailable in this STAGING environment until the expected table/migration is checked.
+- Do not apply a guessed migration. Next step is inspect the exact query/table name and migration history against STAGING Supabase, verify whether the migration is absent or points to a wrong schema, then propose a minimal, reversible STAGING-only fix. Do not touch production.
+- Deployment is successful, but full authenticated Admin/Scout end-to-end linguistic chat behavior still requires manual browser testing. No request logs were returned in the initial post-deploy check; API startup and Render live state were confirmed.
