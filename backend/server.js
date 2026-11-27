@@ -2548,7 +2548,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     }
     const autonomousDecision=await planMessinhoGoalWithModel({goal:interpretedMessage,role:profile.role,context:agentMemory,
       apiKey:process.env.OPENAI_API_KEY,model:process.env.OPENAI_MODEL||'gpt-4.1-mini'});
-    if(autonomousDecision.status==='needs_clarification'){
+    if(autonomousDecision.planner_status==='model_clarification'){
       return respond({reply:autonomousDecision.clarification_question||'Welches konkrete Ziel soll ich bearbeiten?',
         intent:'agent_plan_clarification',items:[],pending:true,
         agent_planning:{source:autonomousDecision.planning_source,confidence:autonomousDecision.confidence||null}});
