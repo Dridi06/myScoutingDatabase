@@ -5618,3 +5618,24 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Supabase STAGING tables and owner-scoped policies are present; both conversation migrations are applied.
 - Remaining verification: one authenticated Admin and one authenticated Scout should each conduct a real multi-turn conversation, refresh/re-login, and confirm that their own history restores without cross-account visibility. Confirm actual OpenAI response generation from a normal chat request. Streaming and multiple named conversations remain later enhancements.
 - No production branch, production Supabase project, or LIVE service was modified.
+
+
+## 37. Conversational Intelligence 2.1 — language-aware UI and role-safe semantic metadata — 2026-11-27
+
+- PR #49 merged by squash into `feature/messinho-unified-ai-integration`.
+- Merge commit: `88d5420a6d7a56300725889ef39c169e76e1d7a7`.
+- Work branch: `feature/messinho-language-ui-metadata`; final tested head: `5d2e369b95ef9e19889929d3c18f435e2c0801f1`.
+- Backend now persists bounded `linguisticIntelligence` metadata in the existing owner-scoped `messinho_conversation_messages.metadata` JSONB column. The metadata omits the potentially large segment payload.
+- Conversation restore now restores the linguistic metadata together with the message history.
+- Admin responses and restored Admin messages retain the semantic cue metadata for review.
+- Scout responses and restored Scout messages receive only the selected response language and primary language label. Semantic cue arrays and diagnostic labels are not exposed to Scout clients.
+- Chat UI consumes `response_language`, applies the correct language tag and RTL direction for Arabic/Tunisian Arabic, and displays a simple reply-language label.
+- Human-readable semantic hints (Verneinung, eingeschränkte Bewertung, Unsicherheit, Kontrast) are rendered only in the Admin workspace.
+- No new migration required; existing JSONB metadata field and its size guard are reused. No player, Scout, account, model-weight, or knowledge rows changed.
+- GitHub Actions on the final PR head:
+  - Node regression suite: 510/510 passed.
+  - Backend JavaScript syntax: passed.
+  - Full STAGING CI and Vite production build: passed; 1,640 modules transformed and build completed successfully.
+- PR #49 merged only into the STAGING integration branch. Render STAGING deployment is the next step because Render Auto-Deploy is disabled.
+- Authenticated Admin/Scout end-to-end verification is still outstanding; no credentials or user session were impersonated.
+- Production branch, Render LIVE service, and production Supabase remain untouched.
