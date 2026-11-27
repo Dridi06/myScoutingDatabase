@@ -38,6 +38,10 @@ const WORDS = {
  'ar-tn': new Set('chnowa chnoua chneya chnia chnya kifech kifesh alech aleh a3lech علاش برشا barcha ياسر yesser مريقل mrigel باهي behi labes aslema عسلامة لاباس شنوة شنوا شنية شنو وين قداش توة توا فما فمة موش ماهوش مازال ma fama win wa9tech taw tawa 3lech 5ater 7atta fassar fasser fassarli fasserli nefhem nheb n7eb nal3ab nal3abch ma3neha ma3naha el hedha hedhi hedhouma tounsi derja tunisien joueur équipe equipe match coach fel fi mta3 mte3'.split(' ')),
  es: new Set('el la los las un una y o pero no por favor gracias yo tú él ella nosotros es son era tener ser puede por qué cómo qué quién dónde cuándo todavía ya hola buenos días buenas tardes buenas noches quiero este jugador entender sus puntos fuertes equipo hoy explica explicar español conjugación conjugacion verbal concordancia gramatical frase pronombres fútbol futbol jugadores entrenador rendimiento análisis analisis evaluación evaluacion táctica tactica fuerte débil debil con para en de por'.split(' '))
 };
+// Keep the Arabic lexicons in the same detection-only normalized form as incoming tokens.
+for (const languageId of ['ar','ar-tn']) {
+  WORDS[languageId] = new Set([...WORDS[languageId]].map(normalizeArabicToken));
+}
 const TUNISIAN_ARABIC = /(?:علاش|شنوة|شنوّة|شنيا|شنية|اش(?![\p{L}])|آش(?![\p{L}])|برشا|ياسر|لاباس|فما|فمّة|توا|توة|وين|قداش|كيفاش|موش|ماهوش)/u;
 const ARABIC_SCRIPT = /[\u0600-\u06FF]/u;
 const LATIN_SCRIPT = /[A-Za-zÀ-ÖØ-öø-ÿ]/u;
