@@ -1,27 +1,26 @@
 name: MESSINHO isolated engineering sandbox
-
 on:
   push:
-    branches:
-      - feature/messinho-unified-ai-integration
+    branches: [feature/messinho-unified-ai-integration]
   pull_request:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
-
+    inputs:
+      job_payload_b64:
+        description: Base64-encoded, server-validated MESSINHO engineering job
+        required: true
+        type: string
 permissions:
   contents: read
-
 concurrency:
   group: messinho-sandbox-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   isolated-engineering:
     name: Isolated toolchain and project validation
     if: github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'feature/messinho-unified-ai-integration'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     env:
       MESSINHO_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
@@ -30,104 +29,96 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-
-      - name: Set up host Node for dependency download only
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
-
-      # Lifecycle scripts are deliberately disabled on the host. Dependencies
-      # are mounted read-only into the isolated runtime container below.
       - name: Install dependencies without lifecycle scripts
         run: npm install --ignore-scripts --no-audit --no-fund
-
+      - name: Prepare validated job payload
+        if: github.event_name == 'workflow_dispatch'
+        id: job
+        env:
+          JOB_PAYLOAD_B64: ${{ inputs.job_payload_b64 }}
+          EXPECTED_SHA: ${{ github.sha }}
+          EXPECTED_REF: ${{ github.ref }}
+          RUNNER_TEMP: ${{ runner.temp }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import crypto from 'node:crypto';
+          const raw=Buffer.from(process.env.JOB_PAYLOAD_B64||'','base64').toString('utf8');
+          if(!raw||raw.length>50000)throw new Error('job_payload_size_invalid');
+          const job=JSON.parse(raw);
+          if(process.env.EXPECTED_REF!=='refs/heads/feature/messinho-unified-ai-integration')throw new Error('sandbox_ref_rejected');
+          if(job.source_sha!==process.env.EXPECTED_SHA||!/^[a-f0-9]{40}$/.test(job.source_sha))throw new Error('source_revision_mismatch');
+          if(!/^[0-9a-f-]{36}$/i.test(job.job_id)||!/^[0-9a-f-]{36}$/i.test(job.ticket_id))throw new Error('job_identity_invalid');
+          if(typeof job.patch!=='string'||job.patch.length<20||job.patch.length>24000)throw new Error('patch_size_invalid');
+          const headers=[...job.patch.matchAll(/^diff --git a\/(.+) b\/(.+)$/gm)];
+          if(!headers.length||headers.length>8)throw new Error('patch_file_count_invalid');
+          for(const m of headers){
+            const a=m[1],b=m[2];
+            if(a!==b||!/^(backend|tests|docs)\/[A-Za-z0-9._/-]+$/.test(a)||a.includes('..')||/\.(sql|ya?ml)$/i.test(a)||/(^|\/)(\.env|secrets?|credentials?)(\/|$)/i.test(a))throw new Error('patch_path_rejected');
+            if(/^backend\/(server|messinho-access|messinho-capability-runtime|messinho-orchestrator|messinho-agent-core|messinho-autonomy|messinho-rights-registry)\.js$/.test(a))throw new Error('protected_path_rejected');
+          }
+          const hash=crypto.createHash('sha256').update(job.patch).digest('hex');
+          if(job.patch_sha256!==hash)throw new Error('patch_hash_mismatch');
+          const dir=path.join(process.env.RUNNER_TEMP,'messinho-'+job.job_id);
+          fs.mkdirSync(dir,{recursive:true,mode:0o700});
+          fs.writeFileSync(path.join(dir,'patch.diff'),job.patch,{mode:0o600});
+          fs.writeFileSync(path.join(dir,'meta.json'),JSON.stringify({job_id:job.job_id,ticket_id:job.ticket_id,source_sha:job.source_sha,patch_sha256:hash}),{mode:0o600});
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'payload_dir='+dir+'\n');
+          NODE
       - name: Build dedicated compiler image
         run: docker build --pull -f .github/sandbox/Dockerfile -t messinho-engineering-sandbox:local .
-
-      - name: Run candidate inside network-disabled, resource-limited container
+      - name: Run baseline or candidate inside sandbox
+        id: sandbox
         shell: bash
+        env:
+          PAYLOAD_DIR: ${{ steps.job.outputs.payload_dir }}
         run: |
           set -euo pipefail
-          echo "Candidate revision: ${MESSINHO_SOURCE_SHA}"
-          timeout 12m docker run --rm \
-            --network none \
-            --read-only \
+          args=()
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            args+=(--mount "type=bind,src=$PAYLOAD_DIR/patch.diff,dst=/inputs/patch.diff,readonly")
+            args+=(--mount "type=bind,src=$PAYLOAD_DIR/meta.json,dst=/inputs/meta.json,readonly")
+            args+=(--env MESSINHO_PATCH_PATH=/inputs/patch.diff)
+          fi
+          set +e
+          timeout 15m docker run --rm --network none --read-only \
             --memory 3g --memory-swap 3g --cpus 2 --pids-limit 128 \
-            --cap-drop ALL --security-opt no-new-privileges:true \
-            --user 10001:10001 \
+            --cap-drop ALL --security-opt no-new-privileges:true --user 10001:10001 \
             --tmpfs /work:rw,nosuid,nodev,size=1536m,mode=1777 \
             --tmpfs /tmp:rw,nosuid,nodev,size=512m,mode=1777 \
             --mount "type=bind,src=${GITHUB_WORKSPACE},dst=/src,readonly" \
             --mount "type=bind,src=${GITHUB_WORKSPACE}/node_modules,dst=/deps,readonly" \
-            --env CI=true \
-            --env MESSINHO_SOURCE_SHA="${MESSINHO_SOURCE_SHA}" \
-            messinho-engineering-sandbox:local \
-            bash -lc '
-              set -euo pipefail
-              mkdir -p /work /tmp/messinho-home
-              tar --exclude=.git --exclude=node_modules -C /src -cf - . | tar -C /work -xf -
-              ln -s /deps /work/node_modules
-              cd /work
-
-              echo "=== Exact candidate ==="
-              echo "$MESSINHO_SOURCE_SHA"
-
-              echo "=== Installed toolchain versions ==="
-              node --version
-              npm --version
-              python3 --version
-              javac -version
-              go version
-              rustc --version
-              gcc --version | head -n 1
-              clang --version | head -n 1
-              php --version | head -n 1
-              tsc --version
-              html-validate --version
-              stylelint --version
-              shellcheck --version | head -n 1
-              psql --version
-
-              echo "=== Project tests, backend syntax and frontend build ==="
-              npm run build
-
-              echo "=== Python compiler smoke test ==="
-              printf "print(6 * 7)\\n" > /tmp/messinho-smoke.py
-              python3 -m py_compile /tmp/messinho-smoke.py
-
-              echo "=== Java compiler smoke test ==="
-              printf "class Smoke { public static void main(String[] a) {} }\\n" > /tmp/Smoke.java
-              javac /tmp/Smoke.java
-
-              echo "=== C compiler smoke test ==="
-              printf "int main(void) { return 0; }\\n" > /tmp/smoke.c
-              gcc /tmp/smoke.c -o /tmp/smoke-c
-
-              echo "=== C++ compiler smoke test ==="
-              printf "int main() { return 0; }\\n" > /tmp/smoke.cpp
-              g++ /tmp/smoke.cpp -o /tmp/smoke-cpp
-
-              echo "=== Go compiler smoke test ==="
-              mkdir -p /tmp/go-smoke
-              cd /tmp/go-smoke
-              go mod init messinho-smoke
-              printf "package main\\nfunc main() {}\\n" > main.go
-              GOPROXY=off GOSUMDB=off go build -o /tmp/smoke-go .
-
-              echo "=== Rust compiler smoke test ==="
-              printf "fn main() {}\\n" > /tmp/smoke.rs
-              rustc /tmp/smoke.rs -o /tmp/smoke-rust
-
-              echo "=== PHP syntax smoke test ==="
-              printf "<?php echo 42;\\n" > /tmp/smoke.php
-              php -l /tmp/smoke.php
-
-              echo "=== Bash syntax smoke test ==="
-              printf "set -euo pipefail\\necho smoke\\n" > /tmp/smoke.sh
-              bash -n /tmp/smoke.sh
-              shellcheck /tmp/smoke.sh
-
-              echo "=== SQL client availability ==="
-              psql --version
-              echo "Sandbox validation completed for $MESSINHO_SOURCE_SHA"
-            '
+            "${args[@]}" --env CI=true --env MESSINHO_SOURCE_SHA="${MESSINHO_SOURCE_SHA}" \
+            messinho-engineering-sandbox:local /opt/messinho/runner.sh 2>&1 | tee "$RUNNER_TEMP/messinho-sandbox.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          if [[ "$status" -ne 0 ]]; then exit "$status"; fi
+      - name: Send evidence callback to STAGING
+        if: always() && github.event_name == 'workflow_dispatch' && steps.job.outputs.payload_dir != ''
+        env:
+          CALLBACK_URL: ${{ secrets.MESSINHO_SANDBOX_CALLBACK_URL }}
+          CALLBACK_SECRET: ${{ secrets.MESSINHO_SANDBOX_CALLBACK_SECRET }}
+          JOB_META_PATH: ${{ steps.job.outputs.payload_dir }}/meta.json
+          LOG_PATH: ${{ runner.temp }}/messinho-sandbox.log
+          EXIT_CODE: ${{ steps.sandbox.outputs.exit_code }}
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const meta=JSON.parse(fs.readFileSync(process.env.JOB_META_PATH,'utf8'));
+          const code=Number(process.env.EXIT_CODE);
+          const outcome=code===0?'passed':code===21?'failed':'inconclusive';
+          const logs=fs.existsSync(process.env.LOG_PATH)?fs.readFileSync(process.env.LOG_PATH,'utf8').slice(-12000):'No sandbox log captured.';
+          const payload={...meta,outcome,summary:outcome==='passed'?'Baseline und Kandidat haben die Sandbox-Prüfung bestanden.':outcome==='failed'?'Der Kandidat hat mindestens eine Prüfung nicht bestanden.':'Die Prüfung war nicht vollständig oder der Baseline-Stand war bereits fehlerhaft.',evidence:{exit_code:Number.isFinite(code)?code:null,logs},toolchain:{image:'messinho-engineering-sandbox:local',node:'24',python:'3',java:'17',go:true,rust:true,c_cpp:true,php:true,dotnet:'8',postgresql:true},github_run_id:Number(process.env.RUN_ID),github_run_attempt:Number(process.env.RUN_ATTEMPT),source_sha:process.env.SOURCE_SHA};
+          if(!process.env.CALLBACK_URL||!process.env.CALLBACK_SECRET)throw new Error('sandbox_callback_secrets_missing');
+          const response=await fetch(process.env.CALLBACK_URL,{method:'POST',headers:{'content-type':'application/json','x-messinho-sandbox-secret':process.env.CALLBACK_SECRET},body:JSON.stringify(payload)});
+          if(!response.ok)throw new Error('sandbox_callback_failed_'+response.status);
+          console.log('MESSINHO evidence callback accepted.');
+          NODE
