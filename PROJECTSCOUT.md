@@ -4356,3 +4356,13 @@ Hocharabisch und tunesische Derja sind getrennte Sprachprofile. MESSINHO soll zu
 - MESSINHO bleibt in `messinho_agent_control` pausiert. Keine autonome Entwicklung gestartet.
 - Production, main, Produktionsdaten und Produktionsgeheimnisse wurden nicht verändert.
 - Diese 30 Einträge sind eine erste Grundlagenbasis, kein vollständiges Wörterbuch und kein Nachweis muttersprachlicher Beherrschung. Ausbau erfolgt stufenweise mit Qualitätsprüfung, regionaler Differenzierung und rechtmäßigen Quellen.
+
+
+### Ergänzende Prüfung und letzter Code-Stand — 2026-11-27
+- Sprachdetektion wurde um kurze Alltagsbegrüßungen erweitert. Neue Regressionstests decken Hallo/Hello/Bonjour/السلام عليكم/Aslema/Hola ab.
+- Finaler Sprachcode-Commit: `6b0eddac490c2b09aa301fcb58d75ced20a2ab22`.
+- Für diesen exakten Commit sind MESSINHO Node Tests, Backend-Syntaxprüfung und Staging-Health-Smoke erfolgreich. Der kombinierte Staging-Branch-CI-Lauf wurde abgebrochen (nicht als Fehler gewertet); der Produktionsbuild wurde deshalb für diesen exakten Commit nicht bestätigt. Der letzte erfolgreiche Vite-Build liegt auf dem vorherigen Code-Stand; Frontend-Dateien wurden seitdem nicht geändert.
+- Die isolierte Engineering-Sandbox hat noch keinen Kandidaten-Payload verarbeitet; ein Sandbox-Compilerergebnis ist nicht nachgewiesen.
+- Render-STAGING ist weiterhin auf Auto-Deploy OFF. Letzter erfolgreicher Deploy vor der neuen Korrektur: Commit `35c2579807c8e93ded6adaca595a7a5afa6055a5`. Die Korrektur mit `created_at` und unverändertem Originaltext ist daher noch nicht live.
+- Supabase-Kontrollstatus wurde aktuell erneut gelesen: `mode=working`, `stop_requested=false`, Statusmeldung „MESSINHO wartet auf konkrete Admin-Aufträge.“ Keine aktiven Tasks gefunden. Während dieses Arbeitsschritts wurde der Betriebsmodus nicht verändert. Frühere pauschale Dokumentationsangaben „paused“ sind anhand des aktuellen Live-Werts nicht bestätigt und müssen bei der nächsten Betriebsprüfung abgeglichen werden.
+- Nächster Schritt bleibt ein gezielter STAGING-Deploy nach Bestätigung des Render-Workspaces, gefolgt von Health-/Runtime- und authentifizierten Chattests. Production bleibt unangetastet.
