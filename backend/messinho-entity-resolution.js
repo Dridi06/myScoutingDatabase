@@ -75,7 +75,8 @@ function collectCandidates(history,activeEntities){
   return found.sort((a,b)=>b.recency-a.recency).slice(0,MAX_ENTITIES);
 }
 
-const PLAYER_REFERENCE=/(?:\b(?:er|ihn|ihm|sein(?:e|en|er|es)?|dieser spieler|der spieler|the player|he|him|his|that player|this player|il|lui|son|sa|ce joueur|el jugador|él|lo|le|su|ese jugador)\b|هو|هي|هذا اللاعب|ذلك اللاعب|متاعو|متاعها|عمرو|عمره|عمرها|houwa|howa|hedha)/iu;
+const PLAYER_REFERENCE=/(?:\b(?:er|ihn|ihm|sein(?:e|en|er|es)?|he|him|his|il|lui|son|sa|él|lo|le|su)\b|هو|هي|هذا اللاعب|ذلك اللاعب|متاعو|متاعها|عمرو|عمره|عمرها|houwa|howa|hedha)/iu;
+const PLAYER_NOUN_REFERENCE=/\b(?:dieser spieler|der spieler|the player|that player|this player|ce joueur|el jugador|ese jugador)\b/iu;
 const CLUB_REFERENCE=/(?:\b(?:sein verein|seine mannschaft|sein team|der verein|die mannschaft|das team|his club|his team|the club|the team|son club|son equipe|son équipe|el club|su equipo|la squadra)\b|الفريق|النادي|فريقو|ناديه)/iu;
 const GENERIC_REFERENCE=/(?:\b(?:das von vorhin|der von vorhin|die von vorhin|dazu|davon|darauf|that one|the one from before|what about that|ça|cela|celui la|celui-là|eso|aquello)\b|هذا من قبل|اللي قبل|الحاجة هذي)/iu;
 const CONTRAST_REFERENCE=/(?:\b(?:der andere|die andere|das andere|den anderen|dem anderen|the other one|the other player|l autre|l'autre|el otro|la otra)\b|الآخر|الاخر|اللاعب الآخر)/iu;
@@ -105,11 +106,13 @@ export function resolveMessinhoEntityReferences({message,history=[],activeEntiti
   const clubRef=hasPattern(CLUB_REFERENCE,text);
   const genericRef=hasPattern(GENERIC_REFERENCE,text);
   const contrastRef=hasPattern(CONTRAST_REFERENCE,text);
-  const hasReferenceSignal=playerRef||clubRef||genericRef||contrastRef;
+  const playerNounRef=hasPattern(PLAYER_NOUN_REFERENCE,text);
+  const hasReferentialSignal=playerRef||clubRef||genericRef||contrastRef;
+  const hasReferenceSignal=hasReferentialSignal||playerNounRef;
   const direct=entities.filter(item=>containsName(text,item.name));
-  if(direct.length===1&&!hasReferenceSignal)return result({status:'resolved',referenceType:direct[0].entity_type,candidate:direct[0],evidence:direct[0].sources,confidence:0.99,reason:'explicit_known_entity_mention'});
-  if(direct.length>1&&!hasReferenceSignal)return result({status:'not_applicable',reason:'multiple_entities_explicitly_named'});
-  if(direct.length>1&&hasReferenceSignal)return result({status:'ambiguous',referenceType:'multiple',candidates:direct,evidence:direct.flatMap(item=>item.sources),reason:'multiple_known_entities_with_pronoun'});
+  if(direct.length===1&&!hasReferentialSignal)return result({status:'resolved',referenceType:direct[0].entity_type,candidate:direct[0],evidence:direct[0].sources,confidence:0.99,reason:'explicit_known_entity_mention'});
+  if(direct.length>1&&!hasReferentialSignal)return result({status:'not_applicable',reason:'multiple_entities_explicitly_named'});
+  if(direct.length>1&&hasReferentialSignal)return result({status:'ambiguous',referenceType:'multiple',candidates:direct,evidence:direct.flatMap(item=>item.sources),reason:'multiple_known_entities_with_pronoun'});
   if(direct.length===1&&playerRef&&direct[0].entity_type==='player'){
     const players=entities.filter(item=>item.entity_type==='player'&&item!==direct[0]);
     const active=players.filter(item=>item.sources.includes('owner_scoped_active_memory'));
@@ -117,7 +120,7 @@ export function resolveMessinhoEntityReferences({message,history=[],activeEntiti
     return result({status:'ambiguous',referenceType:'player',candidates:[direct[0],...players],evidence:[...direct[0].sources,...players.flatMap(item=>item.sources)],reason:'pronoun_and_explicit_player_name_need_disambiguation'});
   }
   if(direct.length===1&&clubRef&&(direct[0].entity_type==='club'||direct[0].entity_type==='team'))return result({status:'resolved',referenceType:direct[0].entity_type,candidate:direct[0],evidence:direct[0].sources,confidence:0.99,reason:'explicit_known_club_or_team_mention'});
-  if(direct.length===1&&hasReferenceSignal)return result({status:'ambiguous',referenceType:direct[0].entity_type,candidates:[direct[0]],evidence:direct[0].sources,reason:'explicit_name_does_not_uniquely_resolve_pronoun'});
+  if(direct.length===1&&hasReferentialSignal)return result({status:'ambiguous',referenceType:direct[0].entity_type,candidates:[direct[0]],evidence:direct[0].sources,reason:'explicit_name_does_not_uniquely_resolve_pronoun'});
   if(!hasReferenceSignal)return result({status:'not_applicable',reason:'no_reference_signal'});
   if(clubRef){
     const clubs=entities.filter(item=>item.entity_type==='club'||item.entity_type==='team');
@@ -133,7 +136,7 @@ export function resolveMessinhoEntityReferences({message,history=[],activeEntiti
     }
     return result({status:players.length?'ambiguous':'unresolved',referenceType:'player',candidates:players,evidence:players.flatMap(item=>item.sources),reason:players.length?'contrast_target_not_unique':'no_grounded_player_for_contrast'});
   }
-  if(playerRef){
+  if(playerRef||playerNounRef){
     const players=entities.filter(item=>item.entity_type==='player');
     if(players.length===1)return result({status:'resolved',referenceType:'player',candidate:players[0],evidence:players[0].sources,confidence:0.94,reason:'unique_player_reference'});
     return result({status:players.length?'ambiguous':'unresolved',referenceType:'player',candidates:players,evidence:players.flatMap(item=>item.sources),reason:players.length?'multiple_player_candidates':'no_grounded_player_candidate'});
