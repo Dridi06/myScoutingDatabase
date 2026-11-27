@@ -138,6 +138,60 @@ export function forecastMessinhoPlayerDevelopment(history = [], { horizonMonths 
   };
 }
 
+/**
+ * Qualitative transfer scenario from approved, identity-matched evidence.
+ * It deliberately returns no numeric probability: rumours and contract dates
+ * are signals, not a calibrated individual transfer model.
+ */
+export function forecastMessinhoTransferScenario({ evidence = [], contractSnapshots = [], now = Date.now(), horizonDays = 180 } = {}) {
+  const nowMs = typeof now === 'number' ? now : Date.parse(now);
+  const horizon = Math.max(30, Math.min(365, Number(horizonDays) || 180));
+  const validEvidence = (Array.isArray(evidence) ? evidence : []).filter(row => {
+    if (!['confirmed','corroborated'].includes(row?.verification_status) ||
+        row?.identity_status !== 'matched' || row?.review_status !== 'approved' ||
+        row?.data_classification !== 'ordinary' ||
+        !['approved','not_required'].includes(row?.legal_review_status)) return false;
+    const expiry = row.valid_until ? dateMs(row.valid_until) : null;
+    return expiry === null || expiry > nowMs;
+  });
+  const relevant = validEvidence.filter(row => ['transfer','transfer_rumour','contract_negotiation'].includes(row.claim_type))
+    .filter(row => {
+      const stamp = dateMs(row.event_date || row.published_at || row.created_at);
+      return stamp !== null && (nowMs - stamp) / 86400000 <= horizon && stamp <= nowMs;
+    });
+  const sourceKey = row => row.publisher ? String(row.publisher).toLowerCase().trim() :
+    String(row.source_url || '').replace(/^https?:\/\/([^/]+).*$/i,'$1').toLowerCase();
+  const sources = new Set(relevant.map(sourceKey).filter(Boolean));
+  const contracts = (Array.isArray(contractSnapshots) ? contractSnapshots : [])
+    .filter(row => row?.is_current === true && ['confirmed','corroborated'].includes(row?.verification_status))
+    .sort((a,b)=>(dateMs(b.effective_date||b.created_at)||0)-(dateMs(a.effective_date||a.created_at)||0));
+  const contract = contracts[0] || null;
+  const contractEnd = contract?.contract_end ? dateMs(contract.contract_end) : null;
+  const daysToEnd = contractEnd === null ? null : Math.ceil((contractEnd - nowMs) / 86400000);
+  const base = {status:'completed',probability:null,source_count:sources.size,verified_evidence_count:relevant.length,
+    contract_status:contract?.contract_status||null,contract_end:contract?.contract_end||null,days_to_contract_end:daysToEnd,
+    evidence_ids:relevant.map(row=>row.id).filter(Boolean).slice(0,20),
+    confidence:sources.size>=2?'moderate':sources.size===1?'low':'limited',
+    limitations:['Keine numerische individuelle Wechselwahrscheinlichkeit: dafür fehlt ein kalibrierter, ausreichend großer historischer Datensatz.',
+      'Gerüchte sind nur Hinweise; ein bestätigter Vereinswechsel darf nur aus einem verifizierten Transferbeleg abgeleitet werden.']};
+  if (contract && ['transfer_agreed','transfer_completed'].includes(contract.contract_status))
+    return {...base,scenario:'verified_transfer_event',likelihood_label:'Verifizierter Transferstatus',interpretation:'Ein verifizierter Vertragssnapshot weist einen vereinbarten oder abgeschlossenen Transfer aus.'};
+  if (relevant.some(row=>row.claim_type==='transfer'))
+    return {...base,scenario:'verified_transfer_signal',likelihood_label:'Verifizierte Transfermeldung',interpretation:'Eine geprüfte Transfermeldung liegt vor; ihr genauer Status muss anhand des Belegs gelesen werden.'};
+  if (sources.size>=2 && daysToEnd!==null && daysToEnd>=0 && daysToEnd<=365)
+    return {...base,scenario:'elevated_transfer_signals',likelihood_label:'Erhöhte Wechselindikatoren',interpretation:'Mehrere unabhängige geprüfte Hinweise und eine auslaufende Vertragsbindung sprechen für erhöhte Beobachtungsrelevanz.'};
+  if (sources.size>=2)
+    return {...base,scenario:'corroborated_transfer_rumour',likelihood_label:'Mehrfach belegte Wechselhinweise',interpretation:'Mehrere unabhängige geprüfte Hinweise liegen vor; ein Wechsel ist damit nicht bestätigt.'};
+  if (sources.size===1 && daysToEnd!==null && daysToEnd>=0 && daysToEnd<=horizon)
+    return {...base,scenario:'contract_expiry_watchlist',likelihood_label:'Beobachtung sinnvoll',interpretation:'Ein geprüfter Wechselhinweis trifft auf ein nahendes Vertragsende.'};
+  if (daysToEnd!==null && daysToEnd>=0 && daysToEnd<=horizon)
+    return {...base,scenario:'contract_expiry_watchlist',likelihood_label:'Vertragsende im Beobachtungszeitraum',interpretation:'Das Vertragsende ist ein relevanter Faktor, aber allein kein Beleg für einen Wechsel.'};
+  if (contract && daysToEnd!==null && daysToEnd>horizon && relevant.length===0)
+    return {...base,scenario:'no_strong_signal',likelihood_label:'Keine starken Wechselindikatoren',interpretation:'Der geprüfte Vertrag läuft nicht kurzfristig aus und es liegen keine aktuellen geprüften Wechselhinweise vor.'};
+  return {status:'insufficient_data',scenario:null,probability:null,source_count:sources.size,verified_evidence_count:relevant.length,
+    missing_inputs:['aktuelle, rechtlich freigegebene Transferbelege oder ein verifizierter Vertragsstatus']};
+}
+
 /** Empirical cohort rate only; never label an uncalibrated rate as an individual probability. */
 export function forecastMessinhoTransferProbability(cases = [], context = {}, { minimumCases = 30 } = {}) {
   const position=String(context.position_group||'').toLowerCase();
@@ -162,11 +216,14 @@ export function forecastMessinhoTransferProbability(cases = [], context = {}, { 
 export function forecastMessinhoPlayerOutcome(cases = [], context = {}, { minimumCases = 30 } = {}) {
   const position=String(context.position_group||'').toLowerCase();
   const age=finite(context.age), score=finite(context.current_score);
-  if(!position||age===null||score===null)return {status:'insufficient_data',estimate:null,missing_inputs:['position_group','age','current_score']};
+  const successDefinition=String(context.success_definition||'').trim().toLowerCase();
+  if(!position||age===null||score===null||!successDefinition)return {status:'insufficient_data',estimate:null,missing_inputs:[...(!position?['position_group']:[]),...(age===null?['age']:[]),...(score===null?['current_score']:[]),...(!successDefinition?['success_definition']:[])]};
   const cohort=(Array.isArray(cases)?cases:[]).filter(row=>{
     if(row?.verification_status!=='verified'||typeof row.success!=='boolean')return false;
     const rowAge=finite(row.age),rowScore=finite(row.current_score);
-    return String(row.position_group||'').toLowerCase()===position&&rowAge!==null&&Math.abs(rowAge-age)<=3&&rowScore!==null&&Math.abs(rowScore-score)<=10;
+    return String(row.position_group||'').toLowerCase()===position&&
+      String(row.success_definition||'').trim().toLowerCase()===successDefinition&&
+      rowAge!==null&&Math.abs(rowAge-age)<=3&&rowScore!==null&&Math.abs(rowScore-score)<=10;
   });
   if(cohort.length<minimumCases)return {status:'insufficient_data',estimate:null,verified_comparable_cases:cohort.length,required_cases:minimumCases};
   const successes=cohort.filter(row=>row.success).length;

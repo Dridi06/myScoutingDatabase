@@ -22,7 +22,7 @@ const KEYWORDS = {
   multi_position_analysis:['mehrposition','alternative position','positionswechsel','mehrere positionen'],
   play_style_detection:['spielstil','spielertyp','spielweise','play style'],
   strength_weakness_analysis:['stärken','schwächen','stärken schwächen','entwicklungsfelder'],
-  potential_analysis:['potenzial','potential','talentpotenzial','entwicklungspotenzial'],
+  potential_analysis:['potenzial','potential','talentpotenzial','entwicklungspotenzial','erfolgsprognose','misserfolgsprognose','spielerfolg prognose'],
   performance_development:['leistungsentwicklung','leistungsverlauf','performance development'],
   form_curve_analysis:['formkurve','aktuelle form','formverlauf'],
   game_intelligence_analysis:['spielintelligenz','raumverhalten','game intelligence'],
@@ -59,12 +59,12 @@ const KEYWORDS = {
   system_fit_score:['system fit','spielsystem','taktisches system'],
   coach_fit_score:['trainer fit','traineranforderung','trainerprofil'],
   club_fit_score:['vereins fit','kaderbedarf','club fit'],
-  market_value_assessment:['marktwert','transferwert','marktwertspanne'],
+  market_value_assessment:['marktwert','transferwert','marktwertspanne','marktwertprognose','marktwertentwicklung'],
   value_for_money:['preis leistung','preis leistungs verhältnis','transferkosten nutzen'],
   risk_score:['risiko score','transfer risiko','risikobewertung'],
-  development_projection:['entwicklungsprognose','zukunftsprognose','prognose erstellen'],
+  development_projection:['entwicklungsprognose','zukunftsprognose','prognose erstellen','spielerentwicklung vorhersage','leistungsprognose'],
   competition_comparison:['konkurrenzvergleich','direkte konkurrenz','wettbewerbsvergleich'],
-  transfer_priority:['transferpriorität','transfer priorisieren','transfer shortlist priorisieren'],
+  transfer_priority:['transferpriorität','transfer priorisieren','transfer shortlist priorisieren','wechselwahrscheinlichkeit','mannschaftswechsel','transferprognose','wechselprognose'],
   scout_rating_agreement:['scout bewertungen','scout abweichung','bewertungsunterschiede'],
   explainable_rating:['bewertung erklären','score erklären','bewertungsbegründung','erklärbarer score'],
   supervised_learning:['supervised learning','überwachtes lernen'],
@@ -124,7 +124,7 @@ const LEGACY_PLANS = [
   { id:'player_analysis', match:/\b(analysiere|analyse|profil|stärken|schwächen|spielstil|taktik)\b/i, ids:['holistic_player_analysis','strength_weakness_analysis','position_analysis','overall_score','explainable_rating'], label:'Spieleranalyse' },
   { id:'comparison', match:/\b(vergleiche|vergleich|gegenüberstellen)\b/i, ids:['peer_comparison_analysis','competition_comparison','overall_score'], label:'Spielervergleich' },
   { id:'data_quality', match:/\b(datenqualität|datenlücken|vollständigkeit|quellen prüfen|quellenqualität)\b/i, ids:['data_quality_score','source_trust_score','source_cross_check'], label:'Daten- und Quellenprüfung' },
-  { id:'transfer_risk', match:/\b(risiko|risiken|transferbewertung|transfer priorität)\b/i, ids:['risk_score','transfer_priority','value_for_money'], label:'Risiko- und Transferbewertung' },
+  { id:'transfer_risk', match:/\b(risiko|risiken|transferbewertung|transfer priorität|wechselwahrscheinlichkeit|mannschaftswechsel|transferprognose|wechselprognose)\b/i, ids:['risk_score','transfer_priority','value_for_money'], label:'Risiko- und Transferbewertung' },
   { id:'controlled_learning', match:/\b(lerne|lernen|lernstand|modell prüfen|prognosefehler|kalibrierung)\b/i, ids:['dataset_quality_improvement','prediction_audit','regression_guard','model_benchmarking'], label:'Kontrollierte Lernanalyse', adminOnly:true }
 ];
 
@@ -377,6 +377,22 @@ export function formatMessinhoCapabilityResults(run,playerName=null) {
     } else {
       lines.push('• '+title+': Dieser Schritt konnte nicht abgeschlossen werden.');
     }
+  }
+  const euro=value=>Number.isFinite(Number(value))?new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(value)):'nicht verfügbar';
+  for(const item of run.results||[]){
+    const data=item.result||{},development=data.development_forecast;
+    if(development?.status==='completed')lines.push('• Spielerentwicklung (12 Monate): voraussichtlich '+development.forecast.projected_score+'/100; indikative Spanne '+development.forecast.range_low+'–'+development.forecast.range_high+'/100. Die Fortschreibung ist nicht statistisch kalibriert.');
+    else if(development?.status==='insufficient_data')lines.push('• Spielerentwicklung: Noch keine belastbare 12-Monats-Prognose. Es fehlen mindestens drei verifizierte Messpunkte über sechs Monate.');
+    const market=data.historical_value_forecast;
+    if(market?.status==='completed')lines.push('• Marktwertentwicklung (historischer Trend): indikativ '+euro(market.forecast.projected_value_eur)+' in '+market.horizon_months+' Monaten; Spanne '+euro(market.forecast.indicative_low_eur)+' bis '+euro(market.forecast.indicative_high_eur)+'. Kein offizieller Marktwert.');
+    else if(item.capability_id==='market_value_assessment'&&market?.status==='insufficient_data')lines.push('• Marktwertprognose: Zu wenig verifizierte Marktwerthistorie oder Vergleichswerte; ich gebe keinen erfundenen Wert aus.');
+    const transfer=data.transfer_scenario;
+    if(transfer?.status==='completed')lines.push('• Mannschaftswechsel: '+(transfer.likelihood_label||transfer.scenario)+'. '+(transfer.interpretation||'')+' Es wird bewusst keine unkalibrierte Prozentwahrscheinlichkeit behauptet.');
+    const transferRate=data.transfer_forecast;
+    if(transferRate?.status==='completed')lines.push('• Vergleichbare Wechselhistorie: '+transferRate.estimate.historical_transfer_rate_pct+' % bei '+transferRate.verified_comparable_cases+' verifizierten Vergleichsfällen. Das ist eine Gruppenbasisrate, keine individuelle Wechselwahrscheinlichkeit.');
+    const outcome=data.outcome_forecast;
+    if(outcome?.status==='completed')lines.push('• Historische Erfolgsrate vergleichbarer Spieler: '+outcome.estimate.historical_success_rate_pct+' % bei '+outcome.verified_comparable_cases+' verifizierten Fällen. Keine individuelle Erfolgsgarantie.');
+    else if(outcome?.missing_inputs?.includes('success_definition'))lines.push('• Erfolgs-/Misserfolgsprognose: Bitte lege zuerst fest, woran Erfolg gemessen werden soll. Ich vermische keine unterschiedlichen Erfolgsdefinitionen.');
   }
   const intelligence=run.performance_intelligence;
   if (intelligence?.findings?.length) {

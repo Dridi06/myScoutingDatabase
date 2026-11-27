@@ -45,6 +45,7 @@ import { persistMessinhoSandboxResult, normalizeMessinhoSandboxResult, hashMessi
 import { loadMessinhoApprovedEngineeringMemory } from './messinho-engineering-memory-context.js';
 import { verifyMessinhoGitHubActionsIdentity } from './messinho-github-oidc.js';
 import { buildMessinhoMaturityReport } from './messinho-maturity.js';
+import { buildMessinhoForecastContext } from './messinho-forecast-context.js';
 import { isMessinhoAdminOnlyCommand } from './messinho-command-access.js';
 
 const app=express();
@@ -61,6 +62,84 @@ if(!supabaseUrl) console.error('CONFIG CHECK: SUPABASE_URL is missing or empty.'
 if(!serviceKey) console.error('CONFIG CHECK: SUPABASE_SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY is missing or empty.');
 if(supabaseUrl&&serviceKey) console.log(`CONFIG CHECK: Supabase server credentials are present (key type: ${serviceKey.startsWith('sb_secret_')?'new secret key':serviceKey.startsWith('eyJ')?'legacy JWT key':'unknown'}).`);
 const db=supabaseUrl&&serviceKey?createClient(supabaseUrl,serviceKey,{auth:{autoRefreshToken:false,persistSession:false},global:{headers:{'X-Client-Info':'myscoutingdatabase-server'}}}):null;
+
+async function loadMessinhoForecastContext(player,actorId){
+  const playerId=Number(player?.player_id),tenantOwnerId=player?.owner_id||actorId;
+  if(!db||!Number.isSafeInteger(playerId)||playerId<=0||!tenantOwnerId)return buildMessinhoForecastContext({});
+  const queries=await Promise.all([
+    db.from('asi_external_evidence').select('id,claim_type,event_date,published_at,source_url,publisher,identity_status,verification_status,legal_review_status,review_status,data_classification,valid_until,metadata')
+      .eq('player_id',playerId).eq('owner_id',tenantOwnerId).eq('identity_status','matched')
+      .in('verification_status',['confirmed','corroborated']).eq('review_status','approved')
+      .eq('data_classification','ordinary').in('legal_review_status',['approved','not_required'])
+      .order('event_date',{ascending:true}).limit(300),
+    db.from('asi_contract_snapshots').select('id,evidence_id,contract_status,contract_end,effective_date,verification_status,is_current,source_url,created_at')
+      .eq('player_id',playerId).eq('owner_id',tenantOwnerId).in('verification_status',['confirmed','corroborated'])
+      .order('effective_date',{ascending:true}).limit(100),
+    db.from('asi_prediction_records').select('id,target_metric,prediction_horizon_days,predicted_value,model_version,explanation,created_at')
+      .eq('player_id',playerId).eq('owner_id',tenantOwnerId).order('created_at',{ascending:true}).limit(200),
+    db.from('asi_prediction_outcomes').select('id,prediction_id,player_id,observed_metric,observed_value,observed_on,verification_status')
+      .eq('player_id',playerId).eq('owner_id',tenantOwnerId).eq('verification_status','verified')
+      .order('observed_on',{ascending:true}).limit(300)
+  ]);
+  const tables=['asi_external_evidence','asi_contract_snapshots','asi_prediction_records','asi_prediction_outcomes'];
+  const rows=queries.map((result,index)=>{
+    if(result.error){console.warn('MESSINHO forecast context query unavailable:',tables[index],result.error.code||'unknown');return [];}
+    return result.data||[];
+  });
+  const context=buildMessinhoForecastContext({evidence:rows[0],contractSnapshots:rows[1],predictions:rows[2],outcomes:rows[3]});
+  context._messinho_forecast_data_status.query_errors=queries.flatMap((result,index)=>result.error?[tables[index]]:[]);
+  return context;
+}
+
+async function persistMessinhoForecastPredictions({player,actorId,run,forecastContext={}}={}){
+  const playerId=Number(player?.player_id),tenantOwnerId=player?.owner_id||actorId;
+  if(!db||!Number.isSafeInteger(playerId)||playerId<=0||!tenantOwnerId)return {stored:0,skipped:'player_or_owner_missing'};
+  const modelVersion='messinho-evidence-forecast-1.0.0',cutoff=new Date().toISOString();
+  const toFinite=value=>value===null||value===undefined||value===''?null:(Number.isFinite(Number(value))?Number(value):null);
+  const entries=new Map(),sourceIds=forecastContext._messinho_forecast_data_status?.source_ids||[];
+  for(const item of Array.isArray(run?.results)?run.results:[]){
+    const data=item?.result||{},development=data.development_forecast;
+    if(development?.status==='completed'&&toFinite(development.forecast?.projected_score)!==null){
+      const horizon=Math.max(1,Math.round((Number(development.horizon_months)||12)*30.4375));
+      entries.set('overall_score:'+horizon,{
+        player_id:playerId,owner_id:tenantOwnerId,created_by:actorId,target_metric:'overall_score',
+        prediction_horizon_days:horizon,predicted_value:toFinite(development.forecast.projected_score),
+        prediction_interval_low:toFinite(development.forecast.range_low),prediction_interval_high:toFinite(development.forecast.range_high),
+        probability:null,model_version:modelVersion,input_cutoff_at:cutoff,status:'pending',
+        explanation:{method:development.method,confidence:development.confidence,confidence_is_calibrated:false,
+          source_ids:sourceIds,limitations:development.limitations||[],data_points:development.verified_points||0,
+          unit:'score_0_100',forecast:development.forecast}
+      });
+    }
+    const market=data.historical_value_forecast;
+    if(market?.status==='completed'&&toFinite(market.forecast?.projected_value_eur)!==null){
+      const horizon=Math.max(1,Math.round((Number(market.horizon_months)||12)*30.4375));
+      entries.set('market_value_eur:'+horizon,{
+        player_id:playerId,owner_id:tenantOwnerId,created_by:actorId,target_metric:'market_value_eur',
+        prediction_horizon_days:horizon,predicted_value:toFinite(market.forecast.projected_value_eur),
+        prediction_interval_low:toFinite(market.forecast.indicative_low_eur),prediction_interval_high:toFinite(market.forecast.indicative_high_eur),
+        probability:null,model_version:modelVersion,input_cutoff_at:cutoff,status:'pending',
+        explanation:{method:market.method,confidence:market.confidence,confidence_is_calibrated:false,
+          source_ids:sourceIds,limitations:market.limitations||[],data_points:market.verified_points||0,
+          currency:'EUR',forecast:market.forecast}
+      });
+    }
+  }
+  const candidates=[...entries.values()];
+  if(!candidates.length)return {stored:0,skipped:'no_verified_time_series_forecast'};
+  const recentSince=new Date(Date.now()-6*60*60*1000).toISOString();
+  const {data:recent,error:recentError}=await db.from('asi_prediction_records').select('target_metric,prediction_horizon_days')
+    .eq('player_id',playerId).eq('owner_id',tenantOwnerId).eq('model_version',modelVersion)
+    .gte('created_at',recentSince).in('target_metric',candidates.map(x=>x.target_metric)).limit(50);
+  if(recentError){console.warn('MESSINHO prediction deduplication unavailable:',recentError.code||'unknown');return {stored:0,skipped:'prediction_lookup_failed'};}
+  const seen=new Set((recent||[]).map(x=>x.target_metric+':'+x.prediction_horizon_days));
+  const fresh=candidates.filter(x=>!seen.has(x.target_metric+':'+x.prediction_horizon_days));
+  if(!fresh.length)return {stored:0,skipped:'recent_prediction_exists'};
+  const {data,error}=await db.from('asi_prediction_records').insert(fresh).select('id,target_metric');
+  if(error){console.warn('MESSINHO prediction persistence unavailable:',error.code||'unknown');return {stored:0,skipped:'prediction_persist_failed'};}
+  return {stored:(data||[]).length,model_version:modelVersion};
+}
+
 async function diagnoseSupabase(){
   if(!supabaseUrl||!serviceKey)return;
   try{
@@ -2157,6 +2236,9 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       if(!research.ok)return res.status(research.status).json({error:payload.error||'Die vorhandene ASI-Recherche konnte nicht ausgeführt werden.'});
       const candidates=Array.isArray(payload.candidates)?payload.candidates:[]; 
       const activeModel=await getActiveMessinhoModel();
+      const forecastStepIds=new Set(['potential_analysis','potential_score','talent_score','development_projection','market_value_assessment','transfer_priority']);
+      const forecastRelevant=(automaticPlan.steps||[]).some(id=>forecastStepIds.has(id));
+      const forecastContext=forecastRelevant?await loadMessinhoForecastContext(player,ownerId):{};
       const ranked=rankMessinhoPlayers(candidates,activeModel?.configuration?.profiles||null).slice(0,quantity);
       const ageLabel=age?'Alterswunsch '+age+' Jahre (Geburtsjahrfenster '+(modelYear-age-1)+'–'+(modelYear-age)+')':ageGroup||('Jahrgang '+yearFrom+(yearTo!==yearFrom?' bis '+yearTo:''));
       const reply='Die Recherche wurde über die vorhandene ASI-Quellenpipeline ausgeführt und anschließend durch MESSINHOs eigene positionsgewichtete Bewertungslogik sortiert. Ich habe '+candidates.length+' belegte Kandidaten erhalten und zeige '+ranked.length+' davon. Altersfilter: '+ageLabel+'. '+(age?'Das exakte Alter muss anhand des vollständigen Geburtsdatums bestätigt werden. ':'')+(payload.underfilled?'Die gewünschte Anzahl konnte mit der verfügbaren Quellenlage nicht vollständig belegt werden.':'Nicht belegte Leistungswerte wurden nicht geschätzt.');
@@ -2271,7 +2353,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const knowledgeQuery=interpretedMessage+' '+(automaticPlan.steps||[]).join(' ');
       const structuredKnowledge=await findMessinhoKnowledgeConcepts(db,knowledgeQuery,{limit:8});
       const domainKnowledge=await findMessinhoDomainKnowledge(db,knowledgeQuery,{limit:5});
-      const agentInput={player,players:players.length?players:[player],model_profiles:activeModel?.configuration?.profiles||null,
+      const agentInput={player,players:players.length?players:[player],...forecastContext,model_profiles:activeModel?.configuration?.profiles||null,
         _messinho_knowledge_concepts:(structuredKnowledge.items||[]),
         sources:Array.isArray(player.sources)?player.sources:[],claims:[],user_preferences:agentMemory.user_preferences,
         _messinho_domain_knowledge:(domainKnowledge.items||[]).map(item=>({id:item.id,domain:item.domain,question:item.question,content:item.content,claims:item.claims,sources:item.sources,verified_at:item.verified_at,rights:item.rights,confidence:item.confidence,relevance:item.relevance}))};
@@ -2284,14 +2366,17 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         },
         onEngineeringProposal:proposal=>persistMessinhoMyKiProposal({db,proposal})});
       const run=agentCycle.run;
+      const predictionPersistence=forecastRelevant?await persistMessinhoForecastPredictions({player,actorId:ownerId,run,forecastContext}):{stored:0,skipped:'not_forecast_request'};
       const finalizedTask=taskRecord?await finalizeMessinhoAgentTask(taskRecord.id,ownerId,run):null;
       const nextMemory={...agentMemory,active_player_ids:players.map(p=>p.player_id).filter(Number.isSafeInteger).slice(0,10),
         active_entities:{player_id:player.player_id||null,player_name:player.name||player.player_name||null},
         last_intent:automaticPlan.matched_intents?.join(',')||'capability_discovery',last_goal:interpretedMessage};
       const memoryPersisted=await saveMessinhoAgentMemory(ownerId,nextMemory);
       await saveMessinhoAgentTrace(ownerId,interpretedMessage,automaticPlan,run,agentCycle.state.elapsed_ms||0);
-      const reply=formatMessinhoCapabilityResults(run,player.name||player.player_name||null);
-      return respond({reply,intent:'automatic_capability_orchestration',items:players.map(p=>({id:p.player_id||p.id,name:p.name||p.player_name,club:p.club||p.current_club,positions:p.positions||[]})),orchestration:{label:run.label,status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,provider_independent:true,model_weights_changed:false,agent_core_version:run.agent_core_version,agent_phase:agentCycle.state.phase,validation:agentCycle.validation,observation:agentCycle.observation,goal_contract:agentCycle.contract,next_action:run.next_action,replan_recommended:run.replan_recommended,myki_dispatch:run.myki_dispatch||null},memory:{persisted:memoryPersisted,active_player_ids:nextMemory.active_player_ids,preferences:nextMemory.user_preferences},task_checkpoint:taskRecord?{...taskRecord,...(finalizedTask||{}),pending_capabilities:run.deferred_capabilities||[]}:null,capability_results:profile.role==='admin'?run.results:undefined});
+      let reply=formatMessinhoCapabilityResults(run,player.name||player.player_name||null);
+      const forecastDataStatus=forecastContext._messinho_forecast_data_status;
+      if(forecastRelevant&&forecastDataStatus&&!forecastDataStatus.performance_points&&!forecastDataStatus.market_value_points&&!forecastDataStatus.transfer_signals&&!forecastDataStatus.verified_outcomes)reply+='\\n\\nFür diesen Spieler liegen derzeit keine ausreichend verifizierten Verlaufs- oder Vertragsdaten vor. Ich werde deshalb keine belastbare Zukunftsprognose erfinden.';
+      return respond({reply,intent:'automatic_capability_orchestration',items:players.map(p=>({id:p.player_id||p.id,name:p.name||p.player_name,club:p.club||p.current_club,positions:p.positions||[]})),orchestration:{label:run.label,status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,provider_independent:true,model_weights_changed:false,agent_core_version:run.agent_core_version,agent_phase:agentCycle.state.phase,validation:agentCycle.validation,observation:agentCycle.observation,goal_contract:agentCycle.contract,next_action:run.next_action,replan_recommended:run.replan_recommended,myki_dispatch:run.myki_dispatch||null,forecast_data_status:profile.role==='admin'?forecastDataStatus:undefined,prediction_records_saved:predictionPersistence.stored},memory:{persisted:memoryPersisted,active_player_ids:nextMemory.active_player_ids,preferences:nextMemory.user_preferences},task_checkpoint:taskRecord?{...taskRecord,...(finalizedTask||{}),pending_capabilities:run.deferred_capabilities||[]}:null,capability_results:profile.role==='admin'?run.results:undefined});
     }
     const searchTerm=extractMessinhoPlayerSearchTerm(interpretedMessage);
     if(searchTerm){

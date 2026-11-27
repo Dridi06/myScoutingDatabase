@@ -4143,3 +4143,20 @@ Dieser Abschnitt ersetzt für die autonome Engineering-Planung die ältere Angab
 6. Derzeit sind maximal zwei geplante Reviews pro Tag vorgesehen. Ein längerer, fortlaufender Entwicklungsprozess mit wiederholten Compiler-/Test-/Verbesserungszyklen über das gesamte Zeitfenster bleibt ein eigener offener Entwicklungsschritt und darf nicht durch die bloße Scheduler-Zeitfensterprüfung als umgesetzt gelten.
 
 **Produktionsschutz:** ausschließlich Feature-Branch und STAGING. Keine Produktionsmigration, kein Produktionsdeploy und keine automatische Integration.
+
+
+## 15. Prognose-Datenpipeline und autonome Sandbox-Prüfung — 2026-11-27
+
+- MESSINHO lädt für Prognoseaufträge ausschließlich player_id- und owner_id-begrenzte Datensätze aus asi_external_evidence, asi_contract_snapshots, asi_prediction_records und asi_prediction_outcomes.
+- Externe Transferhinweise werden nur bei gematchter Identität, confirmed/corroborated verification, approved review, ordinary data classification und approved/not_required legal review berücksichtigt. Abgelaufene Belege werden verworfen.
+- Vertrags-Snapshots werden nur verwendet, wenn sie auf einen geprüften und rechtlich freigegebenen Evidence-Datensatz verweisen.
+- Spielerentwicklungs- und Marktwertverläufe entstehen nur aus verifizierten Outcomes oder explizit strukturierten, rechtlich freigegebenen Messwerten.
+- Erfolgs-/Misserfolgsvergleiche werden nach einer vom Nutzer/Admin festgelegten success_definition getrennt. Ohne Definition gibt MESSINHO keine Erfolgsrate aus.
+- Transfer-Szenarien werden qualitativ anhand geprüfter unabhängiger Hinweise und verifizierter aktueller Vertrags-Snapshots ausgegeben. Ohne kalibrierten historischen Datensatz wird keine individuelle Prozentwahrscheinlichkeit behauptet.
+- Abgeschlossene zeitgebundene Prognosen werden mit Modellversion, Cutoff, Intervall, Methode und Quellen-IDs in asi_prediction_records gespeichert; identische Metrik-/Horizont-Kombinationen werden sechs Stunden dedupliziert.
+- Der vorhandene Zeitplan aus Abschnitt 14 bleibt unverändert. Nach Erzeugung eines echten myKI-Tickets wird der Patch – sofern STAGING-Gate, Arbeitszeitfenster, Admin-Modus und GitHub-Sandbox-Token weiterhin gültig sind – automatisch an die isolierte Sandbox übergeben. Kein Merge, keine automatische Integration und kein Deployment.
+- Forecast- und Sandbox-Änderungen sind erst nach erneutem CI-Lauf und vollständigem Sandbox-Baseline-/Kandidatenlauf als verifiziert einzustufen.
+- Staging-Datenbankprüfung vom 27.11.2026 zeigte keine Spieler, keine External-Evidence-Einträge, keine Vertrags-Snapshots und keine Prediction-Outcomes. Die Algorithmen können deshalb derzeit nur synthetisch getestet werden; reale Prognosen benötigen verifizierte Verlaufsdaten.
+- Die Migrationshistorie enthält 20261127011122 für messinho_agent_control. Die entsprechende SQL-Datei wird als Source of Truth im Repository abgelegt. Die frühere asi_core_schema-Migration bleibt ein offener Schema-Drift-Punkt.
+- Der aktuelle Zeitplan erlaubt höchstens zwei Reviews pro Tag. Ein fortlaufender mehrstufiger Entwicklungsprozess über das ganze Arbeitszeitfenster bleibt offen und wird nicht als umgesetzt ausgegeben.
+- Production bleibt unangetastet. Der Fachwissensimport (Biologie usw.) folgt erst nach erfolgreicher Agenten- und Prognosefreigabe.

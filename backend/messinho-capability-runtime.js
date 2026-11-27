@@ -9,7 +9,7 @@ import { getMessinhoCapabilityCatalog } from './messinho-capabilities.js';
 import { scoreMessinhoPlayer, getMessinhoPositionGroup } from './messinho-engine.js';
 import { assessMessinhoSource, messinhoValueSupported } from './messinho-intelligence.js';
 import { buildMessinhoLearningProposal } from './messinho-learning.js';
-import { analyzeMessinhoMatch, forecastMessinhoPlayerDevelopment, forecastMessinhoTransferProbability, forecastMessinhoPlayerOutcome, forecastMessinhoMarketValue } from './messinho-development.js';
+import { analyzeMessinhoMatch, forecastMessinhoPlayerDevelopment, forecastMessinhoTransferProbability, forecastMessinhoPlayerOutcome, forecastMessinhoMarketValue, forecastMessinhoTransferScenario } from './messinho-development.js';
 
 export const MESSINHO_CAPABILITY_RUNTIME_VERSION = '1.0.0';
 const clamp=(n,min=0,max=100)=>Math.max(min,Math.min(max,n));
@@ -134,7 +134,7 @@ function analysisHandler(id,input){
    const potential=base===null?null:Math.round(clamp(base+(growth===null?0:Math.max(-5,Math.min(10,growth)))*.5));
    const developmentForecast=forecastMessinhoPlayerDevelopment(timeSeries,{horizonMonths:12});
    const outcomeForecast=forecastMessinhoPlayerOutcome(input.success_history||input.verified_success_outcomes||[],{
-     position_group:normalizedPosition(p),age:derivedAge,current_score:base
+     position_group:normalizedPosition(p),age:derivedAge,current_score:base,success_definition:input.success_definition||input.target_success_definition
    });
    return result(id,'completed',{current_score:base,observed_change:growth,age:derivedAge,potential_indicator:potential,
      development_forecast:developmentForecast,outcome_forecast:outcomeForecast,
@@ -208,7 +208,7 @@ function evaluationHandler(id,input){
    const indicator=Math.round(clamp(current+(observedChange===null?0:Math.max(-10,Math.min(10,observedChange))*.5)+(ageFactor===null?0:ageFactor)));
    const developmentForecast=forecastMessinhoPlayerDevelopment(rows,{horizonMonths:12});
    const outcomeForecast=forecastMessinhoPlayerOutcome(input.success_history||input.verified_success_outcomes||[],{
-     position_group:normalizedPosition(p),age,current_score:current
+     position_group:normalizedPosition(p),age,current_score:current,success_definition:input.success_definition||input.target_success_definition
    });
    return result(id,'completed',{current_score:current,potential_indicator:indicator,observed_change:observedChange,age,
      development_forecast:developmentForecast,outcome_forecast:outcomeForecast,
@@ -271,14 +271,16 @@ function evaluationHandler(id,input){
  }
  if(id==='transfer_priority'){
    const candidates=getPlayers(input);
-   if(!candidates.length)return missingResult(id,['candidate_scores','club_needs']);
    const ranked=rankPlayers(candidates).map((x,i)=>({...x,priority:i+1}));
    const transferForecast=forecastMessinhoTransferProbability(input.transfer_history||[],{
      position_group:input.target_position_group||normalizedPosition(p),
      target_level:input.target_level||input.target_league||''
    });
-   return result(id,'completed',{prioritized:ranked,transfer_forecast:transferForecast,
-     limitations:transferForecast.status==='completed'?transferForecast.limitations:['Eine historische Wechselrate wird nur mit mindestens 30 verifizierten, positions- und zielniveaugleichen Fällen ausgegeben.']});
+   const transferScenario=forecastMessinhoTransferScenario({evidence:input.transfer_evidence||[],contractSnapshots:input.contract_history||[]});
+   if(!ranked.length&&transferForecast.status!=='completed'&&transferScenario.status!=='completed')
+     return missingResult(id,['candidate_scores','club_needs','verified_transfer_evidence']);
+   return result(id,'completed',{prioritized:ranked,transfer_forecast:transferForecast,transfer_scenario:transferScenario,
+     limitations:[...(transferForecast.limitations||[]),...(transferScenario.limitations||[])]});
  }
  if(id==='scout_rating_agreement'){
    const ratings=asArray(input.scout_assessments).map(x=>finite(x.score??x.rating)).filter(v=>v!==null);

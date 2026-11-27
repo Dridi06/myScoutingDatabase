@@ -229,3 +229,9 @@ test('cooperative stop preserves pending capabilities and never reports completi
  assert.equal(run.deferred_capabilities.length,plan.steps.length);
  assert.ok(checks>=1);
 });
+
+
+test('transfer forecast vocabulary routes to transfer-priority analysis',()=>{
+ const plan=planMessinhoCapabilities('Wie wahrscheinlich ist ein Mannschaftswechsel dieses Spielers?','admin');
+ assert.ok(plan.steps.includes('transfer_priority'));
+});

@@ -23,14 +23,17 @@ test('review schedule enforces both Berlin work windows and rest periods',()=>{
  assert.equal(morning.review_date,'2026-11-27');
 });
 function mockDb({claimError=null,mode='developing',stopRequested=false}={}){
- const state={claim:null,update:null,control:{mode,stop_requested:stopRequested}};
+ const state={claim:null,update:null,control:{mode,stop_requested:stopRequested,updated_by:'admin-uuid'}};
  return {
   state,
   from(table){
    if(table==='messinho_agent_control'){
     return {select(){return {eq(){return {maybeSingle:async()=>({data:state.control,error:null})};}};}};
    }
-   assert.equal(table,'messinho_engineering_review_runs');
+   if(table==='messinho_myki_tickets')return {select(){return {eq(){return {maybeSingle:async()=>({data:state.ticket||null,error:null})};}};}};
+  if(table==='messinho_engineering_jobs')return {insert(row){state.job=row;return Promise.resolve({error:null});},update(row){state.jobUpdate=row;return {eq:async()=>({error:null})};}};
+  if(table==='messinho_myki_ticket_events')return {insert(row){state.event=row;return Promise.resolve({error:null});}};
+  assert.equal(table,'messinho_engineering_review_runs');
    return {
     insert(row){
      state.claim=row;
@@ -99,4 +102,22 @@ test('does not persist a proposal when the work window ends during generation',a
  });
  assert.equal(result.status,'stopped');assert.equal(persisted,false);
  assert.equal(db.state.update.error_code,'WORK_WINDOW_ENDED');
+});
+
+
+test('a real autonomous proposal is dispatched only to the isolated STAGING sandbox',async()=>{
+ const db=mockDb();
+ db.state.ticket={id:'123e4567-e89b-12d3-a456-426614174001',diff:'bounded patch content',baseline_id:'feature/messinho-unified-ai-integration@'+'b'.repeat(40)};
+ let dispatched=null;
+ const now=new Date('2026-11-27T02:00:00Z');
+ const result=await runMessinhoScheduledEngineeringReview({db,now,getCurrentTime:()=>now,
+  generate:async()=>({ok:true,proposal:{title:'test'},source_sha:'b'.repeat(40)}),
+  persist:async()=>({ok:true,duplicate:false,ticket_id:'MYKI-TEST'}),
+  env:{MESSINHO_SANDBOX_GITHUB_TOKEN:'configured'},sandboxAllowed:()=>true,
+  hashPatch:()=> 'f'.repeat(64),makeJobId:()=> '123e4567-e89b-12d3-a456-426614174000',
+  dispatch:async({job})=>{dispatched=job;return {ok:true};}
+ });
+ assert.equal(result.status,'ticket_created');assert.equal(result.sandbox_status,'queued');
+ assert.equal(db.state.job.status,'queued');assert.equal(db.state.job.requested_by,'admin-uuid');
+ assert.equal(dispatched.ticket_id,db.state.ticket.id);assert.equal(db.state.event.action,'sandbox_dispatched');
 });

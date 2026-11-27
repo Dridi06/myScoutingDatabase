@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainableAssessment, generateMessinhoHypotheses, forecastMessinhoPlayerDevelopment, forecastMessinhoTransferProbability, forecastMessinhoPlayerOutcome, forecastMessinhoMarketValue } from '../backend/messinho-development.js';
+import { analyzeMessinhoMatch, auditMessinhoPredictions, buildMessinhoExplainableAssessment, generateMessinhoHypotheses, forecastMessinhoPlayerDevelopment, forecastMessinhoTransferProbability, forecastMessinhoPlayerOutcome, forecastMessinhoMarketValue, forecastMessinhoTransferScenario } from '../backend/messinho-development.js';
 
 test('explainable assessment exposes score trace and missing dimensions',()=>{
  const result=buildMessinhoExplainableAssessment({positions:['Stürmer'],ratings:{Technik:4,Taktik:4,Athletik:3,Mental:4}});
@@ -84,13 +84,13 @@ test('transfer forecast reports only verified comparable cohort base rates',()=>
 
 test('player outcome forecast requires verified peers with comparable age and score',()=>{
  const cases=Array.from({length:35},(_,i)=>({
-  verification_status:i<32?'verified':'pending',position_group:'striker',age:20+(i%3),current_score:70+(i%5),success:i%3!==0
+  verification_status:i<32?'verified':'pending',position_group:'striker',success_definition:'first_team_500_minutes',age:20+(i%3),current_score:70+(i%5),success:i%3!==0
  }));
- const result=forecastMessinhoPlayerOutcome(cases,{position_group:'striker',age:21,current_score:72});
+ const result=forecastMessinhoPlayerOutcome(cases,{position_group:'striker',age:21,current_score:72,success_definition:'first_team_500_minutes'});
  assert.equal(result.status,'completed');
  assert.equal(result.verified_comparable_cases,32);
  assert.equal(result.failed_outcomes+result.successful_outcomes,32);
- const tooSmall=forecastMessinhoPlayerOutcome(cases.slice(0,20),{position_group:'striker',age:21,current_score:72});
+ const tooSmall=forecastMessinhoPlayerOutcome(cases.slice(0,20),{position_group:'striker',age:21,current_score:72,success_definition:'first_team_500_minutes'});
  assert.equal(tooSmall.status,'insufficient_data');
 });
 
@@ -106,4 +106,27 @@ test('market value projection uses only verified EUR history and remains distinc
  assert.ok(result.forecast.projected_value_eur>2000000);
  assert.equal(result.confidence_is_calibrated,false);
  assert.equal(forecastMessinhoMarketValue(history.slice(0,2)).status,'insufficient_data');
+});
+
+
+test('success forecast refuses to mix undefined success criteria',()=>{
+ const cases=Array.from({length:35},()=>({verification_status:'verified',position_group:'striker',success_definition:'first_team_500_minutes',age:21,current_score:72,success:true}));
+ const result=forecastMessinhoPlayerOutcome(cases,{position_group:'striker',age:21,current_score:72});
+ assert.equal(result.status,'insufficient_data');
+ assert.ok(result.missing_inputs.includes('success_definition'));
+});
+
+test('transfer scenario requires approved independent evidence and verified contract state',()=>{
+ const now=Date.parse('2026-11-27T12:00:00Z');
+ const evidence=['club-a.example','league-b.example'].map((host,i)=>({
+  id:'e'+i,claim_type:'transfer_rumour',event_date:'2026-11-10',publisher:'source-'+i,source_url:'https://'+host+'/news',
+  identity_status:'matched',verification_status:'confirmed',review_status:'approved',legal_review_status:'approved',data_classification:'ordinary'
+ }));
+ const contract=[{is_current:true,verification_status:'confirmed',contract_status:'expiring',contract_end:'2027-03-01'}];
+ const result=forecastMessinhoTransferScenario({evidence,contractSnapshots:contract,now,horizonDays:180});
+ assert.equal(result.status,'completed');
+ assert.equal(result.scenario,'elevated_transfer_signals');
+ assert.equal(result.probability,null);
+ const rejected=forecastMessinhoTransferScenario({evidence:evidence.map(x=>({...x,review_status:'pending'})),contractSnapshots:[],now});
+ assert.equal(rejected.status,'insufficient_data');
 });

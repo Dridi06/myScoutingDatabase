@@ -177,11 +177,11 @@ test('development projection exposes evidence-gated 12-month and outcome cohort 
   {verification_status:'verified',date:'2026-01-01',score:70}
  ];
  const success_history=Array.from({length:32},(_,i)=>({
-  verification_status:'verified',position_group:'striker',age:20+(i%3),current_score:70+(i%5),success:i%3!==0
+  verification_status:'verified',position_group:'striker',success_definition:'first_team_500_minutes',age:20+(i%3),current_score:70+(i%5),success:i%3!==0
  }));
  const forecast=executeMessinhoCapability('development_projection',{
   player:{name:'Test',positions:['Stürmer'],ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4},age:21},
-  time_series,success_history
+  time_series,success_history,success_definition:'first_team_500_minutes'
  });
  assert.equal(forecast.status,'completed');
  assert.equal(forecast.result.development_forecast.status,'completed');
