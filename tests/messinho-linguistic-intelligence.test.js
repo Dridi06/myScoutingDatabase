@@ -109,10 +109,11 @@ test('detects correction, explanation and rephrasing actions',()=>{
   assert.equal(buildMessinhoLinguisticContext('Explique cette expression.',[]).action.mode,'explain');
   assert.equal(buildMessinhoLinguisticContext('Rephrase this for me.',[]).action.mode,'rephrase');
 });
-test('recognizes Tunisian Arabizi and normalizes common digit letters separately',()=>{
+test('recognizes Tunisian Arabizi translation target and normalizes common digit letters separately',()=>{
   const result=buildMessinhoLinguisticContext('Tarjemli hedha bil anglais, 3lech?',[]);
   assert.equal(result.action.mode,'translate');
-  assert.equal(result.action.target_language,null);
+  assert.equal(result.action.target_language,'en');
+  assert.equal(result.action.requires_clarification,false);
   assert.equal(normalizeMessinhoArabizi('3lech 5ater 7atta 9addech'),'عlech خater حatta قaddech');
 });
 test('normal conversation defaults to answer mode',()=>{
