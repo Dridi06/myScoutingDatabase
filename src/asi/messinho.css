@@ -451,3 +451,19 @@
 .messinho-workspace .messinho-knowledge-sources{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:3px;padding-top:8px;border-top:1px solid rgba(163,185,211,.13)}
 .messinho-workspace .messinho-knowledge-sources>small{color:#93a9c3;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
 .messinho-workspace .messinho-knowledge-sources a{display:block;max-width:100%;color:#b9d0ef;font-size:11px;line-height:1.5;overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:3px}
+
+
+/* Client-safe linguistic metadata: readable language label for both roles,
+   semantic interpretation hints are rendered only in the Admin workspace. */
+.messinho-language-note,
+.messinho-semantic-note{
+  display:block;
+  margin-top:6px;
+  color:var(--text-muted, #a9a9a9);
+  font-size:.72rem;
+  line-height:1.4;
+}
+.messinho-semantic-note{
+  padding-top:5px;
+  border-top:1px solid rgba(212,175,55,.18);
+}
