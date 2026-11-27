@@ -4268,3 +4268,44 @@ Dieser Abschnitt ersetzt für die autonome Engineering-Planung die ältere Angab
 - Production wurde nicht verändert.
 - Nach der Migration meldet der Supabase-Advisor weiterhin offene, getrennt zu bearbeitende Punkte: eine SECURITY DEFINER-Freigabefunktion ist für authenticated ausführbar; der Schutz vor kompromittierten Passwörtern ist deaktiviert; vier Foreign-Key-Spalten haben keinen unterstützenden Index. Die zwölf RLS-Tabellen ohne Policies sind derzeit bewusst service-role-only und müssen bei einer späteren Änderung erneut geprüft werden.
 - MESSINHO bleibt pausiert, bis der GitHub-Sandbox-Token und die STAGING-Sandbox-Freigaben nachgewiesen sind und ein echter Kandidatenlauf samt Rückmeldung erfolgreich war.
+
+
+## 17. Sprachintelligenz — sechs Sprachprofile — 2026-11-27
+
+### Verbindliche Sprachentscheidung
+MESSINHO erhält eine mehrsprachige Sprachintelligenz für:
+1. Deutsch (de)
+2. Englisch (en)
+3. Französisch (fr)
+4. Hocharabisch / Modern Standard Arabic (ar)
+5. Tunesisch-Arabisch / Derja (ar-tn), sowohl arabische Schrift als auch lateinische Umschrift (Arabizi)
+6. Spanisch (es)
+
+Hocharabisch und tunesische Derja sind getrennte Sprachprofile. MESSINHO soll zusätzlich gemischte Nachrichten (Code-Switching), unterschiedliche Schriftsysteme und den Wechsel der Sprache innerhalb eines Gesprächs berücksichtigen.
+
+### Implementierung auf dem Feature-Branch
+- Neues Modul: backend/messinho-linguistic-intelligence.js.
+- Neue Tests: tests/messinho-linguistic-intelligence.test.js.
+- Integration: backend/server.js erzeugt für jede Chatnachricht einen Sprachkontext, gibt eine kompakte Sprachdiagnose als Antwortmetadatum zurück und übergibt dem Chatmodell die Sprachregeln und erkannte Signale.
+- Erkannte Signale umfassen unter anderem Frage-/Korrektur-/Übersetzungsabsicht, Verneinung, Unsicherheit, Kontrast, Höflichkeit, Tokenanzahl und Schriftsysteme.
+- Der Sprachkontext fordert Antworten grundsätzlich in der Sprache der letzten Nutzernachricht, bewahrt Bedeutungsnuancen und behandelt Dialekt nicht als fehlerhafte Standardsprache.
+- Tunisian Derja wird getrennt über arabische Dialektmerkmale und lateinische Arabizi-Ausdrücke erkannt. Bei niedriger Sicherheit wird keine Sprache erzwungen.
+- Die Sprachprofile enthalten eine erste strukturierte Grammatik-/Kompetenz-Taxonomie (z. B. deutsche Fälle und Wortstellung, französische Genus-/Kongruenzregeln, arabische Wurzelmuster, tunesische Dialekt- und Arabizi-Erkennung). Das ist eine Grundlage für den weiteren Wissensaufbau, noch kein vollständiges Grammatiklexikon.
+
+### Recht und Datenqualität
+- Es wurde kein Duden-Inhalt kopiert oder importiert. Der Duden bleibt eine mögliche Referenz, soweit eine rechtmäßige Nutzung/Lizenz vorliegt.
+- Das neue Modul enthält nur eine kleine, selbst formulierte Startmenge an Erkennungsmerkmalen und keine vollständige Wörterbuchdatenbank.
+- Sprachdetektion ist ein Hinweis und kein Beweis für die tatsächliche Sprache. Mehrdeutige Kurztexte bleiben bewusst unbestimmt.
+- Das Modul übersetzt und korrigiert den Text nicht automatisch und behauptet keine vollständige Sprachbeherrschung.
+- Die dauerhafte Grammatik-/Wortschatz-Wissensbasis muss weiter über das bestehende versionierte Wissensgraph-/Rechteverfahren aufgebaut werden: Herkunft, Lizenz, Version, Prüfstatus, Konfidenz und Admin-Freigabe bleiben verpflichtend.
+
+### Verifikation / offene Punkte
+- Testfälle wurden für sechs Sprachprofile, tunesisches Arabisch in beiden Schriften, Code-Switching, Mehrdeutigkeit, Gesprächskontinuität und Nuancensignale angelegt.
+- Die Tests wurden mit dem Commit noch nicht ausgeführt. Es liegt daher noch kein Testergebnis vor.
+- CI, Backend-Syntaxprüfung, STAGING-Deployment und authentifizierte Browser-/Chat-E2E-Prüfung stehen aus.
+- Vor STAGING-Freigabe müssen besonders Fehlklassifikationen zwischen Hocharabisch und Derja, kurze Nachrichten, regionale Varianten und mehrsprachige Sätze geprüft werden.
+- Der Chat bleibt 24/7 verfügbar; diese Änderung verändert weder den autonomen Entwicklungszeitplan noch die pausierte Engineering-Steuerung.
+- Scout/Admin-Rollen und die bestehenden Admin-only Systembefehle werden durch die Sprachdiagnose nicht erweitert.
+
+### Änderungsprotokoll
+| 2026-11-27 | MESSINHO soll normale Konversation mit Grammatik- und Wortschatzverständnis in Deutsch, Englisch, Französisch, Arabisch, Tunesisch und Spanisch unterstützen. | In Feature-Branch implementiert; Verifikation offen | Hocharabisch und tunesische Derja getrennt; Derja arabische Schrift und Arabizi; keine Duden-Vollkopie; bestehende Wissensgraph-/Rechte-Governance bleibt maßgeblich. |
