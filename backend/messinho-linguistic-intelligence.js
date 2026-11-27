@@ -64,7 +64,7 @@ function inferConversationSignals(text, tokens, languageId) {
     'pourquoi','comment','quoi','qui','où','cuándo','cómo','qué','quién','dónde',
     'علاش','شنوة','شنو','كيفاش','كيف','وين','متى','أين','لماذا','هل'
   );
-  const politeness = has('bitte','please','merci','por','favor','شكرا','عافاك','عيشك') ||
+  const politeness = has('bitte','please','merci','شكرا','عافاك','عيشك') || hasPhrase('por favor') ||
     hasPhrase('s\\'il vous plaît','من فضلك','لو سمحت');
   const negation = has(
     'nicht','kein','keine','keinen','no','not','pas','ne','nunca','jamás',
@@ -72,11 +72,11 @@ function inferConversationSignals(text, tokens, languageId) {
   );
   const uncertainty = has(
     'vielleicht','eigentlich','wohl','eventuell','maybe','perhaps','possibly',
-    'peut-être','peut','quizás','quizas','talvez','ربما','يمكن','ممكن'
+    'peut-être','quizás','quizas','talvez','ربما','يمكن','ممكن'
   );
   const contrast = has(
     'aber','jedoch','doch','but','however','although','mais','pourtant','pero',
-    'sin','aunque','لكن','أما','بل','مع','ذلك'
+    'aunque','لكن','أما','بل'
   ) || hasPhrase('مع ذلك','sin embargo','en revanche');
   const intent = questions ? 'question' :
     has('übersetze','translate','traduire','traduce','ترجم','tarjem','tarjemli') ? 'translation_request' :
