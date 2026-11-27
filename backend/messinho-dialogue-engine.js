@@ -30,9 +30,9 @@ export function classifyMessinhoFollowUp(message, {assistantAwaitingAnswer = fal
   const text = cleanText(message, 500);
   if (!text) return 'none';
   if (assistantAwaitingAnswer && wordCount(text) <= 16) return 'pending_question_reply';
+  if (SHORT_FOLLOW_UP_PATTERN.test(text)) return 'short_reply';
   if (CONNECTOR_PATTERN.test(text)) return 'discourse_connector';
   if (REFERENTIAL_QUESTION_PATTERN.test(text)) return 'referential_question';
-  if (SHORT_FOLLOW_UP_PATTERN.test(text)) return 'short_reply';
   return 'none';
 }
 export function buildMessinhoDialogueState({message,history=[],userRole='scout',linguisticContext=null}={}) {
