@@ -70,7 +70,7 @@ test('linguistic analysis attaches grammar evidence for every detected language 
     ['fr','Le joueur est très fort.'],
     ['es','La jugadora juega muy bien.'],
     ['ar','اللاعب ليس جاهزا للفريق.'],
-    ['ar-tn','اللاعب ما يلعبش اليوم.']
+    ['ar-tn','شنوة اللاعب ما يلعبش اليوم؟']
   ];
   for(const [language,text] of samples){
     const result=analyzeMessinhoLanguage(text);
