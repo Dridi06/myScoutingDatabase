@@ -2,6 +2,7 @@ const REPOSITORY='Dridi06/myScoutingDatabase';
 const BRANCH='feature/messinho-unified-ai-integration';
 const WORKFLOW='messinho-isolated-engineering.yml';
 const shaPattern=/^[a-f0-9]{40}$/i;
+const hashPattern=/^[a-f0-9]{64}$/i;
 const uuidPattern=/^[0-9a-f-]{36}$/i;
 
 export async function dispatchMessinhoSandboxJob({job,env=process.env,fetchImpl=fetch}={}) {
@@ -9,7 +10,7 @@ export async function dispatchMessinhoSandboxJob({job,env=process.env,fetchImpl=
   const token=String(env.MESSINHO_SANDBOX_GITHUB_TOKEN||'');
   if(!token)return {ok:false,code:'SANDBOX_GITHUB_CREDENTIAL_MISSING'};
   if(!job||!uuidPattern.test(String(job.job_id||''))||!uuidPattern.test(String(job.ticket_id||''))||
-     !shaPattern.test(String(job.source_sha||''))||!shaPattern.test(String(job.patch_sha256||''))||
+     !shaPattern.test(String(job.source_sha||''))||!hashPattern.test(String(job.patch_sha256||''))||
      typeof job.patch!=='string'||job.patch.length<20||job.patch.length>24000)
     return {ok:false,code:'SANDBOX_JOB_INVALID'};
   const headers={Accept:'application/vnd.github+json',Authorization:'Bearer '+token,
