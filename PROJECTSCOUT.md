@@ -9,7 +9,7 @@
 - **Production branch:** `main`
 - **Production URL:** https://myscoutingdatabase.onrender.com
 - **Document owner:** Project owner / user
-- **Last updated:** 2026-11-26
+- **Last updated:** 2026-11-27
 - **Document status:** Active — authoritative project record
 
 ---
@@ -4185,3 +4185,76 @@ Dieser Abschnitt ersetzt für die autonome Engineering-Planung die ältere Angab
 - Staging-Health-Smoke-Test bestanden.
 - Isolierter Engineering-Sandbox-Workflow läuft als Push-Baseline. Da kein validierter Job-Payload über workflow_dispatch übergeben wurde, ist damit noch kein echter Kandidaten-Patch geprüft und kein STAGING-Ergebnis-Callback belegt.
 - Render-STAGING ist separat manuell zu deployen; Auto-Deploy ist deaktiviert. Production wurde nicht verändert.
+
+
+## Checkpoint — 2026-11-27 02:24 CET — verified repository, STAGING and database state
+
+### Binding operating boundary
+- Project: `myScoutingDatabase` / MESSINHO only. PFMS/PFSS are excluded.
+- Working branch: `feature/messinho-unified-ai-integration`. The dedicated Render STAGING service is configured to this branch; auto-deploy remains disabled.
+- Production `main`, production Render and production Supabase are not to be changed. PR #47 remains Draft and unmerged.
+- Branch comparison against `main` reports `diverged`, 969 commits ahead and 1 behind. Do not merge or rebase as part of this checkpoint; preserve the isolated STAGING workflow.
+- Main HEAD observed during this audit: `38780d357384c7a2473e16bfabfe949017450042`.
+
+### Verified STAGING deployment
+- Render service: `myscoutingdatabase-messinho-staging`, ID `srv-dc3chlqjnfac73acd6ig`.
+- URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- Latest listed deployment: `dep-dc4coauq1p3s73djppfg`.
+- Deployed commit: `1fa757abfae08703aa64a315bcbf5ca4907ba516`.
+- Render status: `live`, completed `2026-11-27T00:18:23Z`.
+- Build logs for this deployment show **370 tests passed, 0 failed**, followed by Vite build success (1,639 modules transformed), successful `npm start`, API listening on port 10000, Supabase Data API HTTP 200, and Tavily/OpenAI configured.
+- The current combined GitHub commit-status query returned no status entries and the commit-workflow-runs query returned no runs. Therefore the 370-test claim above is grounded in Render build logs, not a separate GitHub Actions run assertion.
+- This verifies the STAGING runtime start and build, not every authenticated UI, Scout/Admin, research, memory, or sandbox workflow.
+
+### Current MESSINHO operating state
+- STAGING database `messinho_agent_control` currently reports `mode='paused'`, `stop_requested=true`, with status message that activation requires an administrator.
+- The scheduler source defines Europe/Berlin work windows 03:00–08:00 and 10:00–23:00; 08:00–10:00 is a break and 23:00–03:00 is night rest.
+- The scheduler is opt-in and requires the explicit STAGING service gate, provider/database configuration and a developing admin control state. Do not claim autonomous scheduled work is running while the global control row is paused.
+
+### Knowledge foundation — live STAGING database observation
+- STAGING Supabase project: `nwqwnrhupbyhshsprxjt`.
+- Read-only database inspection confirms the knowledge concept, link and version tables exist.
+- Current row counts: `messinho_knowledge_concepts=1`, `messinho_knowledge_links=0`, `messinho_knowledge_versions=3`, legacy `messinho_domain_knowledge=0`.
+- No broad specialist knowledge import has been completed. The knowledge architecture is present, but the knowledge corpus is not yet populated.
+- Engineering ledger counts at audit time: `messinho_engineering_jobs=0`, `messinho_engineering_memory=0`, `messinho_engineering_review_runs=0`, `messinho_myki_tickets=0`.
+- These are point-in-time counts; do not infer future activity from them.
+
+### Engineering sandbox and programming intelligence
+- Implemented source files include the dedicated compiler image, isolated GitHub Actions workflow, staging dispatcher, GitHub OIDC identity verifier, engineering proposal/memory helpers, and language-aware code intelligence.
+- The programming curriculum defines 11 language/tooling areas and is integrated into the existing Admin MESSINHO programming context. This is structured learning content, not proof of expert practical mastery or neural-weight training.
+- The isolated runner is designed for a pinned feature-branch SHA, bounded patch/path validation, a non-root network-disabled container, resource limits, evidence callback and Admin review.
+- First recorded sandbox baseline was inconclusive because a read-only dependency symlink prevented Vite from resolving Rollup. The dependency copy was changed to a physical copy; the follow-up run is not yet recorded as passed in the sandbox implementation note.
+- Required GitHub Actions token and explicit sandbox enablement are documented as not yet configured. Do not claim the automatic sandbox is available to MESSINHO or that candidate patches have been executed successfully.
+- A sandbox test result, Admin approval of programming memory, repository integration and STAGING deployment are separate gates.
+
+### myKI and Scout command boundaries
+- Source code contains a central command guard for requests that attempt to change MESSINHO, the platform, system configuration, knowledge, model, autonomy or permissions.
+- Ticket transitions require an approved Admin; the code currently rejects the `integrating` transition until the isolated executor is authorized and rejects `integrated` unless tests, security, tenant isolation, STAGING deployment and health checks are all verified.
+- Ticket proposal creation is connected to a trusted Admin agent result path. The database currently contains zero myKI tickets.
+- These source-level safeguards do not replace authenticated adversarial E2E tests for Scout, unapproved Admin and approved Admin roles. Do not report those role tests as complete until executed.
+
+### Concrete blocker found — scheduler/database contract mismatch
+- Current scheduler code inserts and reads `review_slot` in `messinho_engineering_review_runs`.
+- The live STAGING table currently has no `review_slot` column; its columns are `id, review_date, status, started_at, finished_at, source_sha, ticket_id, error_code, created_at`.
+- The branch contains migration `supabase/migrations/20261127200000_messinho_engineering_work_windows.sql`, which adds `review_slot` and replaces date-only uniqueness with date/slot uniqueness. The STAGING migration history does not show this migration as applied.
+- Therefore the scheduler's multi-slot idempotency contract is not yet compatible with the current STAGING schema. Do not enable scheduled engineering until the migration is reviewed, applied only to the dedicated STAGING database, and verified with focused tests.
+- No migration was applied and no database rows or settings were changed during this audit.
+
+### Supabase advisor observations
+- Security advisor reports 12 `RLS enabled / no policy` informational findings on tables intentionally restricted to backend service-role access. Verify grants and API exposure before changing these; do not add broad browser policies just to silence the advisor.
+- It also reports a warning for `admin_set_scout_approval` being callable by authenticated users as SECURITY DEFINER, and a warning that leaked-password protection is disabled. The RPC is documented as narrowly scoped with Admin checks; review its grants and function body before any change. Leaked-password protection remains a STAGING Auth configuration follow-up.
+- No security setting was changed during this audit.
+
+### Next work — ordered, do not repeat completed tasks
+1. Fix the scheduler/database mismatch safely: review migration `20261127200000_messinho_engineering_work_windows.sql`, add/confirm migration tests, apply only to STAGING, verify `review_slot` and unique date/slot behavior. Keep MESSINHO paused until the owner explicitly activates it.
+2. Confirm the sandbox follow-up run against the exact candidate SHA; capture its workflow run, job logs and callback evidence. If not passed, diagnose the actual failure before retrying.
+3. Configure only the dedicated STAGING sandbox credentials and explicit enablement after security review; never copy production credentials or enable code execution in the API process.
+4. Run approved-Admin and Scout role E2E tests for myKI, protected commands, ticket visibility, copy, and status transitions. No Scout may issue platform-changing commands.
+5. Complete authenticated STAGING checks for the existing chat, maths, research, memory/task persistence and diagnostics using dedicated test accounts.
+6. Only after those gates pass, begin the governed knowledge import using rights-cleared sources and the existing concept/version graph. Do not bulk-import PDFs/books or treat unreviewed candidates as verified knowledge.
+7. Re-run full tests, security/advisor review and exact-deployment health checks; update this record after each meaningful milestone.
+
+### Audit scope and non-mutation statement
+- Read-only GitHub, Render log/service/deployment and STAGING Supabase inspections were performed.
+- No source code, branch ref, PR, Render environment variable, deployment setting, database schema, database row, user/scout/player record or model weight was changed by this audit.
+- This checkpoint records observed state; it is not a release, integration approval, production change or declaration of full completion.
