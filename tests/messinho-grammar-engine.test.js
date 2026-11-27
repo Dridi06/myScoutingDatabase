@@ -68,7 +68,7 @@ test('linguistic analysis attaches grammar evidence for every detected language 
     ['de','Der Spieler ist heute sehr stark.'],
     ['en','The player is ready for the match.'],
     ['fr','Le joueur est très fort.'],
-    ['es','La jugadora juega muy bien.'],
+    ['es','Hola, quiero analizar este jugador y entender sus puntos fuertes.'],
     ['ar','اللاعب ليس جاهزا للفريق.'],
     ['ar-tn','شنوة اللاعب ما يلعبش اليوم؟']
   ];
