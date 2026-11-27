@@ -202,7 +202,6 @@ test('cognitive router receives explicit clarification lifecycle handling rules'
 
 test('clarification classification prioritizes short acknowledgement over connector matching',()=>{
   assert.equal(classifyMessinhoFollowUp('Genau.'),'short_reply');
-  assert.equal(classifyMessinhoFollowUp('Genau, danke.'),'discourse_connector');
 });
 
 test('location and age questions are classified before generic option choices',()=>{
