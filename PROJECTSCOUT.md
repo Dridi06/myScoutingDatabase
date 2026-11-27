@@ -4313,13 +4313,13 @@ Hocharabisch und tunesische Derja sind getrennte Sprachprofile. MESSINHO soll zu
 
 ## 17. Aktueller STAGING-Release und Freigabestatus — 2026-11-27
 
-- Render-STAGING-Service srv-dc3chlqjnfac73acd6ig ist mit Commit a1e272da3a32a2cea63cf661b7af1624d9b161d6 live; Deployment dep-dc4drcc9v7es73el86eg meldet status live.
+- Render-STAGING-Service srv-dc3chlqjnfac73acd6ig ist mit Commit 5c2676a85d5e5f126445bebfc1d7bc775d128cae live; Deployment dep-dc4dvj6c6qcc73d9iucg meldet status live.
 - Runtime-Logs bestätigen API-Start, Supabase Data API HTTP 200 sowie konfigurierte Tavily- und OpenAI-Verbindung.
 - 422/422 Node-Tests bestanden; Backend-Syntax, Staging-Branch-CI, Health-Smoke und Vite-Produktionsbuild bestanden.
 - Supabase-STAGING-Migration 20261127012816_messinho_engineering_work_windows ist angewendet; review_slot und Composite-Unique-Index sind vorhanden.
-- messinho_agent_control bleibt absichtlich mode=paused und stop_requested=true. Es wurde kein autonomer Lauf gestartet.
+- messinho_agent_control steht aktuell auf mode=working und stop_requested=false. Der Status lautet: wartet auf konkrete Admin-Aufträge. Das ist manueller Arbeitsmodus, nicht der autonome Entwicklungsmodus developing.
 - MESSINHO_SANDBOX_GITHUB_TOKEN und die explizite Sandbox-Freigabe sind laut STAGING-Audit noch nicht konfiguriert. Der Push-Workflow besitzt keinen Kandidaten-Payload; daher liegt noch kein echter Compiler-/Kandidatenlauf mit Ergebnis-Callback vor.
-- STAGING enthält derzeit 0 Spieler, 0 External-Evidence-Datensätze, 0 Vertrags-Snapshots, 0 Prognose-Datensätze und 0 verifizierte Prognose-Outcomes. Die Prognosepipeline ist integriert, aber echte individuelle Prognosen benötigen zuerst Spielerdaten und verifizierte Historien.
+- STAGING enthält derzeit 0 Spieler, 0 External-Evidence-Datensätze, 0 Vertrags-Snapshots, 0 Prognose-Datensätze und 0 verifizierte Prognose-Outcomes; die Sprachwissensbasis enthält 36 Versionszeilen. Die Prognosepipeline ist integriert, aber echte individuelle Prognosen benötigen zuerst Spielerdaten und verifizierte Historien.
 - Production wurde nicht verändert. Kein automatisches Merge, keine automatische Integration und kein Production-Deployment.
 - Nächster Freigabeschritt: fein granularen GitHub-Token direkt in Render-STAGING als Secret MESSINHO_SANDBOX_GITHUB_TOKEN hinterlegen (nur Repository Dridi06/myScoutingDatabase; Actions write, Contents read), MESSINHO_SANDBOX_ENABLED=true und MESSINHO_STAGING_RENDER_SERVICE_ID=srv-dc3chlqjnfac73acd6ig setzen. Danach echten Kandidatenlauf auslösen, Callback und Audit prüfen und erst anschließend den Admin-Modus auf Weiterentwickeln setzen.
 
@@ -4349,7 +4349,7 @@ Hocharabisch und tunesische Derja sind getrennte Sprachprofile. MESSINHO soll zu
 ### Tests / CI
 - Auf Commit `35c2579807c8e93ded6adaca595a7a5afa6055a5` waren Node-Tests, Backend-Syntax, Staging-Branch-CI und Staging-Health-Smoke erfolgreich.
 - Anschließend wurden ein reales Schema-Problem (`updated_at` statt `created_at`) behoben und ein Regressionstest für die Spaltenauswahl ergänzt. Die endgültigen Prüfungen für die nachfolgenden Commits müssen erneut abgewartet und auf dem exakten HEAD bestätigt werden.
-- Der isolierte Engineering-Sandbox-Lauf ist noch nicht abgeschlossen; ein erfolgreicher Compiler-/Kandidatenlauf und Callback sind nicht belegt.
+- Der isolierte Engineering-Sandbox-Workflow wurde mehrfach durch neue Branch-Commits abgebrochen. Es liegt weiterhin kein Kandidaten-Payload und kein erfolgreicher Compiler-/Kandidatenlauf mit Callback vor.
 
 ### Release-Grenzen
 - Render-STAGING Auto-Deploy ist deaktiviert. Eine neue Bereitstellung erfolgt erst nach erfolgreicher Prüfung des exakten Branch-HEAD und ausdrücklicher Freigabe.
@@ -4366,3 +4366,9 @@ Hocharabisch und tunesische Derja sind getrennte Sprachprofile. MESSINHO soll zu
 - Render-STAGING ist weiterhin auf Auto-Deploy OFF. Letzter erfolgreicher Deploy vor der neuen Korrektur: Commit `35c2579807c8e93ded6adaca595a7a5afa6055a5`. Die Korrektur mit `created_at` und unverändertem Originaltext ist daher noch nicht live.
 - Supabase-Kontrollstatus wurde aktuell erneut gelesen: `mode=working`, `stop_requested=false`, Statusmeldung „MESSINHO wartet auf konkrete Admin-Aufträge.“ Keine aktiven Tasks gefunden. Während dieses Arbeitsschritts wurde der Betriebsmodus nicht verändert. Frühere pauschale Dokumentationsangaben „paused“ sind anhand des aktuellen Live-Werts nicht bestätigt und müssen bei der nächsten Betriebsprüfung abgeglichen werden.
 - Nächster Schritt bleibt ein gezielter STAGING-Deploy nach Bestätigung des Render-Workspaces, gefolgt von Health-/Runtime- und authentifizierten Chattests. Production bleibt unangetastet.
+
+
+### 18.1 Migrationshistorie-Hinweis
+- Die Remote-Migrationshistorie enthält zusätzlich zwei idempotente Registrierungen mit den Versionen 20261127013647 und 20261127013650, die bei einer erneuten Registrierung derselben Sprachwissensmigrationen entstanden sind.
+- Die Tabellenprüfung zeigt weiterhin 30 eindeutige Eintragsschlüssel und 36 Versionszeilen; es wurden keine Wissenseinträge verdoppelt.
+- Die ursprünglichen, tatsächlich passenden Repository-Migrationsdateien bleiben 20261127013548 und 20261127013559. Die zusätzlichen Remote-Historieneinträge werden nicht gelöscht; vor einem späteren Supabase-CLI-db-push ist die Migrationshistorie separat abzugleichen.
