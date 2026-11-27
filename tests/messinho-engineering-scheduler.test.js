@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {getMessinhoEngineeringReviewSchedule,isMessinhoEngineeringAutoReviewEnabled,runMessinhoScheduledEngineeringReview} from '../backend/messinho-engineering-scheduler.js';
+import {buildMessinhoSelfRepairGoal,getMessinhoEngineeringReviewSchedule,isMessinhoEngineeringAutoReviewEnabled,runMessinhoScheduledEngineeringReview} from '../backend/messinho-engineering-scheduler.js';
 
 const staging={MESSINHO_ENGINEERING_AUTOREVIEW_ENABLED:'true',RENDER:'true',RENDER_SERVICE_ID:'stage',MESSINHO_STAGING_RENDER_SERVICE_ID:'stage',OPENAI_API_KEY:'configured',SUPABASE_URL:'https://example.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'configured'};
 test('daily review is strictly gated to the explicitly enabled staging service',()=>{
@@ -120,4 +120,41 @@ test('a real autonomous proposal is dispatched only to the isolated STAGING sand
  assert.equal(result.status,'ticket_created');assert.equal(result.sandbox_status,'queued');
  assert.equal(db.state.job.status,'queued');assert.equal(db.state.job.requested_by,'admin-uuid');
  assert.equal(dispatched.ticket_id,db.state.ticket.id);assert.equal(db.state.event.action,'sandbox_dispatched');
+});
+
+test('self-repair goal contains only failed, bounded diagnostic findings',()=>{
+ const result=buildMessinhoSelfRepairGoal([
+  {name:'DB read',category:'Datenbank',ok:true,detail:'ok'},
+  {name:'Scoring',category:'Modell',ok:false,severity:'critical',detail:'reproduzierbarer Fehler',recommendation:'Ursache prüfen'},
+  {name:'Runtime',ok:false,detail:'x'.repeat(900)}
+ ]);
+ assert.equal(result.ok,true);
+ assert.equal(result.findings.length,2);
+ assert.equal(result.findings[0].name,'Scoring');
+ assert.equal(result.findings[1].detail.length,500);
+ assert.match(result.goal,/reproduzierbarer Fehler/);
+ assert.equal(buildMessinhoSelfRepairGoal([{ok:true}]).reason,'no_failed_diagnostics');
+});
+test('Arbeiten mode can run a self-repair review only when working mode is active',async()=>{
+ const db=mockDb({mode:'working'});
+ let generatedGoal='';
+ const result=await runMessinhoScheduledEngineeringReview({
+  db,mode:'working',goal:'Behebe die belegten Fehler aus der Diagnose.',
+  now:new Date('2026-11-27T02:00:00Z'),getCurrentTime:()=>new Date('2026-11-27T02:00:00Z'),
+  generate:async({goal})=>{generatedGoal=goal;return {ok:true,proposal:null,source_sha:'f'.repeat(40)};}
+ });
+ assert.equal(result.status,'no_improvement');
+ assert.equal(generatedGoal,'Behebe die belegten Fehler aus der Diagnose.');
+ assert.equal(db.state.claim.review_slot,'morning');
+});
+test('self-repair review does not run when admin mode changes or stop is requested',async()=>{
+ const db=mockDb({mode:'working'});
+ let persisted=false;
+ const result=await runMessinhoScheduledEngineeringReview({
+  db,mode:'working',now:new Date('2026-11-27T02:00:00Z'),getCurrentTime:()=>new Date('2026-11-27T02:00:00Z'),
+  generate:async()=>{db.state.control.stop_requested=true;return {ok:true,proposal:{title:'must not persist'},source_sha:'f'.repeat(40)};},
+  persist:async()=>{persisted=true;return {ok:true,ticket_id:'must-not-exist'};}
+ });
+ assert.equal(result.status,'stopped');
+ assert.equal(persisted,false);
 });
