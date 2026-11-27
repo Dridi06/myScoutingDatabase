@@ -88,7 +88,7 @@ function scriptOf(text) {
 const SEMANTIC_CUE_PATTERNS = Object.freeze({
   not_necessarily: /(?:\bnot\s+necessarily\b|\bnicht\s+unbedingt\b|\bpas\s+forcement\b|\bno\s+necesariamente\b|ليس\s+بالضرورة|موش\s+بالضرورة|\bmouch\s+bel\s+dh(?:ar|er)oura\b)/u,
   not_yet: /(?:\bnot\s+yet\b|\bnot\s+ready\s+yet\b|\bnoch\s+nicht\b|\bpas\s+encore\b|\btodavia\s+no\b|لم.{0,24}بعد|مازالش)/u,
-  not_bad: /(?:\bnot\s+bad\b|\bnicht\s+schlecht\b|\bpas\s+(?:mal|mauvais)\b|\bno\s+esta\s+mal\b|\bno\s+es\s+malo\b|ليس\s+سيئا|موش\s+(?:بالضرورة\s+)?خايب|\bmouch\s+khayeb\b)/u,
+  not_bad: /(?:\bnot\s+bad\b|\bnicht\s+schlecht\b|\bpas\s+(?:mal|mauvais)\b|\bno\s+esta\s+mal\b|\bno\s+es\s+malo\b|ليس\s+(?:بالضرورة\s+)?سييا|موش\s+(?:بالضرورة\s+)?خايب|\bmouch\s+khayeb\b)/u,
   not_enough: /(?:\bnot\s+enough\b|\bnicht\s+ausreichend\b|\bpas\s+suffisant\b|\bno\s+es\s+suficiente\b|لا\s+يكفي|موش\s+كافي)/u,
   not_only: /(?:\bnot\s+only\b|\bnicht\s+nur\b|\bpas\s+seulement\b|\bno\s+solo\b|ليس\s+فقط)/u,
   uncertainty: /(?:\bmaybe\b|\bperhaps\b|\bpossibly\b|\bvielleicht\b|\beventuell\b|\bpeut[- ]etre\b|\bquizas\b|\bquiza\b|\btalvez\b|ربما|يمكن|ممكن|\b(?:yemken|momken|mumkin)\b)/u,
