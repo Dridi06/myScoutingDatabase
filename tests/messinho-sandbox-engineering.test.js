@@ -55,3 +55,12 @@ test('sandbox evidence redacts credentials and caps log length',()=>{
  assert.ok(!result.value.evidence.logs.includes('supersecret'));
  assert.equal(hashMessinhoEngineeringPatch('patch').length,64);
 });
+
+test('isolated runner repairs Vite executable mode in its disposable project copy',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const runner=await readFile(new URL('../.github/sandbox/runner.sh',import.meta.url),'utf8');
+ assert.match(runner,/VITE_PACKAGE="\$PROJECT\/node_modules\/vite\/bin\/vite\.js"/);
+ assert.match(runner,/rm -f "\$PROJECT\/node_modules\/\.bin\/vite"/);
+ assert.match(runner,/exec node "\$\(dirname "\$0"\)\/\.\.\/vite\/bin\/vite\.js" "\$\@"/);
+ assert.match(runner,/chmod 0755 "\$PROJECT\/node_modules\/\.bin\/vite"/);
+});
