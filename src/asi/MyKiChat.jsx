@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Activity,BrainCircuit,LoaderCircle,PauseCircle,Send,Sparkles} from 'lucide-react';
+import {Activity,BrainCircuit,LoaderCircle,PauseCircle,Send,Sparkles,TrendingUp} from 'lucide-react';
 import './myki-chat.css';
 
 const welcome={id:'welcome',role:'assistant',text:'Hallo! Hier bin ich direkt in myKI. Du kannst mit mir über meine Entwicklung, meine Lernfortschritte, Verbesserungsvorschläge und die KI-Tickets sprechen. Ich erkläre dir meine Arbeit verständlich und sage offen, wenn ich etwas nicht sicher weiß.'};
@@ -63,6 +63,26 @@ export default function MyKiChat({supabase}){
    <span>Letzte Prüfung: {lastRun?.finished_at?new Date(lastRun.finished_at).toLocaleString('de-DE'):lastRun?.started_at?new Date(lastRun.started_at).toLocaleString('de-DE'):'Noch kein Lauf gespeichert'}</span>
    {lastRun?.status&&<span>Ergebnis: {({ticket_created:'Ticket erstellt',no_improvement:'Keine sichere Verbesserung gefunden',duplicate:'Vorschlag bereits vorhanden',failed:'Prüfung fehlgeschlagen',running:'Läuft'})[lastRun.status]||lastRun.status}</span>}
   </div>
+  {status.maturity&&<section className="myki-maturity" aria-label="MESSINHO Entwicklungsstand">
+   <div className="myki-maturity-header">
+    <div><span className="myki-eyebrow">ENTWICKLUNGSSTAND</span><h3><TrendingUp size={17}/> MESSINHO-Reifegrad</h3></div>
+    <div className="myki-maturity-score"><strong>{status.maturity.score}</strong><span>/ 100</span></div>
+   </div>
+   <div className="myki-maturity-level"><b>{status.maturity.level}</b><span>Nachweisbasierte Einstufung</span></div>
+   <div className="myki-maturity-track" role="progressbar" aria-label="MESSINHO Reifegrad" aria-valuemin="0" aria-valuemax="100" aria-valuenow={status.maturity.score}><span style={{width:Math.max(0,Math.min(100,status.maturity.score))+'%'}}/></div>
+   <p className="myki-maturity-policy">{status.maturity.score_policy}</p>
+   <details className="myki-maturity-details">
+    <summary>Bewertung der Entwicklungsbereiche anzeigen</summary>
+    <div className="myki-maturity-pillars">
+     {status.maturity.pillars?.map(item=><div className="myki-maturity-pillar" key={item.id}>
+      <div><b>{item.label}</b><strong>{item.points}/{item.maximum}</strong></div>
+      <div className="myki-maturity-mini-track"><span style={{width:Math.max(0,Math.min(100,item.points/item.maximum*100))+'%'}}/></div>
+      <p>{item.evidence}</p><small>Nächster Schritt: {item.next}</small>
+     </div>)}
+    </div>
+   </details>
+   <div className="myki-maturity-next"><b>Nächste Entwicklungsschritte</b><ol>{status.maturity.next_milestones?.slice(0,3).map((item,index)=><li key={index}>{item}</li>)}</ol></div>
+  </section>}
   <div className="myki-chat-messages" ref={messagesRef} aria-live="polite">
    {messages.map(item=><article key={item.id} className={'myki-chat-message '+item.role}><div className="myki-chat-avatar">{item.role==='assistant'?<BrainCircuit size={16}/>:<span>DU</span>}</div><div className="myki-chat-bubble"><small>{item.role==='assistant'?'MESSINHO':'DU'}</small><p>{item.text}</p></div></article>)}
    {busy&&<div className="myki-chat-thinking"><LoaderCircle className="myki-chat-spin" size={16}/> MESSINHO denkt nach und prüft deine Anfrage …</div>}
