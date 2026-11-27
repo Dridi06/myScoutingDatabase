@@ -4547,12 +4547,12 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - GitHub Actions auf Commit `a041bb597784d8fbdc3fd51c672c61d813a7d3a6`: **447 Tests bestanden, 0 fehlgeschlagen**.
 - Backend-Syntaxprüfung erfolgreich.
 - Vollständiger STAGING-Branch-CI-Workflow inklusive Regressionstests, Backend-Syntax und Vite-Produktionsbuild erfolgreich.
-- Render-STAGING-Deployment für diese neue Änderung ist noch nicht ausgelöst; Auto-Deploy bleibt deaktiviert.
+- Render-STAGING-Deployment live: `dep-dc4eg9m1egvs7385t5dg`, deployter Code-/Dokumentationsstand `ea7109db18fa155de0e014ebbabbed638b04066a`; Build erfolgreich, Backend gestartet, Supabase Data API HTTP 200 und Render-Meldung „Your service is live“ am 2026-11-27 um 02:17:50Z. Auto-Deploy bleibt deaktiviert.
 - Kein Datenbankschema geändert. Keine Migration ausgeführt. Production und `main` unverändert.
 
 ### Verbleibende Grenzen / nächste Schritte
-1. Render-STAGING manuell mit dem geprüften Feature-Branch-Stand deployen und Deploy-Commit/Live-Status kontrollieren.
-2. Danach authentifizierten Admin-Klicktest für „Arbeiten“ und „Weiterentwickeln“ durchführen; Scout-Aufruf muss weiterhin abgewiesen werden.
+1. Erledigt: Render-STAGING manuell mit dem geprüften Feature-Branch-Stand deployt; Deploy-Commit und Live-Status kontrolliert.
+2. Offen: authentifizierten Admin-Klicktest für „Arbeiten“ und „Weiterentwickeln“ durchführen; negativer Scout-Berechtigungstest muss weiterhin bestätigt werden.
 3. Echte Diagnosehistorie, dynamische Prüfzahl und Statusmeldungen prüfen.
 4. Prüfen, ob der Engineering-Provider auf STAGING verfügbar ist. Bei fehlendem Provider muss der Status den Grund sichtbar nennen; kein stilles Nichtstun.
 5. Die dynamische Projektprüfung ist zunächst statische Bestands-/Konsistenzanalyse. Echte Compiler-, Test-, Datenbank- und Runtime-Prüfungen bleiben in der isolierten Sandbox bzw. in kontrollierten Integrationstests; sie werden nicht im laufenden Webserver ausgeführt.
