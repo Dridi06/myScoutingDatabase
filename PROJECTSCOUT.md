@@ -4479,7 +4479,8 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - Arabizi-Normalisierung ersetzt niemals den Originaltext.
 - Keine muttersprachliche Evaluation, kein umfassendes Lexikon und keine vollständige Grammatik-/Morphologieabdeckung.
 - Keine Datenbankmigration und keine Änderung am Wissensbestand.
-- CI, Backend-Syntax, STAGING-Deployment und authentifizierter E2E-Test sind noch nicht bestätigt.
+- Der erste STAGING-Build fand einen Unicode-Wortgrenzenfehler bei deutschen Umlaut-Verben (1 Regressionstest rot); die Erkennung wurde anschließend auf Unicode-Zeichenklassen umgestellt. Der korrigierte Commit muss erneut vollständig geprüft werden.
+- CI, finaler Backend-Syntaxlauf, STAGING-Deployment und authentifizierter E2E-Test sind noch nicht bestätigt.
 
 ### Nächster Schritt
 - Tests und Backend-Syntax für den exakten Commit ausführen und CI prüfen.
