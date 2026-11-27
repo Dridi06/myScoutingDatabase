@@ -5724,3 +5724,13 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Added the isolated work branch to the push filters of the three MESSINHO CI workflows so subsequent branch commits run the full test, syntax and build checks directly.
 - No database migrations, source-data mutation, model-weight changes, production branch, LIVE Render service or production Supabase changes.
 - Next: use the CI failure detail to correct the planner test/runtime issue, require all test/syntax/build workflows green, review PR #55, then seek explicit approval before STAGING deployment. After deployment, test Admin/Scout isolation and forced-failure replanning using controlled staging fixtures.
+
+
+### 42.1 CI correction and verification — 2026-11-27
+
+- Root cause of the five planner regression failures: the planner's execution-feedback properties were added to the request payload but omitted from the function parameter destructuring. This caused `previousResults is not defined` and forced the safe fallback in tests.
+- Corrected the function signature; the semantic planner and all existing routes now pass the automated checks.
+- Verified exact feature-branch commit: `bdf699c0ec33eba22b05e9e7f9a0e8735216de42`.
+- GitHub Actions: MESSINHO Node tests run #1436 — **531/531 passed**; backend syntax run #1403 — **passed**; full STAGING build run #675 — **passed**, including Vite production build.
+- Pull request #55 is open, clean/mergeable, and targets only `feature/messinho-unified-ai-integration`.
+- No merge, Render deployment, database migration or production change has been performed. Authenticated browser tests and controlled forced-error replan tests on STAGING remain outstanding.
