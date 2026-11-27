@@ -4879,3 +4879,37 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 | STAGING deployment | Live on dep-dc4nqdh7lnhs73971rig / commit f02dac3 | Run authenticated end-to-end language checks |
 | Production | Untouched | No production deployment authorized |
 
+
+
+## 22. Linguistic Intelligence ↔ Language Knowledge retrieval integration — 2026-11-27
+
+### Requirement
+Ensure the Arabic orthographic improvements in Linguistic Intelligence 1.3.4 also apply to the knowledge retrieval query path. Detection and retrieval must use compatible normalization while retaining the exact original user text.
+
+### Implemented on the STAGING feature branch
+- backend/messinho-language-knowledge.js
+  - Knowledge access-layer version advanced from 1.2.0 to 1.2.1.
+  - Reuses normalizeMessinhoArabicForAnalysis() from Linguistic Intelligence for query token normalization.
+  - Arabic stop words are normalized with the same transformation, avoiding mismatches after alif/hamza and diacritic normalization.
+  - Stored knowledge content remains unchanged; normalization is applied only to matching/scoring.
+  - Existing access rules remain unchanged: active, first-party authored entries only; no chat/scout write or activation access.
+- tests/messinho-language-knowledge.test.js
+  - Added regression coverage for fully vocalized MSA knowledge retrieval.
+  - Added regression coverage for vocalized Tunisian Derja knowledge retrieval.
+  - Updated the expected access-layer version to 1.2.1.
+
+### Traceability
+- Implementation commits:
+  - 4c0bcf60702267ec3972c4c30c2e2a5639444ca2 — integrate Arabic normalization into knowledge retrieval.
+  - ba774394988aaa87afc35503c415ae54783474cf — normalize Arabic stop words.
+- Test commit:
+  - 48601b44a2f86e640b86033004a8a17473aaa064 — add two Arabic knowledge-retrieval regressions.
+- STAGING feature branch only. No production branch or production resource changed.
+
+### Verification state
+- Automated tests and Render build for this follow-on change are pending.
+- The previous 1.3.4 code release is live in STAGING on deployment dep-dc4nqdh7lnhs73971rig, commit f02dac306ec682daecd83b6fe739377b3c1ee7af.
+- The follow-on knowledge-retrieval code has not yet been deployed.
+- No Supabase migration or data mutation is required; the change affects query-token matching only.
+- Next action: run the full STAGING build and confirm the new tests pass, then deploy and verify the exact commit.
+
