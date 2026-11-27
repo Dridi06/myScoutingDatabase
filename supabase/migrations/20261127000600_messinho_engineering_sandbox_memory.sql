@@ -150,6 +150,11 @@ begin
   if not found then
     raise exception 'engineering_memory_not_pending' using errcode='55000';
   end if;
+  if p_decision='approved' and (
+    v_memory.evidence_verified is not true or v_memory.outcome not in ('passed','failed')
+  ) then
+    raise exception 'engineering_memory_evidence_not_approvable' using errcode='55000';
+  end if;
   insert into public.messinho_myki_ticket_events(
     ticket_id,actor_id,actor_type,action,safe_message,metadata
   ) values (
