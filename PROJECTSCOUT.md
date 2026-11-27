@@ -6117,3 +6117,35 @@ Read this file from the current feature branch and inspect its latest HEAD and P
 - Pull Request #58 remains open, Draft, and unmerged.
 - No merge, no production deployment, no Supabase schema migration, no player/user data mutation, and no model training/weight changes were performed by this work.
 - Pull Request #58 remains open and unmerged.
+
+
+## 22. Block 2 — Linguistic knowledge integrated into the cognitive turn — 2026-11-27
+
+### Objective
+Make the existing approved grammar, vocabulary, pragmatics and conversation knowledge available to the same semantic turn that understands the user's message, rather than loading it only in a legacy response path.
+
+### Implementation
+- `backend/messinho-conversational-intelligence.js`
+  - `buildMessinhoCognitiveRouterMessages` now accepts `linguisticKnowledgeContext`.
+  - Adds a bounded list of up to 8 approved language entries to the cognitive input.
+  - Explicitly instructs the model to use entries only when relevant, match each entry to its own language segment, and never transfer grammar or vocabulary between languages.
+  - Treats examples as illustrative, not fixed response templates.
+- `backend/server.js`
+  - Loads language knowledge through the existing first-party, active-entry-only lookup before semantic cognitive routing.
+  - Passes the formatted entries into `classifyMessinhoTurn`.
+  - Reuses the same lookup result for response metadata; avoids querying the language knowledge base twice in one turn.
+- `tests/messinho-conversational-intelligence.test.js`
+  - Verifies German and Tunisian Derja entries both reach the same cognitive turn while preserving their language identifiers.
+  - Verifies the prompt explicitly prevents cross-language grammar/word transfer.
+  - Verifies server ordering: language knowledge is loaded before semantic routing and passed into the cognitive turn.
+
+### CI and code verification
+- Tested implementation commit: `3437646ebf0d19524801ad8d7d2df0119c65f36a`.
+- MESSINHO Node tests: success.
+- Backend syntax: success.
+- Full STAGING branch CI including regression suite and Vite production build: success.
+- An intermediate test commit `56d27faf` correctly failed because the new regression assertion caught that the language lookup had not yet been moved before routing. The lookup was moved to the correct location; commit `3437646e` passed all three workflows.
+
+### Deployment gate
+- Previous STAGING deployment remains on `fc9ef66e` until the tested `3437646e` branch head is deployed.
+- No Production deployment, merge, database schema mutation, or model training performed.
