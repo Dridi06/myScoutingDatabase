@@ -57,6 +57,7 @@ import { resolveMessinhoEntityReferences } from './messinho-entity-resolution.js
 import { guardMessinhoConversationReply } from './messinho-conversation-response-guard.js';
 import { findMessinhoLanguageKnowledge, formatMessinhoLanguageKnowledge } from './messinho-language-knowledge.js';
 import { buildMessinhoConversationMemory, formatMessinhoConversationMemory } from './messinho-conversation-memory.js';
+import { buildMessinhoReasoningContext } from './messinho-reasoning-context.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -2327,6 +2328,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     // It interprets meaning, context, spelling/dictation variants and memory intent.
     const conversationMemory=buildMessinhoConversationMemory({history,conversationId});
     const conversationMemoryContext=formatMessinhoConversationMemory(conversationMemory);
+    const reasoningContext=buildMessinhoReasoningContext({history,dialogueState,entityResolution});
     const cognitiveResult=await classifyMessinhoTurn({
       message,
       history,
@@ -2334,6 +2336,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       linguisticContext:{...linguisticContext,dialogue_state:dialogueState},
       linguisticKnowledgeContext,
       conversationMemoryContext,
+      reasoningContext,
       userRole:profile.role,
       apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
       baseUrl:process.env.MESSINHO_MODEL_BASE_URL||process.env.OPENAI_BASE_URL||'https://api.openai.com/v1',
