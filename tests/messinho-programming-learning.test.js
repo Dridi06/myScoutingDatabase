@@ -4,10 +4,14 @@ import {MESSINHO_PROGRAMMING_CURRICULUM,buildMessinhoProgrammingLearningContext,
 
 test('provides four progressive programming learning levels with security and AI engineering',()=>{
  const context=buildMessinhoProgrammingLearningContext();
- assert.equal(context.levels.length,4);
+ assert.equal(context.levels.length,5);
  assert.ok(context.levels[0].topics.some(x=>x.includes('Funktionen')));
  assert.ok(context.levels[2].topics.some(x=>x.includes('Mandantentrennung')));
  assert.ok(context.levels[3].topics.some(x=>x.includes('Prompt-Injection')));
+ assert.ok(context.levels[4].topics.some(x=>x.includes('Threat Modeling')));
+ assert.ok(context.engineering_method.length>=8);
+ assert.ok(context.knowledge_intake.workflow.includes('admin_approval'));
+ assert.ok(context.proposal_quality_gate.required.includes('root_cause'));
  assert.ok(MESSINHO_PROGRAMMING_CURRICULUM.every(x=>x.mastery.length>20));
 });
 
