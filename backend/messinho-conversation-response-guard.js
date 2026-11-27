@@ -8,7 +8,7 @@ const UNVERIFIED_ACTION_REPLY = 'Ich möchte keine Änderung oder Systemaktion a
 const CLAIM_PATTERNS = [
   /\b(?:ich|wir)\s+(?:habe|haben|hab|hatte|hatten)\b[^.!?\n]{0,120}\b(?:gespeichert|gemerkt|angelegt|erstellt|gelöscht|entfernt|geändert|aktualisiert|bereitgestellt|deployt|deployed|behoben|repariert|installiert|ausgeführt|zusammengeführt|aktiviert|veröffentlicht|eingereicht|hochgeladen|heruntergeladen)\b/iu,
   /\b(?:i|we)\s+(?:have|has|had|did)\b[^.!?\n]{0,120}\b(?:saved|created|deleted|removed|updated|changed|deployed|fixed|repaired|installed|executed|merged|activated|published|submitted|uploaded|downloaded)\b/iu,
-  /\b(?:j['’]ai|nous avons|j['’]avais)\b[^.!?\n]{0,120}\b(?:enregistré|enregistrée|créé|créée|supprimé|supprimée|modifié|modifiée|déployé|déployée|corrigé|corrigée)\b/iu,
+  /(?<![\p{L}\p{N}])(?:j['’]ai|nous avons|j['’]avais)\b[^.!?\n]{0,120}(?<![\p{L}\p{N}])(?:enregistré|enregistrée|créé|créée|supprimé|supprimée|modifié|modifiée|déployé|déployée|corrigé|corrigée)(?![\p{L}\p{N}])/iu,
   /\b(?:he|hemos|había|habíamos)\b[^.!?\n]{0,120}\b(?:guardado|guardada|creado|creada|eliminado|eliminada|actualizado|actualizada|desplegado|desplegada|reparado|reparada|corregido|corregida|instalado|instalada|ejecutado|ejecutada)\b/iu,
   /(?:قمت(?:\s+ب)?|حفظت|أنشأت|حذفت|عدلت|حدّثت|نشرت|نفذت|أصلحت|ثبتت)[^.!؟?\n]{0,120}(?:حفظ|إنشاء|حذف|تعديل|تحديث|نشر|تنفيذ|إصلاح|تثبيت)/u
 ];
