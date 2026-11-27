@@ -24,7 +24,7 @@ const WORDS = {
  'ar-tn': new Set('chnowa chnowa kifech kifesh aleh علاش برشا barcha barcha barcha barcha yesser barcha mrigel behi labes chnowa win wa9tech taw barcha fama ma fama chnowa'.split(' ')),
  es: new Set('el la los las un una y o pero no por favor gracias yo tú él ella nosotros es son era tener ser puede por qué cómo qué quién dónde cuándo todavía ya'.split(' '))
 };
-const TUNISIAN_ARABIC = /[علاششنوةشنوّةبرشاياسرلاباسفماتواشنوةوينتوا]/u;
+const TUNISIAN_ARABIC = /(?:علاش|شنوة|شنوّة|برشا|ياسر|لاباس|فما|توا|وين|قداش|كيفاش)/u;
 const ARABIC_SCRIPT = /[\u0600-\u06FF]/u;
 const LATIN_SCRIPT = /[A-Za-zÀ-ÖØ-öø-ÿ]/u;
 const LATIN_DERJA = /\b(chneya|chnowa|kifech|kifesh|alech|aleh|barcha|barsha|yesser|labes|labess|mrigel|beh[iy]|fama|ma fama|tawa|taw|win|wa9tech|3lech|5ater|7atta|9addech)\b/iu;
