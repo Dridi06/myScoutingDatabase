@@ -5734,3 +5734,14 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - GitHub Actions: MESSINHO Node tests run #1436 — **531/531 passed**; backend syntax run #1403 — **passed**; full STAGING build run #675 — **passed**, including Vite production build.
 - Pull request #55 is open, clean/mergeable, and targets only `feature/messinho-unified-ai-integration`.
 - No merge, Render deployment, database migration or production change has been performed. Authenticated browser tests and controlled forced-error replan tests on STAGING remain outstanding.
+
+
+### 42.2 Forced-failure replan integration test — 2026-11-27
+
+- Added injectable execution-runner boundary to the agent core for deterministic testing; production defaults to the existing `runMessinhoCapabilityPlanAsync` runtime.
+- Added an end-to-end agent-core test that forces the first capability to fail, forces its bounded retry to fail, supplies an alternative registered capability, executes the alternative, and verifies the replan trace and final provenance validation.
+- The test confirms exactly three execution calls (initial, one retry, one alternative run), exactly one replan request, no repeat of the attempted capability, and no model-weight mutation.
+- Latest code commit at verification: `1e3f5074d089ce07ec6c84a5c33cb79a21247570`.
+- GitHub Actions on that exact commit: Node tests #1442 — **532/532 passed**; backend syntax #1410 — **passed**; full STAGING build #682 — **passed**, including Vite production build.
+- The separate latest Node test run #1443 was still running when recorded; run #1442 already passed on the same commit.
+- PR #55 remains open and mergeable. No merge or Render deployment has been triggered. User-authenticated Admin/Scout browser tests remain the final runtime acceptance step.
