@@ -151,3 +151,17 @@ test('recognizes French, Spanish and Tunisian target-language instructions',()=>
   assert.equal(buildMessinhoLinguisticContext('Traduce esto al alemán.',[]).action.target_language,'de');
   assert.equal(buildMessinhoLinguisticContext('Tarjemli hedha bil tounsi.',[]).action.target_language,'ar-tn');
 });
+
+
+test('recognizes Arabic and Derja negation, contrast, uncertainty and politeness without ASCII word boundaries',()=>{
+  const result=analyzeMessinhoLanguage('هذا اللاعب موش جاهز لكن ربما يتحسن، من فضلك اشرح السبب؟');
+  assert.equal(result.signals.questions,true);
+  assert.equal(result.signals.negation,true);
+  assert.equal(result.signals.contrast,true);
+  assert.equal(result.signals.uncertainty,true);
+  assert.equal(result.signals.politeness,true);
+});
+
+test('does not treat ordinary standalone statistics as Arabizi digits',()=>{
+  assert.equal(normalizeMessinhoArabizi('7 2026 2:1 3 goals'),'7 2026 2:1 3 goals');
+});
