@@ -74,6 +74,6 @@ test('long conversations retain a small extractive context window beyond the rec
 test('server loads an extended but bounded owner-scoped conversation window',async()=>{
   const {readFile}=await import('node:fs/promises');
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
-  assert.match(source,/\\.order\\('created_at',\\{ascending:false\\}\\)\\.limit\\(60\\)/);
-  assert.match(source,/\\},\\{limit:60\\}\\)/);
+  assert.match(source,/\.order\('created_at',\{ascending:false\}\)\.limit\(60\)/);
+  assert.match(source,/\},\{limit:60\}\)/);
 });
