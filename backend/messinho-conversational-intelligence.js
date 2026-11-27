@@ -94,13 +94,13 @@ function parseResponsesText(payload){
 
 function localConversationFallback(message){
   const value=String(message||'').trim().toLocaleLowerCase('de-DE');
-  if(/^(hey|hallo|hi|guten morgen|guten tag|guten abend|moin|servus)(\\b|[!.?\\s])/iu.test(value)){
+  if(/^(hey|hallo|hi|guten morgen|guten tag|guten abend|moin|servus)(\b|[!.?\s])/iu.test(value)){
     return {intent:'conversation',confidence:1,reply:'Hey! Schön, dass du da bist. Wie kann ich dir heute helfen?',clarification_question:'',memory_items:[]};
   }
-  if(/^(danke|vielen dank|danke dir)(\\b|[!.?\\s])/iu.test(value)){
+  if(/^(danke|vielen dank|danke dir)(\b|[!.?\s])/iu.test(value)){
     return {intent:'conversation',confidence:1,reply:'Sehr gerne! Wenn du noch etwas brauchst, bin ich da.',clarification_question:'',memory_items:[]};
   }
-  if(/^(tsch[uü]ss|auf wiedersehen|bis bald|gute nacht)(\\b|[!.?\\s])/iu.test(value)){
+  if(/^(tsch[uü]ss|auf wiedersehen|bis bald|gute nacht)(\b|[!.?\s])/iu.test(value)){
     return {intent:'conversation',confidence:1,reply:'Bis bald! Ich bin da, wenn du mich wieder brauchst.',clarification_question:'',memory_items:[]};
   }
   return {intent:'conversation',confidence:0.5,reply:'Ich bin gerade im eingeschränkten Gesprächsmodus, weil mein KI-Dienst vorübergehend nicht erreichbar ist. Deine Nachricht ist angekommen. Ich kann einfache Begrüßungen und kurze Rückmeldungen beantworten; für komplexe Fragen versuche es bitte gleich noch einmal.',clarification_question:'',memory_items:[]};
