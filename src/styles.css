@@ -2963,3 +2963,64 @@ input,select,textarea{
 .myki-sandbox-record details summary{cursor:pointer;color:#d8b76d;font-size:11px}
 .myki-sandbox-memory{margin-top:18px}
 .myki-sandbox-memory h4{margin:0 0 8px;color:#e3c77f;font-size:12px}
+
+
+/* MESSINHO live activity monitor inside Admin myKI */
+.myki-monitor{margin:18px 0 22px;padding:18px;border:1px solid rgba(218,180,91,.24);border-radius:15px;background:linear-gradient(145deg,rgba(19,24,33,.98),rgba(8,12,18,.98));box-shadow:0 14px 36px rgba(0,0,0,.18);min-width:0}
+.myki-monitor-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px}
+.myki-monitor-head h2{display:flex;align-items:center;gap:9px;margin:7px 0;color:#f2d58f;font-size:18px}
+.myki-monitor-head h2 svg{color:#d8b45b}.myki-monitor-head p{margin:0;color:#aeb8c8;font-size:12px;line-height:1.6;max-width:760px}
+.myki-monitor-refresh{display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.myki-monitor-loading,.myki-monitor-error{display:flex;align-items:center;gap:10px;padding:14px;border-radius:10px;background:rgba(255,255,255,.035);color:#cbd3df;font-size:12px}
+.myki-monitor-error{border:1px solid rgba(220,90,90,.35);color:#ffb2b2}
+.myki-monitor-state{display:flex;align-items:center;gap:13px;padding:15px;border:1px solid rgba(218,180,91,.22);border-radius:12px;background:rgba(218,180,91,.055);min-width:0}
+.myki-monitor-state-icon{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:11px;background:rgba(218,180,91,.12);color:#e5c77e}
+.myki-monitor-state-icon svg{width:20px;height:20px}
+.myki-monitor-state>div{min-width:0;flex:1}.myki-monitor-state small,.myki-monitor-section-title>span{display:block;color:#aeb8c8;font-size:9px;font-weight:800;letter-spacing:.12em}
+.myki-monitor-state strong{display:block;color:#f4e1b1;font-size:15px;margin:4px 0}
+.myki-monitor-state p{margin:0;color:#bac4d2;font-size:11px;line-height:1.5}
+.myki-monitor-live{display:inline-flex;align-items:center;gap:6px;color:#b9c4d2;font-size:9px;white-space:nowrap}
+.myki-monitor-live i{width:7px;height:7px;border-radius:50%;background:#d2ad59;display:block}
+.myki-monitor-state.is-running .myki-monitor-live i{background:#65c98b;box-shadow:0 0 10px rgba(101,201,139,.5)}
+.myki-monitor-state.is-waiting .myki-monitor-live i{background:#9aa6b7}
+.myki-monitor-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0}
+.myki-monitor-metrics article{min-width:0;padding:12px;border:1px solid rgba(255,255,255,.075);border-radius:10px;background:rgba(255,255,255,.025)}
+.myki-monitor-metrics article>span{display:flex;align-items:center;gap:7px;color:#aeb8c8;font-size:10px}
+.myki-monitor-metrics article>span svg{color:#d8b45b;flex:0 0 auto}
+.myki-monitor-metrics strong{display:block;margin:8px 0 4px;color:#f0d28a;font-size:13px;overflow-wrap:anywhere}
+.myki-monitor-metrics small{display:block;color:#8f9bad;font-size:9px;line-height:1.45}
+.myki-monitor-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.myki-monitor-panel,.myki-monitor-schedule{min-width:0;padding:14px;border:1px solid rgba(255,255,255,.075);border-radius:11px;background:rgba(255,255,255,.02)}
+.myki-monitor-section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.myki-monitor-section-title h3{display:flex;align-items:center;gap:8px;margin:0;color:#e6cb88;font-size:12px}
+.myki-monitor-section-title h3 svg{color:#d8b45b}
+.myki-monitor-task-title{display:block;color:#f1f3f7;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.myki-monitor-panel>p,.myki-monitor-empty p{margin:7px 0;color:#b7c1cf;font-size:11px;line-height:1.6}
+.myki-monitor-panel>small{color:#8f9bad;font-size:9px;line-height:1.5}
+.myki-monitor-muted{color:#e8adad!important}
+.myki-monitor-empty{padding:12px;border-radius:9px;background:rgba(255,255,255,.025)}
+.myki-monitor-empty strong{color:#dfe5ed;font-size:11px}
+.myki-monitor-last-run{display:grid;gap:5px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}
+.myki-monitor-last-run small{color:#9aa6b7;font-size:9px;font-weight:800;letter-spacing:.1em}
+.myki-monitor-last-run strong{color:#e6cc8b;font-size:12px;text-transform:capitalize}
+.myki-monitor-last-run span,.myki-monitor-last-run em{color:#9aa6b7;font-size:10px;font-style:normal}
+.myki-monitor-plan{display:grid;gap:10px}
+.myki-monitor-plan article{display:grid;grid-template-columns:25px minmax(0,1fr) auto;align-items:start;gap:9px}
+.myki-monitor-plan-number{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(218,180,91,.12);color:#e7ca83;font-size:10px;font-weight:800}
+.myki-monitor-plan-number.blocked{background:rgba(206,82,82,.12);color:#e9a0a0}
+.myki-monitor-plan-number.complete{background:rgba(72,174,111,.12);color:#8bd6a5}
+.myki-monitor-plan article strong{display:block;color:#e4e9f0;font-size:11px;line-height:1.45}
+.myki-monitor-plan article p{margin:4px 0 0;color:#9eabba;font-size:10px;line-height:1.5}
+.myki-monitor-plan article>small{color:#d4b96f;font-size:9px;white-space:nowrap}
+.myki-monitor-schedule{margin-top:12px}
+.myki-monitor-time-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.myki-monitor-time-grid article{padding:10px;border-radius:9px;background:rgba(255,255,255,.025);min-width:0}
+.myki-monitor-time-grid b{display:block;color:#d9b96a;font-size:10px}
+.myki-monitor-time-grid strong{display:block;margin:5px 0 3px;color:#e7ebf2;font-size:11px}
+.myki-monitor-time-grid small{display:block;color:#929eaf;font-size:9px;line-height:1.4}
+.myki-monitor-footnote{margin:11px 0 0;color:#9eabba;font-size:10px;line-height:1.55}
+.myki-monitor-footer{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px;color:#7f8b9c;font-size:9px}
+.myki-monitor-spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:#d8b45b;border-radius:50%;animation:myki-spin .8s linear infinite}
+@keyframes myki-spin{to{transform:rotate(360deg)}}
+@media(max-width:900px){.myki-monitor-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.myki-monitor-columns{grid-template-columns:1fr}}
+@media(max-width:560px){.myki-monitor{padding:12px}.myki-monitor-head{flex-direction:column}.myki-monitor-refresh{width:100%}.myki-monitor-state{align-items:flex-start;flex-wrap:wrap}.myki-monitor-live{margin-left:53px}.myki-monitor-time-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.myki-monitor-plan article{grid-template-columns:25px minmax(0,1fr)}.myki-monitor-plan article>small{grid-column:2}.myki-monitor-footer{flex-direction:column}}
