@@ -4519,4 +4519,6 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 
 ### Abnahme
 - Implementiert auf feature/messinho-unified-ai-integration; vor STAGING-Deploy sind CI/Render-Build und Runtime-Logs für den exakten Commit zu prüfen.
-- Authentifizierter Admin-Klicktest und negativer Scout-Berechtigungstest stehen nach Deploy noch aus.
+- Render-STAGING-Build für den finalen Stand: **443 Tests bestanden, 0 fehlgeschlagen**, Backend-Syntax und Vite-Produktionsbuild erfolgreich.
+- STAGING-Deployment **live**: `dep-dc4ebd97lnhs73879bb0`, Commit `4022eadc38ac0a9eb0c9f92b84026f7cbe9153b1`; Runtime-Start, Supabase Data API HTTP 200 und Render-Meldung „Your service is live“ bestätigt.
+- Authentifizierter Admin-Klicktest des neuen Ablaufs und negativer Scout-Berechtigungstest stehen noch aus; der tatsächliche Diagnose-/Reparaturlauf wurde noch nicht ausgelöst. Die Sandbox-Konfiguration muss vor einem automatischen Kandidatentest weiterhin vollständig nachgewiesen sein.
