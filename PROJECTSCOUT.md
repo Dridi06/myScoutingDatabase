@@ -5527,3 +5527,16 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - No database, language knowledge rows, player/scout/account data or production resources were changed.
 - Next: rerun the full build gate and deploy only after every test and build stage is green.
 
+
+
+### Second 1.3.9 build feedback — normalized Arabic contrast particle — 2026-11-27
+- Build attempt dep-dc4o4dbl550s73a3a6h0 reached the semantic regression tests; the remaining failures were both Tunisian Derja contrast assertions.
+- Root cause: analysis normalization maps the hamza-bearing particle “أما” to “اما”, while the contrast cue and token list only contained the original spelling.
+- Corrective implementation commit: 689c5902ba98fdf3db6ad4a29e9b1c3d17f9c68e.
+  - Added the normalized spelling “اما” alongside “أما” in both semantic cue and boolean contrast recognition.
+  - Original user text remains unchanged.
+- The “not necessarily bad” distinction and cue-order correction are retained; no sentiment shortcut was introduced.
+- The failed build did not deploy. Existing live STAGING remains unchanged.
+- Next: rerun the complete suite and build after this normalization-alignment fix.
+- No database write/migration or production change occurred.
+
