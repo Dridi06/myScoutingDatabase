@@ -72,6 +72,16 @@ test('conversation context retains a recent language hint without overriding cur
   assert.ok(result.conversation_policy.some(item=>item.includes('latest user message')));
 });
 
+
+test('detects short everyday greetings in all six language profiles',()=>{
+  assert.equal(analyzeMessinhoLanguage('Hallo, wie geht es dir?').primary_language,'de');
+  assert.equal(analyzeMessinhoLanguage('Hello, how are you?').primary_language,'en');
+  assert.equal(analyzeMessinhoLanguage('Bonjour, comment ça va?').primary_language,'fr');
+  assert.equal(analyzeMessinhoLanguage('السلام عليكم، كيف حالك؟').primary_language,'ar');
+  assert.equal(analyzeMessinhoLanguage('Aslema, labes?').primary_language,'ar-tn');
+  assert.equal(analyzeMessinhoLanguage('Hola, ¿cómo estás?').primary_language,'es');
+});
+
 test('does not claim translation or dictionary coverage',()=>{
   const result=analyzeMessinhoLanguage('Bonjour, comment vas-tu?');
   assert.equal(result.policy.translated,false);
