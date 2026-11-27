@@ -4703,3 +4703,33 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 3. Admin-Workflow „Arbeiten“ und „Weiterentwickeln“ auf dem dedizierten STAGING authentifiziert testen; Scout-Negativtest für privilegierte Befehle durchführen.
 4. Mehrsprachige Chat-E2E-Tests mit unabhängigen Referenzfällen und muttersprachlicher Prüfung ergänzen.
 5. Erst nach vollständigem Nachweis und ausdrücklicher Freigabe auf Render-STAGING deployen. Production bleibt gesperrt.
+
+
+## 28. Linguistic Intelligence 1.3.2 – Tunisian Derja Erweiterung — 2026-11-27
+
+### Umgesetzte Erweiterungen
+- `backend/messinho-linguistic-intelligence.js` auf Version **1.3.2** angehoben.
+- Sechs bestehende Sprachprofile unverändert beibehalten: Deutsch, Englisch, Französisch, Hocharabisch, tunesische Derja und Spanisch.
+- Tunesische Derja um weitere häufige Varianten in arabischer Schrift und lateinischem Arabizi ergänzt.
+- Zusätzliche umgangssprachliche Befehle mit angehängten Pronomen erkannt: erklären, korrigieren und übersetzen.
+- Eine tunesische Arabizi-Aufforderung zum Umformulieren ergänzt.
+- Regressionstests für neue Dialektvarianten und Befehle ergänzt.
+- Unicode-Grenzprüfung korrigiert, damit der Anfang des hocharabischen Verbs „اشرح“ nicht als eigenständiges Derja-Partikel fehlklassifiziert wird.
+
+### Verifikation
+- Node-Testworkflow auf Commit `d8e48cf292c6c149de9f2484a2e10ae756a88f43`: erfolgreich.
+- Backend-Syntaxprüfung auf demselben Commit: erfolgreich.
+- Staging-Branch-CI einschließlich Produktionsbuild: erfolgreich.
+- Staging-Health-Smoke-Test: erfolgreich.
+- Isolierter Engineering-Sandbox-Workflow war beim letzten Statusabruf noch in Bearbeitung.
+- Dokumentation: `docs/MESSINHO_LINGUISTIC_INTELLIGENCE_1_3_2.md`.
+- Keine Supabase-Migration ausgeführt; keine Wissensdatensätze hinzugefügt oder aktiviert.
+- Render-Staging nicht deployed; `main`, Produktion und Produktionsdaten unverändert.
+
+### Grenzen und nächste Schritte
+1. Ausgewogenen Testkorpus für alle sechs Profile mit Dialekten, Code-Switching und kurzen mehrdeutigen Nachrichten aufbauen.
+2. Tunesische Derja unabhängig muttersprachlich prüfen lassen.
+3. Arabische Konjunktionen und angehängte Pronomen kontextsensitiv erkennen, ohne Originaltexte destruktiv zu normalisieren.
+4. Übersetzungsqualität anhand von Bedeutung, Negation, Modalität, Eigennamen, Zahlen und Fußballterminologie messen.
+5. Zielsprachen-Erkennung in umgangssprachlichen Formulierungen aller sechs Profile erweitern.
+6. Weitere eigenständig verfasste Wissenseinträge versionieren und erst nach Inhaltsprüfung aktivieren.
