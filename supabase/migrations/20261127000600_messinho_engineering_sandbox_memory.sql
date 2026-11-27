@@ -54,7 +54,7 @@ grant select,insert,update on public.messinho_engineering_memory to service_role
 create or replace function public.asi_record_messinho_engineering_result(p_result jsonb)
 returns jsonb
 language plpgsql
-security definer
+security invoker
 set search_path=''
 as $$
 declare
