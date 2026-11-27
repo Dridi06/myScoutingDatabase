@@ -1,4 +1,5 @@
 import { requestMessinhoModelCompletion, resolveMessinhoModelConfig } from './messinho-model-runtime.js';
+import { validateMessinhoReasoning } from './messinho-reasoning-validation.js';
 
 export const MESSINHO_COGNITIVE_ROUTER_VERSION='1.1.0';
 
@@ -136,7 +137,12 @@ export async function classifyMessinhoTurn({message,history=[],memory={},linguis
   try{
     const parsed=JSON.parse(result.content);
     const decision=validateMessinhoCognitiveDecision(parsed);
-    return decision?{status:'completed',decision,provider_compatibility:result.compatibility_mode||'native'}:{status:'invalid_output',decision:null,error_code:'invalid_decision_schema'};
+    if(!decision)return {status:'invalid_output',decision:null,error_code:'invalid_decision_schema'};
+    const reasoningValidation=validateMessinhoReasoning({intent:decision.intent,reply:decision.reply,userMessage:message,reasoningContext});
+    if(!reasoningValidation.ok){
+      return {status:'completed',decision:{...decision,reply:reasoningValidation.reply,memory_items:[]},reasoning_validation:{status:'guarded',code:reasoningValidation.code},provider_compatibility:result.compatibility_mode||'native'};
+    }
+    return {status:'completed',decision,reasoning_validation:{status:'accepted',code:reasoningValidation.code},provider_compatibility:result.compatibility_mode||'native'};
   }catch{
     return {status:'invalid_output',decision:null,error_code:'invalid_json_response'};
   }
