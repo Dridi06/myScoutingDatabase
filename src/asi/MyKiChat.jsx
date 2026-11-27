@@ -95,9 +95,8 @@ export default function MyKiChat({supabase}){
    <span><Activity size={14}/> Selbstprüfung: {status.scheduler_enabled?'aktiviert':'derzeit deaktiviert'}</span>
    <span>Autonomie: {operatingMode==='developing'?'autonome Entwicklungsprüfungen':operatingMode==='working'?'Admin-Aufträge':'pausiert'}</span>
    <span>Programmier-Sandbox: {status.sandbox?.state==='configured_not_yet_end_to_end_verified'?'Zugangsdaten konfiguriert – E2E-Prüfung offen':status.sandbox?.state==='credential_missing'?'GitHub-Zugangsdaten fehlen':'derzeit gesperrt'}</span>
-   <span><PauseCircle size={14}/> Entwicklungszeit: 03:00–08:00 und 10:00–23:00 Uhr (Berlin)</span>
-   <span>Ruhezeiten: 08:00–10:00 Uhr Pause · 23:00–03:00 Uhr Nachtruhe</span>
-   <span>Chat und Fragen bleiben rund um die Uhr erreichbar – Ruhezeiten gelten nur für autonome Entwicklung.</span>
+   <span><PauseCircle size={14}/> Geplanter Rhythmus: täglich 20:00 Uhr (Berlin)</span>
+   <span>Chat und Fragen bleiben unabhängig vom Entwicklungsmodus erreichbar.</span>
    <span>Letzte Prüfung: {lastRun?.finished_at?new Date(lastRun.finished_at).toLocaleString('de-DE'):lastRun?.started_at?new Date(lastRun.started_at).toLocaleString('de-DE'):'Noch kein Lauf gespeichert'}</span>
    {lastRun?.status&&<span>Ergebnis: {lastRun.error_code==='ADMIN_STOP_REQUESTED'?'Kontrolliert gestoppt':({ticket_created:'Ticket erstellt',no_improvement:'Keine sichere Verbesserung gefunden',duplicate:'Vorschlag bereits vorhanden',failed:'Prüfung fehlgeschlagen',running:'Läuft'})[lastRun.status]||lastRun.status}</span>}
   </div>
