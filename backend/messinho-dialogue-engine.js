@@ -3,13 +3,15 @@
  * It does not infer facts, resolve pronouns conclusively, or persist memory.
  * It packages recent conversational signals for the semantic cognitive router.
  */
-export const MESSINHO_DIALOGUE_ENGINE_VERSION = '1.0.0';
+export const MESSINHO_DIALOGUE_ENGINE_VERSION = '1.1.0';
 const MAX_TEXT = 900;
 const MAX_TURNS = 12;
 const MAX_HISTORY_WINDOW = 60;
 const SENSITIVE_CONTEXT_PATTERN = /(?:password|api[ _-]?key|access[ _-]?token|secret|private[ _-]?key|krank(?:heit|en)?|diagnos(?:e|ed)|medikament|therapie|depress(?:ion|iv)|diabetes|blutdruck|religion|muslim|islam|christ(?:entum|lich)|j[uü]disch|polit(?:ik|ische partei)|wahlentscheidung|ethn(?:ie|isch)|sexuell(?:e|er)? orientierung|homosexuell|straf(?:tat|verfahren)|vorstrafe)/iu;
 const MAX_FOCUS = 4;
-const FOLLOW_UP_PATTERN = /^\s*(?:und|aber|also|dann|danach|davon|dazu|damit|darauf|deshalb|warum|wieso|weshalb|wie|welcher|welche|welches|er|sie|es|ihn|ihm|dort|diese|dieser|dieses|nochmal|weiter|genau|ja|nein|stimmt|okay|ok|and|but|then|that|this|it|they|he|she|why|how|which|what about|continue|more|again|ça|cela|il|elle|pourquoi|comment|ensuite|et|mais|ذلك|هذا|هذه|هو|هي|لماذا|كيف|وبعد|شنوة|شنو|علاش|توا|باهي|إي|لا)(?:$|\b)/iu;
+const CONNECTOR_PATTERN = /^\s*(?:und|aber|also|dann|danach|davon|dazu|damit|darauf|deshalb|außerdem|zudem|weiter|nochmal|genau|and|but|then|also|moreover|furthermore|what about|how about|et|mais|alors|ensuite|en plus|y|pero|entonces|adem[aá]s|وبعد|وزيد|أما|شنوة|شنو|علاش|توا|باهي|إي|لا)(?:$|[\s,:;!?؟])/iu;
+const REFERENTIAL_QUESTION_PATTERN = /^\s*(?:wie|warum|wieso|weshalb|welcher|welche|welches|was ist mit|wie sieht es mit|how|why|which|what about|how about|pourquoi|comment|lequel|laquelle|y cómo|por qué|cuál|شنوة|شنو|علاش|كيف|وين|قداش|كفاش)\b[\s\S]{0,260}\b(?:er|sie|es|ihn|ihm|sein(?:e|en|er|es)?|ihr(?:e|en|er|es)?|dies(?:er|e|es)|der|die|das|the same|that one|this one|he|she|it|him|her|his|hers|elle|lui|ça|cela|il|elle|lo|la|él|ella|eso|هذا|هذه|هو|هي|متاعو|متاعها)\b/iu;
+const SHORT_FOLLOW_UP_PATTERN = /^\s*(?:ja|nein|ok|okay|genau|weiter|warum|wieso|weshalb|stimmt|richtig|mehr|nochmal|yes|no|more|again|continue|right|exactly|oui|non|encore|continuer|sí|no|más|vale|صحيح|إي|لا|باهي|اي|علاش|كيفاش)\s*[.!؟?]*\s*$/iu;
 const QUESTION_PATTERN = /[?؟]|\b(?:welche|welcher|welches|was|wer|wie|warum|wieso|wo|wann|which|what|who|how|why|where|when|pourquoi|comment|quoi|qui|وين|علاش|شنوة|شنو)\b/iu;
 function cleanText(value, max = MAX_TEXT) {
   return String(value ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/gu, '').trim().slice(0, max);
@@ -24,10 +26,14 @@ function safeHistory(history, limit = MAX_TURNS) {
 function wordCount(value) {
   return cleanText(value).split(/\s+/u).filter(Boolean).length;
 }
-function isLikelyFollowUp(message) {
+export function classifyMessinhoFollowUp(message, {assistantAwaitingAnswer = false} = {}) {
   const text = cleanText(message, 500);
-  if (!text) return false;
-  return FOLLOW_UP_PATTERN.test(text) || (wordCount(text) <= 5 && /^(?:ja|nein|ok|okay|genau|weiter|warum|wieso|and|but|yes|no|more|again|oui|non|باهي|إي|لا)$/iu.test(text));
+  if (!text) return 'none';
+  if (assistantAwaitingAnswer && wordCount(text) <= 16) return 'pending_question_reply';
+  if (CONNECTOR_PATTERN.test(text)) return 'discourse_connector';
+  if (REFERENTIAL_QUESTION_PATTERN.test(text)) return 'referential_question';
+  if (SHORT_FOLLOW_UP_PATTERN.test(text)) return 'short_reply';
+  return 'none';
 }
 export function buildMessinhoDialogueState({message,history=[],userRole='scout',linguisticContext=null}={}) {
   const currentMessage = cleanText(message, 1200);
@@ -39,10 +45,9 @@ export function buildMessinhoDialogueState({message,history=[],userRole='scout',
   const previousAssistant = [...turns].reverse().find(item => item.role === 'assistant') || null;
   const assistantAskedQuestion = Boolean(last?.role === 'assistant' && QUESTION_PATTERN.test(last.text));
   const priorUserGoal = [...turns].reverse().find(item => item.role === 'user' && wordCount(item.text) >= 4) || null;
-  const replyToPendingQuestionLikely = assistantAskedQuestion && currentMessage.length > 0 && wordCount(currentMessage) <= 16;
+  const followUpSignal = classifyMessinhoFollowUp(currentMessage, {assistantAwaitingAnswer: assistantAskedQuestion});
   const olderUserGoals = olderTurns.filter(item => item.role === 'user' && wordCount(item.text) >= 4 && !SENSITIVE_CONTEXT_PATTERN.test(item.text)).slice(-3).map(item => item.text.slice(0, 360));
   const olderAssistantQuestions = olderTurns.filter(item => item.role === 'assistant' && QUESTION_PATTERN.test(item.text) && !SENSITIVE_CONTEXT_PATTERN.test(item.text)).slice(-2).map(item => item.text.slice(0, 240));
-  const followUpLikely = isLikelyFollowUp(currentMessage) || replyToPendingQuestionLikely;
   const recentFocus = turns.filter(item => item.role === 'user').slice(-MAX_FOCUS).map(item => item.text);
   const language = linguisticContext?.response_language || linguisticContext?.primary_language || null;
   return {
@@ -50,8 +55,9 @@ export function buildMessinhoDialogueState({message,history=[],userRole='scout',
     turn_number: allTurns.length + 1,
     user_role: userRole === 'admin' ? 'admin' : 'scout',
     continuity: {
-      follow_up_likely: followUpLikely,
-      reply_to_pending_question_likely: replyToPendingQuestionLikely,
+      follow_up_likely: followUpSignal !== 'none',
+      follow_up_signal: followUpSignal,
+      reply_to_pending_question_likely: followUpSignal === 'pending_question_reply',
       assistant_awaiting_answer: assistantAskedQuestion,
       pending_assistant_question: assistantAskedQuestion ? last.text : null,
       previous_user_message: previousUser?.text || null,
@@ -75,6 +81,7 @@ export function validateMessinhoDialogueState(value) {
   if (!['admin', 'scout'].includes(value.user_role)) return false;
   if (!value.continuity || typeof value.continuity !== 'object') return false;
   if (typeof value.continuity.follow_up_likely !== 'boolean') return false;
+  if (!['none','discourse_connector','referential_question','short_reply','pending_question_reply'].includes(value.continuity.follow_up_signal)) return false;
   if (typeof value.continuity.assistant_awaiting_answer !== 'boolean') return false;
   if (!Array.isArray(value.recent_user_focus) || value.recent_user_focus.length > MAX_FOCUS) return false;
   if (!value.older_context || !Array.isArray(value.older_context.user_goal_candidates) || value.older_context.user_goal_candidates.length > 3) return false;
