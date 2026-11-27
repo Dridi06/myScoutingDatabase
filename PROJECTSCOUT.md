@@ -5475,3 +5475,28 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Next: full STAGING build, inspect each new semantic regression, then deploy only if all tests, backend syntax checks and Vite build pass.
 - No Supabase migration or persistent knowledge write is required. Production remains untouched.
 
+
+
+## 33. MESSINHO Linguistic Intelligence 1.3.9 — expanded French and Tunisian Arabizi nuance — 2026-11-27
+
+### Changes since 1.3.8
+- Advanced linguistic-intelligence version to 1.3.9.
+- Expanded qualified-negation recognition:
+  - French "pas mal" is treated as a qualified positive/neutral evaluation, not a plain negative.
+  - Tunisian Arabizi variants now include "mouch khayeb" and "mouch bel dharoura".
+- Expanded uncertainty recognition to Tunisian Arabizi "yemken", "momken" and "mumkin".
+- Expanded contrast recognition to "ama", "walakin" and French/Spanish contrast phrases.
+- Added "mouch" to deterministic negation detection.
+- Existing Arabic script and source-preservation behavior remains unchanged.
+
+### Tests and traceability
+- Source implementation commit: f9452d4e71507545ef254a4fbf360ef96e517f41.
+- Six-language and Tunisian Arabizi regression commit: 1d5d93646b8caf554a46912a9c7c8ff513be393b.
+- Spanish test fixture correction: 4e014e7d35b3774ee9dc42ac31aa9d170fad52d3.
+- Regression cases cover qualified evaluation, uncertainty, contrast, not-necessarily, Arabizi and plain negation without false qualified cues.
+
+### Verification status
+- Linguistic Intelligence 1.3.9 is committed but not yet verified by the complete STAGING build.
+- Run full Node tests, backend syntax checks and Vite production build. Fix any real regression before release.
+- Production remains untouched; no Supabase migration or persistent language-knowledge write is required.
+
