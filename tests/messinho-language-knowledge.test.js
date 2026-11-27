@@ -9,7 +9,7 @@ function fakeDb(rows, selected=[]) {
 
 test('language knowledge is registered for six language profiles and append-only',()=>{
  const summary=getMessinhoLanguageKnowledgeSummary();
- assert.equal(summary.version,'1.2.0');
+ assert.equal(summary.version,'1.2.1');
  assert.equal(summary.profiles.length,6);
  assert.equal(summary.retention,'append_only_versions');
  assert.equal(summary.write_access,'none_from_chat_or_scout_roles');
@@ -169,4 +169,31 @@ test('caps multi-language retrieval at eight items even with three detected lang
   assert.ok(result.items.some(item=>item.language_code===language),language+' must remain represented');
   assert.ok(result.items.filter(item=>item.language_code===language).length<=3);
  }
+});
+
+
+test('retrieves Arabic knowledge for fully vocalized MSA input',async()=>{
+ const rows=[{
+  entry_key:'ar.grammar.greetings',version:1,language_code:'ar',entry_type:'pragmatics',
+  topic:'التحية',title:'السلام عليكم',
+  content:{explanation:'تحية عربية فصيحة واستعمالها في بداية الحديث.'},
+  tags:['السلام','عليكم','التحية'],knowledge_status:'active'
+ }];
+ const message='السَّلَامُ عَلَيْكُمْ، كَيْفَ حَالُكُمْ؟';
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),message);
+ assert.equal(result.language_id,'ar');
+ assert.equal(result.items[0]?.entry_key,'ar.grammar.greetings');
+});
+
+test('retrieves Tunisian Derja knowledge from vocalized Arabic script',async()=>{
+ const rows=[{
+  entry_key:'ar-tn.lexicon.opinion',version:1,language_code:'ar-tn',entry_type:'lexicon',
+  topic:'الرأي والتقييم',title:'شنوة رايك',
+  content:{explanation:'تعابير تونسية للسؤال عن الرأي ووصف شيء بأنه باهي وبرشا.'},
+  tags:['شنوة','رايك','برشا','باهي'],knowledge_status:'active'
+ }];
+ const message='شْنُوَّة رَأْيَكْ فِي اللَّاعِبْ هَاذَا؟ بَرْشَا بَاهِي';
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),message);
+ assert.equal(result.language_id,'ar-tn');
+ assert.equal(result.items[0]?.entry_key,'ar-tn.lexicon.opinion');
 });
