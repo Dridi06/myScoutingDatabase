@@ -13,11 +13,14 @@ const task = overrides => ({
   context:{player:{name:'Testspieler',performance_metrics:{technical:80}}},
   completed_results:[],...overrides
 });
-function mockDb() {
-  const writes=[];
-  return {writes,from(){return {update(patch){writes.push(patch);return {
-    eq(){return this;},select(){return this;},async maybeSingle(){return {data:{id:'task-1'},error:null};}
-  };}};}};
+function mockDb({mode='developing',stopRequested=false}={}) {
+  const writes=[],state={mode,stop_requested:stopRequested};
+  return {writes,state,from(table){
+    if(table==='messinho_agent_control')return {select(){return {eq(){return {maybeSingle:async()=>({data:state,error:null})};}};}};
+    return {update(patch){writes.push(patch);return {
+      eq(){return this;},select(){return this;},async maybeSingle(){return {data:{id:'task-1'},error:null};}
+    };}};
+  }};
 }
 
 test('worker is disabled unless explicit Render staging gate and credentials match',()=>{
@@ -62,4 +65,30 @@ test('worker rejects malformed claimed records without database writes',async()=
   const result=await processMessinhoBackgroundTask({db,task:task({lease_token:null}),workerId:'worker-1'});
   assert.equal(result.reason,'invalid_claim');
   assert.equal(db.writes.length,0);
+});
+
+
+test('background worker does not start tasks unless admin selected developing mode',async()=>{
+ const db=mockDb({mode:'paused'});
+ let executed=false;
+ const result=await processMessinhoBackgroundTask({db,task:task(),workerId:'worker-1',
+  execute:async()=>{executed=true;return {status:'completed',results:[],deferred_capabilities:[]};}});
+ assert.equal(executed,false);
+ assert.equal(result.stopped,true);
+ assert.equal(result.reason,'admin_mode_paused');
+ assert.equal(db.writes[0].status,'partial');
+});
+
+test('background worker observes a stop request between capability steps',async()=>{
+ const db=mockDb();let stopObserved=false;
+ const result=await processMessinhoBackgroundTask({db,task:task(),workerId:'worker-1',
+  execute:async(plan,input,role,options)=>{
+   db.state.stop_requested=true;
+   stopObserved=await options.shouldStop();
+   return {status:'stopped',stop_requested:true,results:[],deferred_capabilities:['overall_score'],missing_inputs:[]};
+  }});
+ assert.equal(stopObserved,true);
+ assert.equal(result.stopped,true);
+ assert.equal(db.writes[0].status,'partial');
+ assert.equal(db.writes[0].next_retry_at,null);
 });
