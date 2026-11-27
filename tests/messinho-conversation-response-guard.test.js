@@ -22,6 +22,8 @@ test('blocks unverified first-person system mutation claims in German and Englis
 test('does not block an explicit statement that an action was not completed',()=>{
   const result=guardMessinhoConversationReply({intent:'conversation',reply:'Ich habe die Änderung noch nicht deployed.'});
   assert.equal(result.ok,true);
+  const spanishNegative=guardMessinhoConversationReply({intent:'conversation',reply:'No he creado el ticket.'});
+  assert.equal(spanishNegative.ok,true);
 });
 
 test('blocks unverified mutation claims in French and Spanish',()=>{
