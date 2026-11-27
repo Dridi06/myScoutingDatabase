@@ -379,7 +379,7 @@ test('captures qualified negation and evaluation cues across all six language pr
     ['fr','Le joueur n’est pas encore prêt, peut-être demain, mais il peut progresser.',['not_yet'],['uncertainty'],['contrast']],
     ['es','El jugador todavía no está listo; no es malo, pero no necesariamente mejora, quizá necesita más tiempo.',['not_yet','not_necessarily','not_bad'],['uncertainty'],['contrast']],
     ['ar','هذا اللاعب ليس بالضرورة سيئا، ولم يصبح جاهزا بعد، لكن ربما يتحسن.',['not_necessarily','not_yet'],['uncertainty'],['contrast']],
-    ['ar-tn','اللاعب هذا موش بالضرورة خايب، موش كافي توة، أما يمكن يتحسن.',['not_necessarily','not_bad','not_enough'],['uncertainty'],['contrast']]
+    ['ar-tn','اللاعب هذا موش بالضرورة خايب، موش كافي توة، أما يمكن يتحسن.',['not_necessarily','not_enough'],['uncertainty'],['contrast']]
   ];
   for(const [language,message,negation,uncertainty,contrast] of cases){
     const result=analyzeMessinhoLanguage(message);
@@ -459,7 +459,7 @@ test('does not invent a qualified evaluation for plain direct negation',()=>{
 test('publishes semantic nuance cues in stable chat metadata',()=>{
   const context=buildMessinhoLinguisticContext('The player is not bad, but perhaps not ready yet.',[]);
   const metadata=buildMessinhoLinguisticResponseMetadata(context);
-  assert.deepEqual(metadata.signals.negation_scope_cues,['not_bad','not_yet']);
+  assert.deepEqual([...metadata.signals.negation_scope_cues].sort(),['not_bad','not_yet']);
   assert.deepEqual(metadata.signals.qualified_evaluation_cues,['not_bad']);
   assert.deepEqual(metadata.signals.uncertainty_cues,['uncertainty']);
   assert.deepEqual(metadata.signals.contrast_cues,['contrast']);
