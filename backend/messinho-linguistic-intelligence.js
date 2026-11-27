@@ -7,7 +7,7 @@
  */
 import { analyzeMessinhoGrammar } from './messinho-grammar-engine.js';
 
-export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.9';
+export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.4.0';
 
 export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
   { id:'de', name:'Deutsch', family:'Germanic', scripts:['Latin'], variants:['de-DE','de-AT','de-CH'], capabilities:['grammar','cases','articles','word_order','compound_words','spelling','semantics','pragmatics'] },
@@ -109,6 +109,59 @@ function collectMessinhoSemanticCues(input) {
     qualified_evaluation_cues:qualifiedEvaluationCues,
     uncertainty_cues:matched.includes('uncertainty')?['uncertainty']:[],
     contrast_cues:matched.includes('contrast')?['contrast']:[]
+  };
+}
+
+const SEMANTIC_CONCEPT_PATTERNS = Object.freeze({
+  player_readiness: /(?:\b(?:ready|readiness|prepared|fit for selection|bereit|einsatzbereit|spielbereit|pret|prets|disponible|listo|lista|preparado|preparada)\b|جاهز|جاهزة|مستعد|مستعدة|حاضر|حاضرة)/u,
+  performance_quality: /(?:\b(?:good|bad|strong|weak|promising|schlecht|stark|schwach|gut|bon|mauvais|fort|faible|bueno|malo|fuerte|debil|débil)\b|جيد|سيئ|قوي|ضعيف|باهي|خايب)/u,
+  development: /(?:\b(?:improve|improving|progress|develop|development|verbessern|entwickeln|progresser|ameliorer|mejorar|desarrollar)\b|يتحسن|يتطور|يتقدم|يتحسّن|يتطوّر)/u,
+  capability: /(?:\b(?:can|could|able to|capable|kann|könnte|koennen|peut|pouvoir|puede|podria|podría)\b|يستطيع|يمكن|ينجم|تنجم)/u,
+  availability: /(?:\b(?:available|availability|verfuegbar|verfügbar|einsatzfaehig|einsatzfähig|disponible|disponibilidad)\b|متاح|متاحة|موجود|حاضر)/u
+});
+
+function buildMessinhoSemanticFrames(segments) {
+  const frames=[];
+  for(const segment of Array.isArray(segments)?segments:[]) {
+    const sourceText=String(segment?.text??'');
+    if(!sourceText.trim())continue;
+    const normalized=normalizeMessinhoArabicForAnalysis(sourceText.toLocaleLowerCase())
+      .normalize('NFD').replace(/[\u0300-\u036f]/gu,'');
+    const concepts=Object.entries(SEMANTIC_CONCEPT_PATTERNS)
+      .filter(([,pattern])=>pattern.test(normalized))
+      .map(([concept])=>concept);
+    const cues=collectMessinhoSemanticCues(sourceText);
+    const hasCues=Object.values(cues).some(values=>values.length>0);
+    if(!concepts.length&&!hasCues)continue;
+    frames.push({
+      segment_index:segment.index,
+      language_id:segment.language_analysis?.primary_language||segment.language_hint||null,
+      concepts,
+      cues,
+      interpretation:{
+        certainty:cues.uncertainty_cues.length?'qualified_or_uncertain':'no_uncertainty_marker_detected',
+        qualification:cues.negation_scope_cues.length?'negation_or_qualification_marker_detected':'no_qualification_marker_detected',
+        relation:cues.contrast_cues.length?'contrast_marker_detected':'no_contrast_marker_detected'
+      },
+      evidence_method:'bounded_cross_language_lexical_and_discourse_cues',
+      scope:'segment_level_not_full_semantic_parse',
+      source_text_preserved:true
+    });
+    if(frames.length>=12)break;
+  }
+  return frames;
+}
+
+function buildMessinhoSemanticSummary(frames) {
+  const languageIds=[...new Set(frames.map(frame=>frame.language_id).filter(Boolean))];
+  const concepts=[...new Set(frames.flatMap(frame=>frame.concepts))];
+  return {
+    frame_count:frames.length,
+    language_ids:languageIds,
+    cross_language:languageIds.length>1,
+    concepts,
+    source_text_preserved:true,
+    limitation:'Lexical and discourse evidence only; reference resolution, sarcasm, implied meaning and full clause-level negation scope are not established.'
   };
 }
 
@@ -335,6 +388,8 @@ export function buildMessinhoLinguisticResponseMetadata(context) {
     languages:Array.isArray(context.languages)?context.languages:[],
     scripts:Array.isArray(context.scripts)?context.scripts:['unknown'],
     signals:context.signals||null,
+    semantic_frames:Array.isArray(context.semantic_frames)?context.semantic_frames:[],
+    semantic_summary:context.semantic_summary||null,
     action:context.action||null,
     segments:Array.isArray(context.segments)?context.segments:[]
   };
@@ -369,8 +424,12 @@ export function buildMessinhoLinguisticContext(message, history = []) {
     .map(segment=>segment.language_analysis?.primary_language||segment.language_hint)
     .find(Boolean)||null;
   const responseLanguage=latestSegmentLanguage||current.primary_language||continuityLanguage||null;
+  const semantic_frames=buildMessinhoSemanticFrames(segments);
+  const semantic_summary=buildMessinhoSemanticSummary(semantic_frames);
   return {
     ...current,
+    semantic_frames,
+    semantic_summary,
     conversation_language_hint:responseLanguage,
     response_language:responseLanguage,
     latest_segment_language:latestSegmentLanguage,
@@ -384,6 +443,8 @@ export function buildMessinhoLinguisticContext(message, history = []) {
       'If meaning is ambiguous and materially affects the answer, ask one concise clarification.',
       'Do not invent dictionary definitions or claim a translation was verified when it was not.',
       'Analyze each sentence or segment independently when languages are mixed; preserve original segment order and wording.',
+      'Use semantic_frames as cross-language lexical and discourse evidence only; do not treat them as a full semantic parse or infer unresolved references.',
+      'Keep uncertainty, qualification and contrast visible; do not turn a qualified statement into an absolute judgment.',
       'Use grammar_analysis as bounded evidence only; distinguish a detected structure from a confirmed error and never rewrite the source unless correction is requested.',
       'Evaluate Tunisian Derja with its own grammar profile; never mark dialect forms incorrect merely because they differ from Modern Standard Arabic.',
       'Never convert standalone digits, scores, dates, ages or shirt numbers as Arabizi letters.',
