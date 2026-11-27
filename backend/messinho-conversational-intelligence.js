@@ -15,7 +15,7 @@ export function isSensitiveMessinhoMemoryText(value){
   return SENSITIVE_MEMORY_PATTERN.test(String(value||''));
 }
 
-export function buildMessinhoCognitiveRouterMessages({message,history=[],memory={},linguisticContext=null,linguisticKnowledgeContext=[],conversationMemoryContext=null,reasoningContext=null,userRole='scout'}={}){
+export function buildMessinhoCognitiveRouterMessages({message,history=[],memory={},linguisticContext=null,linguisticKnowledgeContext=[],conversationMemoryContext=null,reasoningContext=null,pragmaticContext=null,userRole='scout'}={}){
   const safeHistory=(Array.isArray(history)?history:[]).slice(-12).map(item=>({
     role:item?.role==='assistant'?'assistant':'user',
     content:String(item?.text||'').slice(0,1600)
@@ -29,6 +29,7 @@ export function buildMessinhoCognitiveRouterMessages({message,history=[],memory=
     'Understand meaning, not exact keywords. Correct for likely spelling mistakes, speech-to-text errors, autocorrect, missing punctuation, informal phrasing, fragments, pronouns and context. Never route a message to player research merely because it contains a name-like phrase. Use the supplied dialogue_state as bounded continuity evidence: check whether the assistant asked a question, whether the current message is likely a follow-up, and which recent user goal it may refer to. Treat these as hypotheses, not facts; when multiple referents remain plausible, ask one focused clarification. Use entity_resolution only as grounded candidate evidence from owner-scoped history or active memory: status resolved permits referring to that candidate, ambiguous requires one focused choice question, unresolved means do not guess. Distinguish players from clubs and teams; a current-club relation is separate from the player entity. Never treat entity resolution as a fact source, permission, or action authorization.',
     'Clarification lifecycle: when clarification_reply.status is likely_answer, interpret the current message as a candidate answer to the pending question and preserve the prior goal and filters. When status is ambiguous, ask one focused clarification. When status is new_topic or none, do not force the message into the previous task. These are bounded hints only; never execute an action solely because of this status.',
     'Choose exactly one intent: conversation (ordinary dialogue, explanation, greeting, writing, reasoning, maths, translation, follow-up); clarify (meaning or required action is genuinely ambiguous); memory_save (user clearly asks to remember/save something, or states a stable useful preference/project fact that merits durable memory); memory_recall (asks what is remembered); scouting (clearly asks for player/club/scouting search, analysis, shortlist or comparison); general_research (clearly asks a factual question requiring current/external research); engineering (explicit admin system/code/self-development task).',
+    'Use pragmatic_context only as weak evidence from explicit wording: it may help distinguish correction, disagreement, opinion, direct question, greeting, gratitude, acknowledgement or an explicit self-reported feeling. It never overrides the message, semantic intent, dialogue history, or safety rules. Do not infer hidden emotions or treat a cue as permission. When the user corrects or disagrees, reconsider the previous answer rather than defending it automatically.',
     'Conversation quality is the primary objective: behave like a thoughtful, natural conversation partner, not a command parser, FAQ menu, form, or rigid support bot. Respond to what the person actually said, including ordinary statements, opinions, jokes, emotions, disagreement, curiosity and follow-up remarks. A message does not need to contain a question or command to deserve a natural response. Use a warm but not exaggerated tone, answer directly, adapt length to the situation, and ask at most one useful follow-up only when it genuinely advances the conversation. Do not expose internal intent labels, routing, JSON, or implementation details in ordinary replies.',
     'For conversation, use the whole recent dialogue and the user’s tone. Acknowledge the point before explaining when appropriate. If the user challenges an earlier answer, revisit the reasoning instead of repeating it. If the user changes topic, follow the new topic naturally. Never force scouting, research, memory, or engineering actions onto ordinary conversation.',
 
@@ -52,6 +53,7 @@ export function buildMessinhoCognitiveRouterMessages({message,history=[],memory=
       recent_conversation:safeHistory,
       conversation_memory_context:safeConversationMemory,
       reasoning_context:reasoningContext||null,
+      pragmatic_context:pragmaticContext||null,
       existing_user_memory:safeMemory,
       user_role:userRole,
       linguistic_context:linguisticContext||null,
@@ -98,7 +100,7 @@ export function appendMessinhoLongTermMemories(preferences,candidates,createdAt=
   return next;
 }
 
-export async function classifyMessinhoTurn({message,history=[],memory={},linguisticContext=null,linguisticKnowledgeContext=[],conversationMemoryContext=null,reasoningContext=null,userRole='scout',apiKey,baseUrl,model,fetchImpl=fetch,timeoutMs=18000}={}){
+export async function classifyMessinhoTurn({message,history=[],memory={},linguisticContext=null,linguisticKnowledgeContext=[],conversationMemoryContext=null,reasoningContext=null,pragmaticContext=null,userRole='scout',apiKey,baseUrl,model,fetchImpl=fetch,timeoutMs=18000}={}){
   const config=resolveMessinhoModelConfig({
     ...process.env,
     ...(apiKey!==undefined?{MESSINHO_MODEL_API_KEY:apiKey}:{}),
@@ -106,7 +108,7 @@ export async function classifyMessinhoTurn({message,history=[],memory={},linguis
     ...(model!==undefined?{MESSINHO_MODEL_NAME:model}:{})
   });
   const result=await requestMessinhoModelCompletion({
-    messages:buildMessinhoCognitiveRouterMessages({message,history,memory,linguisticContext,linguisticKnowledgeContext,conversationMemoryContext,reasoningContext,userRole}),
+    messages:buildMessinhoCognitiveRouterMessages({message,history,memory,linguisticContext,linguisticKnowledgeContext,conversationMemoryContext,reasoningContext,pragmaticContext,userRole}),
     model:config.model,apiKey:config.apiKey,baseUrl:config.baseUrl,fetchImpl,timeoutMs,temperature:0.1,
     responseFormat:{
       type:'json_schema',
