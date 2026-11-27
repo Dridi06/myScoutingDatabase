@@ -1,8 +1,10 @@
 /**
- * MESSINHO programming curriculum — first-party, versioned learning foundation.
- * The curriculum is durable source-controlled knowledge, not a claim of model-weight training.
+ * MESSINHO programming curriculum — durable, versioned learning foundation.
+ * This is reusable source-controlled knowledge, not model-weight training.
  */
-export const MESSINHO_PROGRAMMING_CURRICULUM_VERSION='1.1.0';
+import { buildMessinhoLanguageLearningContext, MESSINHO_PROGRAMMING_LANGUAGES_VERSION } from './messinho-programming-languages.js';
+
+export const MESSINHO_PROGRAMMING_CURRICULUM_VERSION='1.2.0';
 export const MESSINHO_PROGRAMMING_CURRICULUM=Object.freeze([
  {level:1,id:'foundations',title:'Programmiergrundlagen',topics:[
   'Variablen, Konstanten, Datentypen, Operatoren und Ausdrücke',
@@ -33,8 +35,7 @@ export const MESSINHO_PROGRAMMING_CURRICULUM=Object.freeze([
   'LLM-Prompting, strukturierte Ausgaben, Tool-Grenzen und Prompt-Injection-Abwehr',
   'RAG, Embeddings, Quellenherkunft, Wissensversionen und Aktualitätsprüfung',
   'Evaluation, Baselines, Kalibrierung, Drift, Regression und kontrollierte Selbstoptimierung'
- ],mastery:'Kann eine Änderung anhand messbarer Kriterien bewerten, Risiken begrenzen und einen überprüfbaren Rollback-Plan liefern.'}
- ,
+ ],mastery:'Kann eine Änderung anhand messbarer Kriterien bewerten, Risiken begrenzen und einen überprüfbaren Rollback-Plan liefern.'},
  {level:5,id:'professional-engineering',title:'Professionelle Softwareentwicklung und Problemlösung',topics:[
   'Systematische Fehleranalyse: Symptom, Reproduktion, Eingrenzung, Ursache und Korrektur getrennt dokumentieren',
   'Code-Review: Korrektheit, Lesbarkeit, Wartbarkeit, Komplexität, Seiteneffekte und API-Kompatibilität bewerten',
@@ -48,15 +49,19 @@ export const MESSINHO_PROGRAMMING_CURRICULUM=Object.freeze([
   'Technische Entscheidungen: Alternativen, Kosten, Risiken, Annahmen und nachvollziehbare Architekturentscheidungen'
  ],mastery:'Kann eine technische Änderung mit nachvollziehbaren Belegen, Risikoanalyse, Alternativen, Testmatrix und Rollback-Plan professionell begründen.'}
 ]);
+
 export function buildMessinhoProgrammingLearningContext({maxTopics=24,includeExamples=true}={}) {
+ const languageContext=buildMessinhoLanguageLearningContext();
  const lessons=MESSINHO_PROGRAMMING_CURRICULUM.map(level=>({
   level:level.level,title:level.title,topics:level.topics.slice(0,Math.max(1,Math.min(12,maxTopics))),
   mastery:level.mastery
  }));
  return {
   curriculum_version:MESSINHO_PROGRAMMING_CURRICULUM_VERSION,
+  language_curriculum_version:MESSINHO_PROGRAMMING_LANGUAGES_VERSION,
   learning_model:'progressive_prerequisites_and_verified_feedback',
   levels:lessons,
+  language_knowledge:languageContext,
   engineering_rules:[
    'Vor jeder Änderung zuerst den tatsächlichen Ist-Code, Aufrufer, Tests und Datenfluss lesen.',
    'Ein Fehler muss durch konkreten Codepfad, reproduzierbares Beispiel oder Test belegt sein.',
@@ -98,7 +103,7 @@ export function buildMessinhoProgrammingLearningContext({maxTopics=24,includeExa
 }
 export function assessMessinhoProgrammingLearning({concept,explanation,testEvidence,reviewStatus='unreviewed'}={}) {
  const valid=['approved','rejected','needs_revision'].includes(reviewStatus);
- const clean=value=>String(value??'').replace(/[\x00-\x1f\x7f]/g,' ').trim();
+ const clean=value=>String(value??'').replace(/[\\x00-\\x1f\\x7f]/g,' ').trim();
  const name=clean(concept),why=clean(explanation),evidence=clean(testEvidence);
  if(name.length<2||why.length<20||evidence.length<12||!valid)
   return {eligible:false,reason:'verified_learning_evidence_required'};
