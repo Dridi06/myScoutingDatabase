@@ -11,7 +11,7 @@ ENV PATH="/usr/share/dotnet:${PATH}"
 RUN npm install --global --no-audit --no-fund typescript html-validate stylelint
 RUN groupadd --gid 10001 messinho && useradd --uid 10001 --gid 10001 --create-home --shell /usr/sbin/nologin messinho
 COPY --chown=root:root .github/sandbox/runner.sh /opt/messinho/runner.sh
-RUN chmod 0555 /opt/messinho/runner.sh
+RUN mkdir -p /src /deps /inputs /work /tmp/messinho-home && chmod 0555 /opt/messinho/runner.sh
 USER 10001:10001
 WORKDIR /work
 ENV HOME=/tmp/messinho-home
