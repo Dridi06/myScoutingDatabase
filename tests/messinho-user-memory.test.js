@@ -10,6 +10,9 @@ import {
 
 test('recognizes explicit German and English remember commands without treating ordinary text as a command',()=>{
   assert.equal(detectExplicitMessinhoRememberRequest('Merke dir Staging Alpha'),'Staging Alpha');
+  assert.equal(detectExplicitMessinhoRememberRequest('Merk dir Staging Alpha'),'Staging Alpha');
+  assert.equal(detectExplicitMessinhoRememberRequest('Merk die Staging Alpha'),'Staging Alpha');
+  assert.equal(detectExplicitMessinhoRememberRequest('MERK DIE Staging Alpha'),'Staging Alpha');
   assert.equal(detectExplicitMessinhoRememberRequest('Bitte merke dir: Testwort 42'),'Testwort 42');
   assert.equal(detectExplicitMessinhoRememberRequest('Remember staging alpha'),'staging alpha');
   assert.equal(detectExplicitMessinhoRememberRequest('Staging Alpha'),null);
