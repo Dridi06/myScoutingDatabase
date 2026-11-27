@@ -143,7 +143,7 @@ export async function classifyMessinhoTurn({message,history=[],memory={},linguis
       reply:{type:'string'},
       clarification_question:{type:'string'},
       memory_items:{type:'array',maxItems:3,items:{type:'object',additionalProperties:false,properties:{
-        text:{type:'string',maxLength:320},
+        text:{type:'string'},
         category:{type:'string',enum:['preference','project','stable_fact','active_goal']},
         confidence:{type:'number',minimum:0,maximum:1}
       },required:['text','category','confidence']}}
