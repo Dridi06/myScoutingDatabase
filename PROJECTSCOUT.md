@@ -6060,3 +6060,56 @@ Read this file from the current feature branch and inspect its latest HEAD and P
 - Block 4's code-level end-to-end path and automated regression suite are green.
 - A STAGING runtime smoke test against the deployed authenticated chat endpoint and its real conversation storage remains the final operational verification before declaring Block 4 fully complete.
 - No deployment was triggered by this work. LIVE/Production remains untouched. PR #58 remains Draft and unmerged; no merge or deployment without explicit owner approval.
+
+
+## 21. Owner-approved direction — Universal Conversational Intelligence — 2026-11-27
+
+### Product decision
+- **Owner goal:** MESSINHO must feel like a natural two-person conversation. The user should be able to write or ask freely, including statements, follow-ups, disagreement, jokes, ordinary questions, incomplete phrases, typos, and topic changes. The system must not behave primarily like a fixed command parser or form.
+- **Accepted architecture direction:** Build a central conversational intelligence core first; connect memory, linguistic intelligence, knowledge retrieval, reasoning, research, scouting capabilities, and autonomous agent execution behind it.
+- **Training decision:** Do not block useful conversational capability on training a model from scratch. Use a replaceable capable model provider initially; develop MESSINHO's own memory, knowledge, orchestration, evaluation, and provider abstraction now. Build a controlled training pipeline over time from approved, privacy-safe examples and verified outcomes. Training must be versioned, evaluated against holdout tests, and never auto-promote model weights.
+- **Provider independence:** Hosted OpenAI-compatible and self-hosted OpenAI-compatible model endpoints should be configurable. The provider is a language/reasoning motor, not the owner of MESSINHO's permissions, data, evidence, memory policy, or agent actions.
+- **Existing work preserved:** Linguistic intelligence, grammar, language knowledge, dialogue state, clarification continuity, entity resolution, memory, capability runtime, research/evidence, and agent orchestration remain components of the target system; they are not replaced by a greeting dictionary or another isolated chat.
+
+### Diagnostic finding
+- The 2026-11-27 STAGING chat test reached the API and persisted the message, but the semantic model call returned `provider_error`.
+- Render startup logs confirmed `OPENAI_API_KEY` was configured and model name `gpt-4.1-mini` was selected; this does not prove that the key, model entitlement, request format, or provider request was accepted.
+- The previous log omitted HTTP status and provider error code, so the exact cause was not observable. The new runtime returns bounded provider status/error codes and server logs record HTTP status plus error code without logging secrets.
+- The deterministic greeting shortcut was removed: greetings and all other ordinary messages now use the same conversational model path. A hard-coded greeting response is not considered conversational intelligence.
+
+### Implementation started on `feature/messinho-conversation-engine`
+1. Added `backend/messinho-model-runtime.js`:
+   - Provider-neutral OpenAI-compatible chat-completions adapter.
+   - Configurable `MESSINHO_MODEL_BASE_URL`, `MESSINHO_MODEL_API_KEY`, and `MESSINHO_MODEL_NAME`, with backward-compatible `OPENAI_*` defaults.
+   - Supports hosted or self-hosted endpoints using the OpenAI-compatible protocol.
+   - Retries with JSON-object response mode only when a provider rejects JSON Schema response format.
+   - Bounded failure diagnostics; never returns or logs credentials.
+2. Updated `backend/messinho-conversational-intelligence.js`:
+   - Uses the provider-neutral runtime instead of a hard-coded OpenAI URL.
+   - Natural conversation is explicitly prioritized over command parsing; ordinary statements, opinions, disagreement, jokes, emotion, follow-ups, and topic changes must receive natural responses.
+   - Invalid JSON/model output is distinguished from network/provider failures.
+3. Updated `backend/server.js`:
+   - Reads the new provider configuration variables while preserving existing OpenAI configuration.
+   - Removed the special hard-coded greeting bypass; every greeting now reaches the same conversation intelligence path.
+   - Provider failure diagnostics include HTTP status and error code, not secret values.
+4. Updated `tests/messinho-conversational-intelligence.test.js`:
+   - Provider endpoint configuration, local endpoint support, JSON Schema compatibility fallback, safe provider error diagnostics, natural-conversation prompt behavior, and shared greeting path.
+   - Existing malformed model-output expectation updated to the explicit `invalid_output` status.
+
+### Roadmap / release gates
+1. Complete provider runtime and conversational core tests; verify GitHub CI.
+2. Deploy only the tested feature branch to STAGING; verify the exact deployed commit.
+3. Diagnose the actual provider rejection from the newly exposed HTTP status/error code; fix the provider configuration or compatibility issue based on evidence, not guesses.
+4. Run authenticated conversation smoke tests covering greetings, ordinary statements, follow-up questions, disagreement, topic changes, typos, German/English/French/Arabic/Derja, and general factual questions.
+5. Connect grounded knowledge retrieval and permitted research as optional tools selected by the conversational core; keep source provenance and uncertainty visible.
+6. Strengthen conversation memory with owner/conversation isolation, bounded context, durable summaries, and explicit privacy controls.
+7. Add reasoning/tool orchestration with action permissions, confirmation gates, budgets, timeouts, audit logs, and safe retries.
+8. Build the controlled training/evaluation pipeline: approved conversation examples, data cleaning and privacy review, train/validation/holdout splits, baseline comparisons, regression/safety tests, versioned candidate models, and administrator approval before activation.
+9. Only later evaluate self-hosted inference and a custom-trained model against quality, latency, operating cost, privacy, and hardware requirements.
+
+### Current status at checkpoint
+- Code changes are committed to this feature branch; CI and runtime verification are pending.
+- No new STAGING deployment has been triggered for these latest commits yet.
+- Existing STAGING deployment remains the earlier Block 4 commit until a tested deploy is explicitly started.
+- No merge, no production deployment, no Supabase schema migration, no player/user data mutation, and no model training/weight changes were performed by this work.
+- Pull Request #58 remains open and unmerged.
