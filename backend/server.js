@@ -2296,7 +2296,6 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(profile.role==='scout'&&isMessinhoAdminOnlyCommand(interpretedMessage)){
       return respond({reply:'Diese Anweisung ist aus Sicherheitsgründen Administratoren vorbehalten. Du kannst MESSINHO weiterhin uneingeschränkt für normale Scouting-Fragen, Spieleranalysen und Recherchen nutzen.',intent:'admin_command_denied',items:[],permission:{allowed:false,required_role:'admin'}});
     }
-    const dialog=parseMessinhoScoutingRequest(interpretedMessage,history);
     const actor={user:authData.user,profile};
     const agentMemory=await loadMessinhoAgentMemory(ownerId);
     const normalized=interpretedMessage.toLocaleLowerCase('de-DE').normalize('NFKC');
@@ -2315,6 +2314,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const latest=notes.slice(-5).reverse();
       return respond({reply:'Das habe ich mir für dich gemerkt:\n'+latest.map((item,index)=>(index+1)+'. '+item.text).join('\n'),intent:'user_memory_recalled',items:[],memory:{persisted:true,note_count:notes.length}});
     }
+    const dialog=parseMessinhoScoutingRequest(interpretedMessage,history);
     if(profile.role==='admin'&&profile.approved&&profile.approval_status==='approved'&&/\b(woran arbeitest du|was arbeitest du gerade|was machst du gerade|aktueller arbeitsstand|was ist dein status|arbeitest du gerade)\b/i.test(normalized)){
       const [{data:control},{data:task},{data:review}]=await Promise.all([
         db.from('messinho_agent_control').select('mode,stop_requested,current_task,status_message,updated_at').eq('id','global').maybeSingle(),
