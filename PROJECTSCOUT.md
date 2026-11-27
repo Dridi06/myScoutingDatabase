@@ -6030,3 +6030,6 @@ Read this file from the current feature branch and inspect its latest HEAD and P
 - Fixed a context-isolation edge case: a newer explicit non-scouting topic (e.g. a tax question) now terminates the search-goal scan instead of allowing an older scouting goal to be reused.
 - Corrected the comma/slash option test to exercise the actual pending question and its offered options.
 - PR head and feature branch are being reconciled after the latest file commits; do not mark the block complete until the exact current head has green CI and runtime integration tests.
+
+- Re-verified the real chat history loader: it loads the latest 60 messages scoped by both `owner_id` and `conversation_id`, then sanitizes them before the router and continuity bridge receive them.
+- Added a regression assertion against that exact history-loader block rather than a different conversation endpoint.
