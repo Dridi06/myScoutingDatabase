@@ -6193,3 +6193,10 @@ Make the existing approved grammar, vocabulary, pragmatics and conversation know
 - Block 4 changes are committed; run full Node tests, backend syntax and STAGING CI before deployment.
 - Authenticated end-to-end chat smoke test remains outstanding.
 - No Production branch/service changes; PR #58 remains Draft/Open/unmerged.
+
+
+### Block 4 verification and STAGING deployment
+- Final verified commit: `659a8e16f6623a19c2433a75633da24baf794803`.
+- MESSINHO Node tests: success; backend syntax: success; full STAGING CI: success.
+- Render STAGING deployment `dep-dc50vmc9v7es738ododg`: **live**, exact commit `659a8e16f6623a19c2433a75633da24baf794803`, completed `2026-11-27T23:19:30Z`.
+- The authenticated end-to-end chat smoke test remains outstanding; deployment success alone does not prove a full user chat exchange.
