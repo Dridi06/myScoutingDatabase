@@ -12,7 +12,7 @@ import {
 } from '../backend/messinho-linguistic-intelligence.js';
 
 test('registers six separate language profiles including Tunisian Derja',()=>{
-  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.9');
+  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.4.0');
   assert.deepEqual(MESSINHO_LANGUAGE_PROFILES.map(item=>item.id),['de','en','fr','ar','ar-tn','es']);
   assert.equal(getMessinhoLanguageProfile('ar-tn').name,'تونسي / Derja');
   assert.equal(getMessinhoLanguageProfile('ar').name,'العربية الفصحى');
@@ -333,7 +333,7 @@ test('does not let a mixed-language aggregate score override the last clear user
 test('publishes the selected response language in stable chat metadata',()=>{
   const context=buildMessinhoLinguisticContext('The player is not ready, mais le joueur est prêt.',[]);
   const metadata=buildMessinhoLinguisticResponseMetadata(context);
-  assert.equal(metadata.version,'1.3.9');
+  assert.equal(metadata.version,'1.4.0');
   assert.equal(metadata.primary_language,context.primary_language);
   assert.equal(metadata.response_language,'fr');
   assert.equal(metadata.latest_segment_language,'fr');
@@ -463,4 +463,67 @@ test('publishes semantic nuance cues in stable chat metadata',()=>{
   assert.deepEqual(metadata.signals.qualified_evaluation_cues,['not_bad']);
   assert.deepEqual(metadata.signals.uncertainty_cues,['uncertainty']);
   assert.deepEqual(metadata.signals.contrast_cues,['contrast']);
+});
+
+
+test('builds a shared readiness concept across all six language profiles without rewriting source text',()=>{
+  const cases=[
+    ['de','Der Spieler ist noch nicht bereit.'],
+    ['en','The player is not ready yet.'],
+    ['fr','Le joueur n’est pas encore prêt.'],
+    ['es','El jugador todavía no está listo.'],
+    ['ar','هذا اللاعب ليس جاهزا بعد.'],
+    ['ar-tn','اللاعب هذا موش جاهز توة.']
+  ];
+  for(const [language,message] of cases){
+    const context=buildMessinhoLinguisticContext(message,[]);
+    assert.ok(context.semantic_frames.some(frame=>frame.concepts.includes('player_readiness')),language);
+    assert.ok(context.semantic_frames.some(frame=>frame.language_id===language),language);
+    assert.equal(context.action.source_text,message);
+    assert.equal(context.semantic_summary.source_text_preserved,true);
+  }
+});
+
+test('keeps evaluation, readiness, uncertainty and contrast as separate semantic evidence',()=>{
+  const message='The player is not bad, but perhaps not ready yet.';
+  const context=buildMessinhoLinguisticContext(message,[]);
+  const frame=context.semantic_frames[0];
+  assert.ok(frame.concepts.includes('performance_quality'));
+  assert.ok(frame.concepts.includes('player_readiness'));
+  assert.ok(frame.cues.negation_scope_cues.includes('not_bad'));
+  assert.ok(frame.cues.negation_scope_cues.includes('not_yet'));
+  assert.ok(frame.cues.uncertainty_cues.includes('uncertainty'));
+  assert.ok(frame.cues.contrast_cues.includes('contrast'));
+  assert.equal(frame.interpretation.certainty,'qualified_or_uncertain');
+  assert.equal(frame.interpretation.relation,'contrast_marker_detected');
+  assert.equal(frame.scope,'segment_level_not_full_semantic_parse');
+  assert.equal(context.action.source_text,message);
+});
+
+test('connects meaning evidence across code-switched clauses while retaining language boundaries',()=>{
+  const message='The player is not ready yet, mais le joueur peut progresser.';
+  const context=buildMessinhoLinguisticContext(message,[]);
+  assert.ok(context.semantic_summary.cross_language);
+  assert.ok(context.semantic_summary.language_ids.includes('en'));
+  assert.ok(context.semantic_summary.language_ids.includes('fr'));
+  assert.ok(context.semantic_summary.concepts.includes('player_readiness'));
+  assert.ok(context.semantic_summary.concepts.includes('development'));
+  assert.equal(context.segments.map(segment=>segment.text).join(' '),message);
+  assert.equal(context.semantic_summary.source_text_preserved,true);
+});
+
+test('publishes semantic frames and summary in stable chat metadata',()=>{
+  const context=buildMessinhoLinguisticContext('Der Spieler ist nicht schlecht, aber vielleicht noch nicht bereit.',[]);
+  const metadata=buildMessinhoLinguisticResponseMetadata(context);
+  assert.deepEqual(metadata.semantic_frames,context.semantic_frames);
+  assert.deepEqual(metadata.semantic_summary,context.semantic_summary);
+  assert.ok(metadata.semantic_summary.concepts.includes('performance_quality'));
+  assert.ok(metadata.semantic_summary.concepts.includes('player_readiness'));
+});
+
+test('does not invent semantic frames for neutral or empty content',()=>{
+  const neutral=buildMessinhoLinguisticContext('OK',[]);
+  assert.deepEqual(neutral.semantic_frames,[]);
+  assert.equal(neutral.semantic_summary.cross_language,false);
+  assert.equal(buildMessinhoLinguisticResponseMetadata(null),null);
 });
