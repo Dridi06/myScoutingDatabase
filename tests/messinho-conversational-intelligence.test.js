@@ -33,6 +33,18 @@ test('decision validation rejects unknown intents, low confidence and sensitive/
   assert.equal(decision.memory_items[0].category,'preference');
 });
 
+test('sensitive personal information and secrets are rejected from long-term memory',()=>{
+  assert.equal(isSensitiveMessinhoMemoryText('Ich bin Muslim'),true);
+  assert.equal(isSensitiveMessinhoMemoryText('Mein API key ist geheim'),true);
+  assert.equal(isSensitiveMessinhoMemoryText('Ich bevorzuge kurze Antworten'),false);
+  const prefs=appendMessinhoLongTermMemories({},[
+    {text:'Ich bin Muslim',category:'stable_fact',confidence:0.99},
+    {text:'Ich bevorzuge kurze Antworten',category:'preference',confidence:0.95}
+  ]);
+  assert.equal(prefs.long_term_memory.length,1);
+  assert.equal(prefs.long_term_memory[0].text,'Ich bevorzuge kurze Antworten');
+});
+
 test('long-term memory merges, deduplicates, bounds length and preserves existing preferences',()=>{
   let prefs={favorite_position:'ST'};
   prefs=appendMessinhoLongTermMemories(prefs,[
