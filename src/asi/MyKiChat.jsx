@@ -92,7 +92,7 @@ export default function MyKiChat({supabase}){
    {status.current_work&&<div className="myki-current-work"><b>Letzter Arbeitsauftrag</b><span>{status.current_work.goal}</span><small>Status: {status.current_work.status==='running'?'läuft':status.current_work.last_error||status.current_work.status} · offene Schritte: {status.current_work.pending_steps}</small></div>}
   </div>
   <div className="myki-agent-meta">
-   <span><Activity size={14}/> Selbstprüfung: {(status.self_repair_enabled||status.scheduler_enabled)?'aktiviert':'derzeit deaktiviert'}</span>
+   <span><Activity size={14}/> Selbstprüfung: {(status.self_repair_enabled||status.self_development_enabled||status.scheduler_enabled)?'aktiviert':'derzeit deaktiviert'}</span>
    <span>Autonomie: {operatingMode==='developing'?'autonome Entwicklungsprüfungen':operatingMode==='working'?'Systemfehlersuche und Reparaturprüfung':'pausiert'}</span>
    <span>Programmier-Sandbox: {status.sandbox?.state==='configured_not_yet_end_to_end_verified'?'Zugangsdaten konfiguriert – E2E-Prüfung offen':status.sandbox?.state==='credential_missing'?'GitHub-Zugangsdaten fehlen':'derzeit gesperrt'}</span>
    <span><PauseCircle size={14}/> Entwicklungszeit: 03:00–08:00 und 10:00–23:00 Uhr (Berlin)</span>
