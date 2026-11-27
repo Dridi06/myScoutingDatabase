@@ -9,6 +9,7 @@ function fakeDb(rows, selected=[]) {
 
 test('language knowledge is registered for six language profiles and append-only',()=>{
  const summary=getMessinhoLanguageKnowledgeSummary();
+ assert.equal(summary.version,'1.1.0');
  assert.equal(summary.profiles.length,6);
  assert.equal(summary.retention,'append_only_versions');
  assert.equal(summary.write_access,'none_from_chat_or_scout_roles');
@@ -92,7 +93,7 @@ test('returns all segment languages when the overall message is mixed',async()=>
   {entry_key:'ar.lexicon.core',version:1,language_code:'ar',entry_type:'lexicon',topic:'Arabic',title:'Arabic words',content:{explanation:'Arabic vocabulary context.'},tags:['لاعب'],knowledge_status:'active'},
   {entry_key:'ar-tn.lexicon.core',version:1,language_code:'ar-tn',entry_type:'lexicon',topic:'Derja',title:'Tunisian words',content:{explanation:'Tunisian Derja vocabulary context.'},tags:['barcha'],knowledge_status:'active'}
  ];
- const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'كيف حالك؟ Chnowa rayek?');
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'السلام عليكم، كيف حالك؟ Aslema, labes barcha? Chnowa rayek?');
  assert.ok(result.language_ids.includes('ar'));
  assert.ok(result.language_ids.includes('ar-tn'));
 });
