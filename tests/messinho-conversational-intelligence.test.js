@@ -126,3 +126,12 @@ test('missing provider configuration still produces a safe local response',async
   assert.equal(result.decision.intent,'conversation');
   assert.match(result.decision.reply,/Schön, dass du da bist/);
 });
+
+test('local fallback recognizes greeting punctuation and short thanks without a provider',async()=>{
+  const greeting=await classifyMessinhoTurn({message:'Hallo Messinho!'});
+  const thanks=await classifyMessinhoTurn({message:'Danke dir!'});
+  assert.equal(greeting.status,'fallback');
+  assert.match(greeting.decision.reply,/Schön, dass du da bist/);
+  assert.equal(thanks.status,'fallback');
+  assert.match(thanks.decision.reply,/Sehr gerne/);
+});
