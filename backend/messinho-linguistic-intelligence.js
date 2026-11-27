@@ -5,7 +5,7 @@
  * Dialect, script and code-switching are represented separately so Tunisian Derja is not
  * incorrectly collapsed into Modern Standard Arabic.
  */
-export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.6';
+export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.7';
 
 export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
   { id:'de', name:'Deutsch', family:'Germanic', scripts:['Latin'], variants:['de-DE','de-AT','de-CH'], capabilities:['grammar','cases','articles','word_order','compound_words','spelling','semantics','pragmatics'] },
@@ -227,12 +227,12 @@ function detectLanguageAction(text, languageId) {
   const target = TARGET_LANGUAGE_PATTERNS.find(item=>item.pattern.test(normalized))?.id || null;
   const instructions = {
     translate:'Translate faithfully; preserve names, numbers, football terminology, negation, uncertainty and register. If the target is unclear, ask.',
-    correct:'Correct language errors while preserving intended meaning and tone. Do not invent content.',
-    explain:'Explain meaning, grammar or wording in the user language, with a short example when useful.',
-    rephrase:'Rephrase without changing facts, certainty, intent or tone.',
+    correct:'Correct language errors while preserving intended meaning and tone. Use an explicitly requested target language when present; otherwise retain the source language. Do not invent content.',
+    explain:'Explain meaning, grammar or wording in the explicitly requested target language when present; otherwise use the latest user language. Add a short example when useful.',
+    rephrase:'Rephrase without changing facts, certainty, intent or tone. Use an explicitly requested target language when present.',
     answer:'Answer naturally in the latest user language, using conversation context and approved knowledge.'
   };
-  const targetLanguage=mode==='translate'?target:null;
+  const targetLanguage=target;
   return {
     mode,
     explicit:mode!=='answer',
