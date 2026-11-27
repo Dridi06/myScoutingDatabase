@@ -10,7 +10,7 @@ import {
 } from '../backend/messinho-linguistic-intelligence.js';
 
 test('registers six separate language profiles including Tunisian Derja',()=>{
-  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.2');
+  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.3');
   assert.deepEqual(MESSINHO_LANGUAGE_PROFILES.map(item=>item.id),['de','en','fr','ar','ar-tn','es']);
   assert.equal(getMessinhoLanguageProfile('ar-tn').name,'تونسي / Derja');
   assert.equal(getMessinhoLanguageProfile('ar').name,'العربية الفصحى');
@@ -217,4 +217,38 @@ test('recognizes colloquial Tunisian rephrasing requests without changing the so
 test('Arabic MSA explain verb is not mistaken for the standalone Derja particle',()=>{
  const result=analyzeMessinhoLanguage('اشرح الجذور والأوزان وتصريف الأفعال في اللغة العربية الفصحى.');
  assert.equal(result.primary_language,'ar');
+});
+
+
+test('recognizes MSA words with attached Arabic conjunctions without rewriting the source',()=>{
+  const message='اشرح الجذور والأوزان وتصريف الأفعال في اللغة العربية الفصحى.';
+  const result=analyzeMessinhoLanguage(message);
+  assert.equal(result.primary_language,'ar');
+  assert.ok(result.languages.find(item=>item.id==='ar').evidence_score>=3);
+  assert.equal(buildMessinhoLinguisticContext(message,[]).action.source_text,message);
+});
+
+test('scores one attached Arabic conjunction only when the remainder is a known MSA token',()=>{
+  const known=analyzeMessinhoLanguage('والأوزان وتصريف الأفعال في اللغة العربية الفصحى');
+  const dialect=analyzeMessinhoLanguage('واللاعب هذا موش جاهز');
+  assert.equal(known.primary_language,'ar');
+  assert.equal(dialect.primary_language,'ar-tn');
+});
+
+test('balanced language regression corpus preserves negation, uncertainty and football identifiers',()=>{
+  const samples=[
+    ['de','Der Spieler ist nicht sicher für U19, vielleicht braucht er mehr Zeit.'],
+    ['en','The winger is not ready for U19; perhaps he needs more time.'],
+    ['fr','Ce joueur n’est pas prêt pour les U19, peut-être faut-il plus de temps.'],
+    ['ar','هذا اللاعب ليس جاهزا لفريق U19، ربما يحتاج إلى وقت أكثر.'],
+    ['ar-tn','اللاعب هذا موش جاهز لفريق U19، يمكن يحتاج وقت أكثر.'],
+    ['es','El jugador no está listo para U19; quizá necesita más tiempo.']
+  ];
+  for(const [language,message] of samples){
+    const result=analyzeMessinhoLanguage(message);
+    assert.equal(result.primary_language,language, message);
+    assert.equal(result.signals.negation,true, message);
+    assert.equal(result.signals.uncertainty,true, message);
+    assert.match(message,/U19/u);
+  }
 });
