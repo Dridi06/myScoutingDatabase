@@ -122,3 +122,46 @@ $$;
 
 revoke all on function public.asi_record_messinho_engineering_result(jsonb) from public,anon,authenticated;
 grant execute on function public.asi_record_messinho_engineering_result(jsonb) to service_role;
+
+create or replace function public.asi_admin_review_messinho_engineering_memory(
+  p_memory_id uuid,p_actor_id uuid,p_decision text
+)
+returns jsonb
+language plpgsql
+security invoker
+set search_path=''
+as $$
+declare
+  v_memory public.messinho_engineering_memory;
+begin
+  if p_decision not in ('approved','rejected') then
+    raise exception 'engineering_memory_decision_invalid' using errcode='22000';
+  end if;
+  if not exists(
+    select 1 from public.profiles
+    where id=p_actor_id and role='admin' and approved=true and approval_status='approved'
+  ) then
+    raise exception 'approved_admin_required' using errcode='42501';
+  end if;
+  update public.messinho_engineering_memory
+    set review_state=p_decision,reviewed_by=p_actor_id,reviewed_at=now()
+    where id=p_memory_id and review_state='pending_admin_review'
+    returning * into v_memory;
+  if not found then
+    raise exception 'engineering_memory_not_pending' using errcode='55000';
+  end if;
+  insert into public.messinho_myki_ticket_events(
+    ticket_id,actor_id,actor_type,action,safe_message,metadata
+  ) values (
+    v_memory.ticket_id,p_actor_id,'admin',
+    case when p_decision='approved' then 'engineering_memory_approved' else 'engineering_memory_rejected' end,
+    case when p_decision='approved'
+      then 'Administrator hat den belegten Programmier-Lerneintrag freigegeben.'
+      else 'Administrator hat den Programmier-Lerneintrag abgelehnt.' end,
+    jsonb_build_object('memory_id',v_memory.id,'job_id',v_memory.job_id,'outcome',v_memory.outcome)
+  );
+  return jsonb_build_object('accepted',true,'review_state',p_decision,'memory_id',v_memory.id);
+end;
+$$;
+revoke all on function public.asi_admin_review_messinho_engineering_memory(uuid,uuid,text) from public,anon,authenticated;
+grant execute on function public.asi_admin_review_messinho_engineering_memory(uuid,uuid,text) to service_role;
