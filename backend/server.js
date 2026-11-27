@@ -2205,7 +2205,7 @@ const agentChatLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:t
 app.get('/api/agent/conversation',async(req,res)=>{
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
-    const token=(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+    const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
     if(!token)return res.status(401).json({error:'Anmeldung erforderlich.'});
     const {data:authData,error:authError}=await db.auth.getUser(token);
     if(authError||!authData?.user)return res.status(401).json({error:'Sitzung ungültig oder abgelaufen.'});
