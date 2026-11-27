@@ -37,7 +37,7 @@ jobs:
         env:
           NODE_ENV: development
         run: |
-          npm install --ignore-scripts --include=dev --no-audit --no-fund
+          npm install --ignore-scripts --include=dev --package-lock=false --no-audit --no-fund
           node --input-type=module -e "await import('rollup'); await import('esbuild'); console.log('Sandbox dependency check passed.')"
       - name: Prepare validated job payload
         if: github.event_name == 'workflow_dispatch'
@@ -63,7 +63,8 @@ jobs:
           if(!headers.length||headers.length>8)throw new Error('patch_file_count_invalid');
           for(const m of headers){
             const a=m[1],b=m[2];
-            if(a!==b||!/^(backend|tests|docs)\/[A-Za-z0-9._/-]+$/.test(a)||a.includes('..')||/\.(sql|ya?ml)$/i.test(a)||/(^|\/)(\.env|secrets?|credentials?)(\/|$)/i.test(a))throw new Error('patch_path_rejected');
+            const allowed=new Set(['backend/messinho-quality-control.js','backend/messinho-input-correction.js','backend/messinho-task-policy.js','tests/messinho-quality-control.test.js','tests/messinho-task-policy.test.js']);
+            if(a!==b||!allowed.has(a))throw new Error('patch_path_rejected');
             if(/^backend\/(server|messinho-access|messinho-capability-runtime|messinho-orchestrator|messinho-agent-core|messinho-autonomy|messinho-rights-registry)\.js$/.test(a))throw new Error('protected_path_rejected');
           }
           const hash=crypto.createHash('sha256').update(job.patch).digest('hex');
@@ -121,7 +122,7 @@ jobs:
           const code=rawCode===''?Number.NaN:Number(rawCode);
           const outcome=code===0?'passed':code===21?'failed':'inconclusive';
           const logs=fs.existsSync(process.env.LOG_PATH)?fs.readFileSync(process.env.LOG_PATH,'utf8').slice(-12000):'No sandbox log captured.';
-          const payload={...meta,outcome,summary:outcome==='passed'?'Baseline und Kandidat haben die Sandbox-Prüfung bestanden.':outcome==='failed'?'Der Kandidat hat mindestens eine Prüfung nicht bestanden.':'Die Prüfung war nicht vollständig oder der Baseline-Stand war bereits fehlerhaft.',evidence:{exit_code:Number.isFinite(code)?code:null,logs},toolchain:{image:'messinho-engineering-sandbox:local',node:'24',python:'3',java:'17',go:true,rust:true,c_cpp:true,php:true,dotnet:'8',postgresql:true},github_run_id:Number(process.env.RUN_ID),github_run_attempt:Number(process.env.RUN_ATTEMPT),source_sha:process.env.SOURCE_SHA};
+          const payload={...meta,outcome,summary:outcome==='passed'?'Baseline und Kandidat haben die Sandbox-Prüfung bestanden.':outcome==='failed'?'Der Kandidat hat mindestens eine Prüfung nicht bestanden.':'Die Prüfung war nicht vollständig oder der Baseline-Stand war bereits fehlerhaft.',evidence:{exit_code:Number.isFinite(code)?code:null,logs},toolchain:{image:'messinho-engineering-sandbox:local',node:'24',python:'3',java:'17',go:true,rust:true,c_cpp:true,php:true,dotnet:'10',postgresql:true},github_run_id:Number(process.env.RUN_ID),github_run_attempt:Number(process.env.RUN_ATTEMPT),source_sha:process.env.SOURCE_SHA};
           if(!process.env.CALLBACK_URL||!process.env.ACTIONS_ID_TOKEN_REQUEST_URL||!process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN)throw new Error('sandbox_oidc_configuration_missing');
           const tokenUrl=new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
           tokenUrl.searchParams.set('audience','myscoutingdatabase-messinho-sandbox');
