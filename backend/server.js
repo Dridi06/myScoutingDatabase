@@ -2319,6 +2319,14 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       });
     }
     const cognitive=cognitiveResult.decision;
+    const actionIntents=['memory_save','scouting','general_research','engineering'];
+    if(actionIntents.includes(cognitive.intent)&&cognitive.confidence<0.72){
+      return respond({
+        reply:cognitive.clarification_question||'Ich bin mir noch nicht sicher, was du genau möchtest. Kannst du das bitte kurz präzisieren?',
+        intent:'cognitive_low_confidence_clarification',items:[],pending:true,
+        cognitive_routing:{intent:cognitive.intent,confidence:cognitive.confidence,action_blocked:true}
+      });
+    }
     let cognitiveMemoryPersisted=true;
     if(cognitive.memory_items.length){
       const nextPreferences=appendMessinhoLongTermMemories(agentMemory.user_preferences,cognitive.memory_items);
