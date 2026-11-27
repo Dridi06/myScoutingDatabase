@@ -50,7 +50,7 @@ import { persistMessinhoDiagnosticTicket } from './messinho-diagnostic-ticket.js
 import { buildMessinhoForecastContext } from './messinho-forecast-context.js';
 import { isMessinhoAdminOnlyCommand } from './messinho-command-access.js';
 import { buildMessinhoLinguisticContext, buildMessinhoLinguisticResponseMetadata } from './messinho-linguistic-intelligence.js';
-import { detectExplicitMessinhoRememberRequest, isMessinhoMemoryRecallRequest, appendMessinhoUserNote, getMessinhoUserNotes } from './messinho-user-memory.js';
+import { classifyMessinhoTurn, appendMessinhoLongTermMemories } from './messinho-conversational-intelligence.js';
 import { findMessinhoLanguageKnowledge, formatMessinhoLanguageKnowledge } from './messinho-language-knowledge.js';
 
 const app=express();
@@ -2299,20 +2299,69 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const actor={user:authData.user,profile};
     const agentMemory=await loadMessinhoAgentMemory(ownerId);
     const normalized=interpretedMessage.toLocaleLowerCase('de-DE').normalize('NFKC');
-    // Explicit user memory commands must be resolved before scouting/player-name
-    // extraction and external research. Notes are private to the authenticated owner.
-    const rememberNote=detectExplicitMessinhoRememberRequest(interpretedMessage);
-    if(rememberNote){
-      const nextPreferences=appendMessinhoUserNote(agentMemory.user_preferences,rememberNote);
-      const persisted=await saveMessinhoAgentMemory(ownerId,{...agentMemory,user_preferences:nextPreferences});
-      if(!persisted)return respond({reply:'Ich habe verstanden, was ich mir merken soll, konnte es aber gerade nicht dauerhaft speichern. Ich werde nicht behaupten, dass es gespeichert wurde. Bitte versuche es erneut.',intent:'user_memory_save_failed',items:[],memory:{persisted:false}});
-      return respond({reply:'Verstanden. Ich habe mir „'+rememberNote.replace(/[<>]/g,'')+'“ für dein persönliches MESSINHO-Konto gemerkt. Du kannst mich später danach fragen.',intent:'user_memory_saved',items:[],memory:{persisted:true,note_count:getMessinhoUserNotes(nextPreferences).length}});
+    // Semantic cognitive routing runs before all deterministic feature routing.
+    // It interprets meaning, context, spelling/dictation variants and memory intent.
+    const cognitiveResult=await classifyMessinhoTurn({
+      message,
+      history,
+      memory:agentMemory,
+      apiKey:process.env.OPENAI_API_KEY,
+      model:process.env.OPENAI_MODEL||'gpt-4.1-mini'
+    });
+    if(cognitiveResult.status!=='completed'||!cognitiveResult.decision){
+      console.warn('MESSINHO cognitive router unavailable:',cognitiveResult.status,cognitiveResult.error_code||'');
+      return respond({
+        reply:'Ich kann die Bedeutung deiner Nachricht gerade nicht zuverlässig einordnen. Deine Nachricht ist gespeichert. Bitte versuche es noch einmal; ich starte vorsichtshalber keine Recherche und führe keine Aktion aus.',
+        intent:'cognitive_router_unavailable',items:[],
+        cognitive_routing:{status:cognitiveResult.status||'unavailable',safe_fallback:true}
+      });
     }
-    if(isMessinhoMemoryRecallRequest(interpretedMessage)){
-      const notes=getMessinhoUserNotes(agentMemory.user_preferences);
-      if(!notes.length)return respond({reply:'Ich habe für dein persönliches Konto noch keine gespeicherten Merkpunkte gefunden.',intent:'user_memory_empty',items:[],memory:{persisted:true,note_count:0}});
-      const latest=notes.slice(-5).reverse();
-      return respond({reply:'Das habe ich mir für dich gemerkt:\n'+latest.map((item,index)=>(index+1)+'. '+item.text).join('\n'),intent:'user_memory_recalled',items:[],memory:{persisted:true,note_count:notes.length}});
+    const cognitive=cognitiveResult.decision;
+    let cognitiveMemoryPersisted=true;
+    if(cognitive.memory_items.length){
+      const nextPreferences=appendMessinhoLongTermMemories(agentMemory.user_preferences,cognitive.memory_items);
+      cognitiveMemoryPersisted=await saveMessinhoAgentMemory(ownerId,{...agentMemory,user_preferences:nextPreferences});
+      if(cognitiveMemoryPersisted)agentMemory.user_preferences=nextPreferences;
+    }
+    if(cognitive.intent==='clarify'){
+      return respond({
+        reply:cognitive.clarification_question||cognitive.reply||'Ich möchte dich richtig verstehen. Kannst du kurz erklären, was du meinst?',
+        intent:'cognitive_clarification',items:[],pending:true,
+        cognitive_routing:{intent:cognitive.intent,confidence:cognitive.confidence}
+      });
+    }
+    if(cognitive.intent==='memory_save'){
+      if(!cognitive.memory_items.length){
+        return respond({reply:cognitive.reply||'Was genau soll ich dauerhaft für dich festhalten?',intent:'memory_clarification',items:[],pending:true,memory:{persisted:false}});
+      }
+      if(!cognitiveMemoryPersisted){
+        return respond({reply:'Ich habe verstanden, was ich festhalten soll, aber das dauerhafte Speichern ist gerade fehlgeschlagen. Ich werde nicht behaupten, dass es gespeichert wurde. Bitte versuche es erneut.',intent:'user_memory_save_failed',items:[],memory:{persisted:false}});
+      }
+      return respond({reply:cognitive.reply||'Verstanden. Ich habe die Information für dein persönliches Konto gespeichert und kann später darauf zurückgreifen.',intent:'user_memory_saved',items:[],memory:{persisted:true,note_count:agentMemory.user_preferences.long_term_memory?.length||0}});
+    }
+    if(cognitive.intent==='memory_recall'){
+      const longTerm=Array.isArray(agentMemory.user_preferences?.long_term_memory)?agentMemory.user_preferences.long_term_memory:[];
+      const legacy=Array.isArray(agentMemory.user_preferences?.messinho_notes)?agentMemory.user_preferences.messinho_notes:[];
+      const memories=[...longTerm,...legacy].slice(-12).reverse();
+      return respond({
+        reply:memories.length?'Das habe ich mir aus unseren Gesprächen gemerkt:\\n'+memories.map((item,index)=>(index+1)+'. '+String(item.text||'')).join('\\n'):'Ich habe bisher keine langfristigen Merkpunkte in deinem persönlichen Konto gefunden.',
+        intent:'user_memory_recalled',items:[],memory:{persisted:true,note_count:memories.length}
+      });
+    }
+    if(cognitive.intent==='conversation'){
+      if(!cognitive.reply){
+        return respond({reply:'Ich möchte dir sinnvoll antworten. Kannst du deine Frage bitte etwas genauer formulieren?',intent:'cognitive_reply_missing',items:[],pending:true});
+      }
+      return respond({
+        reply:cognitive.reply,intent:'conversation',items:[],
+        memory:{updated:cognitive.memory_items.length>0,persisted:cognitiveMemoryPersisted}
+      });
+    }
+    if(cognitive.intent==='engineering'&&profile.role!=='admin'){
+      return respond({reply:'Technische Änderungen und Systementwicklung sind ausschließlich Administratoren vorbehalten. Bei normalen Fragen helfe ich dir gerne weiter.',intent:'admin_command_denied',items:[],permission:{allowed:false,required_role:'admin'}});
+    }
+    if(cognitive.intent==='scouting'&&!parseMessinhoScoutingRequest(interpretedMessage,history).shouldHandle&&!resolveMessinhoPlayerFollowUp(interpretedMessage,history)){
+      return respond({reply:'Ich möchte keine falsche Spielersuche starten. Welchen Spieler oder welche Scouting-Aufgabe meinst du genau?',intent:'scouting_clarification',items:[],pending:true});
     }
     const dialog=parseMessinhoScoutingRequest(interpretedMessage,history);
     if(profile.role==='admin'&&profile.approved&&profile.approval_status==='approved'&&/\b(woran arbeitest du|was arbeitest du gerade|was machst du gerade|aktueller arbeitsstand|was ist dein status|arbeitest du gerade)\b/i.test(normalized)){
