@@ -26,7 +26,8 @@ test('actual authenticated chat route loads and injects linguistic intelligence 
   assert.ok(knowledgeCall>contextCall,'chat route must retrieve language knowledge after context detection');
   assert.ok(promptInjection>knowledgeCall,'system prompt must receive the current linguistic context');
   assert.ok(knowledgeInjection>promptInjection,'system prompt must receive approved versioned language knowledge');
-  assert.match(source,/const linguisticIntelligence=buildMessinhoLinguisticResponseMetadata\(linguisticContext\)/);\n  assert.match(source,/linguistic_intelligence:clientLinguisticIntelligence/);
+  assert.match(source,/const linguisticIntelligence=buildMessinhoLinguisticResponseMetadata\(linguisticContext\)/);
+  assert.match(source,/linguistic_intelligence:clientLinguisticIntelligence/);
   const intelligence=await readFile(new URL('../backend/messinho-linguistic-intelligence.js',import.meta.url),'utf8');
   assert.match(intelligence,/response_language:context\.response_language/);
   assert.match(intelligence,/latest_segment_language:context\.latest_segment_language/);
