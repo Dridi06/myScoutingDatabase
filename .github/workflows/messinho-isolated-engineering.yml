@@ -94,8 +94,8 @@ jobs:
           timeout 15m docker run --rm --network none --read-only \
             --memory 3g --memory-swap 3g --cpus 2 --pids-limit 128 \
             --cap-drop ALL --security-opt no-new-privileges:true --user 10001:10001 \
-            --tmpfs /work:rw,nosuid,nodev,size=1536m,mode=1777 \
-            --tmpfs /tmp:rw,nosuid,nodev,size=512m,mode=1777 \
+            --tmpfs /work:rw,exec,nosuid,nodev,size=1536m,mode=1777 \
+            --tmpfs /tmp:rw,exec,nosuid,nodev,size=512m,mode=1777 \
             --mount "type=bind,src=${GITHUB_WORKSPACE},dst=/src,readonly" \
             --mount "type=bind,src=${GITHUB_WORKSPACE}/node_modules,dst=/deps,readonly" \
             "${args[@]}" --env CI=true --env MESSINHO_SOURCE_SHA="${MESSINHO_SOURCE_SHA}" \
