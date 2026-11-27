@@ -258,3 +258,21 @@ test('recognizes uncertainty expressed as a French phrase or Spanish variant',()
   assert.equal(analyzeMessinhoLanguage('Ce joueur n’est pas prêt, peut-être demain.').signals.uncertainty,true);
   assert.equal(analyzeMessinhoLanguage('Quizá el jugador necesita más tiempo.').signals.uncertainty,true);
 });
+
+
+test('recognizes colloquial translation targets across all six language profiles',()=>{
+  const cases=[
+    ['Bitte übersetze das ins Französische.','fr'],
+    ['Translate this into Spanish.','es'],
+    ['Traduis ceci en anglais.','en'],
+    ['Traduce esto al árabe estándar.','ar'],
+    ['ترجم هذا إلى الألمانية.','de'],
+    ['Tarjemli hedha bil anglais.','en']
+  ];
+  for(const [message,target] of cases){
+    const action=buildMessinhoLinguisticContext(message,[]).action;
+    assert.equal(action.mode,'translate',message);
+    assert.equal(action.target_language,target,message);
+    assert.equal(action.requires_clarification,false,message);
+  }
+});
