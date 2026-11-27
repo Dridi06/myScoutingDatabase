@@ -11,7 +11,7 @@ import {
 } from '../backend/messinho-linguistic-intelligence.js';
 
 test('registers six separate language profiles including Tunisian Derja',()=>{
-  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.4');
+  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.5');
   assert.deepEqual(MESSINHO_LANGUAGE_PROFILES.map(item=>item.id),['de','en','fr','ar','ar-tn','es']);
   assert.equal(getMessinhoLanguageProfile('ar-tn').name,'تونسي / Derja');
   assert.equal(getMessinhoLanguageProfile('ar').name,'العربية الفصحى');
@@ -306,4 +306,24 @@ test('Arabic normalization is not applied to the displayed or stored source text
   const result=buildMessinhoLinguisticContext(message,[]);
   assert.equal(result.action.source_text,message);
   assert.equal(result.policy.source_text_preserved,true);
+});
+
+
+test('uses the latest confidently detected language segment for mixed-language replies',()=>{
+  const message='The player is not ready for this league, mais le joueur est pas prêt pour cette ligue.';
+  const result=buildMessinhoLinguisticContext(message,[]);
+  assert.ok(result.segments.length>=2);
+  assert.equal(result.segments.at(-1).language_analysis.primary_language,'fr');
+  assert.equal(result.latest_segment_language,'fr');
+  assert.equal(result.response_language,'fr');
+  assert.equal(result.conversation_language_hint,'fr');
+  assert.equal(result.action.source_language,'fr');
+  assert.equal(result.segments.map(segment=>segment.text).join(' '),message);
+});
+
+test('does not let a mixed-language aggregate score override the last clear user language',()=>{
+  const message='Bonjour, comment ça va? Hello, how are you?';
+  const result=buildMessinhoLinguisticContext(message,[]);
+  assert.equal(result.response_language,'en');
+  assert.equal(result.latest_segment_language,'en');
 });
