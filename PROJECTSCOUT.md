@@ -6149,3 +6149,16 @@ Make the existing approved grammar, vocabulary, pragmatics and conversation know
 ### Deployment gate
 - Render STAGING deployment `dep-dc50mnt6e07s738vi2ag` is **live** on branch `feature/messinho-conversation-engine`, commit `f078eb7652e6b177b92b4598dcb0dac8328d9f52` (documentation-only commit containing the tested code from `3437646e`). Build succeeded; startup logs confirm API listening, model configuration present, and Supabase Data API HTTP 200.
 - No Production deployment, merge, database schema mutation, or model training performed.
+
+
+## 23. Block 3 — Conversation Evaluation Engine — 2026-11-28
+
+**Status: implemented on the staging feature branch; CI verification pending.**
+
+- Added `backend/messinho-conversation-evaluation.js` with versioned deterministic evaluation of response presence, response-language agreement, retained context markers, required clarification, blocked tool execution, topic reset, and structured language-segment isolation.
+- Added synthetic, non-user conversation fixtures in `tests/fixtures/messinho-conversation-evaluation.json` for small talk, follow-up continuity, topic changes, ambiguity, permission restrictions, and multilingual/code-switch handling.
+- Added `tests/messinho-conversation-evaluation.test.js` covering the evaluator, fail-closed checks, language segmentation, and recurring-failure summaries.
+- Subjective dimensions (naturalness, relevance, coherence, tone, linguistic fluency) are explicitly **not** represented as objectively measured by simple rules. They remain marked for human review.
+- This is an evaluation foundation, not model training, self-modifying weights, or proof that live dialogue quality has improved. It does not ingest private user conversations.
+- **Release gate:** run full MESSINHO tests, backend syntax and staging CI; then verify the exact STAGING deployment. Authenticated end-to-end chat smoke test remains outstanding.
+- **Safety boundary:** no production branch, production service, database migration, or model-weight changes.
