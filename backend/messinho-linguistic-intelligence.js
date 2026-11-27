@@ -5,7 +5,7 @@
  * Dialect, script and code-switching are represented separately so Tunisian Derja is not
  * incorrectly collapsed into Modern Standard Arabic.
  */
-export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.7';
+export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.8';
 
 export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
   { id:'de', name:'Deutsch', family:'Germanic', scripts:['Latin'], variants:['de-DE','de-AT','de-CH'], capabilities:['grammar','cases','articles','word_order','compound_words','spelling','semantics','pragmatics'] },
@@ -85,6 +85,31 @@ function scriptOf(text) {
   if (LATIN_SCRIPT.test(text)) scripts.push('Latin');
   return scripts.length ? scripts : ['unknown'];
 }
+const SEMANTIC_CUE_PATTERNS = Object.freeze({
+  not_necessarily: /(?:\\bnot\\s+necessarily\\b|\\bnicht\\s+unbedingt\\b|\\bpas\\s+forcement\\b|\\bno\\s+necesariamente\\b|ليس\\s+بالضرورة|موش\\s+بالضرورة)/u,
+  not_yet: /(?:\\bnot\\s+yet\\b|\\bnot\\s+ready\\s+yet\\b|\\bnoch\\s+nicht\\b|\\bpas\\s+encore\\b|\\btodavia\\s+no\\b|لم.{0,24}بعد|مازالش)/u,
+  not_bad: /(?:\\bnot\\s+bad\\b|\\bnicht\\s+schlecht\\b|\\bpas\\s+mauvais\\b|\\bno\\s+esta\\s+mal\\b|ليس\\s+سيئا|موش\\s+خايب)/u,
+  not_enough: /(?:\\bnot\\s+enough\\b|\\bnicht\\s+ausreichend\\b|\\bpas\\s+suffisant\\b|\\bno\\s+es\\s+suficiente\\b|لا\\s+يكفي|موش\\s+كافي)/u,
+  not_only: /(?:\\bnot\\s+only\\b|\\bnicht\\s+nur\\b|\\bpas\\s+seulement\\b|\\bno\\s+solo\\b|ليس\\s+فقط)/u,
+  uncertainty: /(?:\\bmaybe\\b|\\bperhaps\\b|\\bpossibly\\b|\\bvielleicht\\b|\\beventuell\\b|\\bpeut[- ]etre\\b|\\bquizas\\b|\\btalvez\\b|ربما|يمكن|ممكن)/u,
+  contrast: /(?:\\bbut\\b|\\bhowever\\b|\\balthough\\b|\\baber\\b|\\bjedoch\\b|\\bmais\\b|\\bpourtant\\b|\\bpero\\b|\\baunque\\b|لكن|أما|مع ذلك)/u
+});
+function collectMessinhoSemanticCues(input) {
+  const normalized=normalizeMessinhoArabicForAnalysis(String(input??'').normalize('NFKC').toLocaleLowerCase())
+    .normalize('NFD').replace(/[\\u0300-\\u036f]/gu,'');
+  const matched=Object.entries(SEMANTIC_CUE_PATTERNS)
+    .filter(([,pattern])=>pattern.test(normalized))
+    .map(([cue])=>cue);
+  const negationScopeCues=matched.filter(cue=>['not_necessarily','not_yet','not_bad','not_enough','not_only'].includes(cue));
+  const qualifiedEvaluationCues=matched.filter(cue=>['not_necessarily','not_bad','not_enough'].includes(cue));
+  return {
+    negation_scope_cues:negationScopeCues,
+    qualified_evaluation_cues:qualifiedEvaluationCues,
+    uncertainty_cues:matched.includes('uncertainty')?['uncertainty']:[],
+    contrast_cues:matched.includes('contrast')?['contrast']:[]
+  };
+}
+
 function inferConversationSignals(text, tokens, languageId) {
   const lower = text.toLocaleLowerCase();
   const tokenSet = new Set(tokens);
@@ -109,11 +134,12 @@ function inferConversationSignals(text, tokens, languageId) {
     'aber','jedoch','doch','but','however','although','mais','pourtant','pero',
     'aunque','لكن','أما','بل'
   ) || hasPhrase('مع ذلك','sin embargo','en revanche');
+  const semanticCues=collectMessinhoSemanticCues(text);
   const intent = questions ? 'question' :
     has('übersetze','translate','traduire','traduce','ترجم','tarjem','tarjemli') ? 'translation_request' :
     has('korrigiere','verbessere','correct','corrige','corrigez','صحح','salla7','sa77a7') ? 'correction_request' :
     'conversation';
-  return { intent, questions, politeness, negation, uncertainty, contrast, token_count:tokens.length, language_id:languageId };
+  return { intent, questions, politeness, negation, uncertainty, contrast, ...semanticCues, token_count:tokens.length, language_id:languageId };
 }
 
 
