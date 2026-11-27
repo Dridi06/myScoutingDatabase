@@ -27,7 +27,8 @@ This release improves conservative Modern Standard Arabic (MSA) detection when A
 ## Verification status
 
 - Changes are committed on the feature branch only.
-- GitHub Actions for the 1.3.3 commits must complete before this release is considered verified.
+- Backend syntax, full staging branch CI including Vite production build, and staging health smoke are successful on `c1b5009a9c8942d7081ac92729c4f881dc993c29`.
+- The isolated engineering sandbox is still running its baseline validation; no candidate-patch dispatch/callback was executed.
 - The previous 1.3.2 commit had successful Node tests, backend syntax, staging branch CI, health smoke, and isolated baseline toolchain validation.
 - The isolated sandbox's successful baseline run did not execute a live candidate-patch dispatch/callback round trip.
 - No Supabase migration or knowledge-row write is part of this change.
