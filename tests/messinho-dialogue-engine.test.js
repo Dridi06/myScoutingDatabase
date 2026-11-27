@@ -57,3 +57,23 @@ test('server attaches dialogue state to cognitive routing without changing owner
   assert.match(source,/linguisticContext:\{\.\.\.linguisticContext,dialogue_state:dialogueState\}/);
   assert.match(source,/\.eq\('owner_id',ownerId\)/);
 });
+
+test('long conversations retain a small extractive context window beyond the recent turns',()=>{
+  const history=Array.from({length:20},(_,i)=>({
+    role:i%2===0?'user':'assistant',
+    text:i===0?'Suche einen schnellen Stürmer in Spanien.':i===2?'Ich bin Muslim und möchte dazu eine private Frage stellen.':'Nachricht mit ausreichendem Kontext '+i
+  }));
+  const state=buildMessinhoDialogueState({message:'Und jetzt weiter?',history});
+  assert.equal(state.older_context.user_goal_candidates.includes('Suche einen schnellen Stürmer in Spanien.'),true);
+  assert.equal(state.older_context.user_goal_candidates.some(item=>/Muslim/i.test(item)),false);
+  assert.ok(state.older_context.user_goal_candidates.length<=3);
+  assert.ok(state.older_context.historical_assistant_questions.length<=2);
+  assert.equal(validateMessinhoDialogueState(state),true);
+});
+
+test('server loads an extended but bounded owner-scoped conversation window',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+  assert.match(source,/\\.order\\('created_at',\\{ascending:false\\}\\)\\.limit\\(60\\)/);
+  assert.match(source,/\\},\\{limit:60\\}\\)/);
+});
