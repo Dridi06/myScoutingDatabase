@@ -30,7 +30,7 @@ export function getMessinhoEngineeringReviewSchedule(now=new Date()){
 
 
 export function buildMessinhoSelfRepairGoal(checks=[]) {
- const findings=(Array.isArray(checks)?checks:[]).filter(item=>item&&item.ok===false).slice(0,8).map(item=>({
+ const findings=(Array.isArray(checks)?checks:[]).filter(item=>item&&item.ok===false).slice(0,20).map(item=>({
   name:String(item.name||'Unbekannte Prüfung').slice(0,120),
   category:String(item.category||'System').slice(0,80),
   severity:String(item.severity||'warning').slice(0,30),
@@ -51,12 +51,12 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
  const {data:control,error:controlError}=await db.from('messinho_agent_control')
   .select('mode,stop_requested,updated_by').eq('id','global').maybeSingle();
  if(controlError)return {ok:false,code:'CONTROL_STATE_UNAVAILABLE'};
- if(control?.mode!==mode||control?.stop_requested)return {ok:true,skipped:'admin_mode_not_active',review_date:schedule.review_date,review_slot:reviewSlot};
+ if(control?.mode!==mode||control?.stop_requested)return {ok:true,skipped:'admin_mode_not_active',review_date:schedule.review_date,review_slot:schedule.review_slot};
  const reviewSlot=force?'manual_'+String(makeJobId()).replace(/[^a-f0-9]/gi,'').slice(0,24):schedule.review_slot;
  const {data:claim,error:claimError}=await db.from('messinho_engineering_review_runs')
   .insert({review_date:schedule.review_date,review_slot:reviewSlot,status:'running',started_at:now.toISOString()})
   .select('id').maybeSingle();
- if(claimError?.code==='23505')return {ok:true,skipped:'already_claimed',review_date:schedule.review_date,review_slot:schedule.review_slot};
+ if(claimError?.code==='23505')return {ok:true,skipped:'already_claimed',review_date:schedule.review_date,review_slot:reviewSlot};
  if(claimError||!claim?.id)return {ok:false,code:'REVIEW_CLAIM_FAILED'};
  const finish=async(status,fields={})=>{
   const {error}=await db.from('messinho_engineering_review_runs').update({...fields,status,finished_at:new Date().toISOString()}).eq('id',claim.id);
