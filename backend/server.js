@@ -497,7 +497,9 @@ app.get('/api/admin/myki/status',myKiControlLimiter,async(req,res)=>{
       sandbox:{enabled:isMessinhoSandboxStagingAllowed(process.env),github_credential_configured:Boolean(process.env.MESSINHO_SANDBOX_GITHUB_TOKEN),
         state:!isMessinhoSandboxStagingAllowed(process.env)?'disabled':!process.env.MESSINHO_SANDBOX_GITHUB_TOKEN?'credential_missing':'configured_not_yet_end_to_end_verified'},
       run_state:activeTask?'running':review?.status==='running'?'running':mode,
-      schedule:{time_zone:'Europe/Berlin',daily_at:'20:00',review_date:schedule.review_date,due:schedule.due},
+      schedule:{time_zone:'Europe/Berlin',work_windows:[{key:'morning',from:'03:00',until:'08:00'},{key:'daytime',from:'10:00',until:'23:00'}],
+        rest_windows:[{from:'08:00',until:'10:00'},{from:'23:00',until:'03:00'}],
+        active_window:schedule.review_slot,phase:schedule.phase,review_date:schedule.review_date,due:schedule.due},
       last_run:review||null,status_unavailable:false
     });
   }catch(error){console.error('myKI status failed:',error.message);return res.status(500).json({error:'Der MESSINHO-Aktivitätsstatus ist vorübergehend nicht verfügbar.'});}
