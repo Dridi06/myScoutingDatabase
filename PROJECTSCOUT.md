@@ -3941,3 +3941,118 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Keine automatische Modellgewichtsänderung und keine automatische Code-Anwendung. Engineering-Vorschläge bleiben Vorschläge/Tickets bis zur ausdrücklichen Freigabe.
 - Änderungen ausschließlich im Feature-Branch `feature/messinho-unified-ai-integration`; STAGING-only, `main` und Produktion unverändert.
 - CI und STAGING-Deploy für den neuen Stand müssen noch vollständig geprüft werden.
+
+
+---
+
+## 12. IST-Abgleich und verbindlicher Arbeitsplan — 2026-11-27
+
+> Dieser Abschnitt ist ein nachträglicher Statusabgleich zum bisherigen Projektjournal. Frühere Einträge bleiben als historische Nachweise erhalten. Wo frühere Einträge durch spätere Korrekturen überholt wurden, gilt der neuere Eintrag. Nicht erneut als erledigt zählen, was nur geplant, in CI gebaut oder als Migration committet, aber nicht ausgeführt wurde.
+
+### 12.1 Dokumentations- und Quellenstand
+
+- Diese Aktualisierung erfolgt auf `feature/messinho-unified-ai-integration`, nicht auf `main`.
+- Die zuletzt gelesene PROJECTSCOUT-Datei hatte den Blob-SHA `4d0312ee5facfb13172a1a97b33d459d1a4f542e` und 3.944 Zeilen.
+- Der letzte im unmittelbar vorhergehenden UI-/Backend-Eintrag ausdrücklich benannte Code-Commit ist `320f4d001be0e98a86a555bd1d8da1b42606a485`. Der Eintrag dokumentiert eine neue Admin-Statusroute und den direkten myKI-Chat, weist aber CI- und Staging-Verifikation dafür noch als offen aus.
+- Frühere Code-/Migrationsstände sind im Journal mit `41521858dbd3324b386246f85f8af3c8c680dbeb`, `aa1c46217115bcc759a851fa3f82aeebeadb78a4`, `c07d9e1bc8f7078e339d2dfddf617dfb4ea837ae` und weiteren Commits dokumentiert.
+- **Wichtige Verifikationsgrenze:** Der aktuelle Branch-HEAD-SHA konnte bei diesem Abgleich nicht unabhängig über eine Branch-Ref-Abfrage bestätigt werden. Die GitHub-Status-/Workflow-Abfrage lieferte für die abgefragten SHAs keine Statusdatensätze. Das ist kein Beleg für fehlgeschlagene CI, aber ebenso wenig ein Beleg für einen grünen aktuellen HEAD. Vor dem nächsten Codeeingriff muss daher der tatsächliche Branch-HEAD und sein CI-Stand erneut ermittelt werden.
+- Render-STAGING ist zuletzt für Deployment `dep-dc4chtuq1p3s73dj661g` auf Commit `4d7e458db3c2be5aef21524aa2bf3740f2283ede` als live dokumentiert. Ein späterer Scheduler-Deploy `dep-dc4cj9mc6qcc73d5jdmg` auf `e549edc1c4983720283af5d25bc172fc6fdaf156` ist ebenfalls als live dokumentiert. Der aktuelle Render-Live-Commit nach den späteren UI-/Pagination-Arbeiten ist in den letzten Einträgen nicht abschließend nachgewiesen.
+- Staging-URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- Produktion bleibt https://myscoutingdatabase.onrender.com und ist ausdrücklich außerhalb des Arbeitsbereichs.
+
+### 12.2 Als umgesetzt dokumentierte Bestandteile
+
+Die folgenden Punkte sind im bisherigen Journal mit konkreten Implementierungs-, Migrations-, Test- oder Deployment-Einträgen beschrieben. Ihr Status ist jeweils so eng zu verstehen wie der vorhandene Nachweis:
+
+**MESSINHO Agent und Wissensgrundlage**
+- 100 Capability-IDs in vier Gruppen katalogisiert; Runtime-Handler und Statuswahrheit wurden auditiert und schrittweise korrigiert. Die Kataloggröße allein ist ausdrücklich kein Nachweis, dass alle 100 Fähigkeiten vollständig und produktionsreif sind.
+- Zielorientierte Mehrfach-Intent-/Capability-Planung wurde in den Chatfluss integriert; der manuelle Capability-Auswahlweg wurde zurückgenommen.
+- Evidence-/Quellenkontext, Qualitätsprüfung und begrenzte Scout/Critic-Schleife sind dokumentiert. Die Qualitätsprüfung ist auf maximal drei Durchläufe begrenzt und fail-closed, wenn die unabhängige Prüfung nicht verfügbar ist.
+- Dauerhafte Wissensspeicherung ist an Evidenz- und Qualitätsbedingungen gebunden; ungeprüfte Entwürfe dürfen nicht als bestätigtes Wissen gespeichert werden.
+- Programmier-Lernbasis ist versioniert und wurde auf Curriculum 1.1.0 erweitert. Sie umfasst Grundlagen, Anwendungsentwicklung, Qualität/Sicherheit, Architektur/KI-Systeme sowie professionelle Engineering-Themen. Das ist persistentes, versioniertes Wissensmaterial — kein Nachweis für eigenes Modellgewichts-Training.
+
+**myKI und Engineering-Vorschläge**
+- Eigener Admin-Bereich myKI im bestehenden Admin-Workspace wurde umgesetzt; er ersetzt weder den vorhandenen MESSINHO-Chat noch den Scout-Support.
+- Ticket-Domain, Ticket-ID, Statusregeln, Kopierpaket, Admin-API, Soft-Delete/Audit-Verlauf und UI sind dokumentiert.
+- Staging-Migration `messinho_myki_tickets_20261127` wurde laut Journal ausschließlich auf Supabase STAGING angewendet; RLS und serverseitige RPC-Berechtigungen wurden geprüft.
+- MESSINHO-Agent-Dispatch zur myKI-In-Process-Bridge wurde implementiert und mit Admin-/Scout-/Proposal-Gates abgesichert.
+- Read-only Engineering-Reviewer wurde ergänzt: feste Allowlist, gepinnter Quellcode-Benchmark, begrenzter Diff, Prüfung von Pfaden und Diff-Kontext, keine Dateiänderung, keine Shell-/Netzwerk-/Codeausführung und kein Commit/Deploy durch den Reviewer.
+- Ein echtes myKI-Ticket darf nur bei einem konkreten, validierten Verbesserungsvorschlag entstehen. Leere, künstliche oder bloße Status-Tickets sind untersagt.
+- Ticket-Tests werden ehrlich als `not_run` geführt, wenn der Reviewer die Tests nicht selbst ausgeführt hat.
+- myKI-Ticketpagination (fünf Tickets pro Seite) und Kopier-Fallback sind im letzten dokumentierten UI-Stand enthalten. Die abschließende CI-/STAGING-Verifikation dieses jüngsten UI-Stands ist noch offen.
+
+**Scheduler und Betrieb**
+- Täglicher Engineering-Review-Scheduler um 20:00 Uhr Europe/Berlin ist dokumentiert; idempotenter Tages-Ledger verhindert doppelte Läufe.
+- Scheduler wurde laut Korrektureintrag ausschließlich auf Render STAGING aktiviert. Der erste erfolgreiche Tageslauf bzw. ein echter Ticket-/No-improvement-Ledger-Eintrag ist im letzten dokumentierten Stand noch nicht nachgewiesen.
+- Direkter MESSINHO-Chat im myKI-Bereich und Admin-Statusroute sind implementiert dokumentiert; der End-to-End-Test mit authentifizierter Admin-Sitzung und der Scout-Ausschluss sind noch offen.
+- Mobile Darstellung, eigener scrollbarerer Chatbereich, Lade-/Fehlerzustände und Statusanzeige sind im Code-/Dokumentationsstand beschrieben; die vollständige aktuelle Geräte-QA ist nicht nachgewiesen.
+
+### 12.3 Offene Arbeiten — verbindliche Reihenfolge
+
+**P0 — aktuellen IST-Zustand beweisen, bevor weiter programmiert wird**
+1. Tatsächlichen HEAD von `feature/messinho-unified-ai-integration` feststellen und mit dem letzten dokumentierten Commit vergleichen.
+2. PROJECTSCOUT, GitHub-Dateistand, GitHub Actions und Render-STAGING-Deployment gegeneinander abgleichen.
+3. Den exakten Staging-Service, Branch, Deployment-Commit, Build-/Startlogs, Health-Endpunkt und die wirksamen STAGING-Umgebungsvariablen prüfen. Geheimnisse niemals in Logs oder Dokumentation ausgeben.
+4. Prüfen, ob der aktuelle Branch-HEAD bereits deployed ist. Falls nicht, nur nach den bestehenden Regeln manuell nach STAGING deployen; niemals Auto-Deploy auf Produktion oder `main` aktivieren.
+5. Vorhandene Regressionsergebnisse dem exakten Commit zuordnen. CI-Erfolg eines älteren Commits darf nicht als Testnachweis für einen neueren Commit ausgegeben werden.
+
+**P1 — myKI Ende-zu-Ende abschließen**
+1. Authentifizierten Admin-Test im Staging durchführen: normaler Chat, expliziter Engineering-Selbstcheck, Statusroute, Ticketliste, Ticketdetail, vollständige Kopierfunktion und Audit-Verlauf.
+2. Einen echten Vorschlag nur dann akzeptieren, wenn der Reviewer einen belegten, begrenzten Diff liefert. Andernfalls muss MESSINHO nachvollziehbar „kein sicherer Verbesserungsvorschlag“ melden und darf kein Ticket anlegen.
+3. Scout-/Nicht-Admin-Aufrufe adversarial testen: kein Zugriff auf myKI, keine Ticket-Erstellung, keine Statusdaten und keine Engineering-Funktion.
+4. Duplikate, Provider-Ausfall, ungültige Diff-Kontexte, geschützte Dateien, Secret-Muster, Fehlerzustände und Soft-Delete/Audit-Verhalten prüfen.
+5. Scheduler-Ledger nach dem 20:00-Lauf prüfen: genau ein Tageslauf, korrekter Zustand (`ticket_created`, `no_improvement`, `duplicate` oder `failed`) und keine künstlichen Tickets.
+
+**P2 — Sicherheitsgrenzen für autonome Entwicklung beweisen**
+1. Alle Agent-Tools, Capability-Handler, API-Routen und Background-Worker auf indirekte Wege zu Player-/Scout-CRUD, Auth, Profilen, Organisationen, Secrets und Wissensaktivierung prüfen.
+2. Beachten: Supabase `service_role` umgeht RLS. RLS allein beweist daher keine Isolation. Die MESSINHO-Grenze muss serverseitig vor jedem Tool-/API-Aufruf greifen.
+3. Adversariale Tests müssen beweisen, dass MESSINHO weder Spielerdaten noch Scout-Profile verändern, fremde Mandantendaten lesen oder geschützte Dateien verändern kann.
+4. Bis diese Nachweise bestehen, bleibt jede Ausführung von generiertem Code gesperrt.
+
+**P3 — isolierte Programmierumgebung aufbauen**
+1. Separater, kurzlebiger Workspace außerhalb des laufenden App-Prozesses und außerhalb des Produktiv-Deployments.
+2. Standardmäßig kein Netzwerk, keine Produktions-/Staging-Secrets, keine Supabase-Zugangsdaten und kein Zugriff auf echte Spieler-/Scout-Daten.
+3. Ressourcenlimits für CPU, RAM, Laufzeit, Speicher, Dateigröße, Prozesszahl und Ausgabevolumen; harte Timeouts und zuverlässige Beendigung.
+4. Nur explizit freigegebene, synthetische Testdaten und eine eng begrenzte Dateimount-Allowlist.
+5. Echte Compiler/Testwerkzeuge je Sprache in fest versionierten Images. Zunächst Python und JavaScript/TypeScript; weitere Sprachen erst nach Bedarf und Sicherheitsprüfung. Compiler-Ausgaben und Exit-Codes müssen maschinenlesbar erfasst werden.
+6. Ausführung nur in einer isolierten Sandbox mit restriktiven OS-/Container-Rechten. Kein dynamisches `exec` im Webserver-Prozess und keine vermeintliche Sicherheit allein durch Prompt-Regeln.
+7. Jeder Lauf erhält eine unveränderliche Run-ID, Quellcode-/Benchmark-SHA, Toolchain-Versionen, Eingabe-/Ausgabe-Hashes, Zeit-/Ressourcenverbrauch, Exit-Code und Testbericht.
+8. Workspace nach Abschluss oder Timeout automatisch vernichten; nur freigegebene, bereinigte Artefakte und Protokolle dauerhaft speichern.
+
+**P4 — kontrollierte automatische Verbesserungsschleife**
+1. Fehler erkennen und reproduzierbaren Testfall erstellen.
+2. Ursache und Hypothese mit Belegen formulieren.
+3. Begrenzte Änderung in isoliertem Workspace erzeugen.
+4. Compiler, Unit-, Integrations-, Regression-, Security- und Tenant-Isolation-Tests ausführen.
+5. Ergebnis gegen unveränderten Benchmark vergleichen; keine Verbesserung behaupten, wenn sie nicht messbar ist.
+6. Bei Fehlern höchstens eine festgelegte Zahl von Reparaturversuchen; danach stoppen und verständlich berichten.
+7. Bestes Ergebnis, Fehlschläge und Belege dauerhaft im Run-Ledger speichern.
+8. Ausschließlich einen Vorschlag mit Diff, Testergebnissen, Risiken und Rollback an myKI übergeben.
+9. Admin prüft und entscheidet. Erst danach darf ein separater, kontrollierter Staging-Integrationsprozess beginnen.
+10. Keine Selbstfreigabe, kein automatisches Merge und kein Produktionsdeployment.
+
+**P5 — dauerhaftes Programmiergedächtnis und Lernkontrolle**
+- Versionierte Wissenseinträge mit Quelle, Sprache/Version, Voraussetzungen, Beispiel, Testbeleg, Gültigkeitsbereich und Datum speichern.
+- Hypothesen, fehlgeschlagene Versuche und bestätigte Erkenntnisse voneinander trennen.
+- Nur reproduzierbar bestätigte Erkenntnisse als gesichertes Wissen markieren; widersprüchliche oder veraltete Inhalte versionieren und zur Prüfung markieren.
+- Wissen tenant-/rollenbewusst abrufen und gegen Prompt-Injection in externen Quellen schützen.
+- Keine automatische Veränderung von Modellgewichten behaupten. Lernen bedeutet hier zunächst kontrollierte Aktualisierung des versionierten Wissens, der Regeln und der geprüften Erfahrungsbasis.
+
+**P6 — Abschlussqualität**
+- Vollständige Tests für Admin-/Scout-Rollen, Mandantentrennung, Chat, Research, Learning, myKI, Scheduler, Sandbox und Fehlerwiederherstellung.
+- Mobile/Desktop-Regression, Accessibility, Performance und Observability.
+- Alle offenen Findings mit Schweregrad, Beleg, Verantwortlichkeit und Status dokumentieren.
+- Nach jeder tatsächlichen STAGING-Freigabe Commit, Deployment, Tests, Health und bekannte Grenzen eintragen.
+- Produktion bleibt gesperrt, bis der Eigentümer ausdrücklich in einer aktuellen Unterhaltung eine Produktionsfreigabe erteilt.
+
+### 12.4 Arbeitsregeln und Definition of Done
+
+- Arbeitsbranch bleibt `feature/messinho-unified-ai-integration`; ausschließlich STAGING.
+- Vor jedem Schreibvorgang Branch-HEAD und Dateiversion frisch lesen. Bei abweichendem SHA Änderungen neu abgleichen, nicht blind überschreiben.
+- Keine Migration ohne Schema-/RLS-/RPC-/Rollback-Prüfung und ausdrückliche Staging-Freigabe.
+- Keine echten personenbezogenen oder vertraulichen Daten in Sandbox-Testfällen, Tickets, Prompts oder Logs.
+- Jede Aufgabe gilt erst als erledigt, wenn Code vorhanden, Tests auf dem konkreten Commit bestanden und — falls Laufzeitverhalten betroffen ist — der exakte STAGING-Deploy live verifiziert wurde.
+- Ein erfolgreicher Build ist kein erfolgreicher Funktionstest. Ein CI-Erfolg ist kein Deploy. Ein Deploy ist kein Ende-zu-Ende-Nachweis.
+- Bei Unsicherheit Status als `nicht verifiziert` dokumentieren, nicht schätzen.
+
+**Nächster konkreter Arbeitsschritt:** P0 vollständig abschließen. Erst wenn Branch-HEAD, CI und STAGING-Deployment eindeutig übereinstimmen, P1 (Admin-/Scout-Ende-zu-Ende-Test) ausführen. Danach P2 vor P3 — die Sandbox darf nicht vor bewiesenen Daten- und Berechtigungsgrenzen aktiviert werden.
