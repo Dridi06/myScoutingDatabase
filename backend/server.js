@@ -510,7 +510,7 @@ app.post('/api/admin/myki/control',myKiControlLimiter,async(req,res)=>{
     if(action==='stop'){
       const {data,error}=await db.from('messinho_agent_control').update({
         mode:'paused',stop_requested:true,status_message:'Stopp angefordert. MESSINHO beendet den aktuellen Arbeitsschritt kontrolliert.',
-        updated_by:actor.user.id,updated_at:new Date().toISOString()
+        updated_by:actor.user.id,updated_at:new Date().toISOString(),stopped_at:new Date().toISOString()
       }).eq('id','global').select('mode,stop_requested,status_message,updated_at').single();
       if(error||!data)return res.status(503).json({error:'Der Stopp konnte nicht dauerhaft gespeichert werden.'});
       return res.json({ok:true,control:data,message:'Stopp angefordert. Laufende Arbeit wird am nächsten sicheren Haltepunkt beendet.'});
