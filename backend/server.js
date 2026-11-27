@@ -1439,7 +1439,7 @@ app.get('/api/admin/myki/tickets/:ticketId/sandbox',myKiTicketLimiter,async(req,
     if(ticketError||!ticket)return res.status(404).json({error:'myKI-Ticket wurde nicht gefunden.'});
     const {data:jobs,error:jobsError}=await db.from('messinho_engineering_jobs').select('id,status,source_sha,patch_sha256,github_run_id,github_run_attempt,created_at,finished_at,result').eq('ticket_id',ticket.id).order('created_at',{ascending:false}).limit(10);
     if(jobsError)return res.status(jobsError.code==='42P01'?503:500).json({error:'Sandbox-Prüfungen konnten nicht geladen werden.'});
-    const {data:memory,error:memoryError}=await db.from('messinho_engineering_memory').select('job_id,outcome,summary,evidence,toolchain,evidence_verified,review_state,created_at').eq('ticket_id',ticket.id).order('created_at',{ascending:false}).limit(10);
+    const {data:memory,error:memoryError}=await db.from('messinho_engineering_memory').select('id,job_id,outcome,summary,evidence,toolchain,evidence_verified,review_state,created_at').eq('ticket_id',ticket.id).order('created_at',{ascending:false}).limit(10);
     if(memoryError)return res.status(memoryError.code==='42P01'?503:500).json({error:'Programmiergedächtnis konnte nicht geladen werden.'});
     return res.json({ok:true,jobs:jobs||[],memory:memory||[]});
   }catch(error){console.error('myKI sandbox history failed:',error.message);return res.status(500).json({error:'Sandbox-Historie konnte nicht geladen werden.'});}
