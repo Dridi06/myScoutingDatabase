@@ -15,6 +15,7 @@ import { buildMessinhoQualityIntelligence } from './messinho-quality-intelligenc
 import { normalizeMessinhoHypothesisCreate, normalizeMessinhoHypothesisTransition } from './messinho-improvement-governance.js';
 import { normalizeMyKiTicketProposal, createMyKiTicketRecord, buildMyKiCopyPacket } from './messinho-myki-tickets.js';
 import { persistMessinhoMyKiProposal } from './messinho-myki-bridge.js';
+import { generateMessinhoEngineeringProposal, isMessinhoEngineeringRequest } from './messinho-myki-engineer.js';
 
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
@@ -1905,6 +1906,17 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const actor={user:authData.user,profile};
     const agentMemory=await loadMessinhoAgentMemory(ownerId);
     const normalized=interpretedMessage.toLocaleLowerCase('de-DE').normalize('NFKC');
+    if(isMessinhoEngineeringRequest(interpretedMessage)){
+      if(profile.role!=='admin'||!profile.approved||profile.approval_status!=='approved')
+        return respond({reply:'Die technische Selbstprüfung und Entwicklung von myKI-Tickets ist ausschließlich freigeschalteten Administratoren vorbehalten.',intent:'myki_engineering_access_denied',items:[]});
+      const generated=await generateMessinhoEngineeringProposal({goal:interpretedMessage});
+      if(!generated.ok)return respond({reply:generated.message||'Die technische Prüfung konnte nicht abgeschlossen werden. Es wurde kein Ticket erstellt.',intent:'myki_engineering_review_failed',items:[],myki_engineering:{status:'failed',code:generated.code}});
+      if(!generated.proposal)return respond({reply:'Ich habe die freigegebenen MESSINHO-Komponenten geprüft, aber keine konkrete, ausreichend belegbare und sichere Codeverbesserung gefunden. Deshalb habe ich bewusst kein Ticket erstellt.',intent:'myki_engineering_no_improvement',items:[],myki_engineering:{status:'no_reliable_improvement',source_sha:generated.source_sha}});
+      const saved=await persistMessinhoMyKiProposal({db,proposal:generated.proposal});
+      if(!saved.ok)return respond({reply:'Der Verbesserungsvorschlag wurde entwickelt, konnte aber nicht revisionssicher in myKI gespeichert werden. Bitte später erneut versuchen.',intent:'myki_engineering_persist_failed',items:[],myki_engineering:{status:'persist_failed',code:saved.code}});
+      if(saved.duplicate)return respond({reply:'Diesen Verbesserungsvorschlag habe ich bereits in myKI eingereicht. Es wurde kein doppeltes Ticket angelegt.',intent:'myki_engineering_duplicate',items:[],myki_engineering:{status:'duplicate'}});
+      return respond({reply:'Ich habe eine konkrete technische Verbesserung geprüft und als myKI-Ticket '+saved.ticket_id+' eingereicht. Der Patch wurde nicht angewendet und keine Tests wurden als bestanden markiert. Du kannst das Ticket im Admin-Bereich prüfen und den Vorschlag kopieren.',intent:'myki_engineering_ticket_created',items:[],myki_ticket:{ticket_id:saved.ticket_id,title:generated.proposal.title,status:'submitted',tests_executed:false,source_sha:generated.source_sha,files:generated.files}});
+    }
     const liveAnswer=resolveMessinhoLiveQuestion(interpretedMessage);
     if(liveAnswer)return respond({reply:liveAnswer.reply,intent:liveAnswer.intent,tool:liveAnswer.tool,verified_at:liveAnswer.verified_at,time_zone:liveAnswer.time_zone,items:[]});
     const smallTalkReply=getMessinhoSocialReply(interpretedMessage,history);
