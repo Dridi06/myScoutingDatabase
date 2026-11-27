@@ -56,13 +56,32 @@ function scriptOf(text) {
 }
 function inferConversationSignals(text, tokens, languageId) {
   const lower = text.toLocaleLowerCase();
-  const questions = /[؟?]/u.test(text) || /\b(warum|weshalb|wieso|wie|was|wer|wo|wann|why|how|what|who|where|when|pourquoi|comment|quoi|qui|où|cuándo|cómo|qué|quién|dónde|علاش|شنوة|شنو|كيفاش|كيف|وين)\b/u.test(lower);
-  const politeness = /\b(bitte|bitte schön|please|merci|s'il vous plaît|por favor|من فضلك|عافاك|عيشك)\b/u.test(lower);
-  const negation = /\b(nicht|kein|keine|no|not|pas|ne|لا|موش|ماني|ما)\b/u.test(lower);
-  const uncertainty = /\b(vielleicht|eigentlich|wohl|eventuell|maybe|perhaps|peut-être|quizás|ربما|يمكن)\b/u.test(lower);
-  const contrast = /\b(aber|jedoch|doch|but|however|mais|pero|لكن|أما)\b/u.test(lower);
-  const intent = questions ? 'question' : /\b(übersetze|translate|traduire|traduce|ترجم)\b/u.test(lower) ? 'translation_request' :
-    /\b(korrigiere|verbessere|correct|corrige|corrigez|صحح)\b/u.test(lower) ? 'correction_request' : 'conversation';
+  const tokenSet = new Set(tokens);
+  const has = (...terms) => terms.some(term => tokenSet.has(term));
+  const hasPhrase = (...phrases) => phrases.some(phrase => lower.includes(phrase));
+  const questions = /[؟?]/u.test(text) || has(
+    'warum','weshalb','wieso','wie','was','wer','wo','wann','why','how','what','who','where','when',
+    'pourquoi','comment','quoi','qui','où','cuándo','cómo','qué','quién','dónde',
+    'علاش','شنوة','شنو','كيفاش','كيف','وين','متى','أين','لماذا','هل'
+  );
+  const politeness = has('bitte','please','merci','por','favor','شكرا','عافاك','عيشك') ||
+    hasPhrase('s\\'il vous plaît','من فضلك','لو سمحت');
+  const negation = has(
+    'nicht','kein','keine','keinen','no','not','pas','ne','nunca','jamás',
+    'لا','موش','ماني','ما','مش','ليس','ليست','لم','لن','مازالش'
+  );
+  const uncertainty = has(
+    'vielleicht','eigentlich','wohl','eventuell','maybe','perhaps','possibly',
+    'peut-être','peut','quizás','quizas','talvez','ربما','يمكن','ممكن'
+  );
+  const contrast = has(
+    'aber','jedoch','doch','but','however','although','mais','pourtant','pero',
+    'sin','aunque','لكن','أما','بل','مع','ذلك'
+  ) || hasPhrase('مع ذلك','sin embargo','en revanche');
+  const intent = questions ? 'question' :
+    has('übersetze','translate','traduire','traduce','ترجم','tarjem','tarjemli') ? 'translation_request' :
+    has('korrigiere','verbessere','correct','corrige','corrigez','صحح','salla7','sa77a7') ? 'correction_request' :
+    'conversation';
   return { intent, questions, politeness, negation, uncertainty, contrast, token_count:tokens.length, language_id:languageId };
 }
 
