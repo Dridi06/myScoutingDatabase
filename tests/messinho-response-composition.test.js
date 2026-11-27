@@ -31,9 +31,11 @@ test('explicit emotion, ambiguity, and new topics are handled without invented a
 test('follow-up context preserves recent goals without adding constraints',()=>{
   const plan=buildMessinhoResponseCompositionContext({
     message:'Und was ist mit seiner Ausdauer?',
-    dialogueState:{continuity:{follow_up_likely:true,follow_up_signal:'referential_question'}}
+    dialogueState:{continuity:{follow_up_likely:true,follow_up_signal:'referential_question'}},
+    pragmaticContext:buildMessinhoPragmaticContext({message:'Und was ist mit seiner Ausdauer?'})
   });
-  assert.equal(plan.primary_move,'continue_pending_exchange');
+  assert.equal(plan.primary_move,'answer_directly_then_explain');
+  assert.equal(plan.response_shape,'contextual_question_follow_up');
   assert.match(plan.continuity_mode,/continue_relevant_recent_goal/);
   assert.ok(plan.guidance.some(x=>x.includes('Preserve previously supplied constraints')));
 });
