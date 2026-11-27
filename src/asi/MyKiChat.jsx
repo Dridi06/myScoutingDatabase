@@ -100,7 +100,7 @@ export default function MyKiChat({supabase}){
    <span>Chat und Fragen bleiben rund um die Uhr erreichbar – Ruhezeiten gelten nur für autonome Entwicklung.</span>
    <span>Chat und Fragen bleiben unabhängig vom Entwicklungsmodus erreichbar.</span>
    <span>Letzte Prüfung: {lastRun?.finished_at?new Date(lastRun.finished_at).toLocaleString('de-DE'):lastRun?.started_at?new Date(lastRun.started_at).toLocaleString('de-DE'):'Noch kein Lauf gespeichert'}</span>
-   {lastRun?.status&&<span>Ergebnis: {lastRun.error_code==='ADMIN_STOP_REQUESTED'?'Kontrolliert gestoppt':({ticket_created:'Ticket erstellt',no_improvement:'Keine sichere Verbesserung gefunden',duplicate:'Vorschlag bereits vorhanden',failed:'Prüfung fehlgeschlagen',running:'Läuft'})[lastRun.status]||lastRun.status}</span>}
+   {lastRun?.status&&<span>Ergebnis: {lastRun.error_code==='ADMIN_STOP_REQUESTED'?'Kontrolliert gestoppt':lastRun.error_code==='WORK_WINDOW_ENDED'?'Zeitfenster beendet':({ticket_created:'Ticket erstellt',no_improvement:'Keine sichere Verbesserung gefunden',duplicate:'Vorschlag bereits vorhanden',failed:'Prüfung fehlgeschlagen',running:'Läuft'})[lastRun.status]||lastRun.status}</span>}
   </div>
   {status.maturity&&<section className="myki-maturity" aria-label="MESSINHO Entwicklungsstand">
    <div className="myki-maturity-header">
