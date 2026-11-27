@@ -58,6 +58,7 @@ import { guardMessinhoConversationReply } from './messinho-conversation-response
 import { findMessinhoLanguageKnowledge, formatMessinhoLanguageKnowledge } from './messinho-language-knowledge.js';
 import { buildMessinhoConversationMemory, formatMessinhoConversationMemory } from './messinho-conversation-memory.js';
 import { buildMessinhoReasoningContext } from './messinho-reasoning-context.js';
+import { buildMessinhoPragmaticContext } from './messinho-pragmatic-context.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -2329,6 +2330,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const conversationMemory=buildMessinhoConversationMemory({history,conversationId});
     const conversationMemoryContext=formatMessinhoConversationMemory(conversationMemory);
     const reasoningContext=buildMessinhoReasoningContext({history,dialogueState,entityResolution});
+    const pragmaticContext=buildMessinhoPragmaticContext({message:interpretedMessage,linguisticContext});
     const cognitiveResult=await classifyMessinhoTurn({
       message,
       history,
@@ -2337,6 +2339,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       linguisticKnowledgeContext,
       conversationMemoryContext,
       reasoningContext,
+      pragmaticContext,
       userRole:profile.role,
       apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
       baseUrl:process.env.MESSINHO_MODEL_BASE_URL||process.env.OPENAI_BASE_URL||'https://api.openai.com/v1',
