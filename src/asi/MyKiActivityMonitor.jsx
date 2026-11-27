@@ -17,8 +17,8 @@ function buildPlan(status){
   plan.push({title:'Reparaturticket und isolierter Test',why:'Bei einem belegten Fehler wird ein Ticket erstellt. Ein begrenzter Reparaturvorschlag wird in der STAGING-Sandbox gegen Tests und Regressionen geprüft; die laufende Anwendung wird nicht ungeprüft verändert.',state:'pending'});
  }else if(mode!=='developing'){
   plan.push({title:'Arbeitsmodus starten',why:'Der Admin kann die Systemfehlersuche über „Arbeiten“ starten. Die autonome Entwicklung bleibt davon getrennt.',state:'blocked'});
- }else if(!status?.scheduler_enabled){
-  plan.push({title:'Voraussetzungen für den automatischen Prüflauf prüfen',why:'Der Entwicklungsmodus allein startet keine sichere Programmierarbeit. Zeitfenster, STAGING-Bindung und technische Freigaben müssen ebenfalls erfüllt sein.',state:'pending'});
+ }else if(!status?.scheduler_enabled&&!status?.self_development_enabled){
+  plan.push({title:'Voraussetzungen für den automatischen Prüflauf prüfen',why:'Der Entwicklungsmodus startet nur nach einem ausdrücklich ausgelösten Admin-Auftrag. Zeitfenster, STAGING-Bindung und technische Freigaben müssen erfüllt sein.',state:'pending'});
  }else{
   plan.push({title:'Nächste autonome Entwicklungsprüfung',why:'Innerhalb des freigegebenen Zeitfensters wird nach einer konkreten, messbar nützlichen Verbesserung gesucht. Ohne belegbaren Nutzen soll kein Ticket entstehen.',state:'scheduled'});
  }
@@ -81,7 +81,7 @@ export default function MyKiActivityMonitor({supabase}){
    </div>
    <div className="myki-monitor-metrics">
     <article><span><Clock3 size={16}/> Betriebsmodus</span><strong>{MODE_LABELS[mode]||'Unbekannt'}</strong><small>{status.control?.stop_requested?'Stopp angefordert':'Steuerstatus gespeichert'}</small></article>
-    <article><span><CalendarClock size={16}/> Automatische Entwicklung</span><strong>{(status.self_repair_enabled||status.scheduler_enabled)?'Aktiv':'Nicht aktiv'}</strong><small>{status.schedule?.due?'Zeitfenster ist geöffnet':phaseLabel}</small></article>
+    <article><span><CalendarClock size={16}/> Automatische Entwicklung</span><strong>{(status.self_repair_enabled||status.self_development_enabled||status.scheduler_enabled)?'Aktiv':'Nicht aktiv'}</strong><small>{status.schedule?.due?'Zeitfenster ist geöffnet':phaseLabel}</small></article>
     <article><span><Code2 size={16}/> Programmierumgebung</span><strong>{sandboxLabel}</strong><small>{status.sandbox?.github_credential_configured?'GitHub-Zugang erkannt':'Kein bestätigter Sandbox-Zugang'}</small></article>
     <article><span><ShieldCheck size={16}/> Sicherheitsgrenze</span><strong>STAGING only</strong><small>Keine automatische Produktionsänderung</small></article>
    </div>
