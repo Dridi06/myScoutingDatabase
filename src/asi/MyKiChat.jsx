@@ -52,7 +52,8 @@ export default function MyKiChat({supabase}){
  async function sendMessage(event){
   event?.preventDefault();
   const value=draft.trim();
-  const statusQuestion=/\b(woran arbeitest du|was arbeitest du gerade|was machst du gerade|aktueller arbeitsstand|was ist dein status|arbeitest du gerade)\b/i.test(value);\n  if(!value||(busy&&!statusQuestion))return;
+  const statusQuestion=/\b(woran arbeitest du|was arbeitest du gerade|was machst du gerade|aktueller arbeitsstand|was ist dein status|arbeitest du gerade)\b/i.test(value);
+  if(!value||(busy&&!statusQuestion))return;
   setDraft('');setError('');
   const history=messages.slice(-20).map(item=>({role:item.role,text:item.text}));
   setMessages(prev=>[...prev,{id:'u-'+Date.now(),role:'user',text:value}]);
