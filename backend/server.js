@@ -16,7 +16,7 @@ import { normalizeMessinhoHypothesisCreate, normalizeMessinhoHypothesisTransitio
 import { normalizeMyKiTicketProposal, createMyKiTicketRecord, buildMyKiCopyPacket } from './messinho-myki-tickets.js';
 import { persistMessinhoMyKiProposal } from './messinho-myki-bridge.js';
 import { generateMessinhoEngineeringProposal, isMessinhoEngineeringRequest } from './messinho-myki-engineer.js';
-import { startMessinhoEngineeringReviewScheduler } from './messinho-engineering-scheduler.js';
+import { startMessinhoEngineeringReviewScheduler, getMessinhoEngineeringReviewSchedule, isMessinhoEngineeringAutoReviewEnabled } from './messinho-engineering-scheduler.js';
 
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
@@ -465,6 +465,27 @@ app.get('/api/admin/messinho-diagnostics',requireSupabaseAdmin,async(req,res)=>{
   if(error)return res.status(500).json({error:'MESSINHO-Diagnosehistorie konnte nicht geladen werden.',detail:error.message});
   return res.json(data||[]);
 });
+app.get('/api/admin/myki/status',requireSupabaseAdmin,async(req,res)=>{
+  if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+  try{
+    const {data,error}=await db.from('messinho_engineering_review_runs')
+      .select('review_date,status,started_at,finished_at,ticket_id,error_code')
+      .order('review_date',{ascending:false}).limit(1).maybeSingle();
+    if(error)return res.status(500).json({error:'Der MESSINHO-Aktivitätsstatus konnte nicht geladen werden.'});
+    const schedule=getMessinhoEngineeringReviewSchedule();
+    return res.json({
+      scheduler_enabled:isMessinhoEngineeringAutoReviewEnabled(process.env),
+      run_state:data?.status==='running'?'running':'paused',
+      schedule:{time_zone:'Europe/Berlin',daily_at:'20:00',review_date:schedule.review_date,due:schedule.due},
+      last_run:data||null,
+      status_unavailable:false
+    });
+  }catch(error){
+    console.error('myKI status failed:',error.message);
+    return res.status(500).json({error:'Der MESSINHO-Aktivitätsstatus ist vorübergehend nicht verfügbar.'});
+  }
+});
+
 app.post('/api/admin/messinho-diagnostics/run',requireSupabaseAdmin,async(req,res)=>{
   try{
     const run=await executeMessinhoDiagnostics(req.user.sub);
