@@ -31,8 +31,8 @@ export function buildMessinhoSelfRepairGoal(checks=[]) {
   name:String(item.name||'Unbekannte Prüfung').slice(0,120),
   category:String(item.category||'System').slice(0,80),
   severity:String(item.severity||'warning').slice(0,30),
-  detail:String(item.detail||'Keine Detailbeschreibung verfügbar.').replace(/[\\u0000-\\u001f\\u007f]/g,' ').slice(0,500),
-  recommendation:String(item.recommendation||item.next_action||'Ursache untersuchen.').replace(/[\\u0000-\\u001f\\u007f]/g,' ').slice(0,350)
+  detail:String(item.detail||'Keine Detailbeschreibung verfügbar.').replace(/[\u0000-\u001f\u007f]/g,' ').slice(0,500),
+  recommendation:String(item.recommendation||item.next_action||'Ursache untersuchen.').replace(/[\u0000-\u001f\u007f]/g,' ').slice(0,350)
  }));
  if(!findings.length)return {ok:false,reason:'no_failed_diagnostics',findings:[]};
  return {ok:true,findings,goal:'Führe eine gezielte MESSINHO-Fehleranalyse und Fehlerbehebung ausschließlich für die folgenden tatsächlich fehlgeschlagenen Systemprüfungen durch. Lies die betroffenen Quellmodule und Aufrufer, belege die Ursache, erstelle höchstens einen kleinen sicheren Patch innerhalb der bestehenden Allowlist und definiere Regressionstests. Erfinde keine Fehler. Wenn die Ursache in geschützten Dateien, Datenbank, Zugangsdaten oder Infrastruktur liegt, erstelle keinen unsicheren Patch. Diagnosebefunde: '+JSON.stringify(findings)};
