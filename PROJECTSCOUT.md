@@ -4854,3 +4854,28 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - The correction has been committed to the STAGING feature branch. A new STAGING build is required before the fix can be considered verified or live.
 - No database, Supabase, user, player, scout, learning-data or production changes occurred.
 
+
+
+### Successful STAGING verification — 2026-11-27
+- Corrected STAGING deployment: dep-dc4nqdh7lnhs73971rig.
+- Deployed commit: f02dac306ec682daecd83b6fe739377b3c1ee7af. Render confirmed status live at 2026-11-27T12:53:53.984454Z.
+- The configured Render build ran npm run build, which invokes npm test, backend node --check syntax validation and the Vite production build.
+- Automated Node test result from Render build logs: 480 tests, 480 passed, 0 failed, 0 skipped. The previously failing fully vocalized MSA regression passed after normalization was moved before tokenization.
+- Backend JavaScript syntax validation completed because the build proceeded to Vite.
+- Frontend build completed successfully: Vite v7.3.8, built in 2.34 seconds.
+- Startup log confirmed: myScoutingDatabase API listening on port 10000.
+- The earlier failed deployment dep-dc4npus9v7es73fn6kf0 is retained as a failed attempt and is not treated as the released version.
+- STAGING remains configured with autoDeploy disabled. The exact live deployment commit is f02dac306ec682daecd83b6fe739377b3c1ee7af.
+- Authenticated browser/UI tests and direct language-chat tests against the live interface have not yet been performed. A successful build and process start do not prove the entire chat path is correct.
+- No database or Supabase migration, persistent data change, model-weight change, or production change occurred.
+
+### Status after Linguistic Intelligence 1.3.4 STAGING release
+| Area | Status | Next step |
+|---|---|---|
+| Arabic diacritic/tatweel handling | Implemented and 480/480 suite passed | Validate through authenticated chat |
+| Arabic orthographic variants | Implemented for detection-only matching | Expand tests with additional dialect examples |
+| Tunisian Derja MSA distinction | Regression-tested in Arabic script and vocalized input | Add broader regional spelling coverage |
+| Original-text preservation | Regression-tested | Verify in live chat response flow |
+| STAGING deployment | Live on dep-dc4nqdh7lnhs73971rig / commit f02dac3 | Run authenticated end-to-end language checks |
+| Production | Untouched | No production deployment authorized |
+
