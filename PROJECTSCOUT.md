@@ -4633,3 +4633,32 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 3. Unabhängige Qualitätsmessung für Übersetzung, Korrektur, Code-Switching und arabisch-tunesische Dialekterkennung.
 4. Authentifizierte End-to-End-Tests im tatsächlichen MESSINHO-Chat für Admin und Scout sowie Rollen-/Tenant-Isolation.
 5. Deployment auf dediziertes STAGING erst nach Abschluss aller Prüfungen und expliziter Freigabe; Production bleibt gesperrt.
+## 26. Intra-sentence Code-Switching und Retrieval-Härtung — 2026-11-27
+
+### Implementiert
+- `backend/messinho-linguistic-intelligence.js` Version **1.3.0** segmentiert jetzt nicht nur nach Satzzeichen, sondern erkennt mit lexikalischer Evidenz auch Sprachwechsel innerhalb eines Satzes.
+- Unterstützt werden insbesondere Wechsel zwischen den lateinischen Profilen sowie Arabisch/lateinischer Schrift. Mehrdeutige Wörter wie gemeinsam genutzte französisch/tunesische Begriffe werden anhand benachbarter eindeutiger Wörter eingeordnet.
+- Originalwortlaut, Reihenfolge und Satzzeichen bleiben beim Segmentieren erhalten; bei unzureichender Evidenz wird nicht künstlich aufgeteilt.
+- `backend/messinho-language-knowledge.js` Version **1.2.0** hält den Abruf strikt bei maximal acht Einträgen. Bei mehreren erkannten Sprachen erfolgt eine Round-Robin-Auswahl mit höchstens drei sprachspezifischen Einträgen je Profil; bei einer Sprache werden die acht besten Treffer nicht unnötig auf drei begrenzt.
+- Die Wissensausgabe führt jedes Segment mit dem passenden Sprachprofil zusammen; gemeinsame Wissensbausteine können ergänzend einfließen.
+
+### Regression und CI
+- Zwei neue Tests prüfen Code-Switching innerhalb eines lateinischen Satzes und innerhalb eines arabisch/englischen Satzes.
+- Ein Testlauf deckte auf, dass ein großgeschriebenes erstes Wort und ein mehrdeutiges Wort wie `joueur` die Segmentierung zunächst verhinderten. Die Token-Normalisierung und die kontextgestützte Auflösung mehrdeutiger Wörter wurden korrigiert.
+- Aktueller geprüfter Code-Commit: `3831801d32b5084da4e239cd5b47e0d2a3af9558`.
+- GitHub Actions: **462 Tests bestanden, 0 fehlgeschlagen**.
+- Backend-Syntaxprüfung erfolgreich; vollständiger STAGING-Branch-CI-Workflow mit Regressionstests und Vite-Build erfolgreich; Staging-Health-Smoke erfolgreich.
+- Isolierte Engineering-Sandbox-Prüfung war beim letzten Statusabruf noch in der Dependency-Installation. Keine vollständige Sandbox-Endabnahme behaupten.
+
+### Daten- und Deploymentstatus
+- Supabase-STAGING bleibt bei **84 Versionszeilen und 78 eindeutigen Eintragsschlüsseln** über sechs Sprachprofile.
+- Beide angewendeten Curriculum-Migrationen sind im Feature-Branch nachvollziehbar: `20261127022717_messinho_language_curriculum_expansion.sql` und `20261127022739_messinho_linguistic_curriculum_v2.sql`.
+- Render-STAGING wurde für diesen Sprachstand nicht deployed. Auto-Deploy bleibt deaktiviert; letzter bestätigter LIVE-Commit bleibt `ea7109db18fa155de0e014ebbabbed638b04066a`.
+- `main`, Produktion und Produktionsdaten bleiben unverändert.
+
+### Weiterhin offen
+1. Unabhängige muttersprachliche Qualitätsprüfung aller sechs Profile, besonders tunesische Derja in arabischer Schrift und Arabizi.
+2. Größerer Testkorpus für Code-Switching, Dialektvarianten, Höflichkeitsregister, Idiome und fachliche Fußballbegriffe.
+3. Authentifizierte Admin-/Scout-End-to-End-Tests sowie Rollen- und Tenant-Isolation im tatsächlichen Chat.
+4. Abschluss der isolierten Engineering-Sandbox-Prüfung.
+5. STAGING-Deployment erst nach vollständigem Prüfnachweis und ausdrücklicher Freigabe; Production bleibt gesperrt.
