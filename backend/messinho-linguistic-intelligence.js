@@ -188,12 +188,12 @@ const ACTION_PATTERNS = {
   rephrase: /(?<![\p{L}\p{N}])(?:formulier(?:e|en)? um|umformulier(?:e|en)?|rephrase|reformul(?:e|er)|reformula(?:r)?|أعد الصياغة|عاود الصياغة|3awed siyagha)(?![\p{L}\p{N}])/u
 };
 const TARGET_LANGUAGE_PATTERNS = [
-  {id:'de',pattern:/(?:auf|ins|in) deutsch(?:e|er|en)?|\bto german\b|\bin german\b|\ben allemand\b|\bal alemán\b|إلى الألمانية/u},
-  {id:'en',pattern:/(?:auf|ins|in) englisch|\bto english\b|\bin english\b|\ben anglais\b|\bal inglés\b|إلى الإنجليزية/u},
-  {id:'fr',pattern:/(?:auf|ins|in) französisch|\bto french\b|\bin french\b|\binto french\b|\ben français\b|\ben francais\b|\bal francés\b|إلى الفرنسية/u},
-  {id:'ar',pattern:/(?:auf|ins|in) hocharabisch|\bmodern standard arabic\b|\bfusha\b|بالعربية الفصحى|إلى العربية الفصحى/u},
-  {id:'ar-tn',pattern:/(?:auf|ins|in) tunesisch|\btunisian derja\b|\bderja\b|بالتونسي|بالدارجة التونسية|\bbil tounsi\b|\bbil derja\b/u},
-  {id:'es',pattern:/(?:auf|ins|in) spanisch|\bto spanish\b|\bin spanish\b|\ben español\b|\bal español\b|إلى الإسبانية/u}
+  {id:'de',pattern:/(?:auf|ins|in) deutsch(?:e|er|en)?|\bto german\b|\bin german\b|\ben allemand\b|\bal alemán\b|إلى الألمانية|بالألمانية/u},
+  {id:'en',pattern:/(?:auf|ins|in) englisch(?:e|en)?|\bto english\b|\bin english\b|\binto english\b|\ben anglais\b|\bal inglés\b|إلى الإنجليزية|بالإنجليزية|\bbil anglais\b/u},
+  {id:'fr',pattern:/(?:auf|ins|in) französisch(?:e|en)?|\bto french\b|\bin french\b|\binto french\b|\ben français\b|\ben francais\b|\bal francés\b|إلى الفرنسية|بالفرنسية/u},
+  {id:'ar',pattern:/(?:auf|ins|in) (?:hoch)?arabisch(?:e|en)?|\bmodern standard arabic\b|\bfusha\b|\binto arabic\b|\bin arabic\b|\ben arabe\b|\bal árabe(?: estándar)?\b|بالعربية الفصحى|إلى العربية الفصحى|باللغة العربية|بالعربية/u},
+  {id:'ar-tn',pattern:/(?:auf|ins|in) tunesisch(?:e|en)?|\btunisian derja\b|\btunisian arabic\b|\binto derja\b|\bderja\b|بالتونسي|بالدارجة التونسية|بالدارجة|\bbil tounsi\b|\bbil derja\b|\bbel derja\b|\bbil 3arbi tounsi\b/u},
+  {id:'es',pattern:/(?:auf|ins|in) spanisch(?:e|en)?|\bto spanish\b|\bin spanish\b|\binto spanish\b|\ben español\b|\bal español\b|إلى الإسبانية|بالإسبانية/u}
 ];
 
 function detectLanguageAction(text, languageId) {
