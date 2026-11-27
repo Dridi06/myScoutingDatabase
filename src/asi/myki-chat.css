@@ -1,0 +1,33 @@
+.myki-chat{margin:18px 0 22px;padding:20px;border:1px solid rgba(204,171,93,.2);background:linear-gradient(145deg,rgba(20,27,39,.98),rgba(10,16,26,.98));border-radius:18px;color:#edf1f7}
+.myki-chat-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.myki-chat-title h2{display:flex;align-items:center;gap:9px;margin:5px 0;color:#f2d28b;font-size:20px}
+.myki-chat-title p{margin:0;color:#aeb9c8;font-size:12px;line-height:1.6}
+.myki-agent-state{display:flex;align-items:center;gap:9px;max-width:320px;padding:9px 12px;border-radius:999px;background:rgba(255,255,255,.045);border:1px solid rgba(190,200,214,.14);font-size:11px;color:#c4ccd7}
+.myki-agent-state i{width:8px;height:8px;flex:none;border-radius:50%;background:#8792a2}
+.myki-agent-state.working i{background:#e4b84f;box-shadow:0 0 12px rgba(228,184,79,.7);animation:myki-pulse 1s infinite}
+.myki-agent-state.learning i{background:#70c89b;box-shadow:0 0 12px rgba(112,200,155,.6);animation:myki-pulse 1.3s infinite}
+.myki-agent-state.paused i{background:#8792a2}
+@keyframes myki-pulse{50%{opacity:.35;transform:scale(.78)}}
+.myki-agent-meta{display:flex;flex-wrap:wrap;gap:8px 16px;margin:15px 0;padding:11px 12px;border-radius:12px;background:rgba(0,0,0,.18);color:#9daabc;font-size:10px}
+.myki-agent-meta span{display:flex;align-items:center;gap:5px}
+.myki-chat-messages{display:flex;flex-direction:column;gap:13px;min-height:210px;max-height:390px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:13px;border-radius:13px;background:rgba(3,8,15,.38);border:1px solid rgba(255,255,255,.06)}
+.myki-chat-message{display:flex;gap:9px;max-width:92%}
+.myki-chat-message.user{align-self:flex-end;flex-direction:row-reverse}
+.myki-chat-avatar{display:grid;place-items:center;width:30px;height:30px;flex:none;border-radius:10px;background:linear-gradient(145deg,#f2dca6,#aa8544);color:#19202a;font-size:9px;font-weight:800}
+.myki-chat-message.user .myki-chat-avatar{background:#3a4b61;color:#eaf0f7}
+.myki-chat-bubble{padding:10px 13px;border-radius:4px 13px 13px 13px;background:rgba(35,46,62,.9);border:1px solid rgba(255,255,255,.07);min-width:0}
+.myki-chat-message.user .myki-chat-bubble{border-radius:13px 4px 13px 13px;background:rgba(49,66,87,.9)}
+.myki-chat-bubble small{font-size:9px;letter-spacing:.12em;color:#d2b36d}
+.myki-chat-bubble p{margin:5px 0 0;color:#e7ecf3;font-size:12px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.myki-chat-thinking{display:flex;align-items:center;gap:8px;color:#d7c18c;font-size:11px}
+.myki-chat-spin{animation:myki-rotate 1s linear infinite}
+@keyframes myki-rotate{to{transform:rotate(360deg)}}
+.myki-chat-composer{display:flex;align-items:center;gap:9px;margin-top:12px;padding:8px;border:1px solid rgba(204,171,93,.24);border-radius:13px;background:rgba(0,0,0,.2)}
+.myki-chat-composer textarea{flex:1;min-width:0;resize:vertical;max-height:110px;border:0!important;outline:none!important;background:transparent!important;color:#f1f3f7!important;font:inherit;font-size:12px;padding:8px!important}
+.myki-chat-composer textarea::placeholder{color:#8793a4}
+.myki-chat-composer button{display:grid;place-items:center;width:40px;height:40px;flex:none;border:0;border-radius:11px;background:linear-gradient(145deg,#f1d99d,#b18b49);color:#20232a}
+.myki-chat-composer button:disabled{opacity:.4}
+.myki-chat-error{color:#ffc2c7;font-size:11px}
+.myki-chat-footnote{display:flex;align-items:center;gap:6px;margin-top:10px;color:#8492a5;font-size:10px;line-height:1.5}
+@media(max-width:650px){.myki-chat{padding:13px}.myki-chat-header{display:block}.myki-agent-state{margin-top:12px;max-width:none;border-radius:11px}.myki-chat-messages{max-height:48vh;min-height:190px;padding:10px}.myki-chat-message{max-width:98%}.myki-agent-meta{display:grid;grid-template-columns:1fr;gap:7px}}
+@media(prefers-reduced-motion:reduce){.myki-agent-state i,.myki-chat-spin{animation:none}}
