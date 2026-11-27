@@ -31,9 +31,12 @@ test('generates a validated proposal from pinned source revision without applyin
   throw new Error('unexpected_url');
  };
  const r=await generateMessinhoEngineeringProposal({goal:'Prüfe MESSINHO auf konkrete sichere Verbesserungen',env:{OPENAI_API_KEY:'test-key'},fetchImpl});
- assert.equal(r.ok,true);assert.equal(r.proposal.benchmark_id,'feature/messinho-unified-ai-integration@'+sha);
- assert.equal(r.tests_executed,false);assert.equal(r.execution_mode,'proposal_only');
- assert.equal(calls.length,7);assert.ok(calls[0].includes('feature%2Fmessinho-unified-ai-integration'));
+ assert.equal(r.ok,true);
+ assert.equal(r.proposal.benchmark_id,'feature/messinho-unified-ai-integration@'+sha);
+ assert.equal(r.tests_executed,false);
+ assert.equal(r.execution_mode,'proposal_only');
+ assert.equal(calls.length,7);
+ assert.ok(calls[0].includes('feature%2Fmessinho-unified-ai-integration'));
 });
 
 test('returns no proposal when the reviewer cannot prove an improvement',async()=>{
@@ -43,7 +46,9 @@ test('returns no proposal when the reviewer cannot prove an improvement',async()
   return response({choices:[{message:{content:'{"proposal":null}'}}]});
  };
  const r=await generateMessinhoEngineeringProposal({goal:'Bitte prüfe das System auf Verbesserungen',env:{OPENAI_API_KEY:'test-key'},fetchImpl});
- assert.equal(r.ok,true);assert.equal(r.proposal,null);assert.equal(r.reason,'no_reliable_improvement');
+ assert.equal(r.ok,true);
+ assert.equal(r.proposal,null);
+ assert.equal(r.reason,'no_reliable_improvement');
 });
 
 test('fails closed when provider, source or patch validation is unavailable',async()=>{
@@ -61,10 +66,12 @@ test('fails closed when provider, source or patch validation is unavailable',asy
 
 test('rejects a model patch whose old lines do not exist in the pinned source',()=>{
  const result=validateMessinhoEngineeringPatchAgainstSources(patch,[{path:'backend/messinho-input-correction.js',content:'const actual = 1;\n'}]);
- assert.equal(result.ok,false);assert.equal(result.reason,'patch_context_does_not_match_pinned_source');
+ assert.equal(result.ok,false);
+ assert.equal(result.reason,'patch_context_does_not_match_pinned_source');
 });
 
 test('accepts only an anchored hunk matching the exact source context',()=>{
  const result=validateMessinhoEngineeringPatchAgainstSources(patch,[{path:'backend/messinho-input-correction.js',content:'const value = 1;\n'}]);
- assert.equal(result.ok,true);assert.equal(result.sections,1);
+ assert.equal(result.ok,true);
+ assert.equal(result.sections,1);
 });
