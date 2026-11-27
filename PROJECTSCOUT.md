@@ -5694,3 +5694,39 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - **Verification boundary:** deployment and startup are verified. Authenticated browser-level Admin/Scout conversation, memory persistence/recall after refresh, and cross-account isolation have not yet been manually confirmed by the owner.
 - Next user-assisted checks on STAGING: (1) “Hallo Messinho, wie geht es dir?” (2) “Merk dir bitte, dass wir gerade die neue Gesprächsintelligenz testen.” (3) “Was hast du dir gemerkt?” (4) “Und was wollten wir damit erreichen?” Then repeat memory isolation separately for Admin and Scout accounts if available.
 - Follow-up engineering: expand evaluation for typos/dictation/ambiguous follow-ups; add memory correction/deletion controls and relevance ranking; evaluate long-conversation summarization; verify language-aware responses across German, English, French, Spanish, MSA Arabic, Tunisian Derja and Arabizi. Keep all work STAGING-only and deploy only with explicit approval.
+
+
+## 41. MESSINHO Multilingual Grammar Engine 0.1.0 — implementation under CI review — 2026-11-27
+
+### Owner request and decision
+- Owner explicitly requested a dedicated grammar layer for every supported language profile and approved starting implementation.
+- Accepted scope: German, English, French, Spanish, Modern Standard Arabic (MSA), and Tunisian Derja (Arabic script and Arabizi).
+- Grammar is a separate, language-specific analysis layer connected to the existing Linguistic Intelligence pipeline. It must not treat Tunisian Derja as incorrect MSA.
+
+### Implementation on isolated STAGING work branch
+- Work branch: `feature/messinho-multilingual-grammar`.
+- Base integration branch: `feature/messinho-unified-ai-integration`.
+- New `backend/messinho-grammar-engine.js` provides bounded, explainable structural analysis: sentence type, article/pronoun/finite-verb/conjunction signals and selected language-specific patterns.
+- Existing `backend/messinho-linguistic-intelligence.js` attaches grammar evidence to language analysis and adds prompt policy requiring evidence-based interpretation, preserving source wording, and respecting Derja as its own dialect grammar.
+- New `tests/messinho-grammar-engine.test.js` covers the six profiles, selected agreement/negation patterns, safe insufficient-input states and pipeline integration.
+- No database migration, persistent language-knowledge write, external dictionary import, model-weight update, player/scout/account change, or production resource change.
+
+### Truthful limitations
+- This is an initial deterministic heuristic engine, not a full syntactic parser, complete grammar textbook, or proof of grammatical correctness.
+- Findings are evidence hints with bounded confidence. No automatic rewriting/correction is performed.
+- More complete coverage requires reviewed examples and language-specific regression suites, especially verb morphology, agreement, tense/aspect, case, word order, dialect variation and code-switching.
+
+### Review and verification
+- Pull request: #56 — https://github.com/Dridi06/myScoutingDatabase/pull/56
+- Head commit at PR creation: `9ee7757d3365eaa818fa37d3b01edd2d69edb82c`.
+- PR targets only `feature/messinho-unified-ai-integration`; it is not merged and not deployed.
+- GitHub Actions for Node tests, backend syntax and STAGING branch CI were queued at handover. Record final results before merge.
+- Render STAGING auto-deploy is disabled. No deployment has been triggered.
+- Production branch `main`, production Render service and production Supabase remain untouched.
+
+### Next steps
+1. Inspect all CI results and fix every genuine regression.
+2. Expand tests for each grammar family and Arabic/Derja orthographic variants.
+3. Review prompt/context size and ensure Admin/Scout output does not leak internal diagnostics.
+4. Merge to the STAGING integration branch only after CI passes and the owner approves.
+5. Deploy the exact verified commit to the dedicated STAGING Render service only after explicit approval; then verify health and authenticated Admin/Scout behavior.
