@@ -1,6 +1,6 @@
 export const MESSINHO_REASONING_CONTEXT_VERSION='1.0.0';
 const MAX_EVIDENCE=10, MAX_TEXT=420;
-function clean(value){return String(value??'').replace(/[\\u0000-\\u001f\\u007f]/g,' ').replace(/\\s+/g,' ').trim().slice(0,MAX_TEXT);}
+function clean(value){return String(value??'').replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim().slice(0,MAX_TEXT);}
 function safeResearchContext(value){
  if(!value||typeof value!=='object')return null;
  const refs=[];
