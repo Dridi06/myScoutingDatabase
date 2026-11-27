@@ -34,7 +34,8 @@ export function buildMessinhoDialogueState({message,history=[],userRole='scout',
   const previousAssistant = [...turns].reverse().find(item => item.role === 'assistant') || null;
   const assistantAskedQuestion = Boolean(last?.role === 'assistant' && QUESTION_PATTERN.test(last.text));
   const priorUserGoal = [...turns].reverse().find(item => item.role === 'user' && wordCount(item.text) >= 4) || null;
-  const followUpLikely = isLikelyFollowUp(currentMessage);
+  const replyToPendingQuestionLikely = assistantAskedQuestion && currentMessage.length > 0 && wordCount(currentMessage) <= 16;
+  const followUpLikely = isLikelyFollowUp(currentMessage) || replyToPendingQuestionLikely;
   const recentFocus = turns.filter(item => item.role === 'user').slice(-MAX_FOCUS).map(item => item.text);
   const language = linguisticContext?.response_language || linguisticContext?.primary_language || null;
   return {
@@ -43,6 +44,7 @@ export function buildMessinhoDialogueState({message,history=[],userRole='scout',
     user_role: userRole === 'admin' ? 'admin' : 'scout',
     continuity: {
       follow_up_likely: followUpLikely,
+      reply_to_pending_question_likely: replyToPendingQuestionLikely,
       assistant_awaiting_answer: assistantAskedQuestion,
       pending_assistant_question: assistantAskedQuestion ? last.text : null,
       previous_user_message: previousUser?.text || null,
