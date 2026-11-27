@@ -9,7 +9,7 @@ function fakeDb(rows, selected=[]) {
 
 test('language knowledge is registered for six language profiles and append-only',()=>{
  const summary=getMessinhoLanguageKnowledgeSummary();
- assert.equal(summary.version,'1.1.0');
+ assert.equal(summary.version,'1.2.0');
  assert.equal(summary.profiles.length,6);
  assert.equal(summary.retention,'append_only_versions');
  assert.equal(summary.write_access,'none_from_chat_or_scout_roles');
@@ -96,4 +96,43 @@ test('returns all segment languages when the overall message is mixed',async()=>
  const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'السلام عليكم، كيف حالك؟ Aslema, labes barcha? Chnowa rayek?');
  assert.ok(result.language_ids.includes('ar'));
  assert.ok(result.language_ids.includes('ar-tn'));
+});
+
+
+test('retrieves structured football scouting knowledge and its learning safeguards',async()=>{
+ const rows=[{
+  entry_key:'de.lexicon.football_scouting',version:1,language_code:'de',entry_type:'lexicon',
+  topic:'Fußball- und Scoutingterminologie',title:'Fußballbegriffe im Kontext',
+  content:{
+   explanation:'Scoutingbegriffe müssen im Fußballkontext interpretiert werden.',
+   terms:[{term:'Progressiver Pass',meaning_de:'Pass nach vorne Richtung gegnerisches Tor'}],
+   common_errors:['Metriken ohne Definition vergleichen.'],
+   learning_objectives:['Scoutingbegriffe fachlich einordnen']
+  },
+  tags:['football','scouting','tactics','analytics'],knowledge_status:'active'
+ }];
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'Erkläre mir den progressiven Pass im Scouting.');
+ assert.equal(result.items[0].entry_key,'de.lexicon.football_scouting');
+ const formatted=formatMessinhoLanguageKnowledge(result);
+ assert.equal(formatted[0].terms[0].term,'Progressiver Pass');
+ assert.ok(formatted[0].common_errors.length>0);
+ assert.ok(formatted[0].learning_objectives.length>0);
+});
+
+test('balances retrieved knowledge across languages in a code-switched message',async()=>{
+ const rows=[
+  ...['en','fr'].flatMap(language=>[
+   {entry_key:language+'.grammar.core',version:1,language_code:language,entry_type:'grammar',topic:'Grammar',title:'Grammar core',content:{explanation:'player league analyse joueur analyser performance'},tags:['player','league','analyse','joueur'],knowledge_status:'active'},
+   {entry_key:language+'.lexicon.core',version:1,language_code:language,entry_type:'lexicon',topic:'Vocabulary',title:'Vocabulary core',content:{explanation:'player league analyse joueur analyser performance'},tags:['player','league','analyse','joueur'],knowledge_status:'active'},
+   {entry_key:language+'.pragmatics.core',version:1,language_code:language,entry_type:'pragmatics',topic:'Pragmatics',title:'Pragmatics core',content:{explanation:'player league analyse joueur analyser performance'},tags:['player','league','analyse','joueur'],knowledge_status:'active'},
+   {entry_key:language+'.conversation.core',version:1,language_code:language,entry_type:'conversation',topic:'Conversation',title:'Conversation core',content:{explanation:'player league analyse joueur analyser performance'},tags:['player','league','analyse','joueur'],knowledge_status:'active'}
+  ])
+ ];
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'The player is ready for the league. Bonjour, analysons le joueur et sa performance.');
+ const counts=Object.fromEntries(['en','fr'].map(language=>[language,result.items.filter(item=>item.language_code===language).length]));
+ assert.ok(counts.en>0);
+ assert.ok(counts.fr>0);
+ assert.ok(counts.en<=3);
+ assert.ok(counts.fr<=3);
+ assert.ok(result.items.length<=8);
 });
