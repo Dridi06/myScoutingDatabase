@@ -213,3 +213,8 @@ test('recognizes colloquial Tunisian rephrasing requests without changing the so
  assert.equal(result.action.source_text,'3awed siyagha el message.');
  assert.equal(result.action.preserve_original,true);
 });
+
+test('Arabic MSA explain verb is not mistaken for the standalone Derja particle',()=>{
+ const result=analyzeMessinhoLanguage('اشرح الجذور والأوزان وتصريف الأفعال في اللغة العربية الفصحى.');
+ assert.equal(result.primary_language,'ar');
+});
