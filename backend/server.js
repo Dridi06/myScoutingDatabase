@@ -480,7 +480,7 @@ app.get('/api/admin/myki/status',myKiStatusLimiter,async(req,res)=>{
   try{
     const [{data:review,error:reviewError},{data:control,error:controlError},{data:tasks,error:taskError}]=await Promise.all([
       db.from('messinho_engineering_review_runs').select('review_date,status,started_at,finished_at,ticket_id,error_code')
-        .order('review_date',{ascending:false}).limit(1).maybeSingle(),
+        .order('started_at',{ascending:false}).limit(1).maybeSingle(),
       db.from('messinho_agent_control').select('mode,stop_requested,current_task,status_message,updated_at,stopped_at').eq('id','global').maybeSingle(),
       db.from('messinho_agent_tasks').select('id,goal,status,updated_at,pending_capabilities,last_error').eq('owner_id',actor.user.id)
         .in('status',['running','partial','completed','failed']).order('updated_at',{ascending:false}).limit(1)
