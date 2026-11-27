@@ -1,19 +1,22 @@
 import React,{useCallback,useEffect,useMemo,useState} from 'react';
 import {Activity,Clock3,ShieldCheck,Code2,RefreshCw,CalendarClock,BrainCircuit,AlertTriangle,CheckCircle2,PauseCircle,ArrowRight} from 'lucide-react';
 
-const MODE_LABELS={paused:'Pausiert',working:'Wartet auf Admin-Auftrag',developing:'Autonome Entwicklung freigegeben'};
-const RUN_LABELS={paused:'Keine autonome Entwicklung',working:'Wartet auf einen Auftrag',developing:'Entwicklungsmodus freigegeben',running:'Aktiver Arbeitsschritt'};
+const MODE_LABELS={paused:'Pausiert',working:'Systemfehlersuche & Reparaturprüfung',developing:'Autonome Entwicklung freigegeben'};
+const RUN_LABELS={paused:'Keine autonome Entwicklung',working:'Systemprüfung wird gestartet',developing:'Entwicklungsmodus freigegeben',running:'Aktiver Arbeitsschritt'};
 const SANDBOX_LABELS={disabled:'Nicht freigegeben',credential_missing:'Zugangsdaten fehlen',configured_not_yet_end_to_end_verified:'Konfiguriert – Praxistest offen'};
 const formatDate=value=>value?new Date(value).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'short'}):'Noch kein Zeitstempel';
-const explainRun=run=>({running:'Ein gespeicherter Arbeitsschritt ist aktuell als laufend markiert.',paused:'Die autonome Entwicklung ist pausiert. Der Chat kann davon unabhängig erreichbar bleiben.',working:'MESSINHO wartet auf einen konkreten Auftrag des Administrators.',developing:'Der Entwicklungsmodus ist freigegeben. Ob gerade tatsächlich ein Prüflauf läuft, zeigen die gespeicherten Laufdaten.'}[run]||'Der Betriebszustand konnte nicht eindeutig zugeordnet werden.');
+const explainRun=run=>({running:'Ein gespeicherter Arbeitsschritt ist aktuell als laufend markiert.',paused:'Die autonome Entwicklung ist pausiert. Der Chat kann davon unabhängig erreichbar bleiben.',working:'MESSINHO führt die Systemdiagnose aus, sucht nach belegten Fehlern und erstellt bei Bedarf ein Reparaturticket.',developing:'Der Entwicklungsmodus ist freigegeben. Ob gerade tatsächlich ein Prüflauf läuft, zeigen die gespeicherten Laufdaten.'}[run]||'Der Betriebszustand konnte nicht eindeutig zugeordnet werden.');
 
 function buildPlan(status){
  const plan=[];
  const mode=status?.autonomy_mode||'paused';
  const sandbox=status?.sandbox?.state||'disabled';
  const last=status?.last_run;
- if(mode!=='developing'){
-  plan.push({title:'Entwicklungsfreigabe abwarten',why:'Der aktuelle Betriebsmodus erlaubt keine autonome Entwicklungsprüfung. Damit werden Änderungen nicht ohne die vorgesehene Admin-Freigabe gestartet.',state:'blocked'});
+ if(mode==='working'){
+  plan.push({title:'Systemdiagnose und Fehlersuche',why:'MESSINHO führt die vorhandenen Systemprüfungen aus und wertet nur tatsächlich fehlgeschlagene Prüfungen aus.',state:'scheduled'});
+  plan.push({title:'Reparaturticket und isolierter Test',why:'Bei einem belegten Fehler wird ein Ticket erstellt. Ein begrenzter Reparaturvorschlag wird in der STAGING-Sandbox gegen Tests und Regressionen geprüft; die laufende Anwendung wird nicht ungeprüft verändert.',state:'pending'});
+ }else if(mode!=='developing'){
+  plan.push({title:'Arbeitsmodus starten',why:'Der Admin kann die Systemfehlersuche über „Arbeiten“ starten. Die autonome Entwicklung bleibt davon getrennt.',state:'blocked'});
  }else if(!status?.scheduler_enabled){
   plan.push({title:'Voraussetzungen für den automatischen Prüflauf prüfen',why:'Der Entwicklungsmodus allein startet keine sichere Programmierarbeit. Zeitfenster, STAGING-Bindung und technische Freigaben müssen ebenfalls erfüllt sein.',state:'pending'});
  }else{
@@ -78,7 +81,7 @@ export default function MyKiActivityMonitor({supabase}){
    </div>
    <div className="myki-monitor-metrics">
     <article><span><Clock3 size={16}/> Betriebsmodus</span><strong>{MODE_LABELS[mode]||'Unbekannt'}</strong><small>{status.control?.stop_requested?'Stopp angefordert':'Steuerstatus gespeichert'}</small></article>
-    <article><span><CalendarClock size={16}/> Automatische Entwicklung</span><strong>{status.scheduler_enabled?'Aktiv':'Nicht aktiv'}</strong><small>{status.schedule?.due?'Zeitfenster ist geöffnet':phaseLabel}</small></article>
+    <article><span><CalendarClock size={16}/> Automatische Entwicklung</span><strong>{(status.self_repair_enabled||status.scheduler_enabled)?'Aktiv':'Nicht aktiv'}</strong><small>{status.schedule?.due?'Zeitfenster ist geöffnet':phaseLabel}</small></article>
     <article><span><Code2 size={16}/> Programmierumgebung</span><strong>{sandboxLabel}</strong><small>{status.sandbox?.github_credential_configured?'GitHub-Zugang erkannt':'Kein bestätigter Sandbox-Zugang'}</small></article>
     <article><span><ShieldCheck size={16}/> Sicherheitsgrenze</span><strong>STAGING only</strong><small>Keine automatische Produktionsänderung</small></article>
    </div>
