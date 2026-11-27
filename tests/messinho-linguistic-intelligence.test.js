@@ -12,7 +12,7 @@ import {
 } from '../backend/messinho-linguistic-intelligence.js';
 
 test('registers six separate language profiles including Tunisian Derja',()=>{
-  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.8');
+  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.9');
   assert.deepEqual(MESSINHO_LANGUAGE_PROFILES.map(item=>item.id),['de','en','fr','ar','ar-tn','es']);
   assert.equal(getMessinhoLanguageProfile('ar-tn').name,'تونسي / Derja');
   assert.equal(getMessinhoLanguageProfile('ar').name,'العربية الفصحى');
@@ -333,7 +333,7 @@ test('does not let a mixed-language aggregate score override the last clear user
 test('publishes the selected response language in stable chat metadata',()=>{
   const context=buildMessinhoLinguisticContext('The player is not ready, mais le joueur est prêt.',[]);
   const metadata=buildMessinhoLinguisticResponseMetadata(context);
-  assert.equal(metadata.version,'1.3.7');
+  assert.equal(metadata.version,'1.3.9');
   assert.equal(metadata.primary_language,context.primary_language);
   assert.equal(metadata.response_language,'fr');
   assert.equal(metadata.latest_segment_language,'fr');
@@ -398,4 +398,59 @@ test('qualified evaluation cues never replace or rewrite the original source tex
   assert.equal(result.action.source_text,message);
   assert.equal(result.segments[0].text,message);
   assert.equal(result.policy.source_text_preserved,true);
+});
+
+
+test('preserves qualified evaluation, uncertainty and contrast across all six language profiles',()=>{
+  const cases=[
+    ['de','Der Spieler ist nicht schlecht, aber vielleicht noch nicht bereit.'],
+    ['en','The player is not bad, but perhaps not ready yet.'],
+    ['fr','Ce joueur n’est pas mal, mais peut-être pas encore prêt.'],
+    ['es','El jugador no está mal, pero quizá no esté listo todavía.'],
+    ['ar','هذا اللاعب ليس سيئا، لكن ربما يحتاج وقتا.'],
+    ['ar-tn','اللاعب هذا موش خايب، أما يمكن موش جاهز توة.']
+  ];
+  for(const [language,message] of cases){
+    const signals=analyzeMessinhoLanguage(message).signals;
+    assert.equal(signals.negation,true,language);
+    assert.ok(signals.negation_scope_cues.includes('not_bad'),language);
+    assert.ok(signals.qualified_evaluation_cues.includes('not_bad'),language);
+    assert.equal(signals.uncertainty,true,language);
+    assert.ok(signals.uncertainty_cues.includes('uncertainty'),language);
+    assert.equal(signals.contrast,true,language);
+    assert.ok(signals.contrast_cues.includes('contrast'),language);
+  }
+});
+
+test('detects not-necessarily qualifications across all six language profiles',()=>{
+  const cases=[
+    ['de','Der Spieler ist nicht unbedingt bereit.'],
+    ['en','The player is not necessarily ready.'],
+    ['fr','Le joueur n’est pas forcément prêt.'],
+    ['es','No necesariamente está listo.'],
+    ['ar','هذا اللاعب ليس بالضرورة جاهزا.'],
+    ['ar-tn','اللاعب هذا موش بالضرورة جاهز.']
+  ];
+  for(const [language,message] of cases){
+    const signals=analyzeMessinhoLanguage(message).signals;
+    assert.ok(signals.negation_scope_cues.includes('not_necessarily'),language);
+    assert.ok(signals.qualified_evaluation_cues.includes('not_necessarily'),language);
+  }
+});
+
+test('recognizes Tunisian Arabizi qualification, uncertainty and contrast',()=>{
+  const signals=analyzeMessinhoLanguage('Mouch khayeb, ama yemken mazel ma jé.').signals;
+  assert.equal(signals.negation,true);
+  assert.ok(signals.negation_scope_cues.includes('not_bad'));
+  assert.equal(signals.uncertainty,true);
+  assert.ok(signals.uncertainty_cues.includes('uncertainty'));
+  assert.equal(signals.contrast,true);
+  assert.ok(signals.contrast_cues.includes('contrast'));
+});
+
+test('does not invent a qualified evaluation for plain direct negation',()=>{
+  const signals=analyzeMessinhoLanguage('The player is not ready.').signals;
+  assert.equal(signals.negation,true);
+  assert.deepEqual(signals.negation_scope_cues,[]);
+  assert.deepEqual(signals.qualified_evaluation_cues,[]);
 });
