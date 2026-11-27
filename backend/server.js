@@ -2054,7 +2054,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const actor={user:authData.user,profile};
     const agentMemory=await loadMessinhoAgentMemory(ownerId);
     const normalized=interpretedMessage.toLocaleLowerCase('de-DE').normalize('NFKC');
-    if(profile.role==='admin'&&/\\b(woran arbeitest du|was arbeitest du gerade|was machst du gerade|aktueller arbeitsstand|was ist dein status|arbeitest du gerade)\\b/i.test(normalized)){
+    if(profile.role==='admin'&&/\b(woran arbeitest du|was arbeitest du gerade|was machst du gerade|aktueller arbeitsstand|was ist dein status|arbeitest du gerade)\b/i.test(normalized)){
       const [{data:control},{data:task},{data:review}]=await Promise.all([
         db.from('messinho_agent_control').select('mode,stop_requested,current_task,status_message,updated_at').eq('id','global').maybeSingle(),
         db.from('messinho_agent_tasks').select('goal,status,updated_at,pending_capabilities').eq('owner_id',ownerId).eq('status','running').order('updated_at',{ascending:false}).limit(1).maybeSingle(),
