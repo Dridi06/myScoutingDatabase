@@ -4557,3 +4557,47 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 4. Prüfen, ob der Engineering-Provider auf STAGING verfügbar ist. Bei fehlendem Provider muss der Status den Grund sichtbar nennen; kein stilles Nichtstun.
 5. Die dynamische Projektprüfung ist zunächst statische Bestands-/Konsistenzanalyse. Echte Compiler-, Test-, Datenbank- und Runtime-Prüfungen bleiben in der isolierten Sandbox bzw. in kontrollierten Integrationstests; sie werden nicht im laufenden Webserver ausgeführt.
 6. Erfolgreiche Kandidaten bleiben bis zur Admin-Freigabe nicht in die laufende STAGING-Anwendung integriert. Production bleibt unangetastet.
+
+## 24. Linguistic Intelligence — Segmentverständnis, Arabizi-Schutz und mehrsprachiger Wissensabruf — 2026-11-27
+
+### Implementiert auf dem Feature-Branch
+- `backend/messinho-linguistic-intelligence.js` auf Version **1.2.0** angehoben.
+- Jede Satz-/Abschnittsgrenze erhält nun eine eigene Sprachdiagnose. Die globale Primärsprache bleibt als vorsichtiger Hinweis bestehen; gemischte Nachrichten werden nicht auf eine Sprache reduziert.
+- Arabizi-Normalisierung ersetzt Ziffern nur innerhalb lateinischer Wörter. Freistehende Zahlen, Jahreszahlen, Trikotnummern, Spielstände und Statistiken bleiben unverändert.
+- Zielsprachenerkennung erweitert: zusätzliche französische, spanische, arabische und tunesische Formulierungen für die sechs festgelegten Profile.
+- Übersetzungsaktionen geben den Originalauftrag mit und kennzeichnen fehlende Zielsprache ausdrücklich als Rückfragebedarf. Es wird keine Zielsprache geraten.
+- Pragmatiksignale verwenden Unicode-fähige Worttoken statt ASCII-`\b`-Grenzen. Dadurch werden arabische und tunesische Verneinung, Unsicherheit, Kontrast, Höflichkeit und Frageformen besser erkannt.
+- Der bestehende Chat-Prompt erhält zusätzliche Regeln zur segmentweisen Auswertung, zur unveränderten Reihenfolge des Originaltextes und zum Schutz von Zahlen.
+- `backend/messinho-language-knowledge.js` auf Version **1.1.0** erweitert: Der Wissensabruf sammelt jetzt die erkannten Sprachprofile aller Nachrichtensegmente und lädt passende aktive Wissenseinträge für jede erkannte Sprache sowie gemeinsame Einträge. Die bisherige Beschränkung auf nur eine globale Primärsprache entfällt.
+- Die Wissensbasis bleibt read-only für den Chat. Es gibt weiterhin keine Scout-Schreibrechte und keine automatische Aktivierung neuer Wissensstände.
+
+### Regressionstests und CI-Nachweis
+- Neue Tests für segmentweise Mehrsprachigkeit, Arabizi-Zahlenschutz, fehlende Zielsprache, zusätzliche Zielsprachvarianten, arabische Pragmatiksignale und mehrsprachigen Wissensabruf.
+- Ein erster CI-Lauf zeigte eine fehlerhafte Escape-Sequenz in einer französischen Höflichkeitsphrase; der Syntaxfehler wurde korrigiert.
+- Ein weiterer Test zeigte, dass die kurze französische Beispielphrase nicht genügend eindeutige Evidenz für eine eigene Segmentklassifikation enthielt. Der Test wurde auf einen aussagekräftigeren Satz umgestellt; die Erkennung bleibt konservativ.
+- Finaler Feature-Branch-Commit: `2ff10bcae28589c84d72778b6ec75705cc7feedd`.
+- GitHub Actions: **455 Tests bestanden, 0 fehlgeschlagen**.
+- Backend-Syntaxprüfung erfolgreich.
+- Vollständiger STAGING-Branch-CI-Build erfolgreich; Vite **1.640 Module** transformiert, Produktionsbuild erfolgreich.
+- Staging-Health-Smoke-Workflow erfolgreich. Dieser Health-Check bestätigt nicht, dass die neuen Sprachänderungen bereits auf Render live sind.
+
+### Datenbank und Deployment
+- Supabase-STAGING-Projekt `nwqwnrhupbyhshsprxjt` read-only geprüft: 36 Versionszeilen, 30 unterschiedliche Sprachwissensschlüssel, RLS aktiviert. Die Tabelle hat keine direkten Policies; der vorgesehene Runtime-Zugriff erfolgt über den serverseitigen Service-Role-Lesezugriff.
+- Vorhandene Migrationen für die Sprachwissensbasis und Lexikonerweiterung sind im STAGING-Migrationsverlauf vorhanden.
+- In diesem Umsetzungsschritt wurde **keine Datenbankmigration** ausgeführt und kein Wissenseintrag verändert.
+- Render-STAGING-Service `srv-dc3chlqjnfac73acd6ig` verfolgt weiterhin `feature/messinho-unified-ai-integration`; Auto-Deploy ist deaktiviert.
+- Letzter bestätigter Render-LIVE-Commit bleibt `ea7109db18fa155de0e014ebbabbed638b04066a`. Die neuen Sprachänderungen sind daher **noch nicht auf STAGING deployed**.
+- Keine Änderung an `main`, Produktion oder PFMS/PFSS.
+
+### Noch offen — ausdrücklich keine Vollabnahme
+1. Die vorhandene Wissensbasis umfasst weiterhin nur 30 unterschiedliche Eintragsschlüssel / 36 Versionszeilen. Systematische Morphologie, breite Grammatikabdeckung, Bedeutungsfelder, idiomatische Varianten und Fachwortschatz sind noch nicht vollständig aufgebaut.
+2. Arabizi-Schreibvarianten und tunesische regionale Varianten benötigen einen größeren, kuratierten Testkorpus.
+3. Die Sprachdetektion ist weiterhin heuristisch; sie ist kein vollständiges Sprachmodell und kein Nachweis muttersprachlicher Kompetenz.
+4. Übersetzungs- und Korrekturqualität muss pro Sprache mit unabhängigen Referenzfällen und muttersprachlicher Prüfung bewertet werden.
+5. Authentifizierte Admin-/Scout-E2E-Tests für die tatsächliche Chatantwort in allen sechs Profilen fehlen noch.
+6. Erst nach weiterer Wissensbasis-Erweiterung, vollständiger CI und expliziter Deployment-Freigabe darf der geprüfte Stand auf das dedizierte STAGING ausgerollt werden. Production bleibt gesperrt.
+
+### Nächster Entwicklungsschritt
+- Sprachwissensmodell fachlich erweitern: pro Profil strukturierte Morphologie, Satzbau, Flexion, Semantik, Pragmatik, Kollokationen, idiomatische Wendungen, Register und fußballspezifische Terminologie.
+- Danach Testkorpus und Retrieval so ausbauen, dass jede Sprache und jedes Segment gezielt mit den passenden, versionierten Wissensbausteinen versorgt wird.
+- Lizenz-/Herkunftsmetadaten, Gegenprüfung, Teststatus und Admin-Freigabe bleiben Pflicht; keine ungeprüften Inhalte werden aktiv.
