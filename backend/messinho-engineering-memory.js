@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-const UUID=/^[0-9a-f-]{36}$/i;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA=/^[a-f0-9]{40}$/i;
 const HASH=/^[a-f0-9]{64}$/i;
 const clean=(value,max=1200)=>String(value??'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g,' ').trim().slice(0,max);
