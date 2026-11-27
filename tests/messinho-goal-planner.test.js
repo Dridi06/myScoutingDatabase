@@ -12,12 +12,13 @@ test('semantic planner selects only registered capabilities and resolves depende
    const body=JSON.parse(options.body);
    assert.equal(body.model,'gpt-4.1-mini');
    assert.ok(body.messages[1].content.includes('holistic_player_analysis'));
-   return fakeResponse({capability_ids:['strength_weakness_analysis'],confidence:0.94,needs_clarification:false,clarification_question:'',rationale:'Stärken und Schwächen auswerten.'});
+   return fakeResponse({capability_ids:['player_profile_synthesis'],confidence:0.94,needs_clarification:false,clarification_question:'',rationale:'Stärken und Schwächen auswerten.'});
   }});
  assert.equal(result.status,'planned');
  assert.equal(result.planning_source,'semantic_model');
- assert.ok(result.plan.steps.includes('strength_weakness_analysis'));
+ assert.ok(result.plan.steps.includes('player_profile_synthesis'));
  assert.ok(result.plan.steps.includes('holistic_player_analysis'));
+ assert.ok(result.plan.steps.includes('source_cross_check'));
 });
 
 test('semantic planner rejects invented capability IDs and safely falls back',async()=>{
