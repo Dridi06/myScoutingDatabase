@@ -5849,4 +5849,6 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Added regression tests for new-topic questions, referential follow-ups, short replies, Spanish transitions, and Arabizi cues.
 - The signal remains contextual evidence only. It does not resolve a player identity, assert a fact, persist memory, or authorize an action.
 - No database changes, migrations, permission changes, external actions, Render deployment, or production changes.
-- Code commit under validation: `1ddfde7c59b2bd916c6fe28cf36be95034f74071`. Final exact-commit CI result is pending; do not merge or deploy until all three workflows pass.
+- Final tested code commit: `1ddfde7c59b2bd916c6fe28cf36be95034f74071`; checkpoint commit: `b32492fb2c2044c807e664877479652f783d0ed2` (documentation-only after the tested code).
+- GitHub Actions for the checkpoint commit: **553/553 Node tests passed, 0 failed**; backend syntax workflow passed; full STAGING branch CI passed, including the Vite production build (1,640 modules transformed).
+- PR #58 remains Draft and unmerged. No Render deployment or database migration was performed.
