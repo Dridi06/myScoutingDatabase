@@ -64,6 +64,23 @@ test('router prompt prioritizes meaning, context and natural language over fixed
   assert.match(messages[1].content,/myScoutingDatabase/);
 });
 
+test('approved grammar and vocabulary knowledge reaches the same cognitive turn without mixing language segments',()=>{
+  const messages=buildMessinhoCognitiveRouterMessages({
+    message:'Wie sagt man das auf Deutsch und tunesischer Derja?',
+    linguisticContext:{segments:[{language_analysis:{primary_language:'de'}},{language_analysis:{primary_language:'ar-tn'}}]},
+    linguisticKnowledgeContext:[
+      {language:'de',type:'grammar',topic:'word_order',title:'Deutsche Satzstellung',explanation:'Verbzweitstellung im Hauptsatz.'},
+      {language:'ar-tn',type:'lexicon',topic:'greetings',title:'Derja-Begrüßungen',terms:[{term:'Aslema',meaning_de:'Hallo'}]}
+    ]
+  });
+  const payload=JSON.parse(messages[1].content);
+  assert.equal(payload.approved_language_knowledge.length,2);
+  assert.equal(payload.approved_language_knowledge[0].language,'de');
+  assert.equal(payload.approved_language_knowledge[1].language,'ar-tn');
+  assert.match(messages[0].content,/Use approved_language_knowledge as supporting grammar/i);
+  assert.match(messages[0].content,/never transfer words or grammar rules from one language into another/i);
+});
+
 test('decision validation rejects unknown intents, low confidence and sensitive/unsupported categories',()=>{
   assert.equal(validateMessinhoCognitiveDecision({intent:'player_guess',confidence:1}),null);
   assert.equal(validateMessinhoCognitiveDecision({intent:'clarify',confidence:2}),null);
@@ -155,4 +172,7 @@ test('server applies semantic cognitive routing before fixed scouting and extern
   assert.match(source,/action_blocked:true/);
   assert.doesNotMatch(source,/isMessinhoGreeting|conversation_greeting/,'greetings must use the same conversational model path');
   assert.match(source,/MESSINHO_MODEL_BASE_URL/,'model provider endpoint must be configurable');
+  const languageLookup=source.indexOf('const linguisticKnowledgeResult=await findMessinhoLanguageKnowledge(db,message,history)');
+  assert.ok(languageLookup>0&&languageLookup<route,'approved language knowledge must be loaded before semantic routing');
+  assert.match(source,/linguisticKnowledgeContext,/,'approved language knowledge must be passed into the cognitive turn');
 });
