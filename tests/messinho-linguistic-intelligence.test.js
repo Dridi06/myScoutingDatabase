@@ -121,3 +121,33 @@ test('normal conversation defaults to answer mode',()=>{
   assert.equal(result.action.explicit,false);
   assert.equal(result.action.preserve_original,true);
 });
+
+
+test('analyzes each segment independently in a multilingual message',()=>{
+  const result=buildMessinhoLinguisticContext('Hello, how are you? Bonjour, comment ça va? السلام عليكم، كيف حالك؟',[]);
+  assert.equal(result.segments.length,3);
+  assert.equal(result.segments[0].language_analysis.primary_language,'en');
+  assert.equal(result.segments[1].language_analysis.primary_language,'fr');
+  assert.equal(result.segments[2].language_analysis.primary_language,'ar');
+  assert.deepEqual(result.segments.map(item=>item.text),[
+    'Hello, how are you?','Bonjour, comment ça va?','السلام عليكم، كيف حالك؟'
+  ]);
+});
+
+test('preserves standalone numbers while normalizing Arabizi letters inside words',()=>{
+  assert.equal(normalizeMessinhoArabizi('3lech 5ater 7atta 9addech — 2026, 7 Tore, 2:1'),'عlech خater حatta قaddech — 2026, 7 Tore, 2:1');
+});
+
+test('asks for target clarification instead of guessing on incomplete translation requests',()=>{
+  const result=buildMessinhoLinguisticContext('Tarjemli hedha, please.',[]);
+  assert.equal(result.action.mode,'translate');
+  assert.equal(result.action.target_language,null);
+  assert.equal(result.action.requires_clarification,true);
+  assert.equal(result.action.source_text,'Tarjemli hedha, please.');
+});
+
+test('recognizes French, Spanish and Tunisian target-language instructions',()=>{
+  assert.equal(buildMessinhoLinguisticContext('Translate this en français.',[]).action.target_language,'fr');
+  assert.equal(buildMessinhoLinguisticContext('Traduce esto al alemán.',[]).action.target_language,'de');
+  assert.equal(buildMessinhoLinguisticContext('Tarjemli hedha bil tounsi.',[]).action.target_language,'ar-tn');
+});
