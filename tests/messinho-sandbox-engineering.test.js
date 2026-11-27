@@ -1,15 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {dispatchMessinhoSandboxJob} from '../backend/messinho-sandbox-dispatch.js';
+import {dispatchMessinhoSandboxJob,isMessinhoSandboxStagingAllowed} from '../backend/messinho-sandbox-dispatch.js';
 import {normalizeMessinhoSandboxResult,hashMessinhoEngineeringPatch} from '../backend/messinho-engineering-memory.js';
 
+const stagingEnv={MESSINHO_SANDBOX_ENABLED:'true',RENDER:'true',RENDER_SERVICE_ID:'srv-dc3chlqjnfac73acd6ig',MESSINHO_STAGING_RENDER_SERVICE_ID:'srv-dc3chlqjnfac73acd6ig'};
 const job={job_id:'11111111-1111-4111-8111-111111111111',ticket_id:'22222222-2222-4222-8222-222222222222',source_sha:'a'.repeat(40),patch_sha256:'b'.repeat(64),patch:'diff --git a/backend/example.js b/backend/example.js\n'};
 
 test('sandbox dispatch requires explicit enablement and scoped GitHub credential',async()=>{
  const disabled=await dispatchMessinhoSandboxJob({job,env:{}});
  assert.equal(disabled.code,'SANDBOX_DISABLED');
  const missing=await dispatchMessinhoSandboxJob({job,env:{MESSINHO_SANDBOX_ENABLED:'true'}});
- assert.equal(missing.code,'SANDBOX_GITHUB_CREDENTIAL_MISSING');
+ assert.equal(missing.code,'SANDBOX_STAGING_GATE_CLOSED');
+ const allowed=await dispatchMessinhoSandboxJob({job,env:{...stagingEnv}});
+ assert.equal(allowed.code,'SANDBOX_GITHUB_CREDENTIAL_MISSING');
+ assert.equal(isMessinhoSandboxStagingAllowed({...stagingEnv,RENDER_SERVICE_ID:'production'}),false);
 });
 
 test('sandbox dispatch pins the exact feature branch commit and sends a bounded payload',async()=>{
@@ -19,7 +23,7 @@ test('sandbox dispatch pins the exact feature branch commit and sends a bounded 
   if(url.includes('/commits/'))return {ok:true,json:async()=>({sha:job.source_sha})};
   return {status:204,ok:true};
  };
- const result=await dispatchMessinhoSandboxJob({job,env:{MESSINHO_SANDBOX_ENABLED:'true',MESSINHO_SANDBOX_GITHUB_TOKEN:'test-token'},fetchImpl});
+ const result=await dispatchMessinhoSandboxJob({job,env:{...stagingEnv,MESSINHO_SANDBOX_GITHUB_TOKEN:'test-token'},fetchImpl});
  assert.equal(result.ok,true);
  assert.equal(calls.length,2);
  assert.match(calls[1].url,/messinho-isolated-engineering\.yml\/dispatches$/);
@@ -29,7 +33,7 @@ test('sandbox dispatch pins the exact feature branch commit and sends a bounded 
 });
 
 test('sandbox dispatch refuses stale source revisions and invalid patch payloads',async()=>{
- const stale=await dispatchMessinhoSandboxJob({job,env:{MESSINHO_SANDBOX_ENABLED:'true',MESSINHO_SANDBOX_GITHUB_TOKEN:'x'},fetchImpl:async()=>({ok:true,json:async()=>({sha:'c'.repeat(40)})})});
+ const stale=await dispatchMessinhoSandboxJob({job,env:{...stagingEnv,MESSINHO_SANDBOX_GITHUB_TOKEN:'x'},fetchImpl:async()=>({ok:true,json:async()=>({sha:'c'.repeat(40)})})});
  assert.equal(stale.code,'SANDBOX_SOURCE_REVISION_STALE');
  const invalid=await dispatchMessinhoSandboxJob({job:{...job,patch:'x'},env:{MESSINHO_SANDBOX_ENABLED:'true',MESSINHO_SANDBOX_GITHUB_TOKEN:'x'}});
  assert.equal(invalid.code,'SANDBOX_JOB_INVALID');
