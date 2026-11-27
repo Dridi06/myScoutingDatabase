@@ -4844,3 +4844,13 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 4. Perform authenticated UI/API checks for Arabic MSA, vocalized Derja, Arabizi, mixed-language input and source-text preservation.
 5. Continue with phrase-level semantic interpretation and context-sensitive language switching only after the 1.3.4 regression suite is green.
 
+
+
+### First STAGING build feedback and correction — 2026-11-27
+- The first STAGING deployment attempt used commit 17f9f0b9ca9a4d15d837188d4e54a844e9c3a22c and failed during the configured npm run build because the new fully vocalized MSA regression returned an ambiguous language result.
+- Exact test outcome: 480 tests total, 479 passed, 1 failed. The failing assertion expected ar and received null in tests/messinho-linguistic-intelligence.test.js.
+- Root cause: Arabic combining marks were removed after Unicode tokenization, so vowel marks could split a single visible Arabic word into multiple tokens.
+- Correction commit: 6dfed8b9ae17822dd4cd5814e8219ab17f2b3e96. Arabic normalization now runs before Unicode tokenization. This changes only analysis tokens; source text remains unchanged.
+- The correction has been committed to the STAGING feature branch. A new STAGING build is required before the fix can be considered verified or live.
+- No database, Supabase, user, player, scout, learning-data or production changes occurred.
+
