@@ -73,7 +73,7 @@ test('classifier forwards pragmatic context into the real provider request',asyn
 test('authenticated chat constructs and forwards pragmatic context before cognitive routing',async()=>{
   const {readFile}=await import('node:fs/promises');
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
-  assert.match(source,/import \\{ buildMessinhoPragmaticContext \} from '\.\/messinho-pragmatic-context\.js'/);
+  assert.ok(source.includes("import { buildMessinhoPragmaticContext } from './messinho-pragmatic-context.js';"));
   assert.ok(source.includes('buildMessinhoPragmaticContext({message:interpretedMessage,linguisticContext})'));
-  assert.match(source,/pragmaticContext,\\s*userRole:profile\.role/);
+  assert.ok(source.includes('pragmaticContext,\n      userRole:profile.role'));
 });
