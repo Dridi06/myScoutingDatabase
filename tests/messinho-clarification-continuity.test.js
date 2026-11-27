@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {buildMessinhoClarificationContinuity} from '../backend/messinho-clarification-continuity.js';
+import {buildMessinhoDialogueState} from '../backend/messinho-dialogue-engine.js';
+import {buildMessinhoCognitiveRouterMessages} from '../backend/messinho-conversational-intelligence.js';
+import {parseMessinhoScoutingRequest} from '../backend/messinho-validation.js';
 
 const state=(status='likely_answer',extra={})=>({continuity:{
   clarification_reply:{status,question_kind:'location',matched_option:'Deutschland',evidence:[]},
@@ -101,4 +104,46 @@ test('segments comma and slash option lists and accepts only a grounded offered 
  const historyQuery=source.slice(historyStart,historyStart+500);
  assert.match(historyQuery,/\.eq\('owner_id',ownerId\)/);
  assert.match(historyQuery,/\.eq\('conversation_id',conversationId\)/);
+});
+
+test('end-to-end: dialogue reply reaches cognitive router and preserves scouting filters in parser',()=>{
+ const history=[
+  {role:'user',text:'Suche 3 U21 Flügelspieler in Deutschland.'},
+  {role:'assistant',text:'Welche Liga bevorzugst du: Bundesliga oder Regionalliga?'}
+ ];
+ const dialogueState=buildMessinhoDialogueState({message:'Regionalliga',history,userRole:'scout',linguisticContext:{response_language:'de'}});
+ assert.equal(dialogueState.continuity.clarification_reply.status,'likely_answer');
+ const continuity=buildMessinhoClarificationContinuity({message:'Regionalliga',history,dialogueState});
+ assert.equal(continuity.status,'likely_answer');
+ dialogueState.continuity.clarification_continuity=continuity;
+ const routerMessages=buildMessinhoCognitiveRouterMessages({
+  message:'Regionalliga',history,memory:{},userRole:'scout',linguisticContext:{dialogue_state:dialogueState}
+ });
+ const routerPayload=JSON.parse(routerMessages[1].content);
+ assert.equal(routerPayload.linguistic_context.dialogue_state.continuity.clarification_continuity.task_goal,history[0].text);
+ const parsed=parseMessinhoScoutingRequest(continuity.effective_message,continuity.parser_history);
+ assert.equal(parsed.shouldHandle,true);
+ assert.deepEqual(parsed.missing,[]);
+ assert.equal(parsed.request.quantity,3);
+ assert.equal(parsed.request.ageGroup,'U21');
+ assert.equal(parsed.request.region,'deutschland');
+ assert.equal(parsed.request.targetLevel,'Regionalliga');
+ assert.match(parsed.request.position,/Flügelspieler/i);
+});
+
+test('end-to-end: a new topic reaches the router without the previous scouting filters',()=>{
+ const history=[
+  {role:'user',text:'Suche 3 U21 Flügelspieler in Deutschland.'},
+  {role:'assistant',text:'Welche Liga bevorzugst du: Bundesliga oder Regionalliga?'}
+ ];
+ const message='Wie funktioniert das Steuersystem?';
+ const dialogueState=buildMessinhoDialogueState({message,history,userRole:'scout'});
+ const continuity=buildMessinhoClarificationContinuity({message,history,dialogueState});
+ assert.equal(continuity.status,'new_topic');
+ assert.equal(continuity.effective_message,message);
+ assert.deepEqual(continuity.parser_history,[]);
+ const parsed=parseMessinhoScoutingRequest(continuity.effective_message,continuity.parser_history);
+ assert.equal(parsed.shouldHandle,false);
+ assert.equal(parsed.request.region,'');
+ assert.equal(parsed.request.targetLevel,'');
 });
