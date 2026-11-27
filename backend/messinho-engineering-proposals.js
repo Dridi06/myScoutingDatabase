@@ -12,7 +12,7 @@ const PROTECTED_PATHS=new Set([
  'backend/messinho-access.js','backend/messinho-rights-registry.js',
  'backend/messinho-knowledge-graph.js','backend/messinho-domain-knowledge.js'
 ]);
-const SAFE_ROOTS=['backend/','tests/','docs/'];
+const SAFE_ROOTS=['backend/','tests/','docs/','src/asi/'];
 const FORBIDDEN=/^(?:\.env(?:\..*)?|secrets?\/.*|.*\.(?:pem|key|p12|pfx)|package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/i;
 function safePath(path){
  if(typeof path!=='string'||!path||path.startsWith('/')||path.includes('\\')||path.split('/').some(part=>!part||part==='.'||part==='..'))return false;
