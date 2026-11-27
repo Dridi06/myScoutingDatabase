@@ -5210,3 +5210,16 @@ Make subject-language routing work when the scout asks in German (the primary pr
 - Next action: run the full STAGING build, confirm the new integration test, then deploy the exact tested commit.
 - No database migration or persistent knowledge write is required. Production remains untouched.
 
+
+
+### First response-language prompt build feedback and test correction — 2026-11-27
+- First build attempt for prompt-binding commit f9817630c34035c64549660fb9837b8edd400121 failed in the test suite before deployment. Render deployment dep-dc4nv3uc6qcc73eb0sjg is build_failed; the previous live STAGING deployment remained active.
+- The new test “MESSINHO prompt prioritizes the latest detected segment for reply language” passed.
+- Root cause: an existing assertion in tests/messinho-prompt-context.test.js still expected the old inline metadata shape linguistic_intelligence:{version:linguisticContext.version}. The actual authenticated route correctly uses buildMessinhoLinguisticResponseMetadata(linguisticContext).
+- Corrective test commit: acada315561b7bf2080871e779c644f9067ba537.
+  - Updated the route assertion to match the current metadata builder.
+  - Added assertions that the response metadata builder exposes response_language and latest_segment_language.
+- This was a stale test contract, not a runtime language-processing failure. The failed build did not replace the existing live STAGING deployment.
+- No database migration/write, player/scout/account data change, or production change occurred.
+- Next: rerun the complete STAGING build on the corrected branch and verify the exact live commit.
+
