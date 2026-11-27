@@ -9,7 +9,7 @@ import { getMessinhoCapabilityCatalog } from './messinho-capabilities.js';
 import { scoreMessinhoPlayer, getMessinhoPositionGroup } from './messinho-engine.js';
 import { assessMessinhoSource, messinhoValueSupported } from './messinho-intelligence.js';
 import { buildMessinhoLearningProposal } from './messinho-learning.js';
-import { analyzeMessinhoMatch } from './messinho-development.js';
+import { analyzeMessinhoMatch, forecastMessinhoPlayerDevelopment, forecastMessinhoTransferProbability, forecastMessinhoPlayerOutcome, forecastMessinhoMarketValue } from './messinho-development.js';
 
 export const MESSINHO_CAPABILITY_RUNTIME_VERSION = '1.0.0';
 const clamp=(n,min=0,max=100)=>Math.max(min,Math.min(max,n));
@@ -132,7 +132,15 @@ function analysisHandler(id,input){
    const base=scoreMessinhoPlayer(p).score;
    const growth=t?.change??null;
    const potential=base===null?null:Math.round(clamp(base+(growth===null?0:Math.max(-5,Math.min(10,growth)))*.5));
-   return result(id,'completed',{current_score:base,observed_change:growth,age:derivedAge,potential_indicator:potential,confidence:t?'longitudinal':'cross_sectional_only',limitations:t?[]:['Keine belastbare mehrzeitige Entwicklungshistorie; Potenzialindikator ist deshalb eingeschränkt.']});
+   const developmentForecast=forecastMessinhoPlayerDevelopment(timeSeries,{horizonMonths:12});
+   const outcomeForecast=forecastMessinhoPlayerOutcome(input.success_history||input.verified_success_outcomes||[],{
+     position_group:normalizedPosition(p),age:derivedAge,current_score:base
+   });
+   return result(id,'completed',{current_score:base,observed_change:growth,age:derivedAge,potential_indicator:potential,
+     development_forecast:developmentForecast,outcome_forecast:outcomeForecast,
+     confidence:developmentForecast.status==='completed'?developmentForecast.confidence:t?'longitudinal':'cross_sectional_only',
+     limitations:[...(developmentForecast.limitations||[]),...(outcomeForecast.limitations||[]),
+       ...(developmentForecast.status!=='completed'?['Keine belastbare 12-Monats-Projektion: zu wenige verifizierte Verlaufsmessungen.']:[])]});
  }
  if(id==='performance_development'||id==='form_curve_analysis'||id==='consistency_analysis'||id==='development_score'||id==='consistency_score'||id==='seasonal_metrics'){
    const key=input.metric_key||'score',t=trend(timeSeries,key);
@@ -230,8 +238,15 @@ function evaluationHandler(id,input){
  }
  if(id==='market_value_assessment'){
    const comps=asArray(input.market_comparables).map(x=>finite(x.value??x.market_value)).filter(v=>v!==null&&v>0);
-   if(comps.length<3)return missingResult(id,['market_comparables'],'Eine Marktwertspanne wird erst ab drei vergleichbaren, belegten Markttransaktionen berechnet.');
-   return result(id,'completed',{currency:input.currency||'EUR',low:round(comps.sort((a,b)=>a-b)[Math.floor((comps.length-1)*.25)]),median:round(comps.sort((a,b)=>a-b)[Math.floor(comps.length/2)]),high:round(comps.sort((a,b)=>a-b)[Math.ceil((comps.length-1)*.75)]),comparables:comps.length,estimate_only:true});
+   const historyForecast=forecastMessinhoMarketValue(input.market_value_history||[]);
+   if(comps.length<3&&historyForecast.status!=='completed')return missingResult(id,['market_comparables','verified_market_value_history'],'Eine Wertspanne benötigt mindestens drei belegte Vergleichswerte oder eine ausreichende verifizierte Marktwerthistorie.');
+   const sorted=comps.slice().sort((a,b)=>a-b);
+   return result(id,'completed',{currency:input.currency||'EUR',
+     low:sorted.length>=3?round(sorted[Math.floor((sorted.length-1)*.25)]):null,
+     median:sorted.length>=3?round(sorted[Math.floor(sorted.length/2)]):null,
+     high:sorted.length>=3?round(sorted[Math.ceil((sorted.length-1)*.75)]):null,
+     comparables:comps.length,estimate_only:true,historical_value_forecast:historyForecast,
+     limitations:['Eine historische Trendfortschreibung ist kein offiziell veröffentlichter Marktwert.','Ohne drei belegte Vergleichswerte wird keine aktuelle Vergleichswertspanne ausgegeben.']});
  }
  if(id==='value_for_money'){
    const cost=finite(input.transfer_cost),score=scoreMessinhoPlayer(p).score;
@@ -249,7 +264,13 @@ function evaluationHandler(id,input){
  if(id==='transfer_priority'){
    const candidates=getPlayers(input);
    if(!candidates.length)return missingResult(id,['candidate_scores','club_needs']);
-   return result(id,'completed',{prioritized:rankPlayers(candidates).map((x,i)=>({...x,priority:i+1}))});
+   const ranked=rankPlayers(candidates).map((x,i)=>({...x,priority:i+1}));
+   const transferForecast=forecastMessinhoTransferProbability(input.transfer_history||[],{
+     position_group:input.target_position_group||normalizedPosition(p),
+     target_level:input.target_level||input.target_league||''
+   });
+   return result(id,'completed',{prioritized:ranked,transfer_forecast:transferForecast,
+     limitations:transferForecast.status==='completed'?transferForecast.limitations:['Eine historische Wechselrate wird nur mit mindestens 30 verifizierten, positions- und zielniveaugleichen Fällen ausgegeben.']});
  }
  if(id==='scout_rating_agreement'){
    const ratings=asArray(input.scout_assessments).map(x=>finite(x.score??x.rating)).filter(v=>v!==null);
