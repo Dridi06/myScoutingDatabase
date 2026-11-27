@@ -6,11 +6,12 @@ import {
   analyzeMessinhoLanguage,
   buildMessinhoLinguisticContext,
   getMessinhoLanguageProfile,
-  normalizeMessinhoArabizi
+  normalizeMessinhoArabizi,
+  normalizeMessinhoArabicForAnalysis
 } from '../backend/messinho-linguistic-intelligence.js';
 
 test('registers six separate language profiles including Tunisian Derja',()=>{
-  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.3');
+  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.4');
   assert.deepEqual(MESSINHO_LANGUAGE_PROFILES.map(item=>item.id),['de','en','fr','ar','ar-tn','es']);
   assert.equal(getMessinhoLanguageProfile('ar-tn').name,'تونسي / Derja');
   assert.equal(getMessinhoLanguageProfile('ar').name,'العربية الفصحى');
@@ -276,4 +277,33 @@ test('recognizes colloquial translation targets across all six language profiles
     assert.equal(action.target_language,target,message);
     assert.equal(action.requires_clarification,false,message);
   }
+});
+
+
+test('normalizes Arabic diacritics and orthographic variants for analysis only',()=>{
+  assert.equal(normalizeMessinhoArabicForAnalysis('إِنَّ اللّٰهَ سَمِيعٌ عَلِيمٌ'),'ان الله سميع عليم');
+  assert.equal(normalizeMessinhoArabicForAnalysis('آدَاءُ اللَّاعِبِ'),'اداء اللاعب');
+  assert.equal(normalizeMessinhoArabicForAnalysis('على الهدى'),'علي الهدي');
+});
+
+test('detects fully vocalized MSA without changing the original message',()=>{
+  const message='السَّلَامُ عَلَيْكُمْ، كَيْفَ حَالُكُمْ؟';
+  const result=buildMessinhoLinguisticContext(message,[]);
+  assert.equal(result.primary_language,'ar');
+  assert.equal(result.action.source_text,message);
+  assert.equal(result.segments[0].text,message);
+});
+
+test('detects vocalized Tunisian Derja as dialect rather than MSA',()=>{
+  const message='شْنُوَّة رَأْيَكْ فِي اللَّاعِبْ هَاذَا؟ بَرْشَا بَاهِي';
+  const result=analyzeMessinhoLanguage(message);
+  assert.equal(result.primary_language,'ar-tn');
+  assert.ok(result.scripts.includes('Arabic'));
+});
+
+test('Arabic normalization is not applied to the displayed or stored source text',()=>{
+  const message='إِنَّ اللَّاعِبَ مُوشْ جَاهِزٌ';
+  const result=buildMessinhoLinguisticContext(message,[]);
+  assert.equal(result.action.source_text,message);
+  assert.equal(result.policy.source_text_preserved,true);
 });
