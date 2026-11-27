@@ -2257,11 +2257,11 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     }
     const {data:storedHistory,error:historyError}=await db.from('messinho_conversation_messages')
       .select('role,content,metadata').eq('owner_id',ownerId).eq('conversation_id',conversationId)
-      .order('created_at',{ascending:false}).limit(20);
+      .order('created_at',{ascending:false}).limit(60);
     if(historyError)return res.status(503).json({error:'Der Gesprächsverlauf konnte nicht geladen werden.'});
     const history=sanitizeMessinhoHistory((storedHistory||[]).reverse().map(row=>({
       role:row.role,text:row.content,researchContext:row.metadata?.researchContext||null
-    })));
+    })),{limit:60});
     const {error:userMessageError}=await db.from('messinho_conversation_messages').insert({
       conversation_id:conversationId,owner_id:ownerId,role:'user',content:message,metadata:{}
     });
