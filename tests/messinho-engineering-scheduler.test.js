@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildMessinhoSelfRepairGoal,getMessinhoEngineeringReviewSchedule,isMessinhoEngineeringAutoReviewEnabled,runMessinhoScheduledEngineeringReview} from '../backend/messinho-engineering-scheduler.js';
+import {buildMessinhoSelfRepairGoal,getMessinhoEngineeringReviewSchedule,isMessinhoEngineeringAutoReviewEnabled,isMessinhoEngineeringStagingService,runMessinhoScheduledEngineeringReview} from '../backend/messinho-engineering-scheduler.js';
 
 const staging={MESSINHO_ENGINEERING_AUTOREVIEW_ENABLED:'true',RENDER:'true',RENDER_SERVICE_ID:'stage',MESSINHO_STAGING_RENDER_SERVICE_ID:'stage',OPENAI_API_KEY:'configured',SUPABASE_URL:'https://example.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'configured'};
 test('daily review is strictly gated to the explicitly enabled staging service',()=>{
@@ -157,4 +157,27 @@ test('self-repair review does not run when admin mode changes or stop is request
  });
  assert.equal(result.status,'stopped');
  assert.equal(persisted,false);
+});
+
+test('explicit admin development runs bypass only the automatic-review toggle and use a unique manual slot on staging',async()=>{
+ const db=mockDb();
+ const now=new Date('2026-11-27T18:00:00Z');
+ const result=await runMessinhoScheduledEngineeringReview({
+  db,mode:'developing',force:true,now,getCurrentTime:()=>now,env:{RENDER:'true',RENDER_SERVICE_ID:'stage',MESSINHO_STAGING_RENDER_SERVICE_ID:'stage'},
+  makeJobId:()=> '123e4567-e89b-12d3-a456-426614174000',
+  generate:async()=>({ok:true,proposal:null,source_sha:'a'.repeat(40)})
+ });
+ assert.equal(result.status,'no_improvement');
+ assert.equal(db.state.claim.review_slot,'manual_123e4567e89b12d3a456');
+ assert.equal(isMessinhoEngineeringStagingService({RENDER:'true',RENDER_SERVICE_ID:'stage',MESSINHO_STAGING_RENDER_SERVICE_ID:'stage'}),true);
+});
+
+test('explicit admin development refuses to run outside the staging service',async()=>{
+ const db=mockDb();
+ const result=await runMessinhoScheduledEngineeringReview({
+  db,mode:'developing',force:true,now:new Date('2026-11-27T18:00:00Z'),
+  env:{RENDER:'true',RENDER_SERVICE_ID:'production',MESSINHO_STAGING_RENDER_SERVICE_ID:'stage'}
+ });
+ assert.equal(result.code,'STAGING_GATE_CLOSED');
+ assert.equal(db.state.claim,null);
 });
