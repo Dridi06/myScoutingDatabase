@@ -51,6 +51,7 @@ import { buildMessinhoForecastContext } from './messinho-forecast-context.js';
 import { isMessinhoAdminOnlyCommand } from './messinho-command-access.js';
 import { buildMessinhoLinguisticContext, buildMessinhoLinguisticResponseMetadata } from './messinho-linguistic-intelligence.js';
 import { classifyMessinhoTurn, appendMessinhoLongTermMemories } from './messinho-conversational-intelligence.js';
+import { buildMessinhoDialogueState } from './messinho-dialogue-engine.js';
 import { findMessinhoLanguageKnowledge, formatMessinhoLanguageKnowledge } from './messinho-language-knowledge.js';
 
 const app=express();
@@ -2268,6 +2269,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const correction=correctMessinhoInput(message);
     const interpretedMessage=correction.corrected;
     const linguisticContext=buildMessinhoLinguisticContext(message,history);
+    const dialogueState=buildMessinhoDialogueState({message,history,userRole:profile.role,linguisticContext});
     let linguisticKnowledgeStatus='not_loaded';
     const respond=async payload=>{
       const researchContext=payload.researchContext||((payload.sources?.length||payload.profile)?{
@@ -2305,7 +2307,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       message,
       history,
       memory:agentMemory,
-      linguisticContext,
+      linguisticContext:{...linguisticContext,dialogue_state:dialogueState},
       userRole:profile.role,
       apiKey:process.env.OPENAI_API_KEY,
       model:process.env.OPENAI_MODEL||'gpt-4.1-mini'
