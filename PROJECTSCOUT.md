@@ -5601,4 +5601,20 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - CI workflows were extended to run for this work branch and for pull requests targeting the STAGING integration branch.
 - Supabase post-migration advisors: no health findings; the new conversation FK is indexed. The new tables' indexes are currently reported as unused because the tables are still empty. Existing project-wide security warnings remain outside this change; the two new tables each have owner-scoped SELECT policies, RLS enabled, and no direct anon/authenticated grants.
 - Not yet complete: end-to-end authenticated Admin/Scout verification, streaming responses, conversation list/new-thread UX, and full runtime confirmation of the connected provider on Render STAGING.
-- Next: complete authenticated Admin/Scout and provider runtime verification on STAGING. PR #48 is open against `feature/messinho-unified-ai-integration`; do not deploy to LIVE.
+- Next: complete authenticated Admin/Scout and provider runtime verification on STAGING. PR #48 merged into `feature/messinho-unified-ai-integration` as STAGING commit `40c1001e0e66ed7478ecdb3de5cb8cbbaa010d2a`; production/LIVE remain untouched.
+
+## 36. Conversational Intelligence 2.0 — merged to STAGING and health verified — 2026-11-27
+
+- PR #48 merged by squash into `feature/messinho-unified-ai-integration`.
+- STAGING integration commit: `40c1001e0e66ed7478ecdb3de5cb8cbbaa010d2a`.
+- Post-merge GitHub Actions:
+  - MESSINHO Node tests: success.
+  - MESSINHO backend syntax: success.
+  - MESSINHO staging branch CI (regression suite, backend syntax, Vite production build): success.
+  - Staging health smoke test: success.
+- Health endpoint result from `https://myscoutingdatabase-messinho-staging.onrender.com/api/health`: HTTP 200, `ok=true`, database `ok`, authentication `ready`, MESSINHO core `provider_independent`, external research `ready`, optional AI analysis `ready`.
+- Full regression suite on the feature branch: 509 tests passed, 0 failed.
+- The optional AI provider configuration is reported ready by STAGING health; no API key value was exposed or changed.
+- Supabase STAGING tables and owner-scoped policies are present; both conversation migrations are applied.
+- Remaining verification: one authenticated Admin and one authenticated Scout should each conduct a real multi-turn conversation, refresh/re-login, and confirm that their own history restores without cross-account visibility. Confirm actual OpenAI response generation from a normal chat request. Streaming and multiple named conversations remain later enhancements.
+- No production branch, production Supabase project, or LIVE service was modified.
