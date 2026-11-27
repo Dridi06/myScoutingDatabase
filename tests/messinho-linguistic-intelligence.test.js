@@ -252,3 +252,9 @@ test('balanced language regression corpus preserves negation, uncertainty and fo
     assert.match(message,/U19/u);
   }
 });
+
+
+test('recognizes uncertainty expressed as a French phrase or Spanish variant',()=>{
+  assert.equal(analyzeMessinhoLanguage('Ce joueur n’est pas prêt, peut-être demain.').signals.uncertainty,true);
+  assert.equal(analyzeMessinhoLanguage('Quizá el jugador necesita más tiempo.').signals.uncertainty,true);
+});
