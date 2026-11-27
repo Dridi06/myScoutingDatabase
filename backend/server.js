@@ -2380,7 +2380,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         : 'Ich bin derzeit '+modeLabel+'. '+(control?.status_message||'Es ist aktuell kein laufender Auftrag gespeichert.')+(review?.finished_at?' Letzte technische Prüfung: '+new Date(review.finished_at).toLocaleString('de-DE')+' ('+review.status+').':'');
       return respond({reply,intent:'myki_live_work_status',items:[],myki_status:{mode,stop_requested:!!control?.stop_requested,current_task:active?.goal||null,review_status:review?.status||null}});
     }
-    if(isMessinhoEngineeringRequest(interpretedMessage)){
+    if(cognitive.intent==='engineering'||isMessinhoEngineeringRequest(interpretedMessage)){
       if(profile.role!=='admin'||!profile.approved||profile.approval_status!=='approved')
         return respond({reply:'Die technische Selbstprüfung und Entwicklung von myKI-Tickets ist ausschließlich freigeschalteten Administratoren vorbehalten.',intent:'myki_engineering_access_denied',items:[]});
       const generated=await generateMessinhoEngineeringProposal({goal:interpretedMessage});
@@ -2620,7 +2620,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const explanation=structuredKnowledgeContext.map(item=>item.title+': '+item.knowledge+(item.formula?' Formel: '+item.formula:'')+(item.limitations?.length?' Grenzen: '+item.limitations.join('; '):'')).join('\\n\\n');
       return respond({reply:'Ich nutze geprüftes, dauerhaft gespeichertes Fachwissen aus meinem Wissensnetz.\\n\\n'+explanation,intent:'structured_knowledge_graph_hit',items:structuredKnowledgeContext.map((item,index)=>({id:'knowledge-concept-'+index,name:item.title,kind:item.domain+' · '+item.level,sources:item.sources})),sources:structuredKnowledgeContext.flatMap(item=>item.sources||[]),knowledge_memory:{reused:true,kind:'hierarchical_knowledge_graph',domain:first.domain,matched_entries:structuredKnowledgeContext.length,versions:structuredKnowledgeContext.map(item=>item.version)}});
     }
-    if(isMessinhoGeneralResearchQuestion(interpretedMessage)){
+    if(cognitive.intent==='general_research'||isMessinhoGeneralResearchQuestion(interpretedMessage)){
       if(domainKnowledgeContext.length){
         const first=domainKnowledgeContext[0];
         return respond({reply:'Ich greife auf geprüftes, dauerhaft gespeichertes Fachwissen zurück. '+first.knowledge,intent:'domain_knowledge_memory_hit',items:domainKnowledgeContext.map((item,index)=>({id:'domain-knowledge-'+index,name:item.domain+' — Wissensbeleg',kind:'Gespeichertes Fachwissen',sources:item.sources})),sources:domainKnowledgeContext.flatMap(item=>item.sources||[]),knowledge_memory:{reused:true,domain:first.domain,matched_entries:domainKnowledgeContext.length,verified_at:first.verified_at,rights_status:first.rights?.status}});
