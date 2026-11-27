@@ -295,8 +295,14 @@ export async function runMessinhoCapabilityPlanAsync(plan,input={},role='scout',
   let chainedInput={...baseInput};
   const requested=(plan.steps||[]).slice(0,MAX_CAPABILITY_STEPS);
   const deferred=[...(plan.deferred_capabilities||[])];
+  let stopped=false;
   for (let index=0;index<requested.length;index++) {
     const id=requested[index];
+    if(typeof options.shouldStop==='function'&&await options.shouldStop()){
+      deferred.push(...requested.slice(index));
+      stopped=true;
+      break;
+    }
     if(Date.now()-started>=budgetMs){
       deferred.push(...requested.slice(index));
       break;
@@ -331,7 +337,7 @@ export async function runMessinhoCapabilityPlanAsync(plan,input={},role='scout',
   const incomplete=results.filter(item=>isIncompleteStatus(item.status));
   const replanRecommended=incomplete.some(item=>item.status==='insufficient_data'||item.status==='error');
   const pending=[...new Set(deferred)];
-  const status=pending.length?'partial':completed===0?(incomplete.length?'insufficient_data':'completed'):
+  const status=stopped?'stopped':pending.length?'partial':completed===0?(incomplete.length?'insufficient_data':'completed'):
     incomplete.length||plan.blocked_capabilities?.length?'partial':'completed';
   const missingInputs=unique(results.flatMap(item=>item.missing_inputs||[]));
   return {
@@ -339,7 +345,7 @@ export async function runMessinhoCapabilityPlanAsync(plan,input={},role='scout',
     discovered_capabilities:plan.discovered_capabilities||plan.steps||[],results,
     completed_steps:completed,total_steps:results.length,blocked_capabilities:plan.blocked_capabilities||[],
     deferred_capabilities:pending,missing_inputs:missingInputs,
-    replan_recommended:replanRecommended||pending.length>0,provider_independent:true,model_weights_changed:false,
+    replan_recommended:replanRecommended||pending.length>0,stop_requested:stopped,provider_independent:true,model_weights_changed:false,
     execution_policy:{budget_ms:budgetMs,elapsed_ms:Date.now()-started,max_steps:MAX_CAPABILITY_STEPS,
       admin_guard_enforced:true,source_data_mutated:false,model_weights_mutated:false,
       previous_results_used_as_untrusted_context:true}
