@@ -3921,3 +3921,13 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Die STAGING-Variablen sind jetzt gesetzt und der neue Deploy ist live. Der tägliche Scheduler ist damit ausschließlich im Render-STAGING aktiviert; Produktionsservice und Produktionsumgebung wurden nicht geändert.
 - Aktueller Live-Deploy: `dep-dc4cj9mc6qcc73d5jdmg`, Commit `e549edc1c4983720283af5d25bc172fc6fdaf156`. CI: 370/370 Tests, Backend-Syntax und Vite-Build erfolgreich.
 - Der Ledger-Eintrag ist noch 0, weil noch kein 20:00-Uhr-Lauf erfolgt ist. Ein authentifizierter Admin-Ende-zu-Ende-Test bleibt offen; es wurde kein künstliches Ticket erzeugt.
+
+### myKI — direkter MESSINHO-Chat und Aktivitätsstatus — 2026-11-27
+- Die vorhandene myKI-Ticketoberfläche bleibt bestehen; sie wird nicht durch ein zweites Ticketsystem ersetzt.
+- Neue Komponente `src/asi/MyKiChat.jsx` bindet den bestehenden MESSINHO-Agenten direkt im myKI-Adminbereich über denselben authentifizierten `/api/agent/chat`-Endpunkt an. Das Gespräch verwendet dieselbe Agentenlogik und Wissensbasis wie der übrige MESSINHO-Chat; es entsteht kein separater KI-Agent.
+- Der Chat zeigt laufende Anfragen als „arbeitet gerade“ an. Die Statusanzeige unterscheidet außerdem eine laufende autonome Engineering-Selbstprüfung von einem pausierten/wartenden Zustand. Die UI behauptet keine kontinuierliche Modellschulung: Modellgewichte werden nicht automatisch verändert.
+- Neuer geschützter Admin-Endpunkt `GET /api/admin/myki/status` liefert den Scheduler-Schalter, den Tageszeitplan Europe/Berlin und den letzten gespeicherten Engineering-Review-Status. Der Endpunkt ist read-only und startet keine Prüfung.
+- Mobile Darstellung, eigener scrollbarerer Gesprächsbereich, Ladeindikator, Fehleranzeige und Nachrichtenverlauf innerhalb der Sitzung sind umgesetzt.
+- Änderungen ausschließlich auf `feature/messinho-unified-ai-integration`; keine Datenmigration, keine Spieler-/Scout-Datenänderung, kein Eingriff in `main` oder Produktion.
+- Commit mit Backend-Statusroute: `320f4d001be0e98a86a555bd1d8da1b42606a485`. CI wurde nach dem Commit gestartet; Ergebnis und anschließender STAGING-Deploy müssen vor Live-Bestätigung geprüft werden.
+- Offene Verifikation: CI vollständig grün, STAGING auf exakt diesen Branch-HEAD bereitstellen, Statusroute mit Admin-Sitzung prüfen, normalen Chat und Admin-only Schutz Ende-zu-Ende testen.
