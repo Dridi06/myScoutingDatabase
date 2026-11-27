@@ -69,8 +69,9 @@ export default function MyKiChat({supabase}){
  }
 
  const schedulerRunning=status.last_run?.status==='running'||status.run_state==='running';
- const mode=busy?'working':schedulerRunning?'learning':'paused';
- const label=mode==='working'?'MESSINHO arbeitet gerade an deiner Anfrage':mode==='learning'?'MESSINHO führt eine autonome Selbstprüfung durch':'MESSINHO ist pausiert und wartet auf den nächsten Auftrag';
+ const operatingMode=status.control?.mode||status.autonomy_mode||'paused';
+ const mode=busy?'working':schedulerRunning?'learning':operatingMode==='developing'?'learning':operatingMode==='working'?'working':'paused';
+ const label=mode==='working'?'MESSINHO arbeitet gerade':mode==='learning'?'MESSINHO entwickelt sich autonom weiter':'MESSINHO ist pausiert';
  const lastRun=status.last_run;
  return <section className="myki-chat panel" aria-label="Direkter Chat mit MESSINHO">
   <div className="myki-chat-header">
