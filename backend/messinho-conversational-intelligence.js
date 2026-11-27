@@ -33,7 +33,9 @@ export function buildMessinhoCognitiveRouterMessages({message,history=[],memory=
     {role:'user',content:JSON.stringify({
       current_message:String(message||'').slice(0,1600),
       recent_conversation:safeHistory,
-      existing_user_memory:safeMemory
+      existing_user_memory:safeMemory,
+      user_role:userRole,
+      linguistic_context:linguisticContext||null
     })}
   ];
 }
