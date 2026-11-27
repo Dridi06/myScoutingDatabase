@@ -136,3 +136,21 @@ test('balances retrieved knowledge across languages in a code-switched message',
  assert.ok(counts.fr<=3);
  assert.ok(result.items.length<=8);
 });
+
+
+test('retrieves a dedicated approved foundation for each of the six language profiles',async()=>{
+ const fixtures=[
+  {id:'de',message:'Die Morphologie der deutschen Adjektivdeklination und Satzstellung ist wichtig.',key:'de.morphology.inflection',tags:['Morphologie','Adjektivdeklination']},
+  {id:'en',message:'Explain English morphology, verb inflection and word formation.',key:'en.morphology.inflection',tags:['morphology','word formation']},
+  {id:'fr',message:'Explique la conjugaison française, les accords et les pronoms dans cette phrase.',key:'fr.morphology.conjugation',tags:['conjugaison','accord']},
+  {id:'ar',message:'اشرح الجذور والأوزان وتصريف الأفعال في اللغة العربية الفصحى.',key:'ar.morphology.roots_patterns',tags:['الجذور','الأوزان','تصريف الفعل']},
+  {id:'ar-tn',message:'Aslema, nheb nefhem kifech ma nal3abch? Fassarli el Derja.',key:'ar-tn.morphology.negation_clitics',tags:['Derja','ma...ch','Arabizi']},
+  {id:'es',message:'Explica la conjugación verbal y la concordancia gramatical en español, por favor.',key:'es.morphology.conjugation',tags:['conjugación','concordancia']}
+ ];
+ for(const fixture of fixtures){
+  const row={entry_key:fixture.key,version:1,language_code:fixture.id,entry_type:'grammar',topic:'Morphology',title:fixture.key,content:{explanation:'Original-authored foundational rule.'},tags:fixture.tags,knowledge_status:'active'};
+  const result=await findMessinhoLanguageKnowledge(fakeDb([row]),fixture.message);
+  assert.ok(result.language_ids.includes(fixture.id),fixture.id+' should be detected');
+  assert.equal(result.items[0]?.entry_key,fixture.key,fixture.id+' should retrieve its own language foundation');
+ }
+});
