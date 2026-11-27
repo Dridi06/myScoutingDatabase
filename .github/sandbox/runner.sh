@@ -23,7 +23,7 @@ if [[ -n "${MESSINHO_PATCH_PATH:-}" ]]; then
   [[ -f "$MESSINHO_PATCH_PATH" ]] || { echo "MESSINHO_SANDBOX_OUTCOME=inconclusive_patch_missing"; exit 22; }
   git apply --check "$MESSINHO_PATCH_PATH" || { echo "MESSINHO_SANDBOX_OUTCOME=rejected_patch_context"; exit 22; }
   git apply "$MESSINHO_PATCH_PATH"
-  git add -A
+  git add -A -- backend tests docs
   changed_files="$(git diff --cached --name-only)"
   echo "=== CANDIDATE: npm run build ==="
   set +e
@@ -37,6 +37,7 @@ if [[ -n "${MESSINHO_PATCH_PATH:-}" ]]; then
     [[ -f "$file" ]] || continue
     case "$file" in
       *.js|*.mjs|*.cjs) node --check "$file" ;;
+      *.ts|*.tsx) tsc --noEmit --skipLibCheck --target ES2022 --moduleResolution bundler --module ESNext --jsx react-jsx "$file" ;;
       *.py) python3 -m py_compile "$file" ;;
       *.java) mkdir -p /tmp/messinho-java; javac -d /tmp/messinho-java "$file" ;;
       *.cs) project_file="$(find "$(dirname "$file")" -maxdepth 2 -name '*.csproj' -print -quit)"; [[ -n "$project_file" ]] || exit 23; dotnet build "$project_file" --no-restore ;;
@@ -57,6 +58,6 @@ fi
 echo "=== TOOLCHAIN SMOKE CHECKS ==="
 node --version; python3 --version; javac -version; go version; rustc --version
 gcc --version | head -n 1; clang --version | head -n 1; php --version | head -n 1
-dotnet --version; tsc --version; html-validate --version; stylelint --version
+dotnet --version; tsc --version; mvn --version | head -n 1; phpunit --version; html-validate --version; stylelint --version
 shellcheck --version | head -n 1; psql --version
 echo "MESSINHO_SANDBOX_OUTCOME=toolchain_smoke_passed"
