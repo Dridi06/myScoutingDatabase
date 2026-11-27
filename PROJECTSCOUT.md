@@ -5404,3 +5404,38 @@ Continue improving the language system after the verified Linguistic Intelligenc
 - Add independent cross-language regression cases before deployment.
 - Authenticated Admin/Scout chat validation remains open.
 
+
+
+## 32. MESSINHO Linguistic Intelligence 1.3.8 — qualified negation and nuance cues — 2026-11-27
+
+### Objective
+Add deterministic, bounded semantic cues so MESSINHO does not flatten qualified scouting statements such as “not bad”, “not necessarily ready”, “not enough yet”, or their equivalents in the supported languages.
+
+### Implementation on STAGING feature branch
+- backend/messinho-linguistic-intelligence.js:
+  - Version advanced from 1.3.7 to 1.3.8.
+  - Added phrase-level cue extraction for:
+    - not necessarily / nicht unbedingt / pas forcément / no necesariamente / ليس بالضرورة / موش بالضرورة;
+    - not yet / noch nicht / pas encore / todavía no / لم ... بعد / مازالش;
+    - not bad / nicht schlecht / pas mauvais / no es malo / ليس سيئا / موش خايب;
+    - not enough / nicht ausreichend / pas suffisant / no es suficiente / لا يكفي / موش كافي;
+    - not only and its supported equivalents;
+    - uncertainty and contrast cues across the six profiles.
+  - Cues are returned as explicit labels in conversation signals. They do not assign a player rating or override the original phrase.
+  - Arabic diacritics and Latin accent normalization are used only for cue detection; source text is preserved.
+- tests/messinho-linguistic-intelligence.test.js:
+  - Added six-language regression coverage for negation scope, qualified evaluations, uncertainty and contrast.
+  - Added source-text preservation coverage.
+
+### Traceability
+- Main implementation: 5e94c1fd6ea4eb56d09d759cfa6f5f4252ad262a.
+- Regex escaping correction: c792bca737c4d50d3229e0a4721fa3596d8716de.
+- Spanish phrase coverage: 64ef109db261e679c04a4f52a02ce86aa95c4e7f.
+- Regression tests: 0949facdda4bdbddf3daf389d7e9a49b788b9fef.
+
+### Verification status
+- This 1.3.8 code and its tests are committed but not yet run through the complete STAGING build gate.
+- Next: run all Node tests, backend syntax checks and Vite build. Correct actual failures before deployment.
+- No Supabase migration, language-knowledge row write, player/scout/account change or model-weight change is part of this work.
+- Production remains untouched.
+
