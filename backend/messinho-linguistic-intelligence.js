@@ -69,8 +69,14 @@ function inferConversationSignals(text, tokens, languageId) {
 
 const ARABIZI_DIGITS = Object.freeze({ '2':'ء', '3':'ع', '5':'خ', '6':'ط', '7':'ح', '8':'غ', '9':'ق' });
 export function normalizeMessinhoArabizi(input) {
-  return clean(input).replace(/[2356789]/g, digit => ARABIZI_DIGITS[digit] || digit);
+  // Arabizi digits are letters only inside Latin-script words. Preserve standalone
+  // numbers (ages, shirt numbers, dates, scores and statistics) exactly.
+  return clean(input).replace(/[\\p{L}0-9]+/gu, token => {
+    if (!/[A-Za-zÀ-ÖØ-öø-ÿ]/u.test(token)) return token;
+    return [...token].map(char => ARABIZI_DIGITS[char] || char).join('');
+  });
 }
+
 function splitLanguageSegments(text) {
   return clean(text).split(/(?<=[.!?؟۔؛;])\s+/u).filter(Boolean).slice(0,12).map((value,index)=>({
     index, text:value.slice(0,500), scripts:scriptOf(value)
@@ -83,13 +89,14 @@ const ACTION_PATTERNS = {
   rephrase: /(?<![\p{L}\p{N}])(?:formulier(?:e|en)? um|umformulier(?:e|en)?|rephrase|reformul(?:e|er)|reformula(?:r)?|أعد الصياغة)(?![\p{L}\p{N}])/u
 };
 const TARGET_LANGUAGE_PATTERNS = [
-  {id:'de',pattern:/(?:auf|ins|in) deutsch|\bto german\b|\bin german\b/u},
-  {id:'en',pattern:/(?:auf|ins|in) englisch|\bto english\b|\bin english\b/u},
-  {id:'fr',pattern:/(?:auf|ins|in) französisch|\bto french\b|\bin french\b|\binto french\b|\ben français\b/u},
-  {id:'ar',pattern:/(?:auf|ins|in) hocharabisch|\bmodern standard arabic\b|\bfusha\b|بالعربية الفصحى/u},
-  {id:'ar-tn',pattern:/(?:auf|ins|in) tunesisch|\btunisian derja\b|\bderja\b|بالتونسي/u},
-  {id:'es',pattern:/(?:auf|ins|in) spanisch|\bto spanish\b|\bin spanish\b|\ben español\b/u}
+  {id:'de',pattern:/(?:auf|ins|in) deutsch(?:e|er|en)?|\\bto german\\b|\\bin german\\b|\\ben allemand\\b|\\bal alemán\\b|إلى الألمانية/u},
+  {id:'en',pattern:/(?:auf|ins|in) englisch|\\bto english\\b|\\bin english\\b|\\ben anglais\\b|\\bal inglés\\b|إلى الإنجليزية/u},
+  {id:'fr',pattern:/(?:auf|ins|in) französisch|\\bto french\\b|\\bin french\\b|\\binto french\\b|\\ben français\\b|\\ben francais\\b|\\bal francés\\b|إلى الفرنسية/u},
+  {id:'ar',pattern:/(?:auf|ins|in) hocharabisch|\\bmodern standard arabic\\b|\\bfusha\\b|بالعربية الفصحى|إلى العربية الفصحى/u},
+  {id:'ar-tn',pattern:/(?:auf|ins|in) tunesisch|\\btunisian derja\\b|\\bderja\\b|بالتونسي|بالدارجة التونسية|\\bbil tounsi\\b|\\bbil derja\\b/u},
+  {id:'es',pattern:/(?:auf|ins|in) spanisch|\\bto spanish\\b|\\bin spanish\\b|\\ben español\\b|\\bal español\\b|إلى الإسبانية/u}
 ];
+
 function detectLanguageAction(text, languageId) {
   const normalized = clean(text).toLocaleLowerCase();
   let mode = 'answer';
@@ -104,7 +111,18 @@ function detectLanguageAction(text, languageId) {
     rephrase:'Rephrase without changing facts, certainty, intent or tone.',
     answer:'Answer naturally in the latest user language, using conversation context and approved knowledge.'
   };
-  return {mode,explicit:mode!=='answer',target_language:mode==='translate'?target:null,source_language:languageId||null,preserve_original:true,instruction:instructions[mode],confidence:mode==='answer'?0.5:0.9};
+  const targetLanguage=mode==='translate'?target:null;
+  return {
+    mode,
+    explicit:mode!=='answer',
+    target_language:targetLanguage,
+    source_language:languageId||null,
+    preserve_original:true,
+    source_text:clean(text),
+    requires_clarification:mode==='translate'&&!targetLanguage,
+    instruction:instructions[mode],
+    confidence:mode==='answer'?0.5:(mode==='translate'&&!targetLanguage?0.65:0.9)
+  };
 }
 
 /**
@@ -162,14 +180,22 @@ export function buildMessinhoLinguisticContext(message, history = []) {
   return {
     ...current,
     conversation_language_hint:current.primary_language||continuityLanguage||null,
-    segments:splitLanguageSegments(clean(message)),
+    // Detect language independently for each segment. Mixed messages are not
+    // flattened to one language merely because one profile wins the global score.
+    segments:splitLanguageSegments(clean(message)).map(segment=>({
+      ...segment,
+      language_analysis:analyzeMessinhoLanguage(segment.text)
+    })),
     action:detectLanguageAction(message,current.primary_language||continuityLanguage||null),
     conversation_policy:[
       'Reply in the language of the latest user message unless the user requests another language.',
       'Preserve names, numbers, football terms and quoted source wording.',
       'Do not treat a dialect as incorrect standard-language grammar.',
       'If meaning is ambiguous and materially affects the answer, ask one concise clarification.',
-      'Do not invent dictionary definitions or claim a translation was verified when it was not.'
+      'Do not invent dictionary definitions or claim a translation was verified when it was not.',
+      'Analyze each sentence or segment independently when languages are mixed; preserve original segment order and wording.',
+      'Never convert standalone digits, scores, dates, ages or shirt numbers as Arabizi letters.',
+      'For a translation request without a clear target language, ask one concise question before translating.'
     ]
   };
 }
