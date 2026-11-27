@@ -31,3 +31,12 @@ test('reasoning context preserves only allowlisted structured player metrics',()
  assert.equal(metrics[0].value,32.4);
  assert.equal(metrics[1].value,4.1);
 });
+
+test('reasoning context reads allowlisted metrics from structured profile facts',()=>{
+ const context=buildMessinhoReasoningContext({history:[{role:'assistant',text:'Research',researchContext:{
+  player:{player_id:42,name:'Player A'},
+  profile:{facts:[{label:'Sprintgeschwindigkeit',value:'32,4 km/h'},{label:'Marktwert',value:'12 Mio. EUR'}]}
+ }}]});
+ const metrics=context.evidence[0].research_entities[0].metrics;
+ assert.deepEqual(metrics,[{key:'sprint_speed_kmh',value:32.4,unit:'km/h'}]);
+});
