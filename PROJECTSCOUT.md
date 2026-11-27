@@ -5099,3 +5099,50 @@ Make subject-language routing work when the scout asks in German (the primary pr
 - Render STAGING is still on the earlier 1.3.4 deployment until the 1.3.5 build gate below completes.
 - Next action: build and test the latest feature-branch state, then deploy that exact commit to STAGING only.
 
+
+
+## 27. MESSINHO Linguistic Intelligence 1.3.5 — STAGING release verified — 2026-11-27
+
+- Render STAGING deployment: dep-dc4ntg97lnhs7397cve0.
+- Exact deployed commit: 7f5983c54888ae74ce67afeb15e58873c6c54d0a.
+- Render status: live; finished at 2026-11-27T13:00:23.144355Z.
+- Build gate: 491 Node tests, 491 passed, 0 failed. Backend syntax checks passed. Vite production build succeeded in 2.47 seconds.
+- Regression tests confirmed that an intra-sentence English-to-French switch sets French as the latest segment and response language, and that the last language in a multi-sentence greeting controls the response language.
+- Runtime startup log confirmed myScoutingDatabase API listening on port 10000.
+- No database migration, knowledge-row write, player/scout/account data change, or model-weight change was made.
+- Production branch, Render production service and production Supabase remain untouched.
+
+## 28. MESSINHO Linguistic Intelligence 1.3.6 — response metadata integration — 2026-11-27
+
+### Implementation
+- backend/messinho-linguistic-intelligence.js:
+  - Advanced version from 1.3.5 to 1.3.6.
+  - Added buildMessinhoLinguisticResponseMetadata(), a stable client-safe API metadata contract.
+  - Contract exposes aggregate primary language separately from response_language, latest_segment_language and conversation_language_hint, while retaining segment/action metadata.
+- backend/server.js:
+  - Imports the metadata helper.
+  - MESSINHO chat API now uses the helper for linguistic_intelligence response metadata, so the selected reply language is visible to the client rather than existing only inside the prompt context.
+  - Existing system prompt continues receiving the full linguistic context and approved language knowledge.
+- tests/messinho-linguistic-intelligence.test.js:
+  - Version assertion advanced to 1.3.6.
+  - Added metadata contract coverage and null-context safety.
+
+### Traceability
+- Core metadata helper commit: bb30abe414b93594bd4339a91c41e23c922f1157.
+- Metadata tests commit: 26d21525892d0931935777b35aa60a52ab5257e9.
+- Chat API integration commit: 8bd085bebfdc825690efd49357ccce9f458ba6ce.
+
+### Verification state
+- 1.3.5 is verified and live on STAGING as documented in section 27.
+- 1.3.6 source, tests and chat API integration are committed to the active STAGING feature branch.
+- 1.3.6 has not yet passed the full STAGING build gate and is not yet deployed. Do not describe it as live.
+- No Supabase migration or persistent data change is required for this API metadata change.
+- Production remains untouched.
+
+### Next steps
+1. Run the complete STAGING build gate for 1.3.6 and fix any actual regression.
+2. Verify the exact Render STAGING deployment commit/status and startup.
+3. Verify the client receives response_language and latest_segment_language in the chat response.
+4. Continue phrase-level semantic understanding and dialect-aware context retrieval only after the API contract is verified.
+5. Authenticated Admin/Scout chat testing remains outstanding; never request or store credentials in chat.
+
