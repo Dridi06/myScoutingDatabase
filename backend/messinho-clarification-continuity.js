@@ -4,7 +4,7 @@
  */
 const MAX_HISTORY = 60;
 const MAX_CONTEXT_MESSAGES = 10;
-const GOAL_PATTERN = /\b(?:suche|such|finde|identifiziere|scoute|recherchiere|analysiere|vergleiche|stelle|ermittle|need|find|search|scout|research|analyse|analyze|compare|cherche|trouve|busca|encuentra|investiga|قلب|نلوّج|نبحث)\b/iu;
+const GOAL_PATTERN = /(?:^|[^\p{L}\p{N}])(?:suche|such|finde|identifiziere|scoute|recherchiere|analysiere|vergleiche|stelle|ermittle|need|find|search|scout|research|analyse|analyze|compare|cherche|trouve|busca|encuentra|investiga|قلب|نلوّج|نبحث)(?=$|[^\p{L}\p{N}])/iu;
 const NEGATION_PATTERN = /\b(?:nicht|kein(?:e|en|er|es)?|nie|not|never|no|pas|jamais|nunca|ningún|ninguna)\b|(?:ما\s+|لم\s+)/iu;
 const YES_PATTERN = /^(?:ja|yes|oui|sí|si|إي|اي|باهي)$/iu;
 const NO_PATTERN = /^(?:nein|no|non|لا)$/iu;
