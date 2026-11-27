@@ -5,7 +5,7 @@
  * Dialect, script and code-switching are represented separately so Tunisian Derja is not
  * incorrectly collapsed into Modern Standard Arabic.
  */
-export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.1';
+export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.2';
 
 export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
   { id:'de', name:'Deutsch', family:'Germanic', scripts:['Latin'], variants:['de-DE','de-AT','de-CH'], capabilities:['grammar','cases','articles','word_order','compound_words','spelling','semantics','pragmatics'] },
@@ -21,13 +21,13 @@ const WORDS = {
  en: new Set('the a an and or but not please thanks hello hi good morning good evening i you he she we they is are was have be can would why how what who where when actually maybe still already today player team explain explains explained english morphology word formation verb inflection football scouting tactics analysis assessment performance this that these those for with of to in from because if then very strong weak good needs more time'.split(' ')),
  fr: new Set('le la les un une et ou mais pas ne merci bonjour salut bonsoir bonjournee je tu il elle nous vous est sont était avoir être peut pourquoi comment quoi qui où quand peut-être déjà aujourd hui joueur équipe comment allez vous ca va explique expliquer français francaise française conjugaison accords accord pronoms phrase dans avec pour des très tres fort faible performance analyse évaluation joueurs football tactique'.split(' ')),
  ar: new Set('الذي التي هذا هذه من في على إلى عن هو هي نحن انت أنا و أو لكن ليس لا نعم كيف ماذا لماذا متى أين كان يكون السلام عليكم مرحبا أهلا شكرا صباح مساء أريد أحتاج ممكن جيد جيد جدا اليوم لاعب فريق كيف حالك اللغة العربية الفصحى اشرح الجذور الأوزان تصريف الأفعال فعل اسم صفة لاعبين مدرب مدافع مهاجم وسط جناح تمرير ضغط تكتيك أداء تحليل تقييم مركز الفريق اللاعب قوي'.split(' ')),
- 'ar-tn': new Set('chnowa chnowa kifech kifesh aleh علاش برشا barcha yesser mrigel behi labes aslema عسلامة لاباس شنوة شنوا وين قداش توة توا فما ma fama win wa9tech taw 3lech 5ater 7atta fassar fassarli nefhem nheb n7eb nal3ab nal3abch ma3neha ma3naha el hedha hedhi hedhouma tounsi derja tunisien joueur équipe equipe match coach fel fi mta3 mte3'.split(' ')),
+ 'ar-tn': new Set('chnowa chnoua chneya chnia chnya kifech kifesh alech aleh a3lech علاش برشا barcha ياسر yesser مريقل mrigel باهي behi labes aslema عسلامة لاباس شنوة شنوا شنية شنو وين قداش توة توا فما فمة موش ماهوش مازال ma fama win wa9tech taw tawa 3lech 5ater 7atta fassar fasser fassarli fasserli nefhem nheb n7eb nal3ab nal3abch ma3neha ma3naha el hedha hedhi hedhouma tounsi derja tunisien joueur équipe equipe match coach fel fi mta3 mte3'.split(' ')),
  es: new Set('el la los las un una y o pero no por favor gracias yo tú él ella nosotros es son era tener ser puede por qué cómo qué quién dónde cuándo todavía ya hola buenos días buenas tardes buenas noches quiero este jugador entender sus puntos fuertes equipo hoy explica explicar español conjugación conjugacion verbal concordancia gramatical frase pronombres fútbol futbol jugadores entrenador rendimiento análisis analisis evaluación evaluacion táctica tactica fuerte débil debil con para en de por'.split(' '))
 };
-const TUNISIAN_ARABIC = /(?:علاش|شنوة|شنوّة|برشا|ياسر|لاباس|فما|توا|وين|قداش|كيفاش)/u;
+const TUNISIAN_ARABIC = /(?:علاش|شنوة|شنوّة|شنيا|شنية|اش|آش|برشا|ياسر|لاباس|فما|فمّة|توا|توة|وين|قداش|كيفاش|موش|ماهوش)/u;
 const ARABIC_SCRIPT = /[\u0600-\u06FF]/u;
 const LATIN_SCRIPT = /[A-Za-zÀ-ÖØ-öø-ÿ]/u;
-const LATIN_DERJA = /\b(chneya|chnowa|kifech|kifesh|alech|aleh|barcha|barsha|yesser|labes|labess|mrigel|beh[iy]|fama|ma fama|ma\s+[a-z0-9]+\s*ch|tawa|taw|win|wa9tech|3lech|5ater|7atta|9addech)\b/iu;
+const LATIN_DERJA = /\b(chneya|chnia|chnya|chnowa|chnoua|kifech|kifesh|alech|aleh|a3lech|barcha|barsha|yesser|labes|labess|mrigel|beh[iy]|fama|ma fama|ma\s+[a-z0-9]+\s*ch|tawa|taw|win|wa9tech|3lech|5ater|7atta|9addech|fassarli|fasserli|salla7li|sa77a7li)\b/iu;
 
 function clean(value) {
   return String(value ?? '').normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 4000);
@@ -173,10 +173,10 @@ function splitLanguageSegments(text) {
 }
 
 const ACTION_PATTERNS = {
-  translate: /(?<![\p{L}\p{N}])(?:übersetz(?:e|en)?|translate|tradu(?:is|ire|ce|zca)|ترجم|tarjem|tarjemli)(?![\p{L}\p{N}])/u,
-  correct: /(?<![\p{L}\p{N}])(?:korrigier(?:e|en)?|verbesser(?:e|n)?|correct|corrig(?:e|ez)|corrige|صحح|salla7|sa77a7)(?![\p{L}\p{N}])/u,
-  explain: /(?<![\p{L}\p{N}])(?:erklär(?:e|en)?|erläuter(?:e|n)?|explain|explique(?:r)?|explica(?:r)?|اشرح|فسر|fassar|fasser)(?![\p{L}\p{N}])/u,
-  rephrase: /(?<![\p{L}\p{N}])(?:formulier(?:e|en)? um|umformulier(?:e|en)?|rephrase|reformul(?:e|er)|reformula(?:r)?|أعد الصياغة)(?![\p{L}\p{N}])/u
+  translate: /(?<![\p{L}\p{N}])(?:übersetz(?:e|en)?|translate|tradu(?:is|ire|ce|zca)|ترجم(?:لي|ها)?|ترجملي|tarjem(?:li)?)(?![\p{L}\p{N}])/u,
+  correct: /(?<![\p{L}\p{N}])(?:korrigier(?:e|en)?|verbesser(?:e|n)?|correct|corrig(?:e|ez)|corrige|صحح(?:لي)?|صلح(?:لي)?|salla7(?:li)?|sa77a7(?:li)?)(?![\p{L}\p{N}])/u,
+  explain: /(?<![\p{L}\p{N}])(?:erklär(?:e|en)?|erläuter(?:e|n)?|explain|explique(?:r)?|explica(?:r)?|اشرح(?:لي)?|فسر(?:لي)?|فسرلي|fassar(?:li)?|fasser(?:li)?)(?![\p{L}\p{N}])/u,
+  rephrase: /(?<![\p{L}\p{N}])(?:formulier(?:e|en)? um|umformulier(?:e|en)?|rephrase|reformul(?:e|er)|reformula(?:r)?|أعد الصياغة|عاود الصياغة|3awed siyagha)(?![\p{L}\p{N}])/u
 };
 const TARGET_LANGUAGE_PATTERNS = [
   {id:'de',pattern:/(?:auf|ins|in) deutsch(?:e|er|en)?|\bto german\b|\bin german\b|\ben allemand\b|\bal alemán\b|إلى الألمانية/u},
