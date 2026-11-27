@@ -55,3 +55,13 @@ test('database errors fail closed without fabricated entries',async()=>{
  assert.equal(result.status,'unavailable');
  assert.deepEqual(result.items,[]);
 });
+
+test('ambiguous text never loads an unrelated language pack',async()=>{
+ const rows=[
+  {entry_key:'de.lexicon.core',version:2,language_code:'de',entry_type:'lexicon',topic:'Wortschatz',title:'Deutsch',content:{explanation:'German only'},tags:['Deutsch'],knowledge_status:'active'},
+  {entry_key:'en.lexicon.core',version:2,language_code:'en',entry_type:'lexicon',topic:'Vocabulary',title:'English',content:{explanation:'English only'},tags:['English'],knowledge_status:'active'}
+ ];
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'OK');
+ assert.equal(result.language_id,null);
+ assert.equal(result.items.length,0);
+});
