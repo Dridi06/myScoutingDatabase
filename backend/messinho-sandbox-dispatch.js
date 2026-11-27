@@ -5,8 +5,13 @@ const shaPattern=/^[a-f0-9]{40}$/i;
 const hashPattern=/^[a-f0-9]{64}$/i;
 const uuidPattern=/^[0-9a-f-]{36}$/i;
 
+export function isMessinhoSandboxStagingAllowed(env=process.env) {
+  return env.MESSINHO_SANDBOX_ENABLED==='true'&&env.RENDER==='true'&&
+    Boolean(env.RENDER_SERVICE_ID)&&env.RENDER_SERVICE_ID===env.MESSINHO_STAGING_RENDER_SERVICE_ID;
+}
+
 export async function dispatchMessinhoSandboxJob({job,env=process.env,fetchImpl=fetch}={}) {
-  if(env.MESSINHO_SANDBOX_ENABLED!=='true')return {ok:false,code:'SANDBOX_DISABLED'};
+  if(!isMessinhoSandboxStagingAllowed(env))return {ok:false,code:'SANDBOX_STAGING_GATE_CLOSED'};
   const token=String(env.MESSINHO_SANDBOX_GITHUB_TOKEN||'');
   if(!token)return {ok:false,code:'SANDBOX_GITHUB_CREDENTIAL_MISSING'};
   if(!job||!uuidPattern.test(String(job.job_id||''))||!uuidPattern.test(String(job.ticket_id||''))||
