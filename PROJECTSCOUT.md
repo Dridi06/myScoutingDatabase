@@ -5662,3 +5662,19 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Post-merge checks for the deployed commit: 514/514 tests passed, backend syntax passed, full Vite production build passed, and STAGING health check passed.
 - Next: user verifies “Merke dir Staging Alpha” followed by “Welches Testwort habe ich dir genannt?” after a page refresh. Repeat independently as Admin and Scout to verify owner isolation.
 - Production/LIVE and production Supabase remain untouched.
+
+
+## 39. MESSINHO Conversational Intelligence 3.0 — semantic routing and adaptive memory (in development) — 2026-11-27
+
+- User's clarified target: MESSINHO should behave like ChatGPT as a general conversational assistant, not a command parser or a dictionary of exact phrases. It must understand typos, dictation/autocorrect, fragments, context, pronouns, ordinary conversation, topic changes and follow-up questions.
+- PR #51 (narrow “Merk die …” phrase patch) was closed as superseded; it is not the intended solution and was not deployed.
+- New work branch: `feature/messinho-conversational-intelligence-3`.
+- Added `backend/messinho-conversational-intelligence.js`: semantic intent router using structured model output. Intents: conversation, clarify, memory_save, memory_recall, scouting, general_research, engineering. The router is designed to run before fixed feature parsers, so a natural-language message cannot be sent into player research merely because of a phrase/name match.
+- Added safe decision validation, bounded context packaging, role/language context, durable-memory extraction and de-duplicating merge (max 50 memories, 320 characters each; only preference/project/stable_fact/active_goal categories, confidence >=0.8). Deterministic privacy filter also blocks obvious sensitive data and credentials.
+- Durable memory rules: only supported, useful, non-sensitive information; do not save credentials, secrets, transient chatter, guesses or sensitive personal data. Memory remains in owner-scoped `messinho_agent_memory.user_preferences`; no new database table or migration.
+- Integrated semantic routing at the beginning of authenticated chat processing. Conversation and clarification are answered directly; memory save/retrieval is handled by the owner-scoped memory store; only clear scouting/research/engineering intents proceed to their specialized existing routes. Action intents require confidence >=0.72. If the cognitive router fails or returns invalid data, the application fails safely and does not start a search/action.
+- Existing Admin/Scout authorization remains authoritative; semantic intent never grants permissions. Scouts cannot run engineering actions.
+- Added tests for intent schema validation, context packaging, bounded memory, sensitive-data exclusions, mock model routing and routing order ahead of scouting/research. Latest backend syntax + test workflow: 521/521 tests passed.
+- Not yet merged, not deployed. No LIVE/Production code or database has been touched.
+- Next: run complete CI and inspect failures; review the cognitive prompt, response language behavior, memory privacy, confidence thresholds and fallback safety. Then open PR into STAGING integration branch. Deploy only after CI passes and user-approved staging rollout.
+- Follow-up roadmap: multi-turn conversation summaries beyond 20 turns, memory correction/deletion workflow, retrieval relevance ranking, user-visible memory controls, tool/function selection with permission gates, and evaluation suite for typo/dictation/ambiguous intent cases. Do not claim ChatGPT-level model capability; target equivalent conversational UX using current configured model and specialized MESSINHO tools.
