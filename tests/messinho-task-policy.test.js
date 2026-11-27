@@ -6,7 +6,9 @@ import {
   isMessinhoTaskLeaseExpired,
   isMessinhoTaskWriteConfirmed,
   getMessinhoTaskRetryDelayMs,
-  evaluateMessinhoTaskResume
+  evaluateMessinhoTaskResume,
+  evaluateMessinhoTaskActor,
+  getMessinhoUnfinishedCapabilities
 } from '../backend/messinho-task-policy.js';
 
 test('expired running task leases are detected', () => {
