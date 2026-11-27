@@ -4744,6 +4744,7 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - Keine destruktive Normalisierung: Originaltoken und Originalnachricht bleiben unverändert.
 - Dialektbegriffe wie **فما** bleiben durch den Vorrang exakter Lexikontreffer geschützt.
 - Regressionstests ergänzen MSA-Konjunktionen, Abgrenzung zur tunesischen Derja sowie Beispielsätze für alle sechs Profile mit Negation, Unsicherheit und der Kennung **U19**.
+- Unsicherheitsmarker erkennen jetzt auch die französische Mehrwortform **peut-être** und die spanische Variante **quizá**.
 - Dokumentation: `docs/MESSINHO_LINGUISTIC_INTELLIGENCE_1_3_3.md`.
 
 ### Verifikation und Grenzen
