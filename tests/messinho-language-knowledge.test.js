@@ -9,7 +9,7 @@ function fakeDb(rows, selected=[]) {
 
 test('language knowledge is registered for six language profiles and append-only',()=>{
  const summary=getMessinhoLanguageKnowledgeSummary();
- assert.equal(summary.version,'1.2.3');
+ assert.equal(summary.version,'1.2.4');
  assert.equal(summary.profiles.length,6);
  assert.equal(summary.retention,'append_only_versions');
  assert.equal(summary.write_access,'none_from_chat_or_scout_roles');
@@ -265,4 +265,17 @@ test('recognizes a German comparison request for MSA and Tunisian Arabic',async(
 test('a Tunisian nationality adjective alone does not load Derja knowledge',async()=>{
  const result=await findMessinhoLanguageKnowledge(fakeDb([]),'Der tunesische Spieler ist 19 Jahre alt.');
  assert.equal(result.requested_language_ids.includes('ar-tn'),false);
+});
+
+
+test('retrieves requested Derja knowledge for an explicit explanation in Tunisian',async()=>{
+ const rows=[{
+  entry_key:'ar-tn.grammar.explanation',version:1,language_code:'ar-tn',entry_type:'grammar',
+  topic:'شرح الدارجة',title:'Derja',
+  content:{explanation:'تفسير تونسي مبسط مع أمثلة من الاستعمال اليومي.'},
+  tags:['Derja','tunesisch','شرح'],knowledge_status:'active'
+ }];
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'Erkläre mir das auf Tunesisch.');
+ assert.ok(result.requested_language_ids.includes('ar-tn'));
+ assert.equal(result.items[0]?.entry_key,'ar-tn.grammar.explanation');
 });
