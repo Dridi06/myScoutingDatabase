@@ -5,7 +5,7 @@
  * Dialect, script and code-switching are represented separately so Tunisian Derja is not
  * incorrectly collapsed into Modern Standard Arabic.
  */
-export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.0';
+export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.1';
 
 export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
   { id:'de', name:'Deutsch', family:'Germanic', scripts:['Latin'], variants:['de-DE','de-AT','de-CH'], capabilities:['grammar','cases','articles','word_order','compound_words','spelling','semantics','pragmatics'] },
@@ -88,10 +88,14 @@ function inferConversationSignals(text, tokens, languageId) {
 
 const ARABIZI_DIGITS = Object.freeze({ '2':'ء', '3':'ع', '5':'خ', '6':'ط', '7':'ح', '8':'غ', '9':'ق' });
 export function normalizeMessinhoArabizi(input) {
-  // Arabizi digits are letters only inside Latin-script words. Preserve standalone
-  // numbers (ages, shirt numbers, dates, scores and statistics) exactly.
-  return clean(input).replace(/[\p{L}0-9]+/gu, token => {
+  // Convert digits only when the token has a recognizable Arabizi shape:
+  // a digit-led word (3lech) or an embedded Arabizi digit (wa9tech).
+  // Do not corrupt football IDs such as U19, model names, dates or statistics.
+  return clean(input).replace(/[\\p{L}0-9]+/gu, token => {
     if (!/[A-Za-zÀ-ÖØ-öø-ÿ]/u.test(token)) return token;
+    const looksLikeArabizi = /^[2356789][A-Za-zÀ-ÖØ-öø-ÿ]+$/u.test(token) ||
+      /^[A-Za-zÀ-ÖØ-öø-ÿ]+[2356789][A-Za-zÀ-ÖØ-öø-ÿ]+$/u.test(token);
+    if (!looksLikeArabizi) return token;
     return [...token].map(char => ARABIZI_DIGITS[char] || char).join('');
   });
 }
