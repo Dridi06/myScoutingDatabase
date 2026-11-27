@@ -188,3 +188,19 @@ test('bounded conversation memory is supplied separately from long-term user mem
   assert.equal(payload.conversation_memory_context[0].text,'Wir planen Block 4.');
   assert.equal(payload.existing_user_memory.length,0);
 });
+
+test('cognitive router forwards linguistic knowledge, conversation memory and reasoning evidence to the same model turn',async()=>{
+ const fetchImpl=async(_url,options)=>{
+  const body=JSON.parse(options.body);const payload=JSON.parse(body.messages[1].content);
+  assert.equal(payload.approved_language_knowledge[0].language,'de');
+  assert.equal(payload.conversation_memory_context[0].text,'Wir arbeiten an Block 5.');
+  assert.equal(payload.reasoning_context.evidence_policy,'attributed_not_verified');
+  return {ok:true,status:200,json:async()=>({choices:[{message:{content:JSON.stringify({intent:'conversation',confidence:0.94,reply:'Wir können daran anknüpfen.',clarification_question:'',memory_items:[]})}}]})};
+ };
+ const result=await classifyMessinhoTurn({message:'Wie geht es weiter?',apiKey:'test',fetchImpl,
+  linguisticKnowledgeContext:[{language:'de',type:'grammar',title:'Satzbau'}],
+  conversationMemoryContext:{items:[{role:'user',text:'Wir arbeiten an Block 5.'}]},
+  reasoningContext:{evidence_policy:'attributed_not_verified',evidence:[]}
+ });
+ assert.equal(result.status,'completed');
+});
