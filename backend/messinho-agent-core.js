@@ -26,7 +26,7 @@ export function validateMessinhoAgentRun(plan,run) {
    missing_inputs:[...new Set(results.flatMap(item=>Array.isArray(item?.missing_inputs)?item.missing_inputs:[]))],
    evidence_policy:'Only supplied database facts and server-validated research bundles are accepted; generated prose is not evidence.'};
 }
-export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scout',budgetMs=MAX_AGENT_EXECUTION_BUDGET_MS,onStep,onEngineeringProposal}={}) {
+export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scout',budgetMs=MAX_AGENT_EXECUTION_BUDGET_MS,onStep,onEngineeringProposal,shouldStop}={}) {
  const started=Date.now(),budget=Math.max(250,Math.min(MAX_AGENT_EXECUTION_BUDGET_MS,Number(budgetMs)||MAX_AGENT_EXECUTION_BUDGET_MS));
  const autonomousPlanning=planMessinhoAutonomously(goal||plan?.goal||'',{role,context:input});
  plan=plan||autonomousPlanning.plan;
@@ -44,11 +44,11 @@ export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scou
  const performanceIntelligence=buildMessinhoPerformanceIntelligence(input,goal||plan.goal);
  const agentInput={...input,_messinho_autonomous_performance_intelligence:performanceIntelligence};
  state={...state,phase:'executing',trace:addEvent(state.trace,'execution_started',{budget_ms:budget,max_steps:plan.steps.length,performance_intelligence:'automatic'})};
- let run=await runMessinhoCapabilityPlanAsync(plan,agentInput,role,{budgetMs,onStep});
- state.trace=addEvent(state.trace,'execution_finished',{status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,elapsed_ms:run.execution_trace?.elapsed_ms||Date.now()-started});
+ let run=await runMessinhoCapabilityPlanAsync(plan,agentInput,role,{budgetMs,onStep,shouldStop});
+ state.trace=addEvent(state.trace,run.stop_requested?'execution_stopped':'execution_finished',{status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,elapsed_ms:run.execution_trace?.elapsed_ms||Date.now()-started});
  const failed=(run.results||[]).filter(item=>item.status==='error').map(item=>item.capability_id);
  const remaining=budget-(Date.now()-started);
- if(failed.length&&remaining>=500){
+ if(!run.stop_requested&&failed.length&&remaining>=500){
    const retry=await runMessinhoCapabilityPlanAsync({...plan,steps:failed,blocked_capabilities:[],deferred_capabilities:[]},agentInput,role,{budgetMs:Math.min(2000,remaining)});
    const replacements=new Map((retry.results||[]).map(item=>[item.capability_id,item]));
    const retried=run.results.map(item=>replacements.get(item.capability_id)||item);
@@ -68,14 +68,15 @@ export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scou
  const observation=observeMessinhoExecution(plan,run);
  state.trace=addEvent(state.trace,'autonomous_observation',{phase:observation.phase,completion_ratio:observation.completion_ratio,replan_recommended:observation.replan_recommended});
  const validation=validateMessinhoAgentRun(plan,run);
- const mykiDispatch=validation.valid?await dispatchMessinhoMyKiProposals({role,run,onProposal:onEngineeringProposal}):{eligible:0,submitted:0,duplicates:0,rejected:0,skipped:'agent_validation_failed'};
+ const mykiDispatch=run.stop_requested?{eligible:0,submitted:0,duplicates:0,rejected:0,skipped:'admin_stop_requested'}:
+   validation.valid?await dispatchMessinhoMyKiProposals({role,run,onProposal:onEngineeringProposal}):{eligible:0,submitted:0,duplicates:0,rejected:0,skipped:'agent_validation_failed'};
  state.trace=addEvent(state.trace,'myki_proposal_dispatch',{eligible:mykiDispatch.eligible,submitted:mykiDispatch.submitted,duplicates:mykiDispatch.duplicates||0,rejected:mykiDispatch.rejected||0});
  state.trace=addEvent(state.trace,'validation_finished',{valid:validation.valid,missing_results:validation.missing_results.length,missing_inputs:validation.missing_inputs.length});
  const hasErrors=(run.results||[]).some(item=>item.status==='error'),hasInputs=validation.missing_inputs.length>0;
  const incomplete=run.status!=='completed'||!validation.valid||hasErrors||run.blocked_capabilities?.length||run.deferred_capabilities?.length;
- const phase=!validation.valid?'failed':hasInputs?'waiting_for_input':incomplete?'partial':'completed';
+ const phase=run.stop_requested?'stopped':!validation.valid?'failed':hasInputs?'waiting_for_input':incomplete?'partial':'completed';
  state={...state,phase,completed_at:new Date().toISOString(),elapsed_ms:Date.now()-started};
  state.trace=addEvent(state.trace,'agent_cycle_closed',{phase,elapsed_ms:state.elapsed_ms});
  return {plan,contract:autonomousPlanning.contract,observation,run:{...run,performance_intelligence:performanceIntelligence,autonomous_observation:observation,agent_core_version:MESSINHO_AGENT_CORE_VERSION,validation,
-   next_action:hasInputs?'ask_user_for_missing_inputs':hasErrors||observation.replan_recommended?'diagnose_and_replan':run.deferred_capabilities?.length?'resume_deferred_steps':'report_result',myki_dispatch:mykiDispatch},state,validation};
+   next_action:run.stop_requested?'stopped_by_admin':hasInputs?'ask_user_for_missing_inputs':hasErrors||observation.replan_recommended?'diagnose_and_replan':run.deferred_capabilities?.length?'resume_deferred_steps':'report_result',myki_dispatch:mykiDispatch},state,validation};
 }
