@@ -517,8 +517,8 @@ app.post('/api/admin/myki/control',myKiTicketLimiter,async(req,res)=>{
     if(action!=='set_mode'||!['paused','working','developing'].includes(mode))
       return res.status(400).json({error:'Ungültiger Betriebsmodus.'});
     const {data,error}=await db.from('messinho_agent_control').update({
-      mode,stop_requested:mode==='paused',
-      status_message:mode==='paused'?'MESSINHO ist pausiert. Laufende Aufgaben werden am nächsten sicheren Haltepunkt gestoppt.':
+      mode,stop_requested:false,
+      status_message:mode==='paused'?'MESSINHO ist pausiert und startet keine autonomen Entwicklungsaufträge. Laufende Chat-Aufträge dürfen regulär abgeschlossen werden.':
         mode==='working'?'MESSINHO wartet auf konkrete Admin-Aufträge.':
         'MESSINHO darf freigegebene Entwicklungsprüfungen selbstständig ausführen.',
       updated_by:actor.user.id,updated_at:new Date().toISOString(),stopped_at:null
@@ -2269,7 +2269,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         onStep:checkpoint=>taskRecord?checkpointMessinhoAgentTask(taskRecord.id,ownerId,checkpoint.completed_results,checkpoint.pending_capabilities):undefined,
         shouldStop:async()=>{
           const {data:control,error}=await db.from('messinho_agent_control').select('mode,stop_requested').eq('id','global').maybeSingle();
-          return Boolean(error||control?.stop_requested||control?.mode==='paused');
+          return Boolean(error||control?.stop_requested);
         },
         onEngineeringProposal:proposal=>persistMessinhoMyKiProposal({db,proposal})});
       const run=agentCycle.run;
