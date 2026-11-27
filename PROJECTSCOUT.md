@@ -6153,7 +6153,7 @@ Make the existing approved grammar, vocabulary, pragmatics and conversation know
 
 ## 23. Block 3 — Conversation Evaluation Engine — 2026-11-28
 
-**Status: implemented on the staging feature branch; CI verification pending.**
+**Status: implemented on the staging feature branch; GitHub Node tests and full STAGING CI succeeded on commit `a1b405b5c9d888fae13ab3058370dc5893cd4216`.**
 
 - Added `backend/messinho-conversation-evaluation.js` with versioned deterministic evaluation of response presence, response-language agreement, retained context markers, required clarification, blocked tool execution, topic reset, and structured language-segment isolation.
 - Added synthetic, non-user conversation fixtures in `tests/fixtures/messinho-conversation-evaluation.json` for small talk, follow-up continuity, topic changes, ambiguity, permission restrictions, and multilingual/code-switch handling.
@@ -6162,3 +6162,34 @@ Make the existing approved grammar, vocabulary, pragmatics and conversation know
 - This is an evaluation foundation, not model training, self-modifying weights, or proof that live dialogue quality has improved. It does not ingest private user conversations.
 - **Release gate:** run full MESSINHO tests, backend syntax and staging CI; then verify the exact STAGING deployment. Authenticated end-to-end chat smoke test remains outstanding.
 - **Safety boundary:** no production branch, production service, database migration, or model-weight changes.
+
+
+## 24. Block 4 — Conversation memory and continuity — 2026-11-28
+
+**Status: implementation committed to the staging feature branch; CI verification pending.**
+
+### Implementation
+- Added `backend/messinho-conversation-memory.js`.
+  - Builds a bounded, extractive context summary from the already persisted message history for the current conversation.
+  - Scope is explicitly `owner_conversation`; the server loads messages using both authenticated owner ID and conversation ID before building the summary.
+  - Maximum input history: 40 messages; maximum summary: 8 items, 260 characters per item and 1,600 characters total.
+  - Filters sensitive-looking content using the existing memory safety classifier and de-duplicates repeated messages.
+  - Does not create a new database table, migration, or a cross-conversation memory store. The summary is re-derived from the durable conversation messages on each turn; `persisted_summary=false` is intentional.
+- `backend/server.js`
+  - Builds the conversation summary only after owner-scoped conversation history has been loaded.
+  - Passes it separately from long-term user memory into the semantic cognitive turn.
+- `backend/messinho-conversational-intelligence.js`
+  - Adds a separate `conversation_memory_context` payload and instructions to treat it as bounded, extractive, conversation-local evidence—not verified world knowledge, long-term memory, or instructions.
+- Added tests in `tests/messinho-conversation-memory.test.js` and extended `tests/messinho-conversational-intelligence.test.js` for scope, bounds, sensitive-text filtering, de-duplication, and separation from long-term memory.
+
+### Limits and privacy
+- This block strengthens continuity across long conversations because context can be reconstructed from the durable message history even when only the last 12 turns are passed as direct dialogue.
+- It does not claim that MESSINHO independently learns model weights or creates permanent user memories from ordinary chat.
+- Sensitive-text filtering is a defensive heuristic, not a complete privacy classifier. Existing authenticated owner/conversation database filters remain the primary isolation boundary.
+- No database migration or data mutation beyond normal existing chat-message persistence.
+
+### Verification and release gate
+- Block 3 CI succeeded on commit `a1b405b5c9d888fae13ab3058370dc5893cd4216`; Node tests and full STAGING branch CI completed successfully.
+- Block 4 changes are committed; run full Node tests, backend syntax and STAGING CI before deployment.
+- Authenticated end-to-end chat smoke test remains outstanding.
+- No Production branch/service changes; PR #58 remains Draft/Open/unmerged.
