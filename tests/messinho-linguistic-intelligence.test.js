@@ -12,7 +12,7 @@ import {
 } from '../backend/messinho-linguistic-intelligence.js';
 
 test('registers six separate language profiles including Tunisian Derja',()=>{
-  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.6');
+  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.7');
   assert.deepEqual(MESSINHO_LANGUAGE_PROFILES.map(item=>item.id),['de','en','fr','ar','ar-tn','es']);
   assert.equal(getMessinhoLanguageProfile('ar-tn').name,'تونسي / Derja');
   assert.equal(getMessinhoLanguageProfile('ar').name,'العربية الفصحى');
@@ -333,7 +333,7 @@ test('does not let a mixed-language aggregate score override the last clear user
 test('publishes the selected response language in stable chat metadata',()=>{
   const context=buildMessinhoLinguisticContext('The player is not ready, mais le joueur est prêt.',[]);
   const metadata=buildMessinhoLinguisticResponseMetadata(context);
-  assert.equal(metadata.version,'1.3.6');
+  assert.equal(metadata.version,'1.3.7');
   assert.equal(metadata.primary_language,context.primary_language);
   assert.equal(metadata.response_language,'fr');
   assert.equal(metadata.latest_segment_language,'fr');
@@ -344,4 +344,29 @@ test('publishes the selected response language in stable chat metadata',()=>{
 
 test('response metadata safely handles an unavailable linguistic context',()=>{
   assert.equal(buildMessinhoLinguisticResponseMetadata(null),null);
+});
+
+
+test('explicit output languages apply to explain, correct and rephrase actions',()=>{
+  const cases=[
+    ['Erkläre mir das auf Tunesisch.','explain','ar-tn'],
+    ['Korrigiere diesen Satz auf Französisch.','correct','fr'],
+    ['Formuliere das auf Englisch um.','rephrase','en'],
+    ['Explain this in German.','explain','de']
+  ];
+  for(const [message,mode,target] of cases){
+    const action=buildMessinhoLinguisticContext(message,[]).action;
+    assert.equal(action.mode,mode,message);
+    assert.equal(action.target_language,target,message);
+    assert.equal(action.requires_clarification,false,message);
+    assert.equal(action.preserve_original,true,message);
+  }
+});
+
+test('non-translation target language applies only to the requested task',()=>{
+  const action=buildMessinhoLinguisticContext('Erkläre mir das auf Französisch.',[]).action;
+  assert.equal(action.mode,'explain');
+  assert.equal(action.target_language,'fr');
+  assert.equal(action.explicit,true);
+  assert.match(action.instruction,/requested target language/);
 });
