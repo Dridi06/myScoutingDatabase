@@ -45,6 +45,7 @@ import { persistMessinhoSandboxResult, normalizeMessinhoSandboxResult, hashMessi
 import { loadMessinhoApprovedEngineeringMemory } from './messinho-engineering-memory-context.js';
 import { verifyMessinhoGitHubActionsIdentity } from './messinho-github-oidc.js';
 import { buildMessinhoMaturityReport } from './messinho-maturity.js';
+import { isMessinhoAdminOnlyCommand } from './messinho-command-access.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -2053,6 +2054,12 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const correction=correctMessinhoInput(message);
     const interpretedMessage=correction.corrected;
     const respond=payload=>res.json({...payload,input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
+    // Scouts may use MESSINHO for scouting and conversation, but cannot issue
+    // commands that alter MESSINHO, its knowledge governance, operating mode,
+    // model, sandbox, or platform-wide configuration. Enforce before routing.
+    if(profile.role==='scout'&&isMessinhoAdminOnlyCommand(interpretedMessage)){
+      return respond({reply:'Diese Anweisung ist aus Sicherheitsgründen Administratoren vorbehalten. Du kannst MESSINHO weiterhin uneingeschränkt für normale Scouting-Fragen, Spieleranalysen und Recherchen nutzen.',intent:'admin_command_denied',items:[],permission:{allowed:false,required_role:'admin'}});
+    }
     const dialog=parseMessinhoScoutingRequest(interpretedMessage,history);
     const ownerId=authData.user.id;
     const actor={user:authData.user,profile};
