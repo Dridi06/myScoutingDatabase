@@ -57,3 +57,18 @@ test('system prompt preserves negation scope, qualified evaluation, uncertainty 
   assert.match(source,/nicht schlecht/);
   assert.match(source,/nicht unbedingt/);
 });
+
+
+test('MESSINHO chat UI consumes response-language metadata and limits semantic cues to Admin',async()=>{
+  const ui=await readFile(new URL('../src/asi/MessinhoWorkspace.jsx',import.meta.url),'utf8');
+  const server=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+  assert.match(ui,/linguisticIntelligence:payload\.linguistic_intelligence\|\|null/);
+  assert.match(ui,/linguisticIntelligence:item\.linguisticIntelligence\|\|null/);
+  assert.match(ui,/dir=\{message\.linguisticIntelligence\?\.response_language\?\.startsWith\('ar'\)\?'rtl':'auto'\}/);
+  assert.match(ui,/profile\?\.role==='admin'&&getMessinhoSemanticCueLabels/);
+  assert.match(ui,/negation_scope_cues/);
+  assert.match(ui,/qualified_evaluation_cues/);
+  assert.match(server,/linguisticIntelligence:persistedLinguisticIntelligence/);
+  assert.match(server,/profile\.role==='admin'\?linguisticIntelligence/);
+  assert.match(server,/profile\.role==='admin'\?\(row\.metadata\?\.linguisticIntelligence\|\|null\)/);
+});
