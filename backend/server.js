@@ -16,7 +16,7 @@ import { normalizeMessinhoHypothesisCreate, normalizeMessinhoHypothesisTransitio
 import { normalizeMyKiTicketProposal, createMyKiTicketRecord, buildMyKiCopyPacket } from './messinho-myki-tickets.js';
 import { persistMessinhoMyKiProposal } from './messinho-myki-bridge.js';
 import { generateMessinhoEngineeringProposal, isMessinhoEngineeringRequest } from './messinho-myki-engineer.js';
-import { startMessinhoEngineeringReviewScheduler, runMessinhoScheduledEngineeringReview, getMessinhoEngineeringReviewSchedule, isMessinhoEngineeringAutoReviewEnabled } from './messinho-engineering-scheduler.js';
+import { startMessinhoEngineeringReviewScheduler, runMessinhoScheduledEngineeringReview, getMessinhoEngineeringReviewSchedule, isMessinhoEngineeringAutoReviewEnabled, buildMessinhoSelfRepairGoal } from './messinho-engineering-scheduler.js';
 
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
@@ -529,7 +529,58 @@ async function executeMessinhoDiagnostics(actorProfileId){
   const record={triggered_by:'admin',actor_profile_id:actorProfileId,status,started_at:startedAt,finished_at:finishedAt,duration_ms:Date.now()-started,summary:{total:checks.length,passed:checks.filter(x=>x.ok).length,failed:checks.filter(x=>!x.ok).length,critical_failed:checks.filter(x=>!x.ok&&x.severity==='critical').length,warnings:checks.filter(x=>!x.ok&&x.severity==='warning').length,categories:[...new Set(checks.map(x=>x.category))].length},checks};
   const {data,error}=await db.rpc('save_messinho_diagnostic_run',{p_record:record});
   if(error)throw new Error('MESSINHO-Bericht konnte nicht gespeichert werden: '+error.message);
-  return data;
+  return {...record,id:data?.id||data?.run_id||null,persisted:true};
+}
+
+let messinhoSelfRepairBusy=false;
+async function runMessinhoSelfRepairCycle(actorProfileId){
+ if(messinhoSelfRepairBusy)return {ok:true,skipped:'self_repair_already_running'};
+ const schedule=getMessinhoEngineeringReviewSchedule();
+ if(!schedule.due)return {ok:true,skipped:'outside_work_window',phase:schedule.phase};
+ messinhoSelfRepairBusy=true;
+ const updateStatus=async(message)=>{
+  const {error}=await db.from('messinho_agent_control').update({status_message:message,current_task:null,updated_at:new Date().toISOString()})
+   .eq('id','global').eq('mode','working').eq('stop_requested',false);
+  if(error)console.warn('MESSINHO self-repair status update failed:',error.message);
+ };
+ try{
+  const {data:control,error:controlError}=await db.from('messinho_agent_control').select('mode,stop_requested').eq('id','global').maybeSingle();
+  if(controlError||control?.mode!=='working'||control?.stop_requested)return {ok:false,code:'ADMIN_MODE_NOT_ACTIVE'};
+  const diagnostic=await executeMessinhoDiagnostics(actorProfileId);
+  const checks=Array.isArray(diagnostic?.checks)?diagnostic.checks:[];
+  if(!checks.length)throw new Error('Die Systemdiagnose lieferte keine auswertbaren Prüfergebnisse.');
+  const failed=checks.filter(item=>item.ok===false);
+  if(!failed.length){
+   await updateStatus('Selbstprüfung abgeschlossen: '+checks.length+' Prüfungen bestanden. Es wurden keine Fehler gefunden.');
+   return {ok:true,status:'healthy',checks:checks.length,failed:0};
+  }
+  const {data:afterDiagnosis,error:afterDiagnosisError}=await db.from('messinho_agent_control').select('mode,stop_requested').eq('id','global').maybeSingle();
+  if(afterDiagnosisError||afterDiagnosis?.mode!=='working'||afterDiagnosis?.stop_requested){
+   await updateStatus('Selbstprüfung wurde auf Admin-Anforderung angehalten. Die Diagnose wurde gespeichert; es wurde keine Reparatur gestartet.');
+   return {ok:true,status:'stopped',failed:failed.length};
+  }
+  const repair=buildMessinhoSelfRepairGoal(failed);
+  const review=await runMessinhoScheduledEngineeringReview({db,mode:'working',goal:repair.goal});
+  if(review.skipped==='already_claimed'){
+   await updateStatus('Fehler gefunden ('+failed.length+'). In diesem Arbeitszeitfenster existiert bereits ein Entwicklungsprüflauf; bitte dessen Ticket/Ergebnis prüfen.');
+   return {ok:true,status:'already_reviewed',failed:failed.length};
+  }
+  if(review.status==='ticket_created'){
+   const sandbox=review.sandbox_status==='queued'?'Die isolierte Reparaturprüfung wurde gestartet.':'Die Sandbox-Prüfung konnte nicht automatisch gestartet werden ('+review.sandbox_status+').';
+   await updateStatus('Fehler gefunden ('+failed.length+'). KI-Ticket '+review.ticket_id+' erstellt. '+sandbox+' Der Vorschlag wird nicht ungeprüft in das laufende System übernommen.');
+   return {ok:true,status:'ticket_created',failed:failed.length,ticket_id:review.ticket_id,sandbox_status:review.sandbox_status};
+  }
+  if(review.status==='no_improvement'){
+   await updateStatus('Fehler gefunden ('+failed.length+'), aber MESSINHO konnte keinen ausreichend belegten und sicheren Reparaturvorschlag erstellen. Die Diagnose bleibt gespeichert und benötigt Admin-Prüfung.');
+   return {ok:true,status:'repair_candidate_not_found',failed:failed.length};
+  }
+  await updateStatus('Fehler gefunden ('+failed.length+'). Der automatische Reparaturvorschlag konnte nicht sicher abgeschlossen werden ('+(review.code||'unbekannter Fehler')+'). Bitte Diagnose prüfen.');
+  return {ok:false,status:'repair_failed',failed:failed.length,code:review.code||'REPAIR_FAILED'};
+ }catch(error){
+  console.error('MESSINHO self-repair cycle failed:',error.message);
+  await updateStatus('Die Selbstprüfung konnte nicht vollständig abgeschlossen werden. Bitte Admin-Diagnose prüfen.');
+  return {ok:false,code:'SELF_REPAIR_FAILED'};
+ }finally{messinhoSelfRepairBusy=false;}
 }
 
 app.get('/api/admin/system-diagnostics',requireSupabaseAdmin,async(req,res)=>{
@@ -605,17 +656,23 @@ app.post('/api/admin/myki/control',myKiControlLimiter,async(req,res)=>{
     const {data,error}=await db.from('messinho_agent_control').update({
       mode,stop_requested:false,
       status_message:mode==='paused'?'MESSINHO ist pausiert und startet keine autonomen Entwicklungsaufträge. Laufende Chat-Aufträge dürfen regulär abgeschlossen werden.':
-        mode==='working'?'MESSINHO wartet auf konkrete Admin-Aufträge.':
+        mode==='working'?'MESSINHO startet jetzt die Systemfehlersuche und sichere Reparaturprüfung.':
         'MESSINHO darf freigegebene Entwicklungsprüfungen selbstständig ausführen.',
+      current_task:mode==='working'?'Systemdiagnose und sichere Fehlerbehebung':null,
       updated_by:actor.user.id,updated_at:new Date().toISOString(),stopped_at:null
     }).eq('id','global').select('mode,stop_requested,status_message,updated_at').single();
     if(error||!data)return res.status(503).json({error:'Der Betriebsmodus konnte nicht dauerhaft gespeichert werden.'});
+    if(mode==='working'){
+      const schedule=getMessinhoEngineeringReviewSchedule();
+      if(!schedule.due)return res.status(409).json({error:'Die autonome Systemprüfung ist nur zwischen 03:00–08:00 und 10:00–23:00 Uhr (Berlin) freigegeben.'});
+      void runMessinhoSelfRepairCycle(actor.user.id);
+    }
     if(mode==='developing'&&isMessinhoEngineeringAutoReviewEnabled(process.env)){
       void runMessinhoScheduledEngineeringReview({db,force:true})
         .then(result=>{if(!result.ok)console.warn('MESSINHO admin-triggered development run did not complete:',result.code);})
         .catch(error=>console.warn('MESSINHO admin-triggered development run failed:',error.message));
     }
-    return res.json({ok:true,control:data,message:mode==='developing'?'MESSINHO startet eine autonome Entwicklungsprüfung.':'Der MESSINHO-Betriebsmodus wurde gespeichert.'});
+    return res.json({ok:true,control:data,message:mode==='working'?'MESSINHO startet die Systemfehlersuche und sichere Reparaturprüfung.':mode==='developing'?'MESSINHO startet eine autonome Entwicklungsprüfung.':'Der MESSINHO-Betriebsmodus wurde gespeichert.'});
   }catch(error){console.error('myKI control update failed:',error.message);return res.status(500).json({error:'Die MESSINHO-Steuerung ist vorübergehend nicht verfügbar.'});}
 });
 app.post('/api/admin/messinho-diagnostics/run',requireSupabaseAdmin,async(req,res)=>{
