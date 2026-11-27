@@ -4947,3 +4947,36 @@ Ensure the Arabic orthographic improvements in Linguistic Intelligence 1.3.4 als
 4. Extend equivalent orthographic robustness to French/Spanish accent variants and German compound/umlaut variants where tests demonstrate a real retrieval miss.
 5. Keep translation quality claims separate from language detection; do not claim verified translation fluency without a separately tested translation provider/benchmark.
 
+
+
+## 23. Requested-language-aware knowledge routing — 2026-11-27
+
+### Objective
+Separate the language used to write a request from the language whose grammar, vocabulary or pragmatics the user is asking about. Example: an English question about Tunisian Derja must retrieve Derja knowledge, not only English knowledge.
+
+### Implemented on STAGING feature branch
+- backend/messinho-language-knowledge.js
+  - Access-layer version advanced from 1.2.1 to 1.2.2.
+  - Added conservative language-mention recognition for the six supported profiles.
+  - Explicit translation target from the linguistic action is included in the requested knowledge languages.
+  - Explicit subject-language mentions (for example Modern Standard Arabic, Tunisian Derja, German grammar, French grammar) augment the detected input language.
+  - Returns requested_language_ids separately for traceability; language_id continues to represent the detected input language.
+  - A nationality adjective by itself (for example “German player”) does not trigger a language pack.
+  - Existing eight-entry cap, active first-party-only filter, read-only chat/scout policy and per-language balancing remain in place.
+- tests/messinho-language-knowledge.test.js
+  - Added four tests: English request for Derja grammar, MSA-vs-Derja comparison, explicit French translation target, and false-positive protection for nationality adjectives.
+
+### Traceability
+- Implementation commits:
+  - 127dd261a5e08208bf3e82a6f1b333f7ff29a56b — requested-language routing and traceability field.
+  - f71ba6383db90735712b61c909404781521782ba — correct regex word boundaries.
+- Test commit:
+  - a51a64bfd1a1d52293b9f09b40301982d4be6177 — four requested-language routing regressions.
+- This is application code only. No Supabase schema/data migration is required.
+
+### Verification state
+- The preceding language retrieval release is live in STAGING on dep-dc4nr656e07s73806gtg with 482/482 tests passing.
+- This requested-language routing slice is not yet built or deployed.
+- Next action: full STAGING build, verify the new routing tests, then deploy the exact branch commit if all checks pass.
+- Production remains untouched.
+
