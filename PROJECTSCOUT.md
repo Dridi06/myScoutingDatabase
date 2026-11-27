@@ -4258,3 +4258,13 @@ Dieser Abschnitt ersetzt für die autonome Engineering-Planung die ältere Angab
 - Read-only GitHub, Render log/service/deployment and STAGING Supabase inspections were performed.
 - No source code, branch ref, PR, Render environment variable, deployment setting, database schema, database row, user/scout/player record or model weight was changed by this audit.
 - This checkpoint records observed state; it is not a release, integration approval, production change or declaration of full completion.
+
+
+## 16. STAGING-Migration für Entwicklungsfenster — 2026-11-27
+
+- Migration 20261127012816_messinho_engineering_work_windows wurde ausschließlich auf dem Supabase-STAGING-Projekt nwqwnrhupbyhshsprxjt angewendet.
+- Die Supabase-Migrationshistorie bestätigt Version 20261127012816; review_slot und der eindeutige Index (review_date, review_slot) wurden nach der Migration geprüft. Bestehende Review-Zeilen werden mit legacy erhalten; es wurden keine Review-Daten gelöscht.
+- Die ursprüngliche Repository-Datei mit geplantem Zeitstempel 20261127200000 wird auf die tatsächlich registrierte Migrationsversion 20261127012816 umgestellt, damit Git-Datei und Remote-Migrationshistorie synchron bleiben.
+- Production wurde nicht verändert.
+- Nach der Migration meldet der Supabase-Advisor weiterhin offene, getrennt zu bearbeitende Punkte: eine SECURITY DEFINER-Freigabefunktion ist für authenticated ausführbar; der Schutz vor kompromittierten Passwörtern ist deaktiviert; vier Foreign-Key-Spalten haben keinen unterstützenden Index. Die zwölf RLS-Tabellen ohne Policies sind derzeit bewusst service-role-only und müssen bei einer späteren Änderung erneut geprüft werden.
+- MESSINHO bleibt pausiert, bis der GitHub-Sandbox-Token und die STAGING-Sandbox-Freigaben nachgewiesen sind und ein echter Kandidatenlauf samt Rückmeldung erfolgreich war.
