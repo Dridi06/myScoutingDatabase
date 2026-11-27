@@ -65,7 +65,7 @@ function inferConversationSignals(text, tokens, languageId) {
     'علاش','شنوة','شنو','كيفاش','كيف','وين','متى','أين','لماذا','هل'
   );
   const politeness = has('bitte','please','merci','شكرا','عافاك','عيشك') || hasPhrase('por favor') ||
-    hasPhrase('s\\'il vous plaît','من فضلك','لو سمحت');
+    hasPhrase("s'il vous plaît",'من فضلك','لو سمحت');
   const negation = has(
     'nicht','kein','keine','keinen','no','not','pas','ne','nunca','jamás',
     'لا','موش','ماني','ما','مش','ليس','ليست','لم','لن','مازالش'
