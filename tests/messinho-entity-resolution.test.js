@@ -43,6 +43,15 @@ test('resolves an explicit name only against entities already present in context
   assert.equal(unknown.status,'not_applicable');
 });
 
+test('explicitly named comparison targets do not create a false pronoun ambiguity',()=>{
+  const history=[...onePlayer,{role:'assistant',researchContext:{player:{player_id:7,name:'Kylian Mbappé'}}}];
+  const result=resolveMessinhoEntityReferences({message:'Vergleiche Karim Benzema mit Kylian Mbappé.',history});
+  assert.equal(result.status,'not_applicable');
+  const named=resolveMessinhoEntityReferences({message:'Der Spieler Karim Benzema interessiert mich.',history:onePlayer});
+  assert.equal(named.status,'resolved');
+  assert.equal(named.entity.name,'Karim Benzema');
+});
+
 test('the other player is resolved only when there is one active player and exactly one alternative',()=>{
   const result=resolveMessinhoEntityReferences({
     message:'Und was ist mit dem anderen Spieler?',
