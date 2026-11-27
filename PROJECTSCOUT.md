@@ -5997,3 +5997,30 @@ Continue with end-to-end clarification continuity in the existing authenticated 
 ### New-chat handover
 
 Read this file from the current feature branch and inspect its latest HEAD and PR #58 state before making further changes. Block 3 is verified complete; resume at **Block 4 — end-to-end clarification continuity**.
+
+
+## 2026-11-27 — Block 4 implementation checkpoint: End-to-End Clarification Continuity
+
+### Verified baseline and findings
+- PR #58 is Open, Draft and unmerged; head branch `feature/messinho-conversation-engine`, base `feature/messinho-unified-ai-integration`.
+- Exact PR head before Block 4: `b7a49d8684d7d5b4ab82ed2b36b54f56b925ac40`; PR #58 is 74 commits ahead of its integration base and 0 behind.
+- Block 3 exact-head CI: Node tests, backend syntax and full STAGING CI all completed successfully.
+- The authenticated chat route already attached `dialogue_state` to the cognitive router, but the resulting clarification status was not consumed by the deterministic scouting parser. The parser relied on broad recent user history and a text heuristic for a pending question; it could therefore lose a goal/filter or combine unrelated turns.
+- The previous parser call did not have an explicit, typed continuation object, and the router had no auditable task-goal/filter bundle.
+
+### Block 4 implementation added
+- Added `backend/messinho-clarification-continuity.js`, a transient, bounded bridge from dialogue-state classification to the existing scouting parser.
+- Carries the exact previous scouting goal plus the user's subsequent clarification answers; it does not invent filters.
+- Accumulates multiple turns (e.g. original player/position/age goal → country → league) and supplies only the task-scoped user messages to the parser.
+- Detects new topics and explicitly supplies no previous parser history, preventing old search filters from leaking into a new task.
+- Ambiguous/unlisted answers and long free-text candidate answers are action-blocked until clarified or semantically resolved; negated yes/no questions are conservatively clarified rather than inverted.
+- Supports matching Arabic/Tunisian Derja option text from the actual pending question and bounded option segmentation.
+- Attaches the continuity result to the existing dialogue state passed to the cognitive router and uses the effective goal/answer context in the real `parseMessinhoScoutingRequest` call.
+- Added tests for multiple assistant questions, multi-turn filter retention, new-topic isolation, negated questions, option segmentation, Arabic/Derja, and unrelated task separation.
+- No new table, migration, persistent memory, external provider, permission grant, or model-weight change.
+
+### Verification status
+- Implementation has been committed to the feature branch only.
+- CI results for the new exact commit must be recorded before Block 4 is called complete.
+- No Render deployment has been triggered. No LIVE/Production branch, service or database was changed.
+- PR #58 remains Draft and unmerged; no merge or deployment without the owner's explicit approval.
