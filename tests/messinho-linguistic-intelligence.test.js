@@ -454,3 +454,13 @@ test('does not invent a qualified evaluation for plain direct negation',()=>{
   assert.deepEqual(signals.negation_scope_cues,[]);
   assert.deepEqual(signals.qualified_evaluation_cues,[]);
 });
+
+
+test('publishes semantic nuance cues in stable chat metadata',()=>{
+  const context=buildMessinhoLinguisticContext('The player is not bad, but perhaps not ready yet.',[]);
+  const metadata=buildMessinhoLinguisticResponseMetadata(context);
+  assert.deepEqual(metadata.signals.negation_scope_cues,['not_bad','not_yet']);
+  assert.deepEqual(metadata.signals.qualified_evaluation_cues,['not_bad']);
+  assert.deepEqual(metadata.signals.uncertainty_cues,['uncertainty']);
+  assert.deepEqual(metadata.signals.contrast_cues,['contrast']);
+});
