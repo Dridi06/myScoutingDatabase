@@ -4404,3 +4404,60 @@ Hocharabisch und tunesische Derja sind getrennte Sprachprofile. MESSINHO soll zu
 - Der isolierte Engineering-Workflow `45924388916` war beim Dokumentationsabschluss noch nicht als erfolgreicher Kandidatenlauf mit Compiler-/Callback-Nachweis bestätigt; die Payload-Vorbereitung wurde übersprungen. Deshalb darf MESSINHO weiterhin nicht als erfolgreich autonom programmierend oder selbstintegrierend bezeichnet werden.
 - MESSINHO-Betriebsmodus und Sandbox-Freigabe werden durch den Monitor nicht verändert. Die Entscheidung über Aktivierung und kritische Änderungen bleibt beim Admin.
 - Nächster Schritt: mit einem freigeschalteten Admin-Konto auf STAGING anmelden, myKI öffnen und Statusabruf, mobile Darstellung, 30-Sekunden-Aktualisierung sowie Fehlerzustände kontrollieren. Danach die echte Sandbox-Payload-/Compiler-/Callback-Kette separat abschließen.
+
+
+## 20. Vollausbau MESSINHO Linguistic Intelligence — Owner-Auftrag 2026-11-27
+
+### Verbindlicher Auftrag
+Der Eigentümer hat den vollständigen Ausbau der Linguistic Intelligence angeordnet. MESSINHO soll die sechs festgelegten Sprachprofile nicht nur erkennen, sondern im bestehenden Chat aktiv für Sprachverständnis, Bedeutungsanalyse, Antworten, Korrektur, Übersetzung und kontrollierten Wissensaufbau nutzen:
+- Deutsch (de)
+- Englisch (en)
+- Französisch (fr)
+- Hocharabisch / Modern Standard Arabic (ar)
+- Tunesisches Arabisch / Derja (ar-tn), arabische Schrift und lateinisches Arabizi
+- Spanisch (es)
+
+Hocharabisch und tunesische Derja bleiben eigenständige Sprachprofile. Code-Switching und Sprachwechsel innerhalb eines Gesprächs müssen erhalten bleiben. Das Modul muss im bestehenden MESSINHO-Chat genutzt werden; keine zweite Chatoberfläche.
+
+### Ausgangsbefund
+- Die bestehende technische Basis umfasst sechs Profile, heuristische Spracherkennung, einfache Gesprächssignale, Kontextkontinuität, Chat-Prompt-Integration und den lesenden Zugriff auf freigegebene Sprachwissenseinträge.
+- STAGING-Sprachwissensbasis: 30 unterschiedliche Eintragsschlüssel und 36 append-only Versionszeilen; je Profil fünf aktuelle Einträge. RLS/Grants sind service-role-only für den Runtime-Lesezugriff.
+- Die Basis ist ausdrücklich kein vollständiges Wörterbuch, keine vollständige Grammatik, keine eigenständige Übersetzungs-/Korrektur-Engine und kein Beleg muttersprachlicher Kompetenz.
+- Die aktuelle Codebasis ist regel-/lexikonbasiert und nutzt zusätzlich den konfigurierten Sprachmodell-Provider für die eigentliche freie Sprachgenerierung. Ein Provider darf nicht als Beweis einer eigenständigen MESSINHO-Sprachfähigkeit ausgegeben werden.
+- Letzter dokumentierter Sprachcode-Commit: 6b0eddac490c2b09aa301fcb58d75ced20a2ab22. Die zugehörige spätere Staging-Bereitstellung und die korrigierte DB-Abfrage müssen vor einer neuen Änderung erneut auf exaktem Branch-HEAD und Render-Deploy abgeglichen werden.
+
+### Zielarchitektur und Arbeitspakete
+1. **Sprachdetektion und Segmentierung:** robuste Erkennung pro Satz/Abschnitt, Skripterkennung, Arabizi-Normalisierung, Dialekttrennung, Konfidenz- und Mehrdeutigkeitsbehandlung; keine erzwungene Einzelsprache bei gemischten Nachrichten.
+2. **Grammatik- und Morphologiegrundlagen:** systematische, versionierte Lehrpläne für alle sechs Profile; Wortarten, Satzbau, Flexion, Zeiten/Aspekte, Kongruenz, Kasus bzw. arabische Morphologie, Orthografie und häufige Fehlerbilder.
+3. **Lexikon und Semantik:** umfangreicher, kontextbezogener Wortschatz, Mehrdeutigkeit, Wortfamilien, Kollokationen, Redewendungen, Register, regionale Varianten und fachsprachliche Begriffe; keine unlizenzierte Kopie geschützter Wörterbücher.
+4. **Pragmatik und Gesprächsverständnis:** Verneinung, Modalität, Höflichkeit, Ironie, Unsicherheit, Kontrast, indirekte Fragen/Aufforderungen, Bezugnahme und Gesprächskontinuität.
+5. **Sprachaktionen:** explizite, zuverlässige Modi für Antworten, Erklären, Übersetzen, Korrigieren und Umformulieren. Originaltext und Bedeutung bleiben erhalten; bei unklarer Quelle/Zielsprache wird gezielt nachgefragt. Übersetzungen werden nicht als extern verifiziert bezeichnet, wenn keine unabhängige Prüfung stattgefunden hat.
+6. **Wissenslernen und Governance:** Recherche-/Lernvorschläge mit Herkunft, Lizenz, Version, Konfidenz, Gegenprüfung, Testfällen und Admin-Freigabe. Append-only Versionierung; kein Scout-Schreibzugriff und keine automatische Aktivierung unvalidierter Inhalte.
+7. **Qualitätssicherung:** Testkorpus pro Sprache und Variante, Negativ-/Grenzfälle, gemischte Nachrichten, Arabizi-Schreibvarianten, native-speaker review, Regressionstests und dokumentierte Qualitätsmetriken. Keine Native-Level-Aussage ohne unabhängige Evaluation.
+
+### Abnahmekriterien für „vollständig umgesetzt“
+- Alle sechs Profile und ihre relevanten Varianten besitzen strukturierte, ausreichend breite Grundlagen in Grammatik, Morphologie, Lexikon, Semantik und Pragmatik.
+- Der Chat verwendet die Sprachdiagnose und passende freigegebene Wissensbausteine in sämtlichen relevanten Antwortpfaden, nicht nur im generischen LLM-Fallback.
+- Übersetzen, Korrigieren, Erklären und normales Antworten sind getrennt erkennbar und mit Referenzfällen geprüft.
+- Dialekt, Arabizi, gemischte Sprache, Verneinung und Bedeutungsnuancen bestehen definierte Regressionstests.
+- Wissensupdates sind revisionssicher, lizenzrechtlich zulässig und nur nach Qualitätsprüfung/Admin-Freigabe aktiv.
+- CI, Backend-Syntax, Staging-Build, Datenbank-/RLS-Prüfung und authentifizierte Chat-E2E sind für den exakten Release-Commit erfolgreich.
+- Muttersprachliche Qualität wird separat ausgewiesen und nur nach unabhängiger Bewertung behauptet.
+
+### Grober Zeitrahmen
+Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion, abhängig von Umfang der Sprachkorpora und Verfügbarkeit muttersprachlicher Prüfer. Eine erste erweiterte integrierte Ausbaustufe kann früher auf STAGING getestet werden. Die Schätzung ist kein Fertigstellungsnachweis und wird nach dem ersten vollständigen Audit der Chatpfade und Wissensbasis präzisiert.
+
+### Sicherheits- und Release-Grenzen
+- Ausschließlich Branch `feature/messinho-unified-ai-integration` und das dedizierte STAGING-Projekt `nwqwnrhupbyhshsprxjt`.
+- Kein Merge nach `main`, kein Production-Deploy und keine Änderung an Produktionsdaten/-secrets.
+- Keine Änderung an aktiven Modellgewichten.
+- Keine direkte Wissensschreibberechtigung für Scouts oder normale Chatpfade.
+- Vor jeder STAGING-Migration Schema, Remote-Migrationshistorie, RLS und Grants prüfen.
+- Render Auto-Deploy bleibt deaktiviert; Deployment erst nach CI und expliziter Freigabe.
+
+### Status dieses Auftrags
+- **Auftrag:** angenommen und in Arbeit.
+- **Code-Vollausbau:** noch nicht begonnen/abgeschlossen; die vorhandene Basis bleibt als Teilimplementierung gekennzeichnet.
+- **Datenbank:** keine Änderung in diesem Auftragsschritt.
+- **Deployment:** keines ausgelöst.
+- **Nächster konkreter Schritt:** exakten Branch-HEAD, aktuellen Render-STAGING-Commit und die Sprachwissensmigrationen erneut abgleichen; danach zuerst alle Chat-Antwortpfade kartieren und die Sprachpipeline so integrieren, dass alle relevanten Antworten dieselbe Sprachrichtlinie verwenden.
