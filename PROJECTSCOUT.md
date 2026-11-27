@@ -5785,3 +5785,34 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - PR #57 merged by squash as commit `22842c9cafd47dbd1f7492e2d98f57e87ba7b1dc` into the STAGING integration branch.
 - Render auto-deploy remains disabled. This change is merged to the STAGING source branch but has **not** yet been manually deployed to the STAGING service. Production/LIVE remains untouched.
 - Next: deploy this exact integration-branch commit to Render STAGING after deployment authorization, then run authenticated Admin/Scout end-to-end checks for all six profiles, code-switching, negation scope, follow-up clarification, and response-language continuity. Continue by improving clause-level scope and reference resolution only after the current behavior is measured.
+
+## 2026-11-27 — MESSINHO Dialogue Engine 1.0.0 — STAGING feature branch
+
+### Goal
+- Strengthen the existing Conversational Intelligence 3.0 without creating a parallel chatbot, second memory store, or replacement for the existing authenticated chat route.
+- Preserve the existing semantic cognitive router, owner-scoped conversation history, approved memory store, language intelligence, and Admin/Scout permission enforcement.
+
+### Implementation
+- New module: `backend/messinho-dialogue-engine.js`.
+- New tests: `tests/messinho-dialogue-engine.test.js`.
+- The bounded extractive state builder packages:
+  - likely follow-up signals in the current message;
+  - whether the last assistant turn appears to contain an unanswered question;
+  - a short-answer-to-pending-question signal;
+  - the previous user message and previous assistant message;
+  - the latest substantive user-goal candidate;
+  - up to four recent user-focus messages;
+  - the current response-language hint.
+- Integrated into `POST /api/agent/chat` by attaching `dialogue_state` to the already-existing linguistic context passed to `classifyMessinhoTurn`.
+- Updated the cognitive-router prompt to use these fields only as bounded continuity evidence. It must not treat a candidate referent as a fact; ambiguous references should trigger one focused clarification.
+- No new database table, migration, persistent memory behavior, provider call, permission, external action, or model-weight change.
+
+### Safety and limitations
+- History remains loaded using the existing authenticated `owner_id` and `conversation_id` filters.
+- Only sanitized user/assistant text from the bounded recent history is included; no research-context payload is copied into the dialogue snapshot.
+- Dialogue state is transient and extractive. It does not independently resolve pronouns, infer player identity, or authorize actions.
+- Admin/Scout authorization remains authoritative; Scout engineering restrictions are unchanged.
+- Work branch: `feature/messinho-conversation-engine`.
+- PR #58: https://github.com/Dridi06/myScoutingDatabase/pull/58 (draft, targets `feature/messinho-unified-ai-integration`).
+- No database changes, Render deployment, production branch changes, LIVE changes, or production Supabase access.
+- CI is being rerun after correcting the regression fixture for a new-topic request following an assistant question. Record final results for the exact final PR head before merge.
