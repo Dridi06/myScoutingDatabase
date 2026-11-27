@@ -9,13 +9,18 @@ test('daily review is strictly gated to the explicitly enabled staging service',
  assert.equal(isMessinhoEngineeringAutoReviewEnabled({...staging,MESSINHO_ENGINEERING_AUTOREVIEW_ENABLED:'false'}),false);
  assert.equal(isMessinhoEngineeringAutoReviewEnabled({...staging,OPENAI_API_KEY:''}),false);
 });
-test('review schedule is due daily from 20:00 Berlin time',()=>{
- const before=getMessinhoEngineeringReviewSchedule(new Date('2026-11-27T18:59:00Z'));
- assert.equal(before.due,false);
- const due=getMessinhoEngineeringReviewSchedule(new Date('2026-11-27T19:00:00Z'));
- assert.equal(due.due,true);
- assert.equal(due.hour,20);
- assert.equal(due.review_date,'2026-11-27');
+test('review schedule enforces both Berlin work windows and rest periods',()=>{
+ const morning=getMessinhoEngineeringReviewSchedule(new Date('2026-11-27T02:00:00Z'));
+ assert.equal(morning.due,true);assert.equal(morning.review_slot,'morning');
+ assert.equal(getMessinhoEngineeringReviewSchedule(new Date('2026-11-27T06:59:00Z')).due,true);
+ const pause=getMessinhoEngineeringReviewSchedule(new Date('2026-11-27T07:00:00Z'));
+ assert.equal(pause.due,false);assert.equal(pause.phase,'break');
+ const day=getMessinhoEngineeringReviewSchedule(new Date('2026-11-27T09:00:00Z'));
+ assert.equal(day.due,true);assert.equal(day.review_slot,'daytime');
+ assert.equal(getMessinhoEngineeringReviewSchedule(new Date('2026-11-27T21:59:00Z')).due,true);
+ const night=getMessinhoEngineeringReviewSchedule(new Date('2026-11-27T22:00:00Z'));
+ assert.equal(night.due,false);assert.equal(night.phase,'night_rest');
+ assert.equal(morning.review_date,'2026-11-27');
 });
 function mockDb({claimError=null,mode='developing',stopRequested=false}={}){
  const state={claim:null,update:null,control:{mode,stop_requested:stopRequested}};
@@ -36,12 +41,12 @@ function mockDb({claimError=null,mode='developing',stopRequested=false}={}){
   }
  };
 }
-test('claims one review per Berlin day and records no-improvement result without creating a ticket',async()=>{
+test('claims one review per Berlin work window and records no-improvement result without creating a ticket',async()=>{
  const db=mockDb();
- const result=await runMessinhoScheduledEngineeringReview({db,now:new Date('2026-11-27T19:00:00Z'),generate:async()=>({ok:true,proposal:null,source_sha:'a'.repeat(40)})});
- assert.equal(result.status,'no_improvement');assert.equal(db.state.claim.review_date,'2026-11-27');assert.equal(db.state.update.status,'no_improvement');
+ const result=await runMessinhoScheduledEngineeringReview({db,now:new Date('2026-11-27T02:00:00Z'),generate:async()=>({ok:true,proposal:null,source_sha:'a'.repeat(40)})});
+ assert.equal(result.status,'no_improvement');assert.equal(db.state.claim.review_date,'2026-11-27');assert.equal(db.state.claim.review_slot,'morning');assert.equal(db.state.update.status,'no_improvement');
 });
-test('does not duplicate an already claimed daily review',async()=>{
+test('does not duplicate an already claimed review window',async()=>{
  const db=mockDb({claimError:{code:'23505'}});
  const result=await runMessinhoScheduledEngineeringReview({db,now:new Date('2026-11-27T02:00:00Z')});
  assert.equal(result.skipped,'already_claimed');
@@ -78,10 +83,20 @@ test('admin stop requested during generation prevents myKI ticket persistence',a
 
 
 
-test('admin can start a development review immediately before the daily schedule',async()=>{
+test('admin-selected development can run in the daytime window',async()=>{
  const db=mockDb();
- const result=await runMessinhoScheduledEngineeringReview({db,now:new Date('2026-11-27T18:00:00Z'),force:true,
+ const result=await runMessinhoScheduledEngineeringReview({db,now:new Date('2026-11-27T18:00:00Z'),
   generate:async()=>({ok:true,proposal:null,source_sha:'e'.repeat(40)})});
- assert.equal(result.status,'no_improvement');
- assert.equal(db.state.claim.review_date,'2026-11-27');
+ assert.equal(result.status,'no_improvement');assert.equal(db.state.claim.review_slot,'daytime');
+});
+
+test('does not persist a proposal when the work window ends during generation',async()=>{
+ const db=mockDb();let persisted=false;
+ const result=await runMessinhoScheduledEngineeringReview({db,now:new Date('2026-11-27T06:59:00Z'),
+  getCurrentTime:()=>new Date('2026-11-27T07:00:00Z'),
+  generate:async()=>({ok:true,proposal:{title:'must not persist'},source_sha:'d'.repeat(40)}),
+  persist:async()=>{persisted=true;return {ok:true,ticket_id:'must-not-exist'};}
+ });
+ assert.equal(result.status,'stopped');assert.equal(persisted,false);
+ assert.equal(db.state.update.error_code,'WORK_WINDOW_ENDED');
 });
