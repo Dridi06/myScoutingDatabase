@@ -7,7 +7,7 @@ export const MESSINHO_DIALOGUE_ENGINE_VERSION = '1.0.0';
 const MAX_TEXT = 900;
 const MAX_TURNS = 12;
 const MAX_FOCUS = 4;
-const FOLLOW_UP_PATTERN = /(?:^|\b)(?:und|aber|also|dann|danach|davon|dazu|damit|darauf|deshalb|warum|wieso|weshalb|wie|welcher|welche|welches|der|die|das|er|sie|es|ihn|ihm|dort|diese|dieser|dieses|nochmal|weiter|genau|ja|nein|stimmt|okay|ok|and|but|then|that|this|it|they|he|she|why|how|which|what about|continue|more|again|ça|cela|il|elle|pourquoi|comment|ensuite|et|mais|ذلك|هذا|هذه|هو|هي|لماذا|كيف|وبعد|شنوة|شنو|علاش|توا|باهي|إي|لا)(?:$|\b)/iu;
+const FOLLOW_UP_PATTERN = /^\s*(?:und|aber|also|dann|danach|davon|dazu|damit|darauf|deshalb|warum|wieso|weshalb|wie|welcher|welche|welches|er|sie|es|ihn|ihm|dort|diese|dieser|dieses|nochmal|weiter|genau|ja|nein|stimmt|okay|ok|and|but|then|that|this|it|they|he|she|why|how|which|what about|continue|more|again|ça|cela|il|elle|pourquoi|comment|ensuite|et|mais|ذلك|هذا|هذه|هو|هي|لماذا|كيف|وبعد|شنوة|شنو|علاش|توا|باهي|إي|لا)(?:$|\b)/iu;
 const QUESTION_PATTERN = /[?؟]|\b(?:welche|welcher|welches|was|wer|wie|warum|wieso|wo|wann|which|what|who|how|why|where|when|pourquoi|comment|quoi|qui|وين|علاش|شنوة|شنو)\b/iu;
 function cleanText(value, max = MAX_TEXT) {
   return String(value ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/gu, '').trim().slice(0, max);
