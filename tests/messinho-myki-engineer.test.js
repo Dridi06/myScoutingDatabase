@@ -13,7 +13,7 @@ index 1111111..2222222 100644
 `;
 const response=payload=>({ok:true,json:async()=>payload});
 const candidate={title:'Verbesserte Eingabe-Normalisierung',rationale:'Ein konkreter Grenzfall in der Normalisierung wird nicht konsistent behandelt und kann sicher vereinheitlicht werden.',patch,test_plan:['Grenzfall und Normalfall prüfen','Regression für bestehende Korrekturen prüfen'],rollback_plan:'Vorherigen Commit wiederherstellen und beide Regressionstests erneut ausführen.'};
-const sourceFor=url=>url.endsWith('messinho-input-correction.js')?'const value = 1;\n':'export const safe = true;\n';
+  if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=>url.endsWith('/backend/messinho-input-correction.js')?'const value = 1;\n':'export const safe = true;\n'};
 
 test('recognizes explicit Admin self-review requests',()=>{
  assert.equal(isMessinhoEngineeringRequest('MESSINHO, entwickle eine Verbesserung für dich selbst'),true);
