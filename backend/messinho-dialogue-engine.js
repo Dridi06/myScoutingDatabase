@@ -62,7 +62,7 @@ function classifyQuestionKind(question, options) {
   if (/\b(?:welcher spieler|wen meinst|welchen spieler|which player|who do you mean|quel joueur|qué jugador|أي لاعب|شنوّة لاعب)\b/u.test(text)) return 'player_reference';
   if (hasToken('bundesliga','regionalliga','liga','league','level','spielklasse','niveau','division','championship')) return 'target_level';
   // Classify the semantic subject before the generic "A or B" choice fallback.
-  if (hasToken('wo','wohin','standort','region','land','country','location','where','deutschland','international','donde','فين','وين','tunisia','tunesien')) return 'location';
+  if (hasToken('wo','wohin','standort','region','land','country','location','where','deutschland','international','donde','فين','وين','tunisia','tunesien','ألمانيا','تونس','فرنسا','إيطاليا','إسبانيا')) return 'location';
   if (hasToken('alt','alter','jahrgang','geburtsjahr','age','born','old','años','عمر') || /\b(?:how old|quel âge|quel age|qué edad)\b/u.test(text)) return 'age';
   if (hasToken('position','positions','rolle','role','poste','posición','مركز')) return 'position';
   if (hasToken('fuß','fuss','schussbein','preferred','foot','left','right','pied','pie','القدم')) return 'preferred_foot';
