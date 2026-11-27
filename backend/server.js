@@ -50,7 +50,7 @@ import { persistMessinhoDiagnosticTicket } from './messinho-diagnostic-ticket.js
 import { buildMessinhoForecastContext } from './messinho-forecast-context.js';
 import { isMessinhoAdminOnlyCommand } from './messinho-command-access.js';
 import { buildMessinhoLinguisticContext, buildMessinhoLinguisticResponseMetadata } from './messinho-linguistic-intelligence.js';
-import { classifyMessinhoTurn, appendMessinhoLongTermMemories } from './messinho-conversational-intelligence.js';
+import { classifyMessinhoTurn, appendMessinhoLongTermMemories, isMessinhoGreeting } from './messinho-conversational-intelligence.js';
 import { buildMessinhoDialogueState } from './messinho-dialogue-engine.js';
 import { buildMessinhoClarificationContinuity } from './messinho-clarification-continuity.js';
 import { resolveMessinhoEntityReferences } from './messinho-entity-resolution.js';
@@ -2311,6 +2311,11 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     dialogueState.entity_resolution=entityResolution;
     const clarificationContinuity=buildMessinhoClarificationContinuity({message:interpretedMessage,history,dialogueState});
     dialogueState.continuity.clarification_continuity=clarificationContinuity;
+    // Basic greetings must remain available even if the external semantic router is down.
+    // This path is deliberately read-only and never starts research or an agent action.
+    if(isMessinhoGreeting(interpretedMessage)&&!['likely_answer','ambiguous'].includes(clarificationContinuity.status)){
+      return respond({reply:'Hallo! Schön, dass du da bist. Wobei kann ich dir helfen?',intent:'conversation_greeting',items:[]});
+    }
     const resolvedPlayerReference=entityResolution.status==='resolved'&&entityResolution.entity?.entity_type==='player'&&entityResolution.reason!=='explicit_known_entity_mention'
       ?entityResolution.entity.name:null;
     const legacyPlayerFollowUp=!entityResolution.reference_detected
@@ -2329,7 +2334,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       model:process.env.OPENAI_MODEL||'gpt-4.1-mini'
     });
     if(cognitiveResult.status!=='completed'||!cognitiveResult.decision){
-      console.warn('MESSINHO cognitive router unavailable:',cognitiveResult.status,cognitiveResult.error_code||'');
+      console.warn('MESSINHO cognitive router unavailable:',cognitiveResult.status,'http_status='+String(cognitiveResult.http_status||'n/a'),'error_code='+String(cognitiveResult.error_code||'unknown'));
       return respond({
         reply:'Ich kann die Bedeutung deiner Nachricht gerade nicht zuverlässig einordnen. Deine Nachricht ist gespeichert. Bitte versuche es noch einmal; ich starte vorsichtshalber keine Recherche und führe keine Aktion aus.',
         intent:'cognitive_router_unavailable',items:[],
