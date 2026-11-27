@@ -21,6 +21,6 @@ test('tool intelligence marks admin-only work blocked for scouts',()=>{
 test('tool intelligence reports missing and unassessed input contracts honestly',()=>{
  const report=buildMessinhoToolIntelligence({steps:['overall_score','club_fit_score']},'admin',{});
  assert.ok(report.tools[0].missing_inputs.includes('player_metrics'));
- assert.equal(report.tools[1].unassessed_inputs.includes('club_needs'),true);
- assert.equal(report.tools[1].input_readiness,'not_fully_assessed');
+ assert.equal(report.tools[1].missing_inputs.includes('club_needs'),true);
+ assert.equal(report.tools[1].input_readiness,'may_need_input');
 });
