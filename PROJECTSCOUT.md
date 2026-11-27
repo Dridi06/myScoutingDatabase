@@ -5839,3 +5839,14 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Final tested code commit: `49f41d614e1da2faac77ef47ef9dabb26fa55e65`.
 - Exact-commit CI: **550/550 Node tests passed**; backend syntax passed; full STAGING branch CI passed including Vite production build.
 - PR #58 remains draft and unmerged. No Render deployment, database migration, or production/LIVE change.
+
+
+## 2026-11-27 — MESSINHO Dialogue Engine 1.1.0 — follow-up precision
+
+- Extended `backend/messinho-dialogue-engine.js` with an explicit, bounded `follow_up_signal`: `none`, `discourse_connector`, `referential_question`, `short_reply`, or `pending_question_reply`.
+- Reduced false-positive follow-up classification: a generic new question such as “Wie funktioniert das Steuersystem?” is not considered a follow-up merely because it begins with an interrogative or contains a German article.
+- Added explicit continuation cues for Spanish inverted question punctuation and Tunisian Derja/Arabizi examples; short acknowledgements are prioritized over overlapping connector cues.
+- Added regression tests for new-topic questions, referential follow-ups, short replies, Spanish transitions, and Arabizi cues.
+- The signal remains contextual evidence only. It does not resolve a player identity, assert a fact, persist memory, or authorize an action.
+- No database changes, migrations, permission changes, external actions, Render deployment, or production changes.
+- Code commit under validation: `1ddfde7c59b2bd916c6fe28cf36be95034f74071`. Final exact-commit CI result is pending; do not merge or deploy until all three workflows pass.
