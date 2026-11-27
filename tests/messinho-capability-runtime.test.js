@@ -168,3 +168,39 @@ test('capability catalogue does not report existing specialist handlers as requi
  assert.equal(summary.by_status.partial_or_requires_validation,73);
  assert.equal(summary.by_status.requires_new_integration,0);
 });
+
+
+test('development projection exposes evidence-gated 12-month and outcome cohort forecasts',()=>{
+ const time_series=[
+  {verification_status:'verified',date:'2025-01-01',score:50},
+  {verification_status:'verified',date:'2025-07-01',score:60},
+  {verification_status:'verified',date:'2026-01-01',score:70}
+ ];
+ const success_history=Array.from({length:32},(_,i)=>({
+  verification_status:'verified',position_group:'striker',age:20+(i%3),current_score:70+(i%5),success:i%3!==0
+ }));
+ const forecast=executeMessinhoCapability('development_projection',{
+  player:{name:'Test',positions:['Stürmer'],ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4},age:21},
+  time_series,success_history
+ });
+ assert.equal(forecast.status,'completed');
+ assert.equal(forecast.result.development_forecast.status,'completed');
+ assert.equal(forecast.result.outcome_forecast.status,'completed');
+ assert.equal(forecast.result.outcome_forecast.verified_comparable_cases,32);
+});
+
+test('market value capability can return a historical forecast without inventing a current comparable range',()=>{
+ const history=[
+  {verification_status:'verified',date:'2025-01-01',value_eur:1000000,currency:'EUR'},
+  {verification_status:'verified',date:'2025-07-01',value_eur:1500000,currency:'EUR'},
+  {verification_status:'verified',date:'2026-01-01',value_eur:2000000,currency:'EUR'}
+ ];
+ const forecast=executeMessinhoCapability('market_value_assessment',{
+  player:{name:'Test',positions:['Stürmer'],ratings:{Technik:4,Taktik:4,Athletik:4,Mental:4}},
+  market_value_history:history
+ });
+ assert.equal(forecast.status,'completed');
+ assert.equal(forecast.result.median,null);
+ assert.equal(forecast.result.historical_value_forecast.status,'completed');
+ assert.equal(forecast.result.estimate_only,true);
+});
