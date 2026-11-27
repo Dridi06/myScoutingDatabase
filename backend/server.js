@@ -472,8 +472,9 @@ app.get('/api/admin/messinho-diagnostics',requireSupabaseAdmin,async(req,res)=>{
   if(error)return res.status(500).json({error:'MESSINHO-Diagnosehistorie konnte nicht geladen werden.',detail:error.message});
   return res.json(data||[]);
 });
+const myKiStatusLimiter=rateLimit({windowMs:60*1000,limit:120,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele myKI-Statusabfragen. Bitte kurz warten.'}});
 const myKiControlLimiter=rateLimit({windowMs:60*60*1000,limit:60,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele myKI-Steuerungsanfragen. Bitte später erneut versuchen.'}});
-app.get('/api/admin/myki/status',myKiControlLimiter,async(req,res)=>{
+app.get('/api/admin/myki/status',myKiStatusLimiter,async(req,res)=>{
   const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
   if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
   try{
