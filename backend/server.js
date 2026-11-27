@@ -2134,7 +2134,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const history=sanitizeMessinhoHistory(req.body?.history);
     const correction=correctMessinhoInput(message);
     const interpretedMessage=correction.corrected;
-    const linguisticContext=buildMessinhoLinguisticContext(interpretedMessage,history);
+    const linguisticContext=buildMessinhoLinguisticContext(message,history);
     let linguisticKnowledgeStatus='not_loaded';
     const respond=payload=>res.json({...payload,linguistic_intelligence:{version:linguisticContext.version,status:linguisticContext.status,primary_language:linguisticContext.primary_language,primary_language_name:linguisticContext.primary_language_name,confidence:linguisticContext.confidence,languages:linguisticContext.languages,scripts:linguisticContext.scripts,signals:linguisticContext.signals},linguistic_knowledge:{status:linguisticKnowledgeStatus},input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
     // Scouts may use MESSINHO for scouting and conversation, but cannot issue
