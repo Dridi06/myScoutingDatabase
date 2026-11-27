@@ -4522,3 +4522,38 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - Render-STAGING-Build für den finalen Stand: **443 Tests bestanden, 0 fehlgeschlagen**, Backend-Syntax und Vite-Produktionsbuild erfolgreich.
 - STAGING-Deployment **live**: `dep-dc4ebd97lnhs73879bb0`, Commit `4022eadc38ac0a9eb0c9f92b84026f7cbe9153b1`; Runtime-Start, Supabase Data API HTTP 200 und Render-Meldung „Your service is live“ bestätigt.
 - Authentifizierter Admin-Klicktest des neuen Ablaufs und negativer Scout-Berechtigungstest stehen noch aus; der tatsächliche Diagnose-/Reparaturlauf wurde noch nicht ausgelöst. Die Sandbox-Konfiguration muss vor einem automatischen Kandidatentest weiterhin vollständig nachgewiesen sein.
+
+
+## 23. Dynamische Gesamtprüfung und zuverlässiger Admin-Start der Weiterentwicklung — 2026-11-27
+
+### Fehlerursache
+- Der bisherige MESSINHO-Diagnoselauf enthielt neun fest programmierte Prüfungen und untersuchte damit nicht dynamisch den gesamten ausgelieferten Projektbestand.
+- Der Button „Weiterentwickeln“ rief die Engineering-Prüfung nur auf, wenn `isMessinhoEngineeringAutoReviewEnabled` wahr war. Diese Freigabe verlangt zusätzlich den separaten Scheduler-Schalter. Bei deaktiviertem Scheduler wurde der explizite Admin-Klick gespeichert, aber es startete keine Entwicklungsprüfung.
+- Der Admin-Aufruf übergab außerdem `force:true`, obwohl der Scheduler-Parameter zuvor nicht verarbeitet wurde. Ein erneuter Lauf konnte zusätzlich am täglichen Zeitfenster-Claim hängen bleiben.
+
+### Implementiert auf dem Feature-Branch
+- Neues read-only Modul `backend/messinho-project-audit.js` untersucht zur Laufzeit die ausgelieferten Bereiche `backend/`, `src/`, `tests/` und `supabase/migrations/`.
+- Es inventarisiert Dateien und prüft Quelltext-Lesbarkeit, leere/auffällig große Dateien, relative Modulimporte, direkte Backend-Testzuordnung, Build-/Testskripte, Migrationsbestand und API-Routen. Admin-Routen erhalten zusätzlich eine statische Hinweisprüfung auf unmittelbar erkennbare Schutz-Middleware.
+- Der Audit führt ausdrücklich keine Projektdateien, Shell-Befehle, Tests oder Migrationen aus. Er verändert keine Daten und liest keine Secrets. Statische Guard-Hinweise ersetzen keine authentifizierten Berechtigungstests.
+- Die dynamischen Audit-Befunde werden an die bestehenden neun MESSINHO-Fachprüfungen angehängt und gemeinsam dauerhaft als Diagnosebericht gespeichert. Die Anzahl der Prüfungen ist damit nicht mehr auf neun begrenzt.
+- Fehlgeschlagene Befunde werden für den Reparaturauftrag auf maximal 20 begrenzt und nachvollziehbar übergeben. Diagnose-Tickets können bis zu 20 Befunde aufnehmen; es wird weiterhin kein unsicherer Patch erstellt.
+- „Weiterentwickeln“ startet nach einem ausdrücklichen Admin-Klick jetzt eine einmalige Engineering-Prüfung, auch wenn der periodische Scheduler-Schalter ausgeschaltet ist. Der manuelle Lauf erhält einen eigenen eindeutigen Review-Slot, statt mit dem täglichen Automatik-Lauf zu kollidieren.
+- Der manuelle Entwicklungsstart bleibt auf das bestätigte STAGING-Render-Service-ID-Paar und die festgelegten Berliner Arbeitsfenster beschränkt. Außerhalb der Arbeitszeit oder außerhalb des STAGING-Dienstes wird der Auftrag mit einer klaren Fehlermeldung abgewiesen.
+- Der Admin-Status zeigt während der Entwicklung den laufenden Auftrag; nach Abschluss wird eine verständliche Ergebnismeldung gespeichert. Der Aktivitätsmonitor berücksichtigt den manuell gestarteten Entwicklungsmodus.
+- „Arbeiten“ nutzt ebenfalls den eindeutigen manuellen Review-Slot für die Reparaturprüfung. Stop-/Modusprüfung, Ticketfreigabe und Sandbox-Grenzen bleiben erhalten.
+
+### Tests und Nachweise
+- Neue Tests für dynamische Projektinventarisierung, Importfehler-Erkennung, Build-/Testskriptprüfung, manuellen Entwicklungsstart, eindeutigen Review-Slot und die STAGING-Sperre.
+- GitHub Actions auf Commit `a041bb597784d8fbdc3fd51c672c61d813a7d3a6`: **447 Tests bestanden, 0 fehlgeschlagen**.
+- Backend-Syntaxprüfung erfolgreich.
+- Vollständiger STAGING-Branch-CI-Workflow inklusive Regressionstests, Backend-Syntax und Vite-Produktionsbuild erfolgreich.
+- Render-STAGING-Deployment für diese neue Änderung ist noch nicht ausgelöst; Auto-Deploy bleibt deaktiviert.
+- Kein Datenbankschema geändert. Keine Migration ausgeführt. Production und `main` unverändert.
+
+### Verbleibende Grenzen / nächste Schritte
+1. Render-STAGING manuell mit dem geprüften Feature-Branch-Stand deployen und Deploy-Commit/Live-Status kontrollieren.
+2. Danach authentifizierten Admin-Klicktest für „Arbeiten“ und „Weiterentwickeln“ durchführen; Scout-Aufruf muss weiterhin abgewiesen werden.
+3. Echte Diagnosehistorie, dynamische Prüfzahl und Statusmeldungen prüfen.
+4. Prüfen, ob der Engineering-Provider auf STAGING verfügbar ist. Bei fehlendem Provider muss der Status den Grund sichtbar nennen; kein stilles Nichtstun.
+5. Die dynamische Projektprüfung ist zunächst statische Bestands-/Konsistenzanalyse. Echte Compiler-, Test-, Datenbank- und Runtime-Prüfungen bleiben in der isolierten Sandbox bzw. in kontrollierten Integrationstests; sie werden nicht im laufenden Webserver ausgeführt.
+6. Erfolgreiche Kandidaten bleiben bis zur Admin-Freigabe nicht in die laufende STAGING-Anwendung integriert. Production bleibt unangetastet.
