@@ -74,6 +74,6 @@ test('authenticated chat constructs and forwards pragmatic context before cognit
   const {readFile}=await import('node:fs/promises');
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
   assert.match(source,/import \\{ buildMessinhoPragmaticContext \} from '\.\/messinho-pragmatic-context\.js'/);
-  assert.match(source,/buildMessinhoPragmaticContext\\(\\{message:interpretedMessage,linguisticContext\\}\\)/);
+  assert.ok(source.includes('buildMessinhoPragmaticContext({message:interpretedMessage,linguisticContext})'));
   assert.match(source,/pragmaticContext,\\s*userRole:profile\.role/);
 });
