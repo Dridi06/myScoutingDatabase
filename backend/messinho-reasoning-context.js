@@ -29,7 +29,7 @@ function safeResearchContext(value){
  for(const key of ['player','club','team']){
   const entity=value[key];if(!entity||typeof entity!=='object')continue;
   const name=clean(entity.name||entity.player_name||entity.club_name||entity.team_name);
-  if(name)refs.push({type:key,name,id:entity.id??entity.player_id??entity.club_id??entity.team_id??null,metrics:key==='player'?safeMetricEntries({player:entity,profile:value.profile,metrics:value.metrics,performance_metrics:value.performance_metrics}):[]});
+  if(name){const reference={type:key,name,id:entity.id??entity.player_id??entity.club_id??entity.team_id??null};const metrics=key==='player'?safeMetricEntries({player:entity,profile:value.profile,metrics:value.metrics,performance_metrics:value.performance_metrics}):[];if(metrics.length)reference.metrics=metrics;refs.push(reference);}
  }
  return refs.length?refs.slice(0,4):null;
 }
