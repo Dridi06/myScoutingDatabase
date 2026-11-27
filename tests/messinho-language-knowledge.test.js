@@ -9,7 +9,7 @@ function fakeDb(rows, selected=[]) {
 
 test('language knowledge is registered for six language profiles and append-only',()=>{
  const summary=getMessinhoLanguageKnowledgeSummary();
- assert.equal(summary.version,'1.2.1');
+ assert.equal(summary.version,'1.2.2');
  assert.equal(summary.profiles.length,6);
  assert.equal(summary.retention,'append_only_versions');
  assert.equal(summary.write_access,'none_from_chat_or_scout_roles');
@@ -196,4 +196,46 @@ test('retrieves Tunisian Derja knowledge from vocalized Arabic script',async()=>
  const result=await findMessinhoLanguageKnowledge(fakeDb(rows),message);
  assert.equal(result.language_id,'ar-tn');
  assert.equal(result.items[0]?.entry_key,'ar-tn.lexicon.opinion');
+});
+
+
+test('loads Tunisian Derja knowledge when the user asks about Derja in English',async()=>{
+ const rows=[{
+  entry_key:'ar-tn.grammar.negation',version:1,language_code:'ar-tn',entry_type:'grammar',
+  topic:'Negation',title:'Verneinung mit ma- ... -sh',
+  content:{explanation:'Tunisian Derja often places ma- before the verb and -sh after it.'},
+  tags:['Tunisian Derja','negation','ma','sh'],knowledge_status:'active'
+ }];
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'Can you explain Tunisian Derja negation and the ma-sh pattern, please?');
+ assert.ok(result.language_ids.includes('ar-tn'));
+ assert.ok(result.requested_language_ids.includes('ar-tn'));
+ assert.equal(result.items[0]?.entry_key,'ar-tn.grammar.negation');
+});
+
+test('loads both MSA and Derja foundations for an English comparison request',async()=>{
+ const rows=[
+  {entry_key:'ar.grammar.word_order',version:1,language_code:'ar',entry_type:'grammar',topic:'Syntax',title:'Modern Standard Arabic grammar',content:{explanation:'MSA uses defined word-order patterns.'},tags:['Modern Standard Arabic','grammar'],knowledge_status:'active'},
+  {entry_key:'ar-tn.grammar.sentence',version:1,language_code:'ar-tn',entry_type:'grammar',topic:'Derja syntax',title:'Tunisian Derja grammar',content:{explanation:'Tunisian Derja has colloquial sentence patterns.'},tags:['Tunisian Derja','grammar'],knowledge_status:'active'}
+ ];
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'Please compare Modern Standard Arabic and Tunisian Derja grammar.');
+ assert.ok(result.language_ids.includes('ar'));
+ assert.ok(result.language_ids.includes('ar-tn'));
+ assert.deepEqual(result.items.map(item=>item.language_code).sort(),['ar','ar-tn']);
+});
+
+test('loads an explicit translation target language even when it differs from the input language',async()=>{
+ const rows=[{
+  entry_key:'fr.grammar.conjugation',version:1,language_code:'fr',entry_type:'grammar',
+  topic:'Conjugaison',title:'French verb conjugation',
+  content:{explanation:'French verbs change form according to person and tense.'},
+  tags:['French','translation','conjugation'],knowledge_status:'active'
+ }];
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'Translate this into French.');
+ assert.ok(result.requested_language_ids.includes('fr'));
+ assert.equal(result.items[0]?.entry_key,'fr.grammar.conjugation');
+});
+
+test('does not infer a language pack from a nationality adjective alone',async()=>{
+ const result=await findMessinhoLanguageKnowledge(fakeDb([]),'I watched a German player yesterday.');
+ assert.equal(result.requested_language_ids.includes('de'),false);
 });
