@@ -5941,3 +5941,58 @@ Preserve meaning when a player description contains qualified evaluations, negat
 3. Ensure the clarification result is passed through the existing authenticated chat pipeline and used to preserve the actual prior scouting filters; do not silently infer filters that are absent.
 4. Add a dedicated Derja clarification-answer test matrix.
 5. Update PR #58 and this checkpoint with the exact verified code commit before declaring Block 3 complete.
+
+
+---
+
+## 16. MESSINHO conversation engine — Block 3 verified checkpoint (2026-11-27)
+
+This entry supersedes the earlier Block 3 status that recorded four failing clarification-lifecycle tests. The four regressions have been corrected and the final branch head has passed the repository CI workflows.
+
+### Block 3 — Multi-turn Clarification Lifecycle 1.2.0
+
+- **Branch:** `feature/messinho-conversation-engine`
+- **PR:** #58 — https://github.com/Dridi06/myScoutingDatabase/pull/58
+- **PR state:** Open, Draft, unmerged; target branch `feature/messinho-unified-ai-integration`.
+- **Final feature-branch HEAD:** `c7e8fdacdfd74e4a0b8da1d690eb8c8ee479a3b2`
+- **Final runtime code fix:** `d7c83b75d389ef74b7a97b9e55846624f66a42db`
+- **Dialogue-engine code baseline before the final Derja precedence fix:** `b64c7036e0b0ed27d35402291b3efb6a544fddec`
+- **Final regression-test commit:** `c7e8fdacdfd74e4a0b8da1d690eb8c8ee479a3b2`
+
+### Corrections completed
+
+1. **Short acknowledgements:** exact acknowledgements such as `Genau.` and Tunisian Derja `باهي`, `إي`, and `لا` are classified as `short_reply`, not intercepted by the discourse-connector pattern.
+2. **Location questions:** semantic location cues and country choices (including Arabic country names) are classified as `location` before the generic multi-option `choice` fallback.
+3. **Age questions:** age-related wording is recognized as `age`, allowing numeric answers such as `21 Jahre` or `20` to be treated as candidate answers to the pending age question.
+4. **Long free-text answers:** natural-language answers longer than eight words are held as `candidate_answer` / `free_text` for semantic review rather than being prematurely reduced to `short_value`.
+5. **Regression coverage:** added tests for the four original failure modes and Tunisian Derja acknowledgements, location answers and age clarification.
+
+### Final CI verification
+
+All checks below ran against the final PR branch head `c7e8fdacdfd74e4a0b8da1d690eb8c8ee479a3b2`:
+
+- **MESSINHO Node tests:** 578 passed, 0 failed.
+- **Backend syntax workflow:** successful; all configured syntax checks and its Node test run passed.
+- **Full MESSINHO staging branch CI:** successful.
+- **Full regression suite in staging CI:** 578 passed, 0 failed.
+- **Vite production build:** successful; 1,640 modules transformed; build completed in 1.80 seconds.
+
+### Safety and release boundary
+
+- No database migration or persistent-data modification.
+- No Render deployment or staging/live runtime activation.
+- No production branch, production Supabase, or LIVE service changes.
+- PR #58 remains Draft and unmerged. Do not merge or deploy without the owner's explicit approval.
+
+### Next development step — Block 4
+
+Continue with end-to-end clarification continuity in the existing authenticated chat pipeline:
+1. Trace `dialogueState.continuity.clarification_reply` through the real chat route into the cognitive router and task/scouting parser.
+2. Verify that a confirmed clarification answer preserves the previous scouting goal and its already established filters, without inventing missing filters.
+3. Verify that ambiguous answers ask one focused question and new-topic messages are not forced into the previous task.
+4. Add end-to-end tests for multiple assistant questions, negated questions, option segmentation, Arabic/Derja variants, and owner/conversation isolation.
+5. Keep all work on the feature branch; do not merge or deploy without explicit approval.
+
+### New-chat handover
+
+Read this file from the current feature branch and inspect its latest HEAD and PR #58 state before making further changes. Block 3 is verified complete; resume at **Block 4 — end-to-end clarification continuity**.
