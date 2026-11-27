@@ -6024,3 +6024,9 @@ Read this file from the current feature branch and inspect its latest HEAD and P
 - CI results for the new exact commit must be recorded before Block 4 is called complete.
 - No Render deployment has been triggered. No LIVE/Production branch, service or database was changed.
 - PR #58 remains Draft and unmerged; no merge or deployment without the owner's explicit approval.
+
+
+### Block 4 — follow-up hardening (2026-11-27)
+- Fixed a context-isolation edge case: a newer explicit non-scouting topic (e.g. a tax question) now terminates the search-goal scan instead of allowing an older scouting goal to be reused.
+- Corrected the comma/slash option test to exercise the actual pending question and its offered options.
+- PR head and feature branch are being reconciled after the latest file commits; do not mark the block complete until the exact current head has green CI and runtime integration tests.
