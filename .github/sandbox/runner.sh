@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 PROJECT=/work/project
 mkdir -p "$PROJECT" /tmp/messinho-home
-tar --exclude=.git --exclude=node_modules -C /src -cf - . | tar --no-same-owner --no-same-permissions --no-overwrite-dir -C "$PROJECT" -xf -
+tar --exclude=.git --exclude=node_modules --exclude='.env*' --exclude='**/.env*' --exclude='*.pem' --exclude='*.key' --exclude='secrets' --exclude='credentials' -C /src -cf - . | tar --no-same-owner --no-same-permissions --no-overwrite-dir -C "$PROJECT" -xf -
 ln -s /deps "$PROJECT/node_modules"
 cd "$PROJECT"
 git init -q
@@ -33,6 +33,8 @@ if [[ -n "${MESSINHO_PATCH_PATH:-}" ]]; then
   echo "MESSINHO_CANDIDATE_BUILD_EXIT=$candidate"
   if [[ "$candidate" -ne 0 ]]; then echo "MESSINHO_SANDBOX_OUTCOME=candidate_failed"; exit 21; fi
   echo "=== LANGUAGE-SPECIFIC CHECKS ==="
+  language_status=0
+  set +e
   while IFS= read -r file; do
     [[ -f "$file" ]] || continue
     case "$file" in
@@ -51,7 +53,11 @@ if [[ -n "${MESSINHO_PATCH_PATH:-}" ]]; then
       *.css) stylelint "$file" ;;
       *.sql) echo "SQL project validation requires an explicit disposable schema fixture: $file" ;;
     esac
+    check_status=$?
+    if [[ "$check_status" -ne 0 && "$language_status" -eq 0 ]]; then language_status=$check_status; fi
   done <<< "$changed_files"
+  set -e
+  if [[ "$language_status" -ne 0 ]]; then echo "MESSINHO_SANDBOX_OUTCOME=candidate_language_check_failed"; exit 21; fi
   echo "MESSINHO_SANDBOX_OUTCOME=passed"
   exit 0
 fi
