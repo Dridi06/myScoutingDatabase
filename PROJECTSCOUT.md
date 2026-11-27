@@ -4500,6 +4500,7 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - Wenn ein Ticket angelegt wurde und die Sandbox-Konfiguration vollständig freigegeben ist, wird es automatisch zur isolierten STAGING-Prüfung dispatcht. Der Sandbox-Runner prüft Baseline und Kandidat mit dem vollständigen Projektbuild (Tests, Backend-Syntax und Frontend-Build) und meldet das Ergebnis zurück.
 - Wenn keine Fehler gefunden werden, wird ausdrücklich ein gesundes Diagnoseergebnis gespeichert und kein künstliches Ticket erstellt.
 - Wenn kein sicherer Patch möglich ist (z. B. geschützte Runtime-/Auth-/RLS-/DB-Datei oder unzureichender Beleg), wird kein unsicherer Code erzeugt. Der Diagnosebefund bleibt erhalten und der Admin erhält eine verständliche Statusmeldung.
+- Wenn Fehler gefunden werden, aber kein sicherer Codepatch erstellt werden kann oder die Patchprüfung nicht durchläuft, wird zusätzlich ein Diagnose-Ticket in myKI angelegt. Es enthält die fehlgeschlagenen Prüfungen, die verständliche Fehlerbeschreibung und den Hinweis, dass kein Code geändert wurde. Wiederholte identische Befunde am selben Tag werden über einen Fingerprint nicht als neue Tickets dupliziert.
 
 ### Sicherheit und Grenzen
 - Der Auslöser ist ausschließlich über requireApprovedMessinhoAdmin erreichbar; Scouts können weder den Button noch den Steuerungsendpunkt zur Systemänderung verwenden.
@@ -4514,6 +4515,7 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - runMessinhoScheduledEngineeringReview unterstützt neben developing jetzt den Admin-Modus working mit einem gezielten Fehlerbehebungsziel; vorhandene Zeitfenster-, Run-Claim-, Stop-, Ticket- und Sandbox-Gates bleiben bestehen.
 - POST /api/admin/myki/control startet bei mode=working asynchron runMessinhoSelfRepairCycle; Status und aktueller Arbeitsschritt sind im Admin-Aktivitätsmonitor sichtbar.
 - Regressionstests ergänzen die Fehlerfilterung, den Arbeitsmodus und den Stop-Schutz.
+- Neues Modul backend/messinho-diagnostic-ticket.js erzeugt und speichert Diagnose-Tickets ohne fingierten Patch; die bestehende myKI-Ticketliste kann sie über dieselbe Tabelle anzeigen. Keine neue DB-Migration erforderlich.
 
 ### Abnahme
 - Implementiert auf feature/messinho-unified-ai-integration; vor STAGING-Deploy sind CI/Render-Build und Runtime-Logs für den exakten Commit zu prüfen.
