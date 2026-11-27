@@ -2481,7 +2481,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       return respond({reply:research.answer||research.message||'Ich kann diese Frage gerade nicht zuverlässig recherchieren. Bitte versuche es später erneut oder grenze die Frage etwas ein.',intent:'general_knowledge_research_limited',items:sourceItems,sources:research.sources||[],evidence:research.evidence||null,limitations:research.evidence?.limitations||[]});
     }
     const conversationalContext=history.map(item=>({role:item.role,content:item.text})).slice(-20);
-    const linguisticKnowledgeResult=await findMessinhoLanguageKnowledge(db,interpretedMessage,history);
+    const linguisticKnowledgeResult=await findMessinhoLanguageKnowledge(db,message,history);
     linguisticKnowledgeStatus=linguisticKnowledgeResult.status;
     const linguisticKnowledgeContext=formatMessinhoLanguageKnowledge(linguisticKnowledgeResult);
     const activeKnowledgeContext=structuredKnowledgeContext.length?structuredKnowledgeContext.map(item=>({domain:item.domain,title:item.title,definition:item.knowledge,formula:item.formula,limitations:item.limitations,sources:item.sources,confidence:item.confidence})):[];
