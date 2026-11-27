@@ -39,7 +39,7 @@ export async function findMessinhoLanguageKnowledge(db, message, history=[]) {
     for(const row of data||[]) {
       if(!latest.has(row.entry_key))latest.set(row.entry_key,row);
     }
-    const candidates=[...latest.values()].filter(row=>!languageId||row.language_code===languageId||row.language_code==='shared')
+    const candidates=[...latest.values()].filter(row=>row.language_code==='shared'||(Boolean(languageId)&&row.language_code===languageId))
       .map(row=>scoreEntry(queryTokens,row,languageId))
       .filter(item=>item.overlap>0)
       .sort((a,b)=>b.score-a.score||b.overlap-a.overlap)
