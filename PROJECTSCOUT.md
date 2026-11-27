@@ -5043,3 +5043,41 @@ Make subject-language routing work when the scout asks in German (the primary pr
 - Next: run full STAGING build, confirm all new cases, then deploy the exact branch commit.
 - Production remains untouched.
 
+
+
+## 25. MESSINHO Linguistic Intelligence 1.3.5 — latest-segment response language — 2026-11-27
+
+### Owner request
+- Owner said "Weiter" after the prior 1.3.4 Arabic orthography release.
+- Continue language-system implementation on the active STAGING feature branch only. Production remains untouched.
+
+### Implementation
+- Updated backend/messinho-linguistic-intelligence.js:
+  - Version advanced from 1.3.4 to 1.3.5.
+  - Mixed-language analysis retains the aggregate primary language for analysis.
+  - Reply/conversation language follows the last confidently detected language segment in the latest user message.
+  - Added explicit response_language and latest_segment_language fields.
+  - Translation/correction/explanation action context receives the response-language hint.
+  - Original segment order and source wording remain unchanged.
+- Updated tests/messinho-linguistic-intelligence.test.js:
+  - Version assertion advanced to 1.3.5.
+  - Added regression for English-to-French switching within one sentence; expected response language is French.
+  - Added regression for French greeting followed by English greeting; expected response language is English.
+
+### Traceability
+- Implementation commit: 25cf8da89ba25e865a64a0f4efd63640c4f84a3d.
+- Regression test commit: f225eb53d695d29d5746502eeb57331fa356dfa4.
+
+### Verification state
+- The 1.3.5 source and tests are committed to the active STAGING feature branch.
+- Automated tests for 1.3.5 have not yet been executed. Do not treat this version as verified or live until the STAGING build succeeds and the exact deployment commit is confirmed.
+- No Supabase migration, persistent knowledge write, player/scout/account data change, or model-weight change was made.
+- Production branch, Render production service and production Supabase were not modified.
+
+### Next steps
+1. Run the full STAGING build gate (npm test, backend syntax checks, Vite production build).
+2. Correct any actual regression before release.
+3. Verify exact Render STAGING deployment commit and live status.
+4. After the 1.3.5 release is green, expand mixed-language segmentation and phrase-level semantic interpretation.
+5. Authenticated live-chat checks remain necessary to prove the chat endpoint uses response_language end to end.
+
