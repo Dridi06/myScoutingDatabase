@@ -5643,3 +5643,20 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Render Auto-Deploy remains intentionally disabled; future code changes require explicit STAGING deployment.
 - Authenticated Admin/Scout end-to-end verification is still outstanding; no credentials or user session were impersonated. The next user-assisted check is to test Admin and Scout separately, then refresh/re-login and confirm private history restoration.
 - Production branch, Render LIVE service, and production Supabase remain untouched.
+
+
+## 38. Explicit private user memory — routing defect fixed and merged to STAGING — 2026-11-27
+
+- Screenshot test exposed a real intent-routing defect: `Merke dir Staging Alpha` fell through to player research and produced an unrelated external-source response.
+- PR #50 merged by squash into the STAGING integration branch. Merge commit: `37e5a7eb41250795ffc7b8b79a10eacf4a44360d`.
+- New `backend/messinho-user-memory.js` recognizes explicit German/English remember commands and memory-recall questions.
+- Chat route now handles remember/recall before the scouting parser, player-name extraction and external research. A memory instruction can no longer be mistaken for a player-search request.
+- Up to 20 bounded notes (max 240 characters each) are stored in the existing owner-scoped `messinho_agent_memory.user_preferences.messinho_notes` JSONB field. No schema migration was needed.
+- Notes are scoped to the authenticated owner; Admin and Scout do not share personal notes. Existing user preferences are preserved. Duplicate notes are refreshed and note count is bounded.
+- MESSINHO reports success only after the persistent write succeeds; on storage failure it explicitly says the note was not saved.
+- Recall questions such as “Welches Testwort habe ich dir genannt?” return the latest saved notes.
+- Regression suite: 514/514 passed; backend syntax passed; full Vite production build passed. STAGING health check passed.
+- A first test run caught two test/routing-order issues; both were corrected before merge. No failed version was deployed.
+- Pending: isolated compiler-image build in the separate engineering workflow; this does not change application runtime. Authenticated Admin/Scout browser verification still requires user sessions.
+- Next: deploy this exact merge to Render STAGING, then user verifies “Merke dir Staging Alpha” followed by “Welches Testwort habe ich dir genannt?” after a page refresh.
+- Production/LIVE and production Supabase remain untouched.
