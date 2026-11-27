@@ -4471,6 +4471,7 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - Zielsprachen-Erkennung ergänzt für Deutsch, Englisch, Französisch, Hocharabisch, tunesische Derja und Spanisch, soweit sie eindeutig benannt sind.
 - Häufige Arabizi-Ziffern erhalten eine separate Normalisierungsfunktion; Originaltext wird nicht überschrieben.
 - Aktions- und Segmentdiagnose wird in der bestehenden Chatantwort als Metadatum zurückgegeben und steht dem bestehenden System-Prompt über den Sprachkontext zur Verfügung.
+- Der bestehende Chat-Systemprompt wurde ausdrücklich erweitert: explizite Sprachaktionen müssen gemäß Aktionsanweisung ausgeführt werden; bei unklarer Zielsprache darf keine Zielsprache erfunden werden.
 - Regressionstests für Segmentierung, Sprachaktionen, Zielsprachen, Arabizi und Standard-Antwortmodus ergänzt.
 
 ### Grenzen
