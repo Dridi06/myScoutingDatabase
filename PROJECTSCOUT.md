@@ -4761,3 +4761,19 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 3. Übersetzungsqualität anhand von Negation, Modalität, Eigennamen, Zahlen und Fußballterminologie messbar prüfen.
 4. Umgangssprachliche Zielsprachenbefehle in allen sechs Profilen erweitern.
 5. Tunesische Derja unabhängig muttersprachlich prüfen lassen.
+
+## 30. Zielsprachen-Erkennung in sechs Sprachprofilen erweitert – 2026-11-27
+
+### Implementiert
+- Übersetzungsziel-Erkennung um umgangssprachliche und flektierte Formen erweitert.
+- Erfasst jetzt unter anderem deutsches **„ins Französische“**, englisches **„into Spanish“**, französisches **„en anglais“**, spanisches **„al árabe estándar“**, arabisches **„إلى الألمانية“** und tunesisches Arabizi **„bil anglais“**.
+- Regressionstest mit sechs repräsentativen Übersetzungsbefehlen ergänzt.
+- Änderungen bleiben innerhalb des Sprachmoduls; keine automatische Übersetzung wird durch bloße Zielerkennung ausgelöst. Die Aktion wird weiterhin nur als Chat-Kontext klassifiziert.
+
+### Verifikation
+- Die Zielsprachen-Erweiterung ist committed; der zugehörige CI-Lauf muss vollständig abgeschlossen werden.
+- Vorheriger Code-/Teststand hatte 475 bestandene Tests und 0 Fehler; der vollständige Staging-Branch-Build auf Checkpoint `35445ced` war erfolgreich.
+- Kein Render-Deployment, keine Supabase-Schreiboperation, keine Änderung an `main` oder Produktion.
+
+### Nächster Schritt
+- Neuen CI-Lauf auf dem aktuellen Branch-HEAD prüfen, alle erkannten Fehlfälle beheben und danach eine unabhängige Sprachqualitätsprüfung vorbereiten.
