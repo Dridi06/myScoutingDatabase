@@ -14,7 +14,7 @@ This release improves conservative Modern Standard Arabic (MSA) detection when A
 - Count the attached form only when removing exactly that one prefix yields a token already present in the reviewed MSA lexicon.
 - Keep exact lexicon matches first, so dialect terms such as `فما` remain intact.
 - Do not strip multiple prefixes, alter the token, or change the stored/source message.
-- Add regression coverage for attached conjunctions, MSA versus Tunisian Derja, and six-language examples with negation, uncertainty and the football identifier `U19`.
+- Add regression coverage for attached conjunctions, MSA versus Tunisian Derja, six-language examples with negation, uncertainty and the football identifier `U19`, plus colloquial translation-target requests in all six profiles.
 
 ## Safety and fidelity
 
