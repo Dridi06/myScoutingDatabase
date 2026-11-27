@@ -5658,5 +5658,7 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Regression suite: 514/514 passed; backend syntax passed; full Vite production build passed. STAGING health check passed.
 - A first test run caught two test/routing-order issues; both were corrected before merge. No failed version was deployed.
 - Pending: isolated compiler-image build in the separate engineering workflow; this does not change application runtime. Authenticated Admin/Scout browser verification still requires user sessions.
-- Next: deploy this exact merge to Render STAGING, then user verifies “Merke dir Staging Alpha” followed by “Welches Testwort habe ich dir genannt?” after a page refresh.
+- Render STAGING deployment completed: `dep-dc4s7v17lnhs739lu740`, exact deployed commit `780ec501e607088e00b1d8b5b5b8d0b8219e2b9d`, status `live`, completed at `2026-11-27T17:55:55Z`. Startup confirmed API listening on port 10000, Supabase HTTP 200, OpenAI and Tavily configured.
+- Post-merge checks for the deployed commit: 514/514 tests passed, backend syntax passed, full Vite production build passed, and STAGING health check passed.
+- Next: user verifies “Merke dir Staging Alpha” followed by “Welches Testwort habe ich dir genannt?” after a page refresh. Repeat independently as Admin and Scout to verify owner isolation.
 - Production/LIVE and production Supabase remain untouched.
