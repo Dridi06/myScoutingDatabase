@@ -7,6 +7,11 @@ export const MESSINHO_INTENTS=Object.freeze([
 const MAX_MEMORY_ITEMS=50;
 const MAX_MEMORY_TEXT=320;
 
+const SENSITIVE_MEMORY_PATTERN=/(?:passw(?:ort|ord)|api[ _-]?key|access[ _-]?token|secret|private[ _-]?key|krank(?:heit|en)?|diagnos(?:e|ed)|medikament|therapie|depress(?:ion|iv)|diabetes|blutdruck|religion|muslim|islam|christ(?:entum|lich)|j[uü]disch|polit(?:ik|ische partei)|wahlentscheidung|ethn(?:ie|isch)|sexuell(?:e|er)? orientierung|homosexuell|straf(?:tat|verfahren)|vorstrafe)/iu;
+export function isSensitiveMessinhoMemoryText(value){
+  return SENSITIVE_MEMORY_PATTERN.test(String(value||''));
+}
+
 export function buildMessinhoCognitiveRouterMessages({message,history=[],memory={},linguisticContext=null,userRole='scout'}={}){
   const safeHistory=(Array.isArray(history)?history:[]).slice(-12).map(item=>({
     role:item?.role==='assistant'?'assistant':'user',
@@ -53,7 +58,7 @@ export function validateMessinhoCognitiveDecision(value){
     const text=item.text.trim().slice(0,MAX_MEMORY_TEXT);
     const category=['preference','project','stable_fact','active_goal'].includes(item.category)?item.category:null;
     const itemConfidence=Number(item.confidence);
-    if(text.length<3||!category||!Number.isFinite(itemConfidence)||itemConfidence<0.8||itemConfidence>1)return [];
+    if(text.length<3||!category||isSensitiveMessinhoMemoryText(text)||!Number.isFinite(itemConfidence)||itemConfidence<0.8||itemConfidence>1)return [];
     return [{text,category,confidence:itemConfidence}];
   });
   return {intent,confidence,reply,clarification_question:clarificationQuestion,memory_items:memoryItems};
@@ -67,7 +72,7 @@ export function appendMessinhoLongTermMemories(preferences,candidates,createdAt=
     const text=String(candidate?.text||'').trim().slice(0,MAX_MEMORY_TEXT);
     const category=['preference','project','stable_fact','active_goal'].includes(candidate?.category)?candidate.category:null;
     const confidence=Number(candidate?.confidence);
-    if(text.length<3||!category||!Number.isFinite(confidence)||confidence<0.8||confidence>1)continue;
+    if(text.length<3||!category||isSensitiveMessinhoMemoryText(text)||!Number.isFinite(confidence)||confidence<0.8||confidence>1)continue;
     const key=text.toLocaleLowerCase('de-DE').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
     const duplicateIndex=merged.findIndex(item=>typeof item?.text==='string'&&item.text.toLocaleLowerCase('de-DE').replace(/[^\p{L}\p{N}]+/gu,' ').trim()===key);
     const item={text,category,confidence,created_at:createdAt,source:'conversation'};
