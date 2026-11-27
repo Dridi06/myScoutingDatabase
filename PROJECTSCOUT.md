@@ -3914,3 +3914,10 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Scheduler ist im Serverstart verdrahtet, bleibt aber bis zur expliziten Render-STAGING-Variablenfreigabe deaktiviert. Es wurde noch kein automatischer Tageslauf ausgelöst.
 - Regressionstest auf Commit `c07d9e1bc8f7078e339d2dfddf617dfb4ea837ae`: **370/370 Node-Tests bestanden**, 0 fehlgeschlagen; Backend-Syntax- und Staging-CI laufen/werden für diesen Commit abgeschlossen.
 - Nächster Schritt: Render-Workspace-Auswahl bestätigen, aktuellen Branch-HEAD manuell auf STAGING bereitstellen, vorhandene Provider-Variablen prüfen, `MESSINHO_ENGINEERING_AUTOREVIEW_ENABLED=true` nur auf STAGING setzen und anschließend Admin-Chat-/myKI-End-to-End-Test sowie Scheduler-Status prüfen. Keine Produktion und kein `main`.
+
+
+### Korrektur — Scheduler-Freigabe abgeschlossen — 2026-11-27
+- Der vorherige Abschnitt „bleibt ... deaktiviert“ beschreibt nur den Zustand vor der anschließenden Render-Umgebungsfreigabe und ist durch diesen Eintrag überholt.
+- Die STAGING-Variablen sind jetzt gesetzt und der neue Deploy ist live. Der tägliche Scheduler ist damit ausschließlich im Render-STAGING aktiviert; Produktionsservice und Produktionsumgebung wurden nicht geändert.
+- Aktueller Live-Deploy: `dep-dc4cj9mc6qcc73d5jdmg`, Commit `e549edc1c4983720283af5d25bc172fc6fdaf156`. CI: 370/370 Tests, Backend-Syntax und Vite-Build erfolgreich.
+- Der Ledger-Eintrag ist noch 0, weil noch kein 20:00-Uhr-Lauf erfolgt ist. Ein authentifizierter Admin-Ende-zu-Ende-Test bleibt offen; es wurde kein künstliches Ticket erzeugt.
