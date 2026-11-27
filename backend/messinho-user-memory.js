@@ -3,7 +3,7 @@ const MAX_NOTE_LENGTH=240;
 
 export function detectExplicitMessinhoRememberRequest(input){
   if(typeof input!=='string')return null;
-  const match=input.trim().match(/^(?:bitte\s+)?(?:merke\s+dir|merk\s+dir|erinnere\s+dich|speichere(?:\s+dir)?|notiere(?:\s+dir)?|remember|please\s+remember)(?:\s*[:,-]\s*|\s+)(?:bitte\s+)?(.+?)\s*[.!?]*$/iu);
+  const match=input.trim().match(/^(?:bitte\s+)?(?:merk(?:e)?\s+(?:dir|die)|erinnere\s+dich|speichere(?:\s+dir)?|notiere(?:\s+dir)?|remember|please\s+remember)(?:\s*[:,-]\s*|\s+)(?:bitte\s+)?(.+?)\s*[.!?]*$/iu);
   if(!match)return null;
   const note=match[1].trim().replace(/^["'„“”]+|["'„“”]+$/g,'').slice(0,MAX_NOTE_LENGTH).trim();
   return note.length>=2?note:null;
