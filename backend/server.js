@@ -2546,8 +2546,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       if(error)return res.status(500).json({error:'Deine Kandidaten konnten nicht geladen werden.'});
       return respond({reply:(data||[]).length?'Ich habe deine zuletzt recherchierten Kandidaten geladen.':'In deinem persönlichen Kandidatenbereich sind noch keine Einträge vorhanden.',intent:'candidates',items:data||[]});
     }
-    const autonomousDecision=await planMessinhoGoalWithModel({goal:interpretedMessage,role:profile.role,context:agentMemory,
-      apiKey:process.env.OPENAI_API_KEY,model:process.env.OPENAI_MODEL||'gpt-4.1-mini'});
+    const autonomousDecision=cognitive.intent==='scouting'
+      ? await planMessinhoGoalWithModel({goal:interpretedMessage,role:profile.role,context:agentMemory,
+          apiKey:process.env.OPENAI_API_KEY,model:process.env.OPENAI_MODEL||'gpt-4.1-mini'})
+      : {status:'not_applicable',planner_status:'intent_not_scouting',planning_source:'not_applicable',plan:null};
     if(autonomousDecision.planner_status==='model_clarification'){
       return respond({reply:autonomousDecision.clarification_question||'Welches konkrete Ziel soll ich bearbeiten?',
         intent:'agent_plan_clarification',items:[],pending:true,
