@@ -12,13 +12,23 @@ const PROTECTED_PATHS=new Set([
  'backend/messinho-access.js','backend/messinho-rights-registry.js',
  'backend/messinho-knowledge-graph.js','backend/messinho-domain-knowledge.js'
 ]);
-const SAFE_ROOTS=['backend/','tests/','docs/','src/asi/'];
+// Keep this backend gate exactly aligned with the stricter workflow-dispatch allowlist.
+const SAFE_PATHS=new Set([
+ 'backend/messinho-quality-control.js','backend/messinho-input-correction.js',
+ 'backend/messinho-task-policy.js','backend/messinho-development.js',
+ 'backend/messinho-performance-intelligence.js','backend/messinho-research.js',
+ 'backend/messinho-math.js','backend/messinho-conversation.js',
+ 'backend/messinho-learning.js','backend/messinho-knowledge-learning.js',
+ 'src/asi/MyKiChat.jsx','src/asi/myki-chat.css',
+ 'tests/messinho-quality-control.test.js','tests/messinho-task-policy.test.js',
+ 'tests/messinho-development.test.js','tests/messinho-capability-runtime.test.js',
+ 'tests/responsive-layout.test.js'
+]);
 const FORBIDDEN=/^(?:\.env(?:\..*)?|secrets?\/.*|.*\.(?:pem|key|p12|pfx)|package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/i;
 function safePath(path){
  if(typeof path!=='string'||!path||path.startsWith('/')||path.includes('\\')||path.split('/').some(part=>!part||part==='.'||part==='..'))return false;
  if(FORBIDDEN.test(path)||PROTECTED_PATHS.has(path))return false;
- if(/^(?:supabase\/|\.github\/|infra\/|deploy\/)/i.test(path)||/\.(?:sql|ya?ml)$/i.test(path))return false;
- return SAFE_ROOTS.some(root=>path.startsWith(root));
+ return SAFE_PATHS.has(path);
 }
 export function normalizeMessinhoEngineeringProposal(input={}){
  if(!object(input))return {ok:false,error:'Ungültiger Entwicklungsvorschlag.'};
