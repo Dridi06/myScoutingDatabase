@@ -2,21 +2,32 @@ export const MESSINHO_REASONING_CONTEXT_VERSION='1.0.0';
 const MAX_EVIDENCE=10, MAX_TEXT=420;
 function clean(value){return String(value??'').replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim().slice(0,MAX_TEXT);}
 const ALLOWED_METRIC_KEYS=new Set(['top_speed_kmh','sprint_speed_kmh','max_speed_kmh','maximum_speed_kmh','speed_kmh','top_speed','sprint_speed','max_speed','sprint_10m_seconds','sprint_20m_seconds','sprint_30m_seconds','sprint_40m_seconds','sprint_100m_seconds','acceleration_10m_seconds','acceleration_20m_seconds','acceleration_30m_seconds','acceleration_40m_seconds']);
+function canonicalMetricKey(raw){
+ const key=String(raw||'').toLowerCase().normalize('NFKD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+ const aliases={hoechstgeschwindigkeit:'top_speed_kmh',hochste_geschwindigkeit:'top_speed_kmh',sprintgeschwindigkeit:'sprint_speed_kmh',maximale_geschwindigkeit:'max_speed_kmh',max_speed:'max_speed_kmh',top_speed:'top_speed_kmh',sprint_speed:'sprint_speed_kmh'};
+ return aliases[key]||key;
+}
+function metricNumber(rawValue,rawUnit=''){
+ if(typeof rawValue==='number'&&Number.isFinite(rawValue))return {value:rawValue,unit:String(rawUnit||'').slice(0,12)};
+ const text=String(rawValue??'').trim();
+ const match=text.match(/^([0-9]+(?:[.,][0-9]+)?)\\s*(km\\/h|kmh|kph|m\\/s|sekunden|seconds|s)?$/iu);
+ if(!match)return null;
+ return {value:Number(match[1].replace(',','.')),unit:String(rawUnit||match[2]||'').slice(0,12)};
+}
 function safeMetricEntries(value){
  const result=[];
- const sources=[value?.metrics,value?.performance_metrics,value?.player?.metrics,value?.player?.performance_metrics,value?.profile?.metrics,value?.profile?.performance_metrics];
+ const sources=[value?.metrics,value?.performance_metrics,value?.player?.metrics,value?.player?.performance_metrics,value?.profile?.metrics,value?.profile?.performance_metrics,value?.profile?.facts,value?.profile?.recent_performance];
  for(const source of sources){
   if(Array.isArray(source)){
    for(const item of source){
-    const key=String(item?.key||item?.name||item?.metric||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
-    const number=typeof item?.value==='number'?item.value:(typeof item?.value==='string'&&/^\\s*\\d+(?:[.,]\\d+)?\\s*$/.test(item.value)?Number(item.value.replace(',','.')):null);
-    if(ALLOWED_METRIC_KEYS.has(key)&&Number.isFinite(number))result.push({key,value:number,unit:String(item?.unit||'').slice(0,12)});
+    const key=canonicalMetricKey(item?.key||item?.name||item?.metric||item?.label);
+    const parsed=metricNumber(item?.value,item?.unit);
+    if(ALLOWED_METRIC_KEYS.has(key)&&parsed)result.push({key,...parsed});
    }
   }else if(source&&typeof source==='object'){
    for(const [rawKey,rawValue] of Object.entries(source)){
-    const key=rawKey.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
-    const number=typeof rawValue==='number'?rawValue:(typeof rawValue==='string'&&/^\\s*\\d+(?:[.,]\\d+)?\\s*$/.test(rawValue)?Number(rawValue.replace(',','.')):null);
-    if(ALLOWED_METRIC_KEYS.has(key)&&Number.isFinite(number))result.push({key,value:number,unit:''});
+    const key=canonicalMetricKey(rawKey),parsed=metricNumber(rawValue);
+    if(ALLOWED_METRIC_KEYS.has(key)&&parsed)result.push({key,...parsed});
    }
   }
  }
