@@ -5146,3 +5146,39 @@ Make subject-language routing work when the scout asks in German (the primary pr
 4. Continue phrase-level semantic understanding and dialect-aware context retrieval only after the API contract is verified.
 5. Authenticated Admin/Scout chat testing remains outstanding; never request or store credentials in chat.
 
+
+
+## 27. Verification addendum — Linguistic Intelligence 1.3.5 — 2026-11-27
+
+### Release verification
+- Latest STAGING deployment: dep-dc4ntpirlj7c73e1fnsg.
+- Exact live commit: 094ccee77f7b9d347a8206cb7477b277ada986e8.
+- Render confirmed status live at 2026-11-27T13:01:23.042062Z.
+- The deployed source includes Linguistic Intelligence 1.3.5 and language knowledge access 1.2.3.
+- Full automated Node suite: 491 tests, 491 passed, 0 failed, 0 skipped.
+- Both 1.3.5 response-language regressions passed:
+  - English followed by French within one sentence selects French for the reply.
+  - French greeting followed by English greeting selects English for the reply.
+- German subject-language routing tests also passed in the same suite.
+- Backend JavaScript syntax checks completed; Vite production build succeeded in 2.36 seconds.
+- Runtime startup confirmed myScoutingDatabase API listening on port 10000; Supabase Data API returned HTTP 200.
+- No Supabase migration or persistent knowledge write; no player/scout/account data change; no model-weight update.
+- Production branch, Render production service and production Supabase remain untouched.
+
+### Current verified STAGING baseline
+| Layer | Version | Status |
+|---|---:|---|
+| Linguistic Intelligence | 1.3.5 | Live |
+| Language Knowledge access | 1.2.3 | Live |
+| Arabic analysis normalization | Included in 1.3.4 | Live |
+| Arabic/Derja knowledge retrieval normalization | Included in 1.2.1+ | Live |
+| Requested subject-language routing | Included in 1.2.3 | Live |
+| Last-confident-segment reply language | Included in 1.3.5 | Regression-tested |
+| Automated Node suite | 491 tests | 491 passed, 0 failed |
+| Production | — | Untouched |
+
+### Remaining verification boundary
+- The successful Render build and route/unit tests do not replace a real authenticated browser conversation with Admin and Scout accounts.
+- Next inspect the prompt/chat integration to confirm response_language is actually consumed by the live prompt path, then run the authorized authenticated STAGING chat checks.
+- Continue with phrase-level semantics only after this integration boundary is verified.
+
