@@ -57,3 +57,11 @@ test('even a passing evaluation cannot authorize deployment or patch application
  assert.equal(result.next_step,'admin_review_and_separate_staging_change');
  assert.equal(MESSINHO_ENGINEERING_PROPOSAL_POLICY.no_execution,true);
 });
+
+test('rejects file-system APIs and mismatched unified-diff file headers',()=>{
+ for(const content of ['import fs from \'node:fs\';','writeFileSync(\'x\',\'y\')','process.binding(\'fs\')']){
+  assert.equal(normalizeMessinhoEngineeringProposal({...valid,patch:diff().replace('const value = 2;',content)}).ok,false,content);
+ }
+ const mismatched=diff().replace('+++ b/backend/example.js','+++ b/backend/other.js');
+ assert.equal(normalizeMessinhoEngineeringProposal({...valid,patch:mismatched}).ok,false);
+});
