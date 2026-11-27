@@ -2317,6 +2317,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       ?resolveMessinhoPlayerFollowUp(interpretedMessage,history):null;
     const playerFollowUpName=resolvedPlayerReference||legacyPlayerFollowUp;
     const normalized=interpretedMessage.toLocaleLowerCase('de-DE').normalize('NFKC');
+    // Approved, first-party language knowledge is part of the same cognitive turn.
     // Semantic cognitive routing runs before all deterministic feature routing.
     // It interprets meaning, context, spelling/dictation variants and memory intent.
     const cognitiveResult=await classifyMessinhoTurn({
@@ -2324,6 +2325,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       history,
       memory:agentMemory,
       linguisticContext:{...linguisticContext,dialogue_state:dialogueState},
+      linguisticKnowledgeContext,
       userRole:profile.role,
       apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
       baseUrl:process.env.MESSINHO_MODEL_BASE_URL||process.env.OPENAI_BASE_URL||'https://api.openai.com/v1',
