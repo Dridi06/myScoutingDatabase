@@ -6226,3 +6226,56 @@ Make the existing approved grammar, vocabulary, pragmatics and conversation know
 - Render STAGING deployment `dep-dc511pec6qcc73fal28g` was triggered against the exact tested commit; build succeeded. Deployment rollout was still progressing at checkpoint.
 - Authenticated end-to-end chat smoke test remains outstanding. Do not equate unit/CI success with proof of live natural dialogue quality.
 - No production branch/service changes, no database migration, no automatic model training or weight modification. PR #58 remains Draft/Open/unmerged.
+
+
+## 26. Block 6 — Reasoning Validation — 2026-11-28
+
+**Implementation commit tested: `03ecaefd92df74444e23d4352294375b45f80716`.**
+
+### Objective
+Add a deterministic validation gate to MESSINHO's actual cognitive model reply path. The gate must prevent unsupported player measurements, reduce overconfident tactical conclusions, and avoid silently resolving ambiguous player references while preserving natural conversation.
+
+### Implementation
+- Added `backend/messinho-reasoning-validation.js`:
+  - Validates model-generated replies immediately after the structured cognitive decision is parsed and before the decision returns to the authenticated chat route.
+  - Rejects sprint-speed and related measurement claims unless the same numeric value and compatible unit exist in structured research evidence.
+  - Rejects mismatched numeric values and units.
+  - Converts ambiguous/unresolved player references into one focused clarification rather than allowing a guessed player assignment.
+  - Requires tactical consequences of a qualitative pace description to be framed as conditional possibilities; unsupported certainty is replaced with a natural, qualified explanation.
+  - When a reply is guarded, candidate memory items from that same model decision are discarded.
+- Updated `backend/messinho-reasoning-context.js`:
+  - Preserves only an allowlist of structured player speed/sprint metrics from existing owner-scoped research context.
+  - Reads structured metric fields and profile facts/recent-performance values; free-text conversation statements and arbitrary numeric fields are not treated as metric evidence.
+  - Keeps the existing `attributed_not_verified` evidence policy.
+- Updated `backend/messinho-conversational-intelligence.js`:
+  - Integrates the deterministic validator into `classifyMessinhoTurn`, the existing cognitive model path. No second chatbot or alternate conversation route was created.
+
+### Tests and exact-commit CI
+- Added `tests/messinho-reasoning-validation.test.js`.
+- Extended `tests/messinho-reasoning-context.test.js`.
+- Test cases cover qualitative pace statements, fabricated 32.4 km/h values, exact structured metric matches, mismatched values/units, ambiguous player identity, conditional tactical hypotheses, overconfident tactical assertions, and the actual cognitive classifier integration.
+- Exact code commit `03ecaefd92df74444e23d4352294375b45f80716`:
+  - MESSINHO Node tests run `46083654075`: **616/616 passed**.
+  - MESSINHO backend syntax run `46083654028`: **success**; backend syntax checks and full test suite passed.
+  - MESSINHO staging branch CI run `46083654025`: **success**; regression suite, backend syntax checks and Vite production build passed (1,640 modules transformed).
+- A Node.js `punycode` deprecation warning and the Vite empty `supabase-vendor` chunk warning were non-fatal; build completed successfully.
+
+### Safety and release status
+- Changes are committed only to `feature/messinho-conversation-engine`.
+- No database migration, persistent data mutation, provider secret change, model-weight training, automatic learning promotion, or production deployment.
+- PR #58 remains Draft, open and unmerged.
+- Render STAGING remains on the previously verified code commit `324d72cd1092e59fcf8c49f01ef8d7eaea992f44`; Block 6 has **not** yet been deployed.
+- Authenticated live chat acceptance testing remains outstanding. CI validates deterministic behavior and integration, but does not prove end-user conversation quality or authenticated runtime behavior.
+
+### Known limits
+- This is a deterministic guard for targeted player metrics, ambiguous identity and pace-related tactical hypotheses, not a universal fact checker for every possible football statement.
+- A metric is treated as available evidence only when it is present in the allowlisted structured research profile; ordinary conversation text is never sufficient.
+- Further metric types should be added only with explicit schema mappings, source/provenance semantics and regression tests.
+
+### Next release gate
+1. Confirm the Render workspace selection before using workspace-scoped logs/deploy actions.
+2. Reconfirm PR #58 head and the exact tested code commit.
+3. Deploy only the tested commit to the named Render STAGING service.
+4. Verify deployment ID/status, deployed SHA, startup logs and staging health.
+5. Run authenticated chat acceptance tests for the five core cases; record results separately from CI.
+6. Keep PR #58 Draft and unmerged. Production remains untouched.
