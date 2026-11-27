@@ -70,11 +70,11 @@ test('agent core performs one bounded semantic replan after the retry still fail
   if(calls<=2)return {status:'partial',results:[{capability_id:'overall_score',status:'error',
     error_code:'CONTROLLED_TEST_FAILURE',provenance:{capability_id:'overall_score'}}],
     completed_steps:0,total_steps:1,blocked_capabilities:[],deferred_capabilities:[],
-    missing_inputs:[],replan_recommended:true,stop_requested:false,execution_policy:{budget_ms:2000}};
+    missing_inputs:[],replan_recommended:true,stop_requested:false,model_weights_changed:false,execution_policy:{budget_ms:2000}};
   return {status:'completed',results:[{capability_id:'position_analysis',status:'completed',
     provenance:{capability_id:'position_analysis'}}],completed_steps:1,total_steps:1,
     blocked_capabilities:[],deferred_capabilities:[],missing_inputs:[],
-    replan_recommended:false,stop_requested:false,execution_policy:{budget_ms:2000}};
+    replan_recommended:false,stop_requested:false,model_weights_changed:false,execution_policy:{budget_ms:2000}};
  };
  const cycle=await executeMessinhoAgentPlan({plan,goal:'Testziel',role:'scout',input:{},
   runPlan,
