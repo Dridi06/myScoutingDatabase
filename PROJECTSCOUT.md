@@ -5373,3 +5373,14 @@ Continue improving the language system after the verified Linguistic Intelligenc
 - No database write/migration or production change occurred.
 - Next: rerun full STAGING build and verify all 497+ tests before release.
 
+
+
+### First 1.2.5 build feedback and regression-fixture correction — 2026-11-27
+- First STAGING build attempt dep-dc4o0ttg1s2s73f6estg ran 500 tests: 498 passed, 2 failed.
+- Failure 1: the knowledge summary test still expected version 1.2.4; corrected to 1.2.5.
+- Failure 2: the existing three-language retrieval fixture lacked German vocabulary in its synthetic German knowledge rows. Segment-scoped retrieval correctly refused to use English/French segment tokens for German entries. Added German-specific tokens (Spieler/Liga/bereit) to the German fixture corpus rather than weakening language isolation.
+- Correction test commit: 276f8a40601c44f8f48fb894e032be57ec70cf04.
+- The phrase-alias, mixed-language segment-isolation and vocalized-Arabic alias regressions all passed in the first run.
+- No runtime code change was made in response to these two test failures; both were stale/incomplete test fixtures. The failed build did not replace the current live STAGING version.
+- Next: rerun full STAGING build and deploy only after all tests, syntax checks and Vite build pass.
+
