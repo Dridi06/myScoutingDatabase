@@ -6279,3 +6279,52 @@ Add a deterministic validation gate to MESSINHO's actual cognitive model reply p
 4. Verify deployment ID/status, deployed SHA, startup logs and staging health.
 5. Run authenticated chat acceptance tests for the five core cases; record results separately from CI.
 6. Keep PR #58 Draft and unmerged. Production remains untouched.
+
+
+## 27. Block 7 — Pragmatic Conversational Context — 2026-11-28
+
+**Status: implementation committed to the STAGING feature branch; exact-head CI and runtime acceptance are pending.**
+
+### Objective
+Improve the natural two-person conversation experience by giving the existing cognitive router bounded cues for how a message is phrased — for example, a correction, disagreement, opinion, direct question, greeting, thanks, acknowledgement, explicit self-reported feeling, or request. This is a supporting context layer, not a second intent router or chatbot.
+
+### Implementation
+- Added `backend/messinho-pragmatic-context.js`:
+  - Extracts at most two explicit, bounded conversational cues from the current message.
+  - Supports selected German, English, French, Spanish, Arabic and Tunisian Derja surface expressions.
+  - Labels cue strength separately from semantic intent confidence.
+  - Uses explicit self-report wording before marking an emotion cue; it does not infer hidden emotional states.
+  - Returns only fixed cue labels and guidance, not user text as executable instructions.
+  - States that cues are weak hints and never facts, permissions, or action authorization.
+- Updated `backend/messinho-conversational-intelligence.js`:
+  - Passes `pragmatic_context` into the same structured model turn as dialogue, approved language knowledge, conversation memory and reasoning context.
+  - Instructs the model to reconsider an answer when the user corrects or disagrees, rather than automatically defending the previous response.
+  - Keeps the user's actual message, semantic decision and safety rules authoritative.
+- Updated `backend/server.js`:
+  - Builds the pragmatic context from the current interpreted message.
+  - Passes it through the existing authenticated `POST /api/agent/chat` route.
+- Added `tests/messinho-pragmatic-context.test.js`:
+  - Covers correction, disagreement, opinions, explicit self-reported feelings, greeting, gratitude, acknowledgement, multilingual question cues, bounded output and integration into the real cognitive model request.
+  - Includes a server-wiring regression check for the authenticated chat path.
+
+### Safety and scope
+- No new chatbot, conversation endpoint, database table, migration, persistent memory store, external action, permission change, model-weight change or training job.
+- Pragmatic cues are transient and are not saved as user facts.
+- Pattern matching is intentionally conservative and incomplete; the model must still interpret the full message and dialogue context.
+- Subjective response quality still requires human review and authenticated conversation testing.
+
+### Checkpoint
+- Work branch: `feature/messinho-conversation-engine`.
+- PR #58 remains open, Draft and unmerged.
+- Implementation commits are on the feature branch; latest code commit before this documentation update: `ec408c12ba0f7acb35f2d3abe535222a81114079`.
+- **Exact-head CI status: pending verification.** The available workflow lookup does not expose push-triggered run IDs; do not mark the new tests as passed until a successful run for the exact current head is verified.
+- Render STAGING remains on the previously verified Block 6 deployment commit `f5817aa38fc8f53a3e40fef47524e7eba8c78a7f`. Block 7 has not been deployed.
+- Authenticated Admin/Scout end-to-end conversation testing remains outstanding.
+- Production branch, production Render service and production database remain untouched.
+
+### Next actions
+1. Verify the exact feature-branch head and obtain successful Node tests, backend syntax and full STAGING CI for that head.
+2. Deploy only the verified commit to `myscoutingdatabase-messinho-staging` and confirm the exact deployed SHA and startup health.
+3. Run authenticated dialogue acceptance tests for correction, disagreement, ordinary statements, new-topic changes, follow-up continuity, explicit emotion, and multilingual/code-switch input.
+4. Review false positives and false negatives before expanding cue coverage.
+5. Keep PR #58 Draft and unmerged until the owner explicitly authorizes otherwise.
