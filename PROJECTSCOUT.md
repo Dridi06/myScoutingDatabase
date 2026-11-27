@@ -5298,3 +5298,35 @@ Make subject-language routing work when the scout asks in German (the primary pr
 - Authenticated human Admin/Scout chat acceptance is still pending. Automated tests verify the language selection and API response contract, but not a real signed-in browser conversation.
 - Next work: improve phrase-level semantic interpretation and dialect-aware retrieval ranking using only the existing approved corpus; then perform authenticated STAGING chat checks for MSA, Derja, Arabizi, mixed language, translation target and negation/uncertainty preservation.
 
+
+
+## 31. Explicit output-language targets for all language actions — 2026-11-27
+
+### Objective
+A user may request not only a translation, but also an explanation, correction or rephrasing in a specific language. MESSINHO must honor the requested output language for that task without changing the conversation's default reply language afterward.
+
+### Implemented on STAGING feature branch
+- backend/messinho-linguistic-intelligence.js
+  - Linguistic Intelligence version advanced from 1.3.6 to 1.3.7.
+  - action.target_language now carries an explicit target for translate, explain, correct and rephrase actions.
+  - Action instructions distinguish the requested output language from the source language and the default conversation language.
+  - Clarification remains required for translation only when no target language can be identified.
+- backend/messinho-language-knowledge.js
+  - Language Knowledge access version advanced from 1.2.3 to 1.2.4.
+  - Requested-language routing now includes explicit target languages for all explicit actions, not only translation.
+- tests
+  - tests/messinho-linguistic-intelligence.test.js: two regressions for explicit output targets across explain/correct/rephrase and task-scoped target behavior.
+  - tests/messinho-language-knowledge.test.js: one regression for retrieving Derja knowledge for an explanation explicitly requested in Tunisian.
+
+### Traceability
+- Linguistic action implementation commit: e68ac819672ac5ba2367b0823c97ad199e94a347.
+- Knowledge routing implementation commit: 0a1bacf60498b818e16be8ba43e0541d2c9a2db0.
+- Linguistic action test commit: 126cad42b9bc9203d4afc6bb40860f72ae79c17e.
+- Knowledge retrieval test commit: b44c7d02132bdc3d6ea72a537c54ddb90ee637dd.
+
+### Verification state
+- Previous STAGING baseline: Linguistic Intelligence 1.3.6 / Language Knowledge 1.2.3, deployment dep-dc4nvhbl550s73a2qa20, 494/494 tests passed.
+- This 1.3.7 / 1.2.4 implementation is committed but not yet built or deployed.
+- Next: run full STAGING build, verify all tests, then deploy exact commit to STAGING only.
+- No Supabase schema/data migration is required. Production remains untouched.
+
