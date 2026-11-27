@@ -5500,3 +5500,14 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Run full Node tests, backend syntax checks and Vite production build. Fix any real regression before release.
 - Production remains untouched; no Supabase migration or persistent language-knowledge write is required.
 
+
+
+### First 1.3.9 build feedback — preserve “not necessarily bad” nuance — 2026-11-27
+- First full STAGING build attempt dep-dc4o3f61egvs7396oa20 ran the new semantic regressions and found two test expectation issues.
+- The Tunisian Derja fixture “موش بالضرورة خايب” means “not necessarily bad”; it must not also be asserted as the separate “not bad” cue. The expected cues were corrected to not_necessarily and not_enough only.
+- The metadata cue list is a set of independent evidence cues; the test no longer assumes an ordering between not_bad and not_yet.
+- Corrective test commit: b2388a0ba76826118ee63f5a016a8e081920824d.
+- No semantic implementation was weakened or changed for these test corrections. The failed build did not replace the live STAGING deployment.
+- Next: rerun the complete STAGING build and deploy only after all semantic tests, syntax checks and Vite build pass.
+- No database write/migration or production change occurred.
+
