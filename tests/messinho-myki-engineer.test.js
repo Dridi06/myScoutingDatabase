@@ -36,7 +36,8 @@ test('generates a validated proposal from pinned source revision without applyin
  assert.equal(r.proposal.benchmark_id,'feature/messinho-unified-ai-integration@'+sha);
  assert.equal(r.tests_executed,false);
  assert.equal(r.execution_mode,'proposal_only');
- assert.equal(calls.length,7);
+ assert.equal(calls.length,19,'the expanded safe source allowlist is fetched at the pinned revision');
+ assert.ok(calls.some(url=>url.endsWith('/src/asi/MyKiChat.jsx')));
  assert.ok(calls[0].includes('feature%2Fmessinho-unified-ai-integration'));
 });
 
