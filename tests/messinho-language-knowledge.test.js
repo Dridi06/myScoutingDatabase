@@ -279,3 +279,64 @@ test('retrieves requested Derja knowledge for an explicit explanation in Tunisia
  assert.ok(result.requested_language_ids.includes('ar-tn'));
  assert.equal(result.items[0]?.entry_key,'ar-tn.grammar.explanation');
 });
+
+
+test('ranks an exact Derja phrase alias above broad lexical overlap',async()=>{
+ const rows=[
+  {
+   entry_key:'ar-tn.grammar.negation_circumfix',version:1,language_code:'ar-tn',entry_type:'grammar',
+   topic:'النفي في الدارجة',title:'Negation with ma...ch',
+   content:{explanation:'A Tunisian negation pattern.',aliases:['ma...ch negation','negative circumfix in Tunisian Derja']},
+   tags:['negation','ma','ch'],knowledge_status:'active'
+  },
+  {
+   entry_key:'ar-tn.lexicon.negation_general',version:1,language_code:'ar-tn',entry_type:'lexicon',
+   topic:'Vocabulary',title:'General negation vocabulary',
+   content:{explanation:'General vocabulary related to negation and grammar.'},
+   tags:['negation','grammar','vocabulary','Tunisian'],knowledge_status:'active'
+  }
+ ];
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'Please explain the ma...ch negation pattern in Tunisian Derja.');
+ assert.equal(result.items[0]?.entry_key,'ar-tn.grammar.negation_circumfix');
+ assert.ok(result.items[0]?.relevance>result.items[1]?.relevance);
+});
+
+test('scopes mixed-language retrieval to the matching language segment',async()=>{
+ const rows=[
+  {
+   entry_key:'en.grammar.player_readiness',version:1,language_code:'en',entry_type:'grammar',
+   topic:'English example',title:'English player readiness',
+   content:{explanation:'The player is ready for this league.'},
+   tags:['player','ready','league'],knowledge_status:'active'
+  },
+  {
+   entry_key:'fr.grammar.joueur_pret',version:1,language_code:'fr',entry_type:'grammar',
+   topic:'Exemple français',title:'Le joueur est prêt',
+   content:{explanation:'Le joueur est prêt pour cette ligue.'},
+   tags:['joueur','prêt','ligue'],knowledge_status:'active'
+  },
+  {
+   entry_key:'fr.lexicon.false_english_overlap',version:1,language_code:'fr',entry_type:'lexicon',
+   topic:'False cross-language match',title:'English-only terms in French record',
+   content:{explanation:'The player is ready for this league.'},
+   tags:['player','ready','league'],knowledge_status:'active'
+  }
+ ];
+ const message='The player is ready for this league, mais le joueur est prêt pour cette ligue.';
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),message);
+ const keys=result.items.map(item=>item.entry_key);
+ assert.ok(keys.includes('en.grammar.player_readiness'));
+ assert.ok(keys.includes('fr.grammar.joueur_pret'));
+ assert.equal(keys.includes('fr.lexicon.false_english_overlap'),false);
+});
+
+test('matches vocalized Arabic aliases after detection-only normalization',async()=>{
+ const rows=[{
+  entry_key:'ar-tn.pragmatics.opinion_phrase',version:1,language_code:'ar-tn',entry_type:'pragmatics',
+  topic:'الرأي',title:'شنوة رايك',
+  content:{explanation:'A Tunisian phrase for asking someone what they think.',aliases:['شنوة رايك','شنوّة رايك في']},
+  tags:['رأي','سؤال'],knowledge_status:'active'
+ }];
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'شْنُوَّة رَأْيَكْ فِي اللَّاعِبْ هَاذَا؟');
+ assert.equal(result.items[0]?.entry_key,'ar-tn.pragmatics.opinion_phrase');
+});
