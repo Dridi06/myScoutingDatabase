@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { planMessinhoGoalWithModel } from '../backend/messinho-goal-planner.js';
+import { prepareMessinhoReplanPlan } from '../backend/messinho-agent-core.js';
 
 function fakeResponse(value,status=200){
  return {ok:status>=200&&status<300,status,json:async()=>({choices:[{message:{content:JSON.stringify(value)}}]})};
@@ -52,4 +53,24 @@ test('provider failures use deterministic fallback without claiming semantic pla
  assert.equal(result.planning_source,'deterministic_fallback');
  assert.equal(result.planner_status,'provider_error');
  assert.ok(result.plan);
+});
+
+test('replan filters capabilities already attempted in this task',()=>{
+ const candidate={denied:false,steps:['holistic_player_analysis','source_cross_check','overall_score'],
+  blocked_capabilities:[],deferred_capabilities:[],discovered_capabilities:['holistic_player_analysis','source_cross_check','overall_score']};
+ const prepared=prepareMessinhoReplanPlan(candidate,[{capability_id:'holistic_player_analysis',status:'error'}],'scout');
+ assert.deepEqual(prepared.steps,['source_cross_check','overall_score']);
+ assert.equal(prepared.replan,true);
+ assert.equal(prepared.replan_excludes_attempted,true);
+});
+
+test('replan refuses Admin-only capabilities for Scout even if a candidate plan contains them',()=>{
+ const prepared=prepareMessinhoReplanPlan({denied:false,steps:['prediction_audit'],
+  blocked_capabilities:[],deferred_capabilities:[]},[],'scout');
+ assert.equal(prepared,null);
+});
+
+test('replan rejects unknown capability IDs and completed/denied plans',()=>{
+ assert.equal(prepareMessinhoReplanPlan({denied:false,steps:['invented_tool']},[],'admin'),null);
+ assert.equal(prepareMessinhoReplanPlan({denied:true,steps:['overall_score']},[],'admin'),null);
 });
