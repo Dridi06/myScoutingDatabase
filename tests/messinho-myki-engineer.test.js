@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generateMessinhoEngineeringProposal,isMessinhoEngineeringRequest} from '../backend/messinho-myki-engineer.js';
+import {generateMessinhoEngineeringProposal,isMessinhoEngineeringRequest,validateMessinhoEngineeringPatchAgainstSources} from '../backend/messinho-myki-engineer.js';
 
 const sha='a'.repeat(40);
 const patch=`diff --git a/backend/messinho-input-correction.js b/backend/messinho-input-correction.js
@@ -56,4 +56,16 @@ test('fails closed when provider, source or patch validation is unavailable',asy
   return response({choices:[{message:{content:JSON.stringify({proposal:{...candidate,patch:patch.replace('const value = 2;','process.env.SECRET')}})}}]});
  }});
  assert.equal(unsafe.ok,false);
+});
+
+test('rejects a model patch whose old lines do not exist in the pinned source',()=>{
+ const result=validateMessinhoEngineeringPatchAgainstSources(patch,[{path:'backend/messinho-input-correction.js',content:'const actual = 1;\\n'}]);
+ assert.equal(result.ok,false);
+ assert.equal(result.reason,'patch_context_does_not_match_pinned_source');
+});
+
+test('accepts only an anchored hunk matching the exact source context',()=>{
+ const result=validateMessinhoEngineeringPatchAgainstSources(patch,[{path:'backend/messinho-input-correction.js',content:'const value = 1;\\n'}]);
+ assert.equal(result.ok,true);
+ assert.equal(result.sections,1);
 });
