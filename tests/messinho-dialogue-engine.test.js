@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildMessinhoDialogueState,validateMessinhoDialogueState,MESSINHO_DIALOGUE_ENGINE_VERSION,classifyMessinhoFollowUp} from '../backend/messinho-dialogue-engine.js';
+import {buildMessinhoDialogueState,validateMessinhoDialogueState,MESSINHO_DIALOGUE_ENGINE_VERSION,classifyMessinhoFollowUp,classifyMessinhoClarificationReply} from '../backend/messinho-dialogue-engine.js';
 
 test('dialogue engine detects a likely short follow-up and preserves prior goal as a candidate',()=>{
   const state=buildMessinhoDialogueState({message:'Und wie schnell ist er?',history:[
@@ -101,4 +101,100 @@ test('server loads an extended but bounded owner-scoped conversation window',asy
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
   assert.match(source,/\.order\('created_at',\{ascending:false\}\)\.limit\(60\)/);
   assert.match(source,/sanitizeMessinhoHistory[\s\S]{0,300}\{limit:60\}/);
+});
+
+test('clarification lifecycle extracts offered options and recognizes an exact location answer',()=>{
+  const state=buildMessinhoDialogueState({message:'international',history:[
+    {role:'user',text:'Suche einen schnellen Flügelspieler.'},
+    {role:'assistant',text:'Soll ich in Deutschland oder international suchen?'}
+  ]});
+  assert.equal(state.continuity.assistant_awaiting_answer,true);
+  assert.equal(state.continuity.pending_question.kind,'location');
+  assert.deepEqual(state.continuity.pending_question.options,['Deutschland','international']);
+  assert.equal(state.continuity.clarification_reply.status,'likely_answer');
+  assert.equal(state.continuity.clarification_reply.matched_option,'international');
+  assert.equal(state.continuity.follow_up_signal,'pending_question_reply');
+  assert.equal(validateMessinhoDialogueState(state),true);
+});
+
+test('clarification lifecycle recognizes numeric age answers without executing a search',()=>{
+  const state=buildMessinhoDialogueState({message:'21 Jahre',history:[
+    {role:'user',text:'Suche einen Stürmer.'},
+    {role:'assistant',text:'Wie alt soll der Spieler maximal sein?'}
+  ]});
+  assert.equal(state.continuity.pending_question.kind,'age');
+  assert.equal(state.continuity.clarification_reply.status,'likely_answer');
+  assert.equal(state.continuity.clarification_reply.answer_shape,'numeric');
+  assert.equal(state.continuity.clarification_reply.confidence,0.9);
+  assert.equal(state.continuity.follow_up_signal,'pending_question_reply');
+});
+
+test('clarification lifecycle marks an answer outside offered options as ambiguous',()=>{
+  const state=buildMessinhoDialogueState({message:'Europa',history:[
+    {role:'user',text:'Suche einen Spieler.'},
+    {role:'assistant',text:'Soll ich in Deutschland oder international suchen?'}
+  ]});
+  assert.equal(state.continuity.clarification_reply.status,'ambiguous');
+  assert.equal(state.continuity.clarification_reply.answer_shape,'unlisted_option');
+  assert.equal(state.continuity.clarification_reply.matched_option,null);
+});
+
+test('a new question after a pending clarification is not forced into the previous task',()=>{
+  const state=buildMessinhoDialogueState({message:'Wie funktioniert das Steuersystem?',history:[
+    {role:'user',text:'Suche einen Flügelspieler.'},
+    {role:'assistant',text:'Soll ich in Deutschland oder international suchen?'}
+  ]});
+  assert.equal(state.continuity.assistant_awaiting_answer,true);
+  assert.equal(state.continuity.clarification_reply.status,'new_topic');
+  assert.equal(state.continuity.follow_up_signal,'none');
+  assert.equal(state.continuity.follow_up_likely,false);
+});
+
+test('short confirmations are interpreted as answers only when a question is pending',()=>{
+  const pending=buildMessinhoDialogueState({message:'Ja',history:[
+    {role:'assistant',text:'Soll ich die Suche starten?'}
+  ]});
+  const ordinary=buildMessinhoDialogueState({message:'Ja',history:[
+    {role:'assistant',text:'Ich kann dir später helfen.'}
+  ]});
+  assert.equal(pending.continuity.clarification_reply.status,'likely_answer');
+  assert.equal(pending.continuity.clarification_reply.answer_shape,'confirmation');
+  assert.equal(ordinary.continuity.clarification_reply.status,'none');
+});
+
+test('clarification option matching supports English, French, Spanish and Arabic connectors',()=>{
+  const cases=[
+    ['Regionalliga','Should I search Bundesliga or Regionalliga?','Regionalliga'],
+    ['Ligue 2','Tu préfères Ligue 1 ou Ligue 2?','Ligue 2'],
+    ['Segunda','¿Prefieres LaLiga o Segunda?','Segunda'],
+    ['الثانية','هل تريد الدرجة الأولى أو الثانية؟','الثانية']
+  ];
+  for(const [answer,question,expected] of cases){
+    const state=buildMessinhoDialogueState({message:answer,history:[{role:'assistant',text:question}]});
+    assert.equal(state.continuity.clarification_reply.status,'likely_answer',question);
+    assert.equal(state.continuity.clarification_reply.matched_option,expected,question);
+  }
+});
+
+test('free-text clarification answers remain candidates for semantic review',()=>{
+  const state=buildMessinhoDialogueState({message:'Am liebsten im Großraum Berlin, aber Brandenburg wäre auch möglich.',history:[
+    {role:'assistant',text:'In welcher Region soll ich suchen?'}
+  ]});
+  assert.equal(state.continuity.clarification_reply.status,'candidate_answer');
+  assert.equal(state.continuity.clarification_reply.answer_shape,'free_text');
+  assert.equal(state.continuity.clarification_reply.confidence,0.58);
+});
+
+test('clarification classifier does not invent an answer without a pending question',()=>{
+  const result=classifyMessinhoClarificationReply('Regionalliga',null);
+  assert.equal(result.status,'none');
+  assert.equal(result.matched_option,null);
+});
+
+test('cognitive router receives explicit clarification lifecycle handling rules',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const source=await readFile(new URL('../backend/messinho-conversational-intelligence.js',import.meta.url),'utf8');
+  assert.match(source,/clarification_reply\.status is likely_answer/);
+  assert.match(source,/When status is ambiguous, ask one focused clarification/);
+  assert.match(source,/never execute an action solely because of this status/);
 });
