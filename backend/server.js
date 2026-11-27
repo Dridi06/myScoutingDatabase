@@ -2305,6 +2305,8 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       message,
       history,
       memory:agentMemory,
+      linguisticContext,
+      userRole:profile.role,
       apiKey:process.env.OPENAI_API_KEY,
       model:process.env.OPENAI_MODEL||'gpt-4.1-mini'
     });
