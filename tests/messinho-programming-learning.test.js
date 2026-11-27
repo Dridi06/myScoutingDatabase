@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MESSINHO_PROGRAMMING_CURRICULUM,buildMessinhoProgrammingLearningContext,assessMessinhoProgrammingLearning} from '../backend/messinho-programming-learning.js';
 import {MESSINHO_PROGRAMMING_LANGUAGES,buildMessinhoLanguageLearningContext} from '../backend/messinho-programming-languages.js';
+import {detectMessinhoSourceLanguage,buildMessinhoCodebaseIntelligence,buildMessinhoAutonomousEngineeringProtocol} from '../backend/messinho-code-intelligence.js';
 
 test('provides progressive programming levels with security and AI engineering',()=>{
  const context=buildMessinhoProgrammingLearningContext();
@@ -44,4 +45,39 @@ test('keeps the curriculum deterministic and versioned for durable reuse',()=>{
  assert.equal(a.language_curriculum_version,b.language_curriculum_version);
  assert.deepEqual(a.levels,b.levels);
  assert.deepEqual(a.language_knowledge.languages,b.language_knowledge.languages);
+});
+
+test('detects supported source languages and excludes secrets and generated files',()=>{
+ assert.equal(detectMessinhoSourceLanguage('src/App.tsx').language_id,'javascript-typescript');
+ assert.equal(detectMessinhoSourceLanguage('worker.py').language_id,'python');
+ assert.equal(detectMessinhoSourceLanguage('migrations/schema.sql').language_id,'sql');
+ assert.equal(detectMessinhoSourceLanguage('src/Service.cs').language_id,'csharp-dotnet');
+ assert.equal(detectMessinhoSourceLanguage('src/main.rs').language_id,'rust');
+ assert.equal(detectMessinhoSourceLanguage('.env').supported,false);
+ assert.equal(detectMessinhoSourceLanguage('node_modules/pkg/index.js').supported,false);
+ assert.equal(detectMessinhoSourceLanguage('../outside.js').supported,false);
+});
+
+test('builds language-specific validation plans without claiming commands ran',()=>{
+ const plan=buildMessinhoCodebaseIntelligence({files:[
+  {path:'src/App.tsx'},{path:'backend/api.py'},{path:'db/schema.sql'},
+  {path:'src/Worker.go'},{path:'src/Program.cs'},{path:'.env'},
+  {path:'node_modules/pkg/index.js'},{path:'README.md'}
+ ],availableTools:['node','npm']});
+ assert.equal(plan.language_count,5);
+ assert.equal(plan.supported_file_count,5);
+ assert.equal(plan.execution_safety.execute_untrusted_code,false);
+ assert.equal(plan.execution_safety.require_isolated_sandbox,true);
+ assert.ok(plan.languages.find(x=>x.language_id==='javascript-typescript').available_tools.includes('node'));
+ assert.ok(plan.languages.find(x=>x.language_id==='python').validation_plan.some(x=>x.includes('pytest')));
+ assert.match(plan.policy,/not proof that tools exist or ran/);
+});
+
+test('defines a measured autonomous improvement loop with strict execution boundaries',()=>{
+ const protocol=buildMessinhoAutonomousEngineeringProtocol();
+ assert.equal(protocol.modes.includes('validate'),true);
+ assert.equal(protocol.loop.length,7);
+ assert.ok(protocol.loop.find(x=>x.name==='Compare').requires.includes('before_after_results'));
+ assert.ok(protocol.hard_limits.some(x=>x.includes('exact candidate revision')));
+ assert.ok(protocol.hard_limits.some(x=>x.includes('application process')));
 });
