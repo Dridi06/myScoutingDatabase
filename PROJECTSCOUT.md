@@ -3931,3 +3931,13 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Änderungen ausschließlich auf `feature/messinho-unified-ai-integration`; keine Datenmigration, keine Spieler-/Scout-Datenänderung, kein Eingriff in `main` oder Produktion.
 - Commit mit Backend-Statusroute: `320f4d001be0e98a86a555bd1d8da1b42606a485`. CI wurde nach dem Commit gestartet; Ergebnis und anschließender STAGING-Deploy müssen vor Live-Bestätigung geprüft werden.
 - Offene Verifikation: CI vollständig grün, STAGING auf exakt diesen Branch-HEAD bereitstellen, Statusroute mit Admin-Sitzung prüfen, normalen Chat und Admin-only Schutz Ende-zu-Ende testen.
+
+### myKI Ticketpagination und Programmier-Lernbasis 2026-11-27
+- myKI zeigt maximal fünf Engineering-Tickets pro Seite. Ab Ticket sechs erfolgt die Anzeige auf nummerierten Folgeseiten mit Zurück/Weiter, Seitenzahlen und Gesamtzähler. Die Ticketdetails bleiben unabhängig davon im rechten Detailbereich sichtbar.
+- Pagination ist clientseitig und ändert weder Ticketdaten noch Reihenfolge/Status in der Datenbank.
+- Programmiercurriculum auf Version 1.1.0 erweitert: zusätzliche professionelle Engineering-Stufe mit Fehleranalyse, Code-Review, Threat Modeling, Performance, Nebenläufigkeit, Migrationen, Accessibility, Fuzzing, Observability und Architekturentscheidungen.
+- MESSINHO erhält einen verbindlichen achtstufigen Engineering-Arbeitsablauf sowie Qualitäts-Gates für Belegbarkeit, Sicherheit, Wartbarkeit, Performance, Testbarkeit und Rückwärtskompatibilität.
+- Konzept für Admin-Wissenszufuhr festgelegt: bereitgestellte Unterlagen zunächst als Quellenmaterial prüfen (Herkunft, Version, Nutzungsrechte, Aktualität, Widersprüche), Konzepte extrahieren, mit bestehendem Wissen abgleichen, versionierten Lernvorschlag erzeugen und erst nach Admin-Freigabe dauerhaft integrieren. Ungeprüftes Material wird nicht automatisch als gesichertes Wissen übernommen.
+- Keine automatische Modellgewichtsänderung und keine automatische Code-Anwendung. Engineering-Vorschläge bleiben Vorschläge/Tickets bis zur ausdrücklichen Freigabe.
+- Änderungen ausschließlich im Feature-Branch `feature/messinho-unified-ai-integration`; STAGING-only, `main` und Produktion unverändert.
+- CI und STAGING-Deploy für den neuen Stand müssen noch vollständig geprüft werden.
