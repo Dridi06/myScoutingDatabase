@@ -4801,3 +4801,46 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 
 ### Nächster Schritt
 - Den isolierten Sandbox-Lauf auf dem aktuellen Code-/Teststand abschließen und danach die Sprachqualität weiter mit unabhängigen Referenzsätzen prüfen.
+
+
+## 21. MESSINHO Linguistic Intelligence 1.3.4 — Arabic orthography robustness — 2026-11-27
+
+### Owner request and scope
+- Request: Continue programming and integrating the language system.
+- Operating boundary: feature/messinho-unified-ai-integration and the dedicated Render STAGING service only. Production branch, production Render service and production Supabase remain untouched.
+- Scope: Improve detection of Arabic-script MSA and Tunisian Derja when users include vowel marks (tashkeel), tatweel, or common Arabic letter variants. This is detection-only normalization, not translation or rewriting.
+
+### Implemented
+- backend/messinho-linguistic-intelligence.js
+  - Linguistic Intelligence version advanced from 1.3.3 to 1.3.4.
+  - Added normalizeMessinhoArabicForAnalysis() for analysis-only normalization: remove Arabic vowel marks and tatweel; normalize common alif, alif-maqsura, waw-hamza and ya-hamza variants.
+  - Incoming token matching and the Arabic/Derja lexicons now use the same normalized representation.
+  - Tunisian Derja signal detection uses normalized analysis text, reducing false MSA classification for vocalized dialect input.
+  - The original message, segment text and action source text remain unchanged.
+- tests/messinho-linguistic-intelligence.test.js
+  - Updated the expected linguistic-intelligence version.
+  - Added four regressions for Arabic orthographic normalization, fully vocalized MSA detection, vocalized Tunisian Derja detection, and original-text preservation.
+
+### Traceability
+- Source implementation commits:
+  - fbffae1cf8c6eea1264f098ef1ab0cbd88961db7 — Arabic detection-only normalization.
+  - faf951f4172157cebbdcc9eddff45f2fed6564dc — normalize Arabic lexicons to match normalized input tokens.
+- Test commit:
+  - 4b70fba61e23e7c7d83ee915022661022ebc9c00 — add four Arabic normalization regressions.
+- Latest implementation commit at checkpoint: faf951f4172157cebbdcc9eddff45f2fed6564dc.
+
+### Verification and limitations
+- GitHub workflow configuration was inspected: .github/workflows/messinho-tests.yml runs npm test and backend syntax checks on pushes to this feature branch.
+- The automated workflow result for the latest commit has not yet been confirmed.
+- Render STAGING is configured with autoDeploy=no; no deployment has been triggered for these commits yet.
+- The configured STAGING build command is npm install --no-audit --no-fund && npm run build; the package build script runs npm test, backend syntax checks and the frontend build.
+- No database migration, Supabase query/write, player data change, scout data change, user data change, or model-weight change was made.
+- No production resource was changed.
+
+### Next steps
+1. Run the dedicated STAGING build against the latest feature-branch commit; verify that the full Node suite, syntax checks and frontend build pass.
+2. If the build fails, inspect the exact build logs, correct the issue on this feature branch and rerun once the root cause is addressed.
+3. Verify Render STAGING reaches live on the exact tested commit.
+4. Perform authenticated UI/API checks for Arabic MSA, vocalized Derja, Arabizi, mixed-language input and source-text preservation.
+5. Continue with phrase-level semantic interpretation and context-sensitive language switching only after the 1.3.4 regression suite is green.
+
