@@ -3,7 +3,7 @@ const PILLARS = Object.freeze([
   { id:'autonomy', label:'Autonomie', points:5, maximum:10, status:'begrenzt', evidence:'MESSINHO plant und führt freigegebene Analysen aus; geschützte Aktionen bleiben gesperrt.', next:'Kontrollierte Hintergrundfortsetzung, Fehlerwiederaufnahme und Admin-Gates vollständig beweisen.' },
   { id:'scouting', label:'Scouting-Intelligenz', points:7, maximum:15, status:'teilweise_nachgewiesen', evidence:'100 Capability-IDs und Runtime-Handler; nicht jede Funktion besitzt bereits spezialisierte Datenlogik.', next:'Reale historische Spieler- und Mannschaftsdaten mit Herkunft und Vollständigkeit prüfen.' },
   { id:'research', label:'Recherche & Markt', points:5, maximum:10, status:'teilweise_nachgewiesen', evidence:'Quellenbasierte Spieler- und Marktwertrecherche mit Vergleichs- und Quellenfiltern.', next:'Quellenabdeckung, Aktualität, Rechte und Recherchequalität breiter validieren.' },
-  { id:'forecasting', label:'Prognosen', points:2, maximum:20, status:'nicht_validiert', evidence:'Prognosekontrolle und Hypothesenbildung existieren; belastbare Prognosemodelle und Kalibrierung sind noch nicht nachgewiesen.', next:'Spielerentwicklung, Transferereignisse, Marktwertverlauf und Erfolg anhand verifizierter historischer Daten testen und kalibrieren.' },
+  { id:'forecasting', label:'Prognosen', points:6, maximum:20, status:'algorithmen_getestet_live_daten_offen', evidence:'12-Monats-Trendprojektion, historische Transfer-Kohortenrate, Erfolgs-Kohortenrate und Marktwert-Trend sind implementiert; die Forecast-Tests bestehen. Reale, verifizierte Staging-Historien fehlen noch und die Raten sind nicht kalibriert.', next:'Reale, verifizierte Spieler-, Vertrags-, Transfer- und Marktwertverläufe einspeisen; Prognosen über Zeit gegen tatsächliche Ergebnisse kalibrieren.' },
   { id:'knowledge', label:'Wissen & Lernen', points:5, maximum:10, status:'teilweise_nachgewiesen', evidence:'Versioniertes Wissen, Quellen-/Rechteprüfung und freigabepflichtige Lernspeicherung sind vorhanden.', next:'Fachwissen systematisch importieren, verifizieren, versionieren und abrufbar machen.' },
   { id:'engineering', label:'Eigenständige Entwicklung', points:3, maximum:15, status:'nicht_freigeschaltet', evidence:'Vorschlags- und Sandbox-Bausteine existieren; die automatische Ausführung ist noch nicht erfolgreich Ende-zu-Ende bewiesen.', next:'Sandbox-Baseline reparieren, echte isolierte Job-Ausführung und Ergebnisrückgabe verifizieren.' },
   { id:'security', label:'Sicherheit & Kontrolle', points:3, maximum:5, status:'teilweise_nachgewiesen', evidence:'Rollenprüfung, Allowlist, getrennte Freigaben und serverseitige Sicherheitsgrenzen sind angelegt.', next:'Adversariale Rollen-, Mandanten-, Prompt-Injection- und Sandbox-Tests vollständig bestehen.' },
@@ -28,7 +28,7 @@ export function buildMessinhoMaturityReport() {
     scale:LEVELS.map(({min,max,label})=>({min,max,label})),
     pillars:PILLARS.map(item=>({...item})),
     verified_snapshot:'2026-11-27',
-    basis_commit:'56d62b81771fbc80b03f9baaa68fb834435d39ea',
+    basis_commit:'659b9c0ca62eb677f2fb80ac7a094869b52ddc9e',
     score_policy:'Punkte werden nur nach überprüfbarer Implementierung, bestandenen Tests und – wo erforderlich – erfolgreicher Staging-Verifikation erhöht. Vorhandene Funktionsnamen oder Katalogeinträge allein reichen nicht.',
     release_gate:'100 Punkte und LIVE-Freigabe erst nach bestandenen Prognose-, Autonomie-, Sicherheits-, Sandbox-, Rollen- und Betriebsprüfungen.',
     next_milestones:[
