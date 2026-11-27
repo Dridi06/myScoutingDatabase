@@ -11,8 +11,9 @@ index 1111111..2222222 100644
 -const value = 1;
 +const value = 2;
 `;
-const response=(payload)=>({ok:true,json:async()=>payload,text:async()=>payload});
+const response=payload=>({ok:true,json:async()=>payload});
 const candidate={title:'Verbesserte Eingabe-Normalisierung',rationale:'Ein konkreter Grenzfall in der Normalisierung wird nicht konsistent behandelt und kann sicher vereinheitlicht werden.',patch,test_plan:['Grenzfall und Normalfall prüfen','Regression für bestehende Korrekturen prüfen'],rollback_plan:'Vorherigen Commit wiederherstellen und beide Regressionstests erneut ausführen.'};
+const sourceFor=url=>url.endsWith('messinho-input-correction.js')?'const value = 1;\n':'export const safe = true;\n';
 
 test('recognizes explicit Admin self-review requests',()=>{
  assert.equal(isMessinhoEngineeringRequest('MESSINHO, entwickle eine Verbesserung für dich selbst'),true);
@@ -22,10 +23,10 @@ test('recognizes explicit Admin self-review requests',()=>{
 
 test('generates a validated proposal from pinned source revision without applying it',async()=>{
  const calls=[];
- const fetchImpl=async(url)=>{
+ const fetchImpl=async url=>{
   calls.push(url);
   if(url.includes('/commits/'))return response({sha});
-  if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=> 'export const safe = true;\n'};
+  if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=>sourceFor(url)};
   if(url.includes('api.openai.com'))return response({choices:[{message:{content:JSON.stringify({proposal:candidate})}}]});
   throw new Error('unexpected_url');
  };
@@ -33,12 +34,13 @@ test('generates a validated proposal from pinned source revision without applyin
  assert.equal(r.ok,true);assert.equal(r.proposal.benchmark_id,'feature/messinho-unified-ai-integration@'+sha);
  assert.equal(r.tests_executed,false);assert.equal(r.execution_mode,'proposal_only');
  assert.equal(calls.length,7);
+ assert.ok(calls[0].includes('feature%2Fmessinho-unified-ai-integration'));
 });
 
 test('returns no proposal when the reviewer cannot prove an improvement',async()=>{
- const fetchImpl=async(url)=>{
+ const fetchImpl=async url=>{
   if(url.includes('/commits/'))return response({sha});
-  if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=> 'const x = 1;\n'};
+  if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=>sourceFor(url)};
   return response({choices:[{message:{content:'{"proposal":null}'}}]});
  };
  const r=await generateMessinhoEngineeringProposal({goal:'Bitte prüfe das System auf Verbesserungen',env:{OPENAI_API_KEY:'test-key'},fetchImpl});
@@ -50,22 +52,22 @@ test('fails closed when provider, source or patch validation is unavailable',asy
  assert.equal(noKey.ok,false);
  const badSource=await generateMessinhoEngineeringProposal({goal:'System verbessern',env:{OPENAI_API_KEY:'x'},fetchImpl:async()=>({ok:false})});
  assert.equal(badSource.ok,false);
- const unsafe=await generateMessinhoEngineeringProposal({goal:'System verbessern',env:{OPENAI_API_KEY:'x'},fetchImpl:async(url)=>{
+ const unsafe=await generateMessinhoEngineeringProposal({goal:'System verbessern',env:{OPENAI_API_KEY:'x'},fetchImpl:async url=>{
   if(url.includes('/commits/'))return response({sha});
-  if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=> 'source'};
+  if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=>sourceFor(url)};
   return response({choices:[{message:{content:JSON.stringify({proposal:{...candidate,patch:patch.replace('const value = 2;','process.env.SECRET')}})}}]});
  }});
  assert.equal(unsafe.ok,false);
 });
 
 test('rejects a model patch whose old lines do not exist in the pinned source',()=>{
- const result=validateMessinhoEngineeringPatchAgainstSources(patch,[{path:'backend/messinho-input-correction.js',content:'const actual = 1;\\n'}]);
+ const result=validateMessinhoEngineeringPatchAgainstSources(patch,[{path:'backend/messinho-input-correction.js',content:'const actual = 1;\n'}]);
  assert.equal(result.ok,false);
  assert.equal(result.reason,'patch_context_does_not_match_pinned_source');
 });
 
 test('accepts only an anchored hunk matching the exact source context',()=>{
- const result=validateMessinhoEngineeringPatchAgainstSources(patch,[{path:'backend/messinho-input-correction.js',content:'const value = 1;\\n'}]);
+ const result=validateMessinhoEngineeringPatchAgainstSources(patch,[{path:'backend/messinho-input-correction.js',content:'const value = 1;\n'}]);
  assert.equal(result.ok,true);
  assert.equal(result.sections,1);
 });
