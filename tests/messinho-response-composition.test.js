@@ -59,3 +59,11 @@ test('classifier forwards response composition context to the live model call',a
   });
   assert.equal(result.status,'completed');
 });
+
+test('authenticated chat builds response composition from dialogue and clarification state',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+  assert.ok(source.includes("import { buildMessinhoResponseCompositionContext } from './messinho-response-composition.js';"));
+  assert.ok(source.includes('buildMessinhoResponseCompositionContext({message:interpretedMessage,dialogueState,clarificationContinuity,pragmaticContext})'));
+  assert.ok(source.includes('responseCompositionContext,\\n      userRole:profile.role'));
+});
