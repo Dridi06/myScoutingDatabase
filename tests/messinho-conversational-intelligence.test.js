@@ -99,7 +99,8 @@ test('server applies semantic cognitive routing before fixed scouting and extern
   const {readFile}=await import('node:fs/promises');
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
   const route=source.indexOf('const cognitiveResult=await classifyMessinhoTurn');
-  const scouting=source.indexOf('const dialog=parseMessinhoScoutingRequest(interpretedMessage,history)',route);
+  const scouting=source.indexOf('const dialog=parseMessinhoScoutingRequest(',route);
+  assert.ok(source.includes('clarificationContinuity.effective_message'));
   const research=source.indexOf("if(cognitive.intent==='general_research'||isMessinhoGeneralResearchQuestion(interpretedMessage))",route);
   assert.ok(route>0&&scouting>route,'semantic routing must precede scouting parsing');
   assert.ok(research>route,'semantic routing must precede external research');
