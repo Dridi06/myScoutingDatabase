@@ -101,14 +101,24 @@ export function resolveMessinhoEntityReferences({message,history=[],activeEntiti
   const text=clean(message,1200);
   if(!text)return result({status:'not_applicable',reason:'empty_message'});
   const entities=collectCandidates(history,activeEntities);
-  const direct=entities.filter(item=>containsName(text,item.name));
-  if(direct.length===1)return result({status:'resolved',referenceType:direct[0].entity_type,candidate:direct[0],evidence:direct[0].sources,confidence:0.99,reason:'explicit_known_entity_mention'});
-  if(direct.length>1)return result({status:'ambiguous',referenceType:'multiple',candidates:direct,evidence:direct.flatMap(item=>item.sources),reason:'multiple_known_entities_mentioned'});
   const playerRef=hasPattern(PLAYER_REFERENCE,text);
   const clubRef=hasPattern(CLUB_REFERENCE,text);
   const genericRef=hasPattern(GENERIC_REFERENCE,text);
   const contrastRef=hasPattern(CONTRAST_REFERENCE,text);
-  if(!playerRef&&!clubRef&&!genericRef&&!contrastRef)return result({status:'not_applicable',reason:'no_reference_signal'});
+  const hasReferenceSignal=playerRef||clubRef||genericRef||contrastRef;
+  const direct=entities.filter(item=>containsName(text,item.name));
+  if(direct.length===1&&!hasReferenceSignal)return result({status:'resolved',referenceType:direct[0].entity_type,candidate:direct[0],evidence:direct[0].sources,confidence:0.99,reason:'explicit_known_entity_mention'});
+  if(direct.length>1&&!hasReferenceSignal)return result({status:'not_applicable',reason:'multiple_entities_explicitly_named'});
+  if(direct.length>1&&hasReferenceSignal)return result({status:'ambiguous',referenceType:'multiple',candidates:direct,evidence:direct.flatMap(item=>item.sources),reason:'multiple_known_entities_with_pronoun'});
+  if(direct.length===1&&playerRef&&direct[0].entity_type==='player'){
+    const players=entities.filter(item=>item.entity_type==='player'&&item!==direct[0]);
+    const active=players.filter(item=>item.sources.includes('owner_scoped_active_memory'));
+    if(active.length===1)return result({status:'resolved',referenceType:'player',candidate:active[0],evidence:[...active[0].sources,'explicit_other_player_mentioned'],confidence:0.9,reason:'pronoun_resolves_to_active_player_other_than_named_player'});
+    return result({status:'ambiguous',referenceType:'player',candidates:[direct[0],...players],evidence:[...direct[0].sources,...players.flatMap(item=>item.sources)],reason:'pronoun_and_explicit_player_name_need_disambiguation'});
+  }
+  if(direct.length===1&&clubRef&&(direct[0].entity_type==='club'||direct[0].entity_type==='team'))return result({status:'resolved',referenceType:direct[0].entity_type,candidate:direct[0],evidence:direct[0].sources,confidence:0.99,reason:'explicit_known_club_or_team_mention'});
+  if(direct.length===1&&hasReferenceSignal)return result({status:'ambiguous',referenceType:direct[0].entity_type,candidates:[direct[0]],evidence:direct[0].sources,reason:'explicit_name_does_not_uniquely_resolve_pronoun'});
+  if(!hasReferenceSignal)return result({status:'not_applicable',reason:'no_reference_signal'});
   if(clubRef){
     const clubs=entities.filter(item=>item.entity_type==='club'||item.entity_type==='team');
     if(clubs.length===1)return result({status:'resolved',referenceType:clubs[0].entity_type,candidate:clubs[0],evidence:clubs[0].sources,confidence:0.93,reason:'unique_club_or_team_reference'});
