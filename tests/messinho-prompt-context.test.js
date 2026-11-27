@@ -11,7 +11,7 @@ test('MESSINHO system prompt injects the approved hierarchical knowledge context
 
 test('MESSINHO system prompt does not force German when the user writes in another supported language',async()=>{
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
-  assert.match(source,/Führe echte Gespräche in der Sprache der letzten Nutzernachricht/);
+  assert.match(source,/Führe echte Gespräche in der durch response_language bestimmten Sprache/);
   assert.doesNotMatch(source,/Führe echte Gespräche auf Deutsch/);
 });
 
@@ -45,4 +45,15 @@ test('MESSINHO prompt prioritizes the latest detected segment for reply language
   assert.match(source,/latest_segment_language/);
   assert.match(source,/letzte eindeutig erkannte Sprachsegment-Sprache/);
   assert.match(source,/buildMessinhoLinguisticResponseMetadata\(linguisticContext\)/);
+});
+
+
+test('system prompt preserves negation scope, qualified evaluation, uncertainty and contrast cues',async()=>{
+  const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+  assert.match(source,/signals\.negation_scope_cues/);
+  assert.match(source,/signals\.qualified_evaluation_cues/);
+  assert.match(source,/signals\.uncertainty_cues/);
+  assert.match(source,/signals\.contrast_cues/);
+  assert.match(source,/nicht schlecht/);
+  assert.match(source,/nicht unbedingt/);
 });
