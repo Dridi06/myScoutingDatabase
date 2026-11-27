@@ -65,3 +65,17 @@ test('rejects file-system APIs and mismatched unified-diff file headers',()=>{
  const mismatched=diff().replace('+++ b/backend/example.js','+++ b/backend/other.js');
  assert.equal(normalizeMessinhoEngineeringProposal({...valid,patch:mismatched}).ok,false);
 });
+
+
+test('allows bounded ASI workspace UI proposals while keeping other frontend roots closed',()=>{
+ const uiDiff=`diff --git a/src/asi/MyKiChat.jsx b/src/asi/MyKiChat.jsx
+index 1111111..2222222 100644
+--- a/src/asi/MyKiChat.jsx
++++ b/src/asi/MyKiChat.jsx
+@@ -1 +1 @@
+-const label = 'old';
++const label = 'new';
+`;
+ assert.equal(normalizeMessinhoEngineeringProposal({...valid,patch:uiDiff}).ok,true);
+ assert.equal(normalizeMessinhoEngineeringProposal({...valid,patch:uiDiff.replaceAll('src/asi/MyKiChat.jsx','src/admin/Root.jsx')}).ok,false);
+});
