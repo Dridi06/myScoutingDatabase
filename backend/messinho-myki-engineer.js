@@ -27,7 +27,7 @@ const responseJson=async response=>{
 
 export function isMessinhoEngineeringRequest(message=''){
   const value=String(message).toLocaleLowerCase('de-DE').normalize('NFKC');
-  return /(my\s*ki|messinho).{0,70}(entwickl|verbesser|selbstdiagnos|systempr[uü]f|codepr[uü]f|optimier)/i.test(value)||
+  return /(my\s*ki|messinho).{0,70}(entwickl|verbesser|selbstdiagnos|systempr[uü]f|codepr[uü]f|programmier|optimier)/i.test(value)||
     /(system|dich selbst).{0,50}(pr[uü]f|analysier|verbesser|optimier)/i.test(value);
 }
 
