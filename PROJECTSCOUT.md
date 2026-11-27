@@ -5223,3 +5223,38 @@ Make subject-language routing work when the scout asks in German (the primary pr
 - No database migration/write, player/scout/account data change, or production change occurred.
 - Next: rerun the complete STAGING build on the corrected branch and verify the exact live commit.
 
+
+
+### Successful STAGING verification — response-language prompt binding — 2026-11-27
+- Render STAGING deployment: dep-dc4nvhbl550s73a2qa20.
+- Exact live commit: a11faade62ee198558f9d68a77f3264753828f1b.
+- Render confirmed status live at 2026-11-27T13:04:53.63043Z.
+- Full automated Node suite: 494 tests, 494 passed, 0 failed, 0 skipped.
+- The new prompt-priority regression passed and confirms:
+  - response_language has explicit priority in the MESSINHO system prompt.
+  - latest_segment_language is identified as the final-segment evidence.
+  - The authenticated chat route returns buildMessinhoLinguisticResponseMetadata(linguisticContext).
+  - Client-safe metadata includes response_language and latest_segment_language.
+- Backend JavaScript syntax checks completed; Vite production build succeeded in 2.30 seconds.
+- Runtime startup confirmed the API listening on port 10000; Supabase credentials were present and the server completed startup.
+- The earlier failed build dep-dc4nv3uc6qcc73eb0sjg was not deployed; the stale test contract was corrected before the successful release.
+- No Supabase migration/write, persistent knowledge mutation, player/scout/account data change or model-weight update occurred.
+- Production branch, Render production service and production Supabase remain untouched.
+
+### Verified language-system state
+| Capability | Status |
+|---|---|
+| Linguistic Intelligence 1.3.5 | Live |
+| Language Knowledge access 1.2.3 | Live |
+| Arabic orthographic analysis and retrieval normalization | Live |
+| Requested-language routing from German/English prompts | Live |
+| Last confidently detected segment selects reply language | Live and prompt-bound |
+| API response exposes response_language and latest_segment_language | Live |
+| Automated Node suite | 494/494 passed |
+| Authenticated browser conversation | Still requires manual Admin/Scout session validation |
+
+### Next development step
+- Add phrase-level semantic intent handling and mixed-language segmentation regression cases, especially Derja/Arabizi embedded in German, French or English.
+- Keep detection, response-language selection, subject-language retrieval and translation as separately measured capabilities.
+- Do not claim human-level fluency or verified translation quality from deterministic detection tests alone.
+
