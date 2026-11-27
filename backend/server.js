@@ -51,8 +51,8 @@ import { persistMessinhoDiagnosticTicket } from './messinho-diagnostic-ticket.js
 import { buildMessinhoForecastContext } from './messinho-forecast-context.js';
 import { isMessinhoAdminOnlyCommand } from './messinho-command-access.js';
 import { buildMessinhoLinguisticContext, buildMessinhoLinguisticResponseMetadata } from './messinho-linguistic-intelligence.js';
+import { buildMessinhoSemanticLanguageBridge } from './messinho-semantic-language-bridge.js';
 import { classifyMessinhoTurn, appendMessinhoLongTermMemories } from './messinho-conversational-intelligence.js';
-import { findMessinhoLanguageKnowledge, formatMessinhoLanguageKnowledge } from './messinho-language-knowledge.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -2269,7 +2269,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const correction=correctMessinhoInput(message);
     const interpretedMessage=correction.corrected;
     const linguisticContext=buildMessinhoLinguisticContext(message,history);
-    let linguisticKnowledgeStatus='not_loaded';
+    // Join the existing language detector, mixed-language profiles and approved
+    // versioned vocabulary before intent classification and goal planning.
+    const semanticLanguageBridge=await buildMessinhoSemanticLanguageBridge({db,message,history,linguisticContext});
+    let linguisticKnowledgeStatus=semanticLanguageBridge.knowledge_status;
     const respond=async payload=>{
       const researchContext=payload.researchContext||((payload.sources?.length||payload.profile)?{
         player:payload.player||null,profile:payload.profile||null,sources:payload.sources||[],researched_at:payload.researched_at||null
@@ -2306,7 +2309,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       message,
       history,
       memory:agentMemory,
-      linguisticContext,
+      linguisticContext:semanticLanguageBridge.model_context,
       userRole:profile.role,
       apiKey:process.env.OPENAI_API_KEY,
       model:process.env.OPENAI_MODEL||'gpt-4.1-mini'
@@ -2548,6 +2551,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     }
     const autonomousDecision=cognitive.intent==='scouting'
       ? await planMessinhoGoalWithModel({goal:interpretedMessage,role:profile.role,context:agentMemory,
+          linguisticContext:semanticLanguageBridge.model_context,
           apiKey:process.env.OPENAI_API_KEY,model:process.env.OPENAI_MODEL||'gpt-4.1-mini'})
       : {status:'not_applicable',planner_status:'intent_not_scouting',planning_source:'not_applicable',plan:null};
     if(autonomousDecision.planner_status==='model_clarification'){
@@ -2720,9 +2724,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       return respond({reply:research.answer||research.message||'Ich kann diese Frage gerade nicht zuverlässig recherchieren. Bitte versuche es später erneut oder grenze die Frage etwas ein.',intent:'general_knowledge_research_limited',items:sourceItems,sources:research.sources||[],evidence:research.evidence||null,limitations:research.evidence?.limitations||[]});
     }
     const conversationalContext=history.map(item=>({role:item.role,content:item.text})).slice(-20);
-    const linguisticKnowledgeResult=await findMessinhoLanguageKnowledge(db,message,history);
-    linguisticKnowledgeStatus=linguisticKnowledgeResult.status;
-    const linguisticKnowledgeContext=formatMessinhoLanguageKnowledge(linguisticKnowledgeResult);
+    const linguisticKnowledgeContext=semanticLanguageBridge.formatted_knowledge;
     const activeKnowledgeContext=structuredKnowledgeContext.length?structuredKnowledgeContext.map(item=>({domain:item.domain,title:item.title,definition:item.knowledge,formula:item.formula,limitations:item.limitations,sources:item.sources,confidence:item.confidence})):[];
     const isProgrammingQuestion=/(programmier|programmiersprache|softwareentwicklung|javascript|typescript|python|\bsql\b|\bhtml\b|\bcss\b|\bjava\b|c\+\+|c#|\brust\b|\bgolang\b|\bbash\b|\bphp\b|debugging|code review|programmierfehler)/i.test(interpretedMessage);
     const programmingLearningContext=profile.role==='admin'&&isProgrammingQuestion?buildMessinhoProgrammingLearningContext():null;
