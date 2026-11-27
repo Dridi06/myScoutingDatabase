@@ -9,30 +9,50 @@ export default function MyKiChat({supabase}){
  const [draft,setDraft]=useState('');
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
- const [status,setStatus]=useState({scheduler_enabled:false,last_run:null,run_state:'paused'});
+ const [status,setStatus]=useState({scheduler_enabled:false,last_run:null,run_state:'paused',autonomy_mode:'paused'});
+ const [controlBusy,setControlBusy]=useState(false);
  const messagesRef=useRef(null);
 
  useEffect(()=>{const el=messagesRef.current;if(el)el.scrollTop=el.scrollHeight;},[messages,busy]);
+ async function refreshStatus(){
+  try{
+   const {data:{session}}=await supabase.auth.getSession();
+   if(!session?.access_token)throw new Error('Sitzung nicht verfügbar');
+   const response=await fetch('/api/admin/myki/status',{headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});
+   const payload=await response.json().catch(()=>({}));
+   if(!response.ok)throw new Error(payload.error||'Status nicht verfügbar');
+   setStatus(payload);
+  }catch{setStatus(current=>({...current,status_unavailable:true}));}
+ }
  useEffect(()=>{
   let active=true;
   const refresh=async()=>{
-   try{
-    const {data:{session}}=await supabase.auth.getSession();
-    if(!session?.access_token)throw new Error('Sitzung nicht verfügbar');
-    const response=await fetch('/api/admin/myki/status',{headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});
-    const payload=await response.json().catch(()=>({}));
-    if(!response.ok)throw new Error(payload.error||'Status nicht verfügbar');
-    if(active)setStatus(payload);
-   }catch{if(active)setStatus(current=>({...current,status_unavailable:true}));}
+   if(!active)return;
+   await refreshStatus();
   };
-  refresh();const timer=setInterval(refresh,15000);
+  refresh();const timer=setInterval(refresh,10000);
   return()=>{active=false;clearInterval(timer)};
  },[supabase]);
+
+ async function changeControl(action,mode){
+  if(controlBusy)return;
+  setControlBusy(true);setError('');
+  try{
+   const {data:{session}}=await supabase.auth.getSession();
+   if(!session?.access_token)throw new Error('Deine Admin-Sitzung ist abgelaufen.');
+   const response=await fetch('/api/admin/myki/control',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},
+    body:JSON.stringify(action==='stop'?{action}:{action:'set_mode',mode})});
+   const payload=await response.json().catch(()=>({}));
+   if(!response.ok)throw new Error(payload.error||'Die Steuerung konnte nicht gespeichert werden.');
+   await refreshStatus();
+  }catch(err){setError(err.message||'Die Steuerung ist fehlgeschlagen.');}
+  finally{setControlBusy(false);}
+ }
 
  async function sendMessage(event){
   event?.preventDefault();
   const value=draft.trim();
-  if(!value||busy)return;
+  const statusQuestion=/\\b(woran arbeitest du|was arbeitest du gerade|was machst du gerade|aktueller arbeitsstand|was ist dein status|arbeitest du gerade)\\b/i.test(value);\n  if(!value||(busy&&!statusQuestion))return;
   setDraft('');setError('');
   const history=messages.slice(-20).map(item=>({role:item.role,text:item.text}));
   setMessages(prev=>[...prev,{id:'u-'+Date.now(),role:'user',text:value}]);
@@ -57,9 +77,20 @@ export default function MyKiChat({supabase}){
    <div className="myki-chat-title"><span className="myki-eyebrow">DIREKTE KOMMUNIKATION</span><h2><BrainCircuit size={20}/> Sprich mit MESSINHO</h2><p>Ein Gespräch auf Augenhöhe – mit dem Wissen und den Fähigkeiten des bestehenden MESSINHO-Agenten.</p></div>
    <div className={'myki-agent-state '+mode} role="status" aria-live="polite"><i/>{label}</div>
   </div>
+  <div className="myki-control-panel" aria-label="Admin-Steuerung von MESSINHO">
+   <div className="myki-control-heading"><b>Betriebsmodus</b><span>Nur für Administratoren sichtbar</span></div>
+   <div className="myki-control-actions">
+    <button type="button" className={operatingMode==='paused'?'selected':''} onClick={()=>changeControl('set_mode','paused')} disabled={controlBusy}><PauseCircle size={15}/> Pause</button>
+    <button type="button" className={operatingMode==='working'?'selected':''} onClick={()=>changeControl('set_mode','working')} disabled={controlBusy}><Activity size={15}/> Arbeiten</button>
+    <button type="button" className={operatingMode==='developing'?'selected':''} onClick={()=>changeControl('set_mode','developing')} disabled={controlBusy}><TrendingUp size={15}/> Weiterentwickeln</button>
+    <button type="button" className="stop" onClick={()=>changeControl('stop')} disabled={controlBusy}><PauseCircle size={15}/> Stop</button>
+   </div>
+   <p className="myki-control-description">{status.control?.status_message||'Wähle, ob MESSINHO pausiert, auf deine Aufträge wartet oder freigegebene Entwicklungsprüfungen selbstständig ausführt.'}</p>
+   {status.current_work&&<div className="myki-current-work"><b>Letzter Arbeitsauftrag</b><span>{status.current_work.goal}</span><small>Status: {status.current_work.status==='running'?'läuft':status.current_work.last_error||status.current_work.status} · offene Schritte: {status.current_work.pending_steps}</small></div>}
+  </div>
   <div className="myki-agent-meta">
    <span><Activity size={14}/> Selbstprüfung: {status.scheduler_enabled?'aktiviert':'derzeit deaktiviert'}</span>
-   <span>Autonomie: {status.autonomy_mode==='bounded_admin_review'?'begrenzter Admin-Prüfmodus':'interaktiver Modus'}</span>
+   <span>Autonomie: {operatingMode==='developing'?'autonome Entwicklungsprüfungen':operatingMode==='working'?'Admin-Aufträge':'pausiert'}</span>
    <span>Programmier-Sandbox: {status.sandbox?.state==='configured_not_yet_end_to_end_verified'?'Zugangsdaten konfiguriert – E2E-Prüfung offen':status.sandbox?.state==='credential_missing'?'GitHub-Zugangsdaten fehlen':'derzeit gesperrt'}</span>
    <span><PauseCircle size={14}/> Geplanter Rhythmus: täglich 20:00 Uhr (Berlin)</span>
    <span>Letzte Prüfung: {lastRun?.finished_at?new Date(lastRun.finished_at).toLocaleString('de-DE'):lastRun?.started_at?new Date(lastRun.started_at).toLocaleString('de-DE'):'Noch kein Lauf gespeichert'}</span>
@@ -90,7 +121,7 @@ export default function MyKiChat({supabase}){
    {busy&&<div className="myki-chat-thinking"><LoaderCircle className="myki-chat-spin" size={16}/> MESSINHO denkt nach und prüft deine Anfrage …</div>}
   </div>
   {error&&<p className="myki-chat-error" role="alert">{error}</p>}
-  <form className="myki-chat-composer" onSubmit={sendMessage}><textarea rows={2} maxLength={1200} value={draft} onChange={e=>setDraft(e.target.value)} placeholder="Schreibe MESSINHO eine Nachricht …" aria-label="Nachricht an MESSINHO" disabled={busy}/><button type="submit" disabled={busy||!draft.trim()} aria-label="Nachricht senden"><Send size={17}/></button></form>
+  <form className="myki-chat-composer" onSubmit={sendMessage}><textarea rows={2} maxLength={1200} value={draft} onChange={e=>setDraft(e.target.value)} placeholder="Schreibe MESSINHO eine Nachricht …" aria-label="Nachricht an MESSINHO"/><button type="submit" disabled={(busy&&!/\\b(woran arbeitest du|was arbeitest du gerade|was machst du gerade|aktueller arbeitsstand|was ist dein status|arbeitest du gerade)\\b/i.test(draft))||!draft.trim()} aria-label="Nachricht senden"><Send size={17}/></button></form>
   <small className="myki-chat-footnote"><Sparkles size={12}/> MESSINHO nutzt denselben Agenten und dieselbe Wissensbasis wie im übrigen System. Ein Ticket wird nur bei einer konkreten, geprüften Verbesserung erstellt.</small>
  </section>;
 }
