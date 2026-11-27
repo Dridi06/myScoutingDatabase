@@ -120,7 +120,19 @@ export function sanitizeMessinhoHistory(history, {limit = 20} = {}) {
     if (item.role === 'assistant' && item.researchContext && typeof item.researchContext === 'object') {
       const ctx = item.researchContext;
       safe.researchContext = {
-        player: ctx.player && typeof ctx.player === 'object' ? { name: String(ctx.player.name || '').slice(0,120) } : null,
+        player: ctx.player && typeof ctx.player === 'object' ? {
+          player_id: Number.isSafeInteger(Number(ctx.player.player_id)) && Number(ctx.player.player_id)>0 ? Number(ctx.player.player_id) : null,
+          name: String(ctx.player.name || '').slice(0,120),
+          current_club: String(ctx.player.current_club || ctx.player.club?.name || '').slice(0,120) || null,
+          current_team: String(ctx.player.current_team || ctx.player.team?.name || '').slice(0,120) || null
+        } : null,
+        club: ctx.club && typeof ctx.club === 'object' ? {id:String(ctx.club.id||ctx.club.club_id||'').slice(0,80)||null,name:String(ctx.club.name||ctx.club.club_name||'').slice(0,120)} : null,
+        team: ctx.team && typeof ctx.team === 'object' ? {id:String(ctx.team.id||ctx.team.team_id||'').slice(0,80)||null,name:String(ctx.team.name||ctx.team.team_name||'').slice(0,120)} : null,
+        entities: Array.isArray(ctx.entities) ? ctx.entities.slice(0,12).map(entity => ({
+          entity_type:['player','club','team'].includes(entity?.entity_type)?entity.entity_type:null,
+          id:String(entity?.id||entity?.player_id||entity?.club_id||entity?.team_id||'').slice(0,80)||null,
+          name:String(entity?.name||entity?.label||'').slice(0,120)
+        })).filter(entity=>entity.entity_type&&entity.name) : [],
         profile: ctx.profile && typeof ctx.profile === 'object' ? { summary: String(ctx.profile.summary || '').slice(0,2400), corrected_name: String(ctx.profile.corrected_name || '').slice(0,120), facts: Array.isArray(ctx.profile.facts) ? ctx.profile.facts.slice(0,8).map(f => typeof f === 'string' ? f.slice(0,300) : { label: String(f?.label || f?.name || '').slice(0,100), value: String(f?.value || '').slice(0,300) }) : [], career: Array.isArray(ctx.profile.career) ? ctx.profile.career.slice(0,6).map(x => String(typeof x === 'string' ? x : JSON.stringify(x)).slice(0,400)) : [], recent_performance: ctx.profile.recent_performance && typeof ctx.profile.recent_performance === 'object' ? Object.fromEntries(Object.entries(ctx.profile.recent_performance).slice(0,8).map(([k,v]) => [String(k).slice(0,80), String(v).slice(0,240)])) : {}, missing_data: Array.isArray(ctx.profile.missing_data) ? ctx.profile.missing_data.slice(0,8).map(x => String(x).slice(0,120)) : [] } : null,
         sources: Array.isArray(ctx.sources) ? ctx.sources.slice(0,10).map(source => ({
           title: String(source.title || '').slice(0,240),
