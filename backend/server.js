@@ -2364,8 +2364,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(cognitive.intent==='conversation'){
       const guardedReply=guardMessinhoConversationReply(cognitive);
       if(!guardedReply.ok){
-        return respond({reply:guardedReply.reply,intent:'conversation_response_guard',items:[],pending:guardedReply.code==='empty_reply',
-          response_integrity:{guarded:true,reason:guardedReply.code}});
+        return respond({reply:guardedReply.reply,intent:'conversation',items:[],pending:guardedReply.code==='empty_reply'});
       }
       return respond({
         reply:guardedReply.reply,intent:'conversation',items:[],
