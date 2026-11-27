@@ -106,4 +106,6 @@ test('server applies semantic cognitive routing before fixed scouting and extern
   assert.match(source,/if\(cognitive\.intent==='clarify'\)/);
   assert.match(source,/if\(cognitive\.intent==='conversation'\)/);
   assert.match(source,/appendMessinhoLongTermMemories/);
+  assert.match(source,/cognitive\.confidence<0\.72/);
+  assert.match(source,/action_blocked:true/);
 });
