@@ -67,7 +67,7 @@ test('creates a myKI ticket only for a real generated proposal',async()=>{
 test('autonomous development is paused unless the admin explicitly selected develop mode',async()=>{
  const db=mockDb({mode:'paused'});
  const result=await runMessinhoScheduledEngineeringReview({db,now:new Date('2026-11-27T02:00:00Z')});
- assert.equal(result.skipped,'admin_mode_not_developing');
+ assert.equal(result.skipped,'admin_mode_not_active');
  assert.equal(db.state.claim,null);
 });
 
