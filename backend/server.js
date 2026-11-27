@@ -2273,8 +2273,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const linguisticContext=buildMessinhoLinguisticContext(message,history);
     let linguisticKnowledgeStatus='not_loaded';
     const respond=async payload=>{
-      const researchContext=payload.researchContext||((payload.sources?.length||payload.profile)?{
-        player:payload.player||null,profile:payload.profile||null,sources:payload.sources||[],researched_at:payload.researched_at||null
+      const researchContext=payload.researchContext||((payload.sources?.length||payload.profile||payload.player||payload.club||payload.team||payload.entities?.length)?{
+        player:payload.player||null,club:payload.club||null,team:payload.team||null,
+        entities:Array.isArray(payload.entities)?payload.entities.slice(0,12):[],
+        profile:payload.profile||null,sources:payload.sources||[],researched_at:payload.researched_at||null
       }:null);
       const assistantText=String(payload.reply||'Ich habe die Anfrage verarbeitet.').slice(0,12000);
       const safeAssistant=sanitizeMessinhoHistory([{role:'assistant',text:assistantText,researchContext}])[0];
@@ -2306,7 +2308,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     });
     const dialogueState=buildMessinhoDialogueState({message,history,userRole:profile.role,linguisticContext});
     dialogueState.entity_resolution=entityResolution;
-    const resolvedPlayerReference=entityResolution.status==='resolved'&&entityResolution.entity?.entity_type==='player'
+    const resolvedPlayerReference=entityResolution.status==='resolved'&&entityResolution.entity?.entity_type==='player'&&entityResolution.reason!=='explicit_known_entity_mention'
       ?entityResolution.entity.name:null;
     const legacyPlayerFollowUp=!entityResolution.reference_detected
       ?resolveMessinhoPlayerFollowUp(interpretedMessage,history):null;
