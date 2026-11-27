@@ -5,7 +5,6 @@ on:
     branches:
       - feature/messinho-unified-ai-integration
       - feature/messinho-conversational-intelligence-2
-      - feature/messinho-conversational-intelligence-2
   pull_request:
     branches:
       - main
