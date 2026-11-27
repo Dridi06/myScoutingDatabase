@@ -5704,7 +5704,7 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Added `backend/messinho-goal-planner.js`: model-assisted goal-to-capability planning using the existing registered 100-capability catalogue.
 - The model may return only catalogue IDs; application code validates IDs, resolves registered dependencies, enforces Admin/Scout restrictions and caps the plan at 20 steps. The model cannot execute capabilities or grant permissions.
 - Provider failure, invalid output or low confidence uses the existing deterministic planner as a safe fallback. Ambiguous model plans return a targeted clarification.
-- Integrated the semantic planner into the existing authenticated chat route. Existing general research and engineering routes remain reachable when no capability plan is produced.
+- Integrated the semantic planner into the existing authenticated chat route for explicit `scouting` intents only. General research and engineering continue through their existing specialized routes and are not forced into the 100-capability scouting catalogue.
 - Added `buildMessinhoCapabilityPlanFromSelection` to `backend/messinho-orchestrator.js` to centralize dependency expansion and role filtering for model-selected capabilities.
 - Added `tests/messinho-goal-planner.test.js` for dependency resolution, invented-ID rejection/fallback, Scout denial of Admin-only capabilities, clarification, and provider-failure fallback.
 - No database migration or persistent user/player/scout/learning data changes. No production branch, LIVE Render service or production Supabase changes.
