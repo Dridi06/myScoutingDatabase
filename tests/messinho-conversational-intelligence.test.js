@@ -176,3 +176,15 @@ test('server applies semantic cognitive routing before fixed scouting and extern
   assert.ok(languageLookup>0&&languageLookup<route,'approved language knowledge must be loaded before semantic routing');
   assert.match(source,/linguisticKnowledgeContext,/,'approved language knowledge must be passed into the cognitive turn');
 });
+
+test('bounded conversation memory is supplied separately from long-term user memory',()=>{
+  const messages=buildMessinhoCognitiveRouterMessages({
+    message:'Und wie geht es weiter?',
+    history:[{role:'user',text:'Wir planen den nächsten Entwicklungsschritt.'}],
+    conversationMemoryContext:{scope:'owner_conversation',source:'persisted_conversation_messages',message_count:2,items:[{role:'user',text:'Wir planen Block 4.'}]}
+  });
+  const payload=JSON.parse(messages[1].content);
+  assert.equal(payload.conversation_memory_context.length,1);
+  assert.equal(payload.conversation_memory_context[0].text,'Wir planen Block 4.');
+  assert.equal(payload.existing_user_memory.length,0);
+});
