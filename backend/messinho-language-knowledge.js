@@ -5,7 +5,7 @@
  */
 import { analyzeMessinhoLanguage, buildMessinhoLinguisticContext, MESSINHO_LANGUAGE_PROFILES, normalizeMessinhoArabicForAnalysis } from './messinho-linguistic-intelligence.js';
 
-const VERSION = '1.2.2';
+const VERSION = '1.2.3';
 const STOP = new Set('der die das ein eine und oder aber nicht bitte danke ich du er sie wir ihr ist sind the a an and or but not please thanks i you he she we they is are was have be le la les un une et ou mais pas ne merci je tu il elle nous vous el los las una y pero por favor gracias yo tú él ella من في على إلى عن هو هي نحن انت أنا و أو لكن لا نعم كيف ماذا لماذا متى أين'.split(' ').map(normalizeMessinhoArabicForAnalysis));
 const norm = value => normalizeMessinhoArabicForAnalysis(
   String(value ?? '').normalize('NFKC').toLocaleLowerCase().normalize('NFD')
@@ -22,12 +22,12 @@ const expandToken = token => {
 };
 const tokens = value => [...new Set(norm(value).split(' ').filter(token=>token.length>1 && !STOP.has(token)).flatMap(expandToken))];
 const LANGUAGE_MENTION_PATTERNS = [
-  {id:'ar-tn',pattern:/\b(?:tunisian\s+(?:derja|arabic|dialect)|derja|tounsi|bil derja|bil tounsi)\b|(?:الدارجة التونسية|اللهجة التونسية|بالتونسي|تونسي|تونسية)/iu},
-  {id:'ar',pattern:/\b(?:modern standard arabic|msa|fusha|classical arabic|arabic grammar|arabic language|in arabic|to arabic|arabisch|arabische grammatik)\b|(?:العربية الفصحى|الفصحى)/iu},
-  {id:'de',pattern:/\b(?:german language|german grammar|german word order|in german|to german|auf deutsch|deutsch)\b/iu},
-  {id:'en',pattern:/\b(?:english language|english grammar|english word order|in english|to english|auf englisch|englisch)\b/iu},
-  {id:'fr',pattern:/\b(?:french language|french grammar|in french|to french|en francais|francais|franzoesisch|franzosisch)\b/iu},
-  {id:'es',pattern:/\b(?:spanish language|spanish grammar|in spanish|to spanish|espanol|spanisch)\b/iu}
+  {id:'ar-tn',pattern:/\b(?:tunisian\s+(?:derja|arabic|dialect)|tunesisch(?:e|er|es)?\s+(?:derja|arabisch|dialekt)|darija tunisienne|arabe tunisien|dialecte tunisien|darija tunecina|arabe tunecino|derja|tounsi|bil derja|bil tounsi)\b|(?:الدارجة التونسية|اللهجة التونسية|بالتونسي|تونسي|تونسية)/iu},
+  {id:'ar',pattern:/\b(?:modern standard arabic|modernes hocharabisch|hocharabisch|msa|fusha|classical arabic|klassisches arabisch|arabic grammar|arabische grammatik|arabic language|arabische sprache|in arabic|to arabic|arabisch|arabe standard moderne|arabe litteral|arabe classique|grammaire arabe)\b|(?:العربية الفصحى|الفصحى)/iu},
+  {id:'de',pattern:/\b(?:german language|german grammar|german word order|in german|to german|auf deutsch|ins deutsche|deutsche sprache|deutsche grammatik|deutsche wortstellung|deutsch)\b/iu},
+  {id:'en',pattern:/\b(?:english language|english grammar|english word order|in english|to english|auf englisch|ins englische|englische sprache|englische grammatik|englisch)\b/iu},
+  {id:'fr',pattern:/\b(?:french language|french grammar|in french|to french|en francais|langue francaise|grammaire francaise|francais|franzoesisch|franzosisch|franzoesische sprache|franzoesische grammatik|auf franzoesisch|ins franzoesische)\b/iu},
+  {id:'es',pattern:/\b(?:spanish language|spanish grammar|in spanish|to spanish|espanol|idioma espanol|gramatica espanola|spanische sprache|spanische grammatik|auf spanisch|ins spanische|spanisch)\b/iu}
 ];
 function inferRequestedLanguageIds(message, action) {
   const requested = new Set();
