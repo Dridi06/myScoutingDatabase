@@ -51,7 +51,10 @@ function clean(value) {
   return String(value ?? '').normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 4000);
 }
 function words(value) {
-  return (clean(value).toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) || []).map(normalizeArabicToken);
+  // Strip Arabic combining marks before tokenization; otherwise marks split one
+  // visible Arabic word into multiple Unicode letter-only tokens.
+  const normalized = normalizeMessinhoArabicForAnalysis(clean(value).toLocaleLowerCase());
+  return normalized.match(/[\p{L}\p{N}]+/gu) || [];
 }
 function countHits(tokens, lexicon) { return tokens.reduce((n, token) => n + (lexicon.has(token) ? 1 : 0), 0); }
 function countArabicHits(tokens, lexicon) {
