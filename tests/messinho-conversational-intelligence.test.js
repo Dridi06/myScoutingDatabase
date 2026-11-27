@@ -61,3 +61,36 @@ test('semantic router parses structured model decisions and fails closed on malf
   assert.equal(malformed.status,'error');
   assert.equal(malformed.decision,null);
 });
+
+test('semantic router recognizes a memory-save decision without depending on a fixed phrase',async()=>{
+  const fetchImpl=async(_url,options)=>{
+    const body=JSON.parse(options.body);
+    const input=JSON.parse(body.messages[1].content);
+    assert.equal(input.current_message,'Merk die Staging Alpha');
+    assert.equal(input.user_role,'admin');
+    assert.ok(input.linguistic_context);
+    return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({
+      intent:'memory_save',confidence:0.91,reply:'Ich halte das für dich fest.',
+      clarification_question:'',memory_items:[{text:'Staging Alpha',category:'project',confidence:0.92}]
+    })}}]})};
+  };
+  const result=await classifyMessinhoTurn({
+    message:'Merk die Staging Alpha',history:[],memory:{},linguisticContext:{response_language:'de'},
+    userRole:'admin',apiKey:'test',fetchImpl
+  });
+  assert.equal(result.decision.intent,'memory_save');
+  assert.equal(result.decision.memory_items[0].text,'Staging Alpha');
+});
+
+test('server applies semantic cognitive routing before fixed scouting and external research branches',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+  const route=source.indexOf('const cognitiveResult=await classifyMessinhoTurn');
+  const scouting=source.indexOf('const dialog=parseMessinhoScoutingRequest(interpretedMessage,history)',route);
+  const research=source.indexOf('if(isMessinhoGeneralResearchQuestion(interpretedMessage))',route);
+  assert.ok(route>0&&scouting>route,'semantic routing must precede scouting parsing');
+  assert.ok(research>route,'semantic routing must precede external research');
+  assert.match(source,/if\(cognitive\.intent==='clarify'\)/);
+  assert.match(source,/if\(cognitive\.intent==='conversation'\)/);
+  assert.match(source,/appendMessinhoLongTermMemories/);
+});
