@@ -5,7 +5,7 @@
  * Dialect, script and code-switching are represented separately so Tunisian Derja is not
  * incorrectly collapsed into Modern Standard Arabic.
  */
-export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.1.0';
+export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.2.0';
 
 export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
   { id:'de', name:'Deutsch', family:'Germanic', scripts:['Latin'], variants:['de-DE','de-AT','de-CH'], capabilities:['grammar','cases','articles','word_order','compound_words','spelling','semantics','pragmatics'] },
