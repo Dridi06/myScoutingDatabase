@@ -42,5 +42,5 @@ test('server applies the response guard only to ordinary conversation replies',a
   const {readFile}=await import('node:fs/promises');
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
   assert.match(source,/const guardedReply=guardMessinhoConversationReply\(cognitive\)/);
-  assert.match(source,/response_integrity:\{guarded:true,reason:guardedReply\.code\}/);
+  assert.match(source,/intent:'conversation',items:\[\],pending:guardedReply\.code==='empty_reply'/);
 });
