@@ -1,21 +1,53 @@
 import test from 'node:test';
+import { requestMessinhoModelCompletion, resolveMessinhoModelConfig } from '../backend/messinho-model-runtime.js';
 import assert from 'node:assert/strict';
 import {
   buildMessinhoCognitiveRouterMessages,
   validateMessinhoCognitiveDecision,
   appendMessinhoLongTermMemories,
   isSensitiveMessinhoMemoryText,
-  classifyMessinhoTurn,
-  isMessinhoGreeting
+  classifyMessinhoTurn
 } from '../backend/messinho-conversational-intelligence.js';
 
-test('simple German and multilingual greetings are recognized without a provider call',()=>{
-  for(const greeting of ['Hallo',' Hallo! ','Guten Morgen','Moin','Salam','As-salamu alaikum','Hey']) {
-    assert.equal(isMessinhoGreeting(greeting),true,greeting);
-  }
-  for(const message of ['Hallo, suche einen Stürmer','Wie geht es dir?','']) {
-    assert.equal(isMessinhoGreeting(message),false,message);
-  }
+test('provider runtime supports configurable OpenAI-compatible endpoints and local models',()=>{
+  const config=resolveMessinhoModelConfig({
+    MESSINHO_MODEL_BASE_URL:'http://127.0.0.1:11434/v1/',
+    MESSINHO_MODEL_NAME:'local-instruct'
+  });
+  assert.equal(config.baseUrl,'http://127.0.0.1:11434/v1');
+  assert.equal(config.model,'local-instruct');
+  assert.equal(config.requiresApiKey,false);
+});
+
+test('provider runtime retries JSON schema with JSON object mode only when unsupported',async()=>{
+  const formats=[];
+  const result=await requestMessinhoModelCompletion({
+    messages:[{role:'user',content:'Hallo'}],model:'test-model',apiKey:'test',
+    baseUrl:'https://example.test/v1/',responseFormat:{type:'json_schema'},
+    fetchImpl:async(url,options)=>{
+      assert.equal(url,'https://example.test/v1/chat/completions');
+      const body=JSON.parse(options.body);formats.push(body.response_format?.type);
+      if(formats.length===1)return {ok:false,status:400,json:async()=>({error:{code:'unsupported_parameter',message:'response_format json_schema is not supported'}})};
+      return {ok:true,status:200,json:async()=>({choices:[{message:{content:'{"ok":true}'}}]})};
+    }
+  });
+  assert.equal(result.status,'completed');
+  assert.equal(result.compatibility_mode,'json_object_fallback');
+  assert.deepEqual(formats,['json_schema','json_object']);
+});
+
+test('provider runtime exposes bounded status and error codes without leaking credentials',async()=>{
+  const result=await requestMessinhoModelCompletion({
+    messages:[],model:'test-model',apiKey:'never-log-this-secret',
+    fetchImpl:async(_url,options)=>{
+      assert.equal(options.headers.Authorization,'Bearer never-log-this-secret');
+      return {ok:false,status:401,json:async()=>({error:{code:'invalid_api_key',message:'Invalid API key'}})};
+    }
+  });
+  assert.equal(result.status,'provider_error');
+  assert.equal(result.http_status,401);
+  assert.equal(result.error_code,'invalid_api_key');
+  assert.equal(JSON.stringify(result).includes('never-log-this-secret'),false);
 });
 
 test('router prompt prioritizes meaning, context and natural language over fixed commands',()=>{
