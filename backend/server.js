@@ -16,6 +16,7 @@ import { normalizeMessinhoHypothesisCreate, normalizeMessinhoHypothesisTransitio
 import { normalizeMyKiTicketProposal, createMyKiTicketRecord, buildMyKiCopyPacket } from './messinho-myki-tickets.js';
 import { persistMessinhoMyKiProposal } from './messinho-myki-bridge.js';
 import { generateMessinhoEngineeringProposal, isMessinhoEngineeringRequest } from './messinho-myki-engineer.js';
+import { startMessinhoEngineeringReviewScheduler } from './messinho-engineering-scheduler.js';
 
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
@@ -2238,4 +2239,4 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
 
 app.use(express.static('dist',{maxAge:'1h',setHeaders(res,path){if(path.endsWith('/index.html'))res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');}}));
 app.get(/^(?!\/api\/).*/,(_req,res)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');res.sendFile(process.cwd()+'/dist/index.html');});
-app.listen(PORT,async()=>{console.log(`myScoutingDatabase API listening on ${PORT}`);const messinhoWorker=startMessinhoBackgroundWorker({db});process.on('SIGTERM',()=>messinhoWorker.stop());process.on('SIGINT',()=>messinhoWorker.stop());console.log(`ASI SEARCH CHECK: Tavily=${Boolean(process.env.TAVILY_API_KEY)} OpenAI=${Boolean(process.env.OPENAI_API_KEY)} Model=${process.env.OPENAI_MODEL||'gpt-4.1-mini'}`);await diagnoseSupabase();try{await bootstrapAdmin();}catch(e){console.error('Admin bootstrap failed:',e.message);}});
+app.listen(PORT,async()=>{console.log(`myScoutingDatabase API listening on ${PORT}`);const messinhoWorker=startMessinhoBackgroundWorker({db});const engineeringScheduler=startMessinhoEngineeringReviewScheduler({db});process.on('SIGTERM',()=>{messinhoWorker.stop();engineeringScheduler.stop();});process.on('SIGINT',()=>{messinhoWorker.stop();engineeringScheduler.stop();});console.log(`ASI SEARCH CHECK: Tavily=${Boolean(process.env.TAVILY_API_KEY)} OpenAI=${Boolean(process.env.OPENAI_API_KEY)} Model=${process.env.OPENAI_MODEL||'gpt-4.1-mini'}`);await diagnoseSupabase();try{await bootstrapAdmin();}catch(e){console.error('Admin bootstrap failed:',e.message);}});
