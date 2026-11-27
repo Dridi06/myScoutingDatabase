@@ -75,7 +75,7 @@ function collectCandidates(history,activeEntities){
   return found.sort((a,b)=>b.recency-a.recency).slice(0,MAX_ENTITIES);
 }
 
-const PLAYER_REFERENCE=/(?:\b(?:er|ihn|ihm|sein(?:e|en|er|es)?|he|him|his|il|lui|son|sa|él|lo|le|su)\b|هو|هي|هذا اللاعب|ذلك اللاعب|متاعو|متاعها|عمرو|عمره|عمرها|houwa|howa|hedha)/iu;
+const PLAYER_REFERENCE=/(?:\b(?:er|ihn|ihm|sein(?:e|en|er|es)?|he|him|his|il|lui|son|sa|lo|le|su)\b|él|هو|هي|هذا اللاعب|ذلك اللاعب|متاعو|متاعها|عمرو|عمره|عمرها|houwa|howa|hedha)/iu;
 const PLAYER_NOUN_REFERENCE=/\b(?:dieser spieler|der spieler|the player|that player|this player|ce joueur|el jugador|ese jugador)\b/iu;
 const CLUB_REFERENCE=/(?:\b(?:sein verein|seine mannschaft|sein team|der verein|die mannschaft|das team|his club|his team|the club|the team|son club|son equipe|son équipe|el club|su equipo|la squadra)\b|الفريق|النادي|فريقو|ناديه)/iu;
 const GENERIC_REFERENCE=/(?:\b(?:das von vorhin|der von vorhin|die von vorhin|dazu|davon|darauf|that one|the one from before|what about that|ça|cela|celui la|celui-là|eso|aquello)\b|هذا من قبل|اللي قبل|الحاجة هذي)/iu;
