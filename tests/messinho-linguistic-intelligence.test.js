@@ -12,7 +12,7 @@ import {
 } from '../backend/messinho-linguistic-intelligence.js';
 
 test('registers six separate language profiles including Tunisian Derja',()=>{
-  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.7');
+  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.8');
   assert.deepEqual(MESSINHO_LANGUAGE_PROFILES.map(item=>item.id),['de','en','fr','ar','ar-tn','es']);
   assert.equal(getMessinhoLanguageProfile('ar-tn').name,'تونسي / Derja');
   assert.equal(getMessinhoLanguageProfile('ar').name,'العربية الفصحى');
@@ -369,4 +369,33 @@ test('non-translation target language applies only to the requested task',()=>{
   assert.equal(action.target_language,'fr');
   assert.equal(action.explicit,true);
   assert.match(action.instruction,/requested target language/);
+});
+
+
+test('captures qualified negation and evaluation cues across all six language profiles',()=>{
+  const cases=[
+    ['de','Der Spieler ist noch nicht bereit, aber vielleicht morgen.',['not_yet'],['uncertainty'],['contrast']],
+    ['en','The player is not necessarily ready; he is not bad, but not enough for this league.',['not_necessarily','not_bad','not_enough'],[],['contrast']],
+    ['fr','Le joueur n’est pas encore prêt, peut-être demain, mais il peut progresser.',['not_yet'],['uncertainty'],['contrast']],
+    ['es','El jugador todavía no está listo, no necesariamente es malo, pero quizá necesita más tiempo.',['not_yet','not_necessarily','not_bad'],['uncertainty'],['contrast']],
+    ['ar','هذا اللاعب ليس بالضرورة سيئا، ولم يصبح جاهزا بعد، لكن ربما يتحسن.',['not_necessarily','not_yet'],['uncertainty'],['contrast']],
+    ['ar-tn','اللاعب هذا موش بالضرورة خايب، موش كافي توة، أما يمكن يتحسن.',['not_necessarily','not_bad','not_enough'],['uncertainty'],['contrast']]
+  ];
+  for(const [language,message,negation,uncertainty,contrast] of cases){
+    const result=analyzeMessinhoLanguage(message);
+    assert.equal(result.primary_language,language,message);
+    for(const cue of negation)assert.ok(result.signals.negation_scope_cues.includes(cue),language+' missing '+cue);
+    for(const cue of uncertainty)assert.ok(result.signals.uncertainty_cues.includes(cue),language+' missing uncertainty');
+    for(const cue of contrast)assert.ok(result.signals.contrast_cues.includes(cue),language+' missing contrast');
+  }
+});
+
+test('qualified evaluation cues never replace or rewrite the original source text',()=>{
+  const message='Der Spieler ist nicht schlecht, aber noch nicht bereit.';
+  const result=buildMessinhoLinguisticContext(message,[]);
+  assert.ok(result.signals.qualified_evaluation_cues.includes('not_bad'));
+  assert.ok(result.signals.negation_scope_cues.includes('not_yet'));
+  assert.equal(result.action.source_text,message);
+  assert.equal(result.segments[0].text,message);
+  assert.equal(result.policy.source_text_preserved,true);
 });
