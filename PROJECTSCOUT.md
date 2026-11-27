@@ -4489,3 +4489,32 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - Tests und Backend-Syntax für den exakten Commit ausführen und CI prüfen.
 - Erst nach erfolgreicher Prüfung STAGING-Deployment vorbereiten; Auto-Deploy bleibt deaktiviert. Production bleibt unangetastet.
 
+
+## 22. Admin-Button „Arbeiten“ — Systemfehlersuche und sichere Reparaturprüfung 2026-11-27
+
+### Verhalten
+- Der Admin-Button „Arbeiten“ startet innerhalb der festgelegten Berliner Arbeitsfenster (03:00–08:00 und 10:00–23:00 Uhr) einen echten Systemdiagnoselauf.
+- MESSINHO führt die vorhandenen MESSINHO-Systemprüfungen aus und speichert den Diagnosebericht dauerhaft in der bestehenden Diagnosehistorie.
+- Nur fehlgeschlagene Prüfungen werden an die Engineering-Vorschlagsprüfung übergeben; bestandene Prüfungen werden nicht als Fehler ausgegeben.
+- Für einen belegten und sicher behebbaren Codefehler darf MESSINHO höchstens einen begrenzten Patch innerhalb der bestehenden Allowlist erzeugen. Der Vorschlag wird als bestehendes myKI-Ticket mit Ursache, Nutzen, betroffenen Dateien, Testplan und Rollback dokumentiert.
+- Wenn ein Ticket angelegt wurde und die Sandbox-Konfiguration vollständig freigegeben ist, wird es automatisch zur isolierten STAGING-Prüfung dispatcht. Der Sandbox-Runner prüft Baseline und Kandidat mit dem vollständigen Projektbuild (Tests, Backend-Syntax und Frontend-Build) und meldet das Ergebnis zurück.
+- Wenn keine Fehler gefunden werden, wird ausdrücklich ein gesundes Diagnoseergebnis gespeichert und kein künstliches Ticket erstellt.
+- Wenn kein sicherer Patch möglich ist (z. B. geschützte Runtime-/Auth-/RLS-/DB-Datei oder unzureichender Beleg), wird kein unsicherer Code erzeugt. Der Diagnosebefund bleibt erhalten und der Admin erhält eine verständliche Statusmeldung.
+
+### Sicherheit und Grenzen
+- Der Auslöser ist ausschließlich über requireApprovedMessinhoAdmin erreichbar; Scouts können weder den Button noch den Steuerungsendpunkt zur Systemänderung verwenden.
+- Stop/Pause wird vor dem Reparaturvorschlag erneut geprüft; bei Admin-Stopp wird kein Ticket dispatcht.
+- Zeitfenster werden vor dem Start und vor dem Sandbox-Dispatch geprüft. Während 08:00–10:00 und 23:00–03:00 findet keine autonome Entwicklungsarbeit statt.
+- Der Codepatch wird nicht direkt in den laufenden Prozess geschrieben und nicht automatisch in den STAGING- oder Produktionsbranch übernommen. Die Sandbox prüft den Kandidaten isoliert; die bestehende Admin-Freigabe für eine Integration bleibt erhalten.
+- Keine neue Datenbankmigration und keine Änderung an Produktionsdaten oder Produktionsdiensten.
+- Ein Diagnosefehler wird nicht automatisch als behoben bezeichnet: erst ein bestandenes Sandbox-Ergebnis belegt, dass der Kandidatenpatch die Projektprüfungen besteht. Nach einer späteren Admin-freigegebenen STAGING-Integration ist zusätzlich der echte Runtime-/Health-Check erforderlich.
+
+### Technische Umsetzung
+- buildMessinhoSelfRepairGoal filtert und begrenzt ausschließlich fehlgeschlagene Diagnosebefunde.
+- runMessinhoScheduledEngineeringReview unterstützt neben developing jetzt den Admin-Modus working mit einem gezielten Fehlerbehebungsziel; vorhandene Zeitfenster-, Run-Claim-, Stop-, Ticket- und Sandbox-Gates bleiben bestehen.
+- POST /api/admin/myki/control startet bei mode=working asynchron runMessinhoSelfRepairCycle; Status und aktueller Arbeitsschritt sind im Admin-Aktivitätsmonitor sichtbar.
+- Regressionstests ergänzen die Fehlerfilterung, den Arbeitsmodus und den Stop-Schutz.
+
+### Abnahme
+- Implementiert auf feature/messinho-unified-ai-integration; vor STAGING-Deploy sind CI/Render-Build und Runtime-Logs für den exakten Commit zu prüfen.
+- Authentifizierter Admin-Klicktest und negativer Scout-Berechtigungstest stehen nach Deploy noch aus.
