@@ -4066,9 +4066,8 @@ Die folgenden Punkte sind im bisherigen Journal mit konkreten Implementierungs-,
   - 0–19 Anfänger-Agent
   - 20–39 Verbesserter Agent
   - 40–59 Erweiterter Agent
-  - 60–79 Super Agent
-  - 80–99 High-Level Premium Agent – im Ausbau
-  - 100 High-Level Premium Agent
+  - 60–99 Super Agent
+  - 100 High-Level Premium Agent (Premium-Stufe wird ausschließlich bei 100/100 vergeben)
 - Aktueller nachweisbasierter Wert aus den neun Reifebereichen: **46/100 — Erweiterter Agent**. Das ist der Code-/Teststand, keine Bestätigung des aktuellen Live-Deployments.
 - Letzter vollständig bestandener Backend-CI-Lauf zum dokumentierten Prüfzeitpunkt: Commit \`85b5d384fdcc0dc3ddc9950284b797ace89e4892\`, 396 Tests bestanden, 0 fehlgeschlagen. Die Reifegradbewertung bleibt konservativ, bis die Funktionen auf STAGING Ende-zu-Ende geprüft sind.
 
@@ -4157,7 +4156,7 @@ Dieser Abschnitt ersetzt für die autonome Engineering-Planung die ältere Angab
 - Der vorhandene Zeitplan aus Abschnitt 14 bleibt unverändert. Nach Erzeugung eines echten myKI-Tickets wird der Patch – sofern STAGING-Gate, Arbeitszeitfenster, Admin-Modus und GitHub-Sandbox-Token weiterhin gültig sind – automatisch an die isolierte Sandbox übergeben. Kein Merge, keine automatische Integration und kein Deployment.
 - Forecast- und Sandbox-Änderungen sind erst nach erneutem CI-Lauf und vollständigem Sandbox-Baseline-/Kandidatenlauf als verifiziert einzustufen.
 - Staging-Datenbankprüfung vom 27.11.2026 zeigte keine Spieler, keine External-Evidence-Einträge, keine Vertrags-Snapshots und keine Prediction-Outcomes. Die Algorithmen können deshalb derzeit nur synthetisch getestet werden; reale Prognosen benötigen verifizierte Verlaufsdaten.
-- Die Migrationshistorie enthält 20261127011122 für messinho_agent_control. Die entsprechende SQL-Datei wird als Source of Truth im Repository abgelegt. Die frühere asi_core_schema-Migration bleibt ein offener Schema-Drift-Punkt.
+- Die Migrationshistorie enthält 20261127011122 für messinho_agent_control. Die entsprechende SQL-Datei liegt als Source of Truth im Repository. Die frühere asi_core_schema-Migration bleibt ein offener Schema-Drift-Punkt.
 - Der aktuelle Zeitplan erlaubt höchstens zwei Reviews pro Tag. Ein fortlaufender mehrstufiger Entwicklungsprozess über das ganze Arbeitszeitfenster bleibt offen und wird nicht als umgesetzt ausgegeben.
 - Production bleibt unangetastet. Der Fachwissensimport (Biologie usw.) folgt erst nach erfolgreicher Agenten- und Prognosefreigabe.
 

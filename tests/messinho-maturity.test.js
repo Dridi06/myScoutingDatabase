@@ -7,6 +7,7 @@ test('maturity report uses a 100-point rubric and honest current level',()=>{
  assert.equal(report.maximum,100);
  assert.equal(report.score,46);
  assert.equal(report.level,'Erweiterter Agent');
+ assert.deepEqual(report.scale.map(x=>[x.min,x.max,x.label]),[[0,19,'Anfänger-Agent'],[20,39,'Verbesserter Agent'],[40,59,'Erweiterter Agent'],[60,99,'Super Agent'],[100,100,'High-Level Premium Agent']]);
  assert.equal(report.pillars.reduce((sum,item)=>sum+item.maximum,0),100);
  assert.equal(report.pillars.reduce((sum,item)=>sum+item.points,0),report.score);
 });
