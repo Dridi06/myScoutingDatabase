@@ -5081,3 +5081,21 @@ Make subject-language routing work when the scout asks in German (the primary pr
 4. After the 1.3.5 release is green, expand mixed-language segmentation and phrase-level semantic interpretation.
 5. Authenticated live-chat checks remain necessary to prove the chat endpoint uses response_language end to end.
 
+
+
+## 26. Verification addendum — requested-language routing 1.2.3 — 2026-11-27
+
+- The German subject-language routing change in section 24 was deployed to Render STAGING as deployment dep-dc4nt46c6qcc73eap670.
+- Exact deployed commit at that time: d05be565a9d426aa7a03d18ca2f7090a5b65f8c1.
+- Render confirmed status live at 2026-11-27T12:59:34.729638Z.
+- Full Node suite at that deployment: 489 tests, 489 passed, 0 failed, 0 skipped.
+- New regressions passed for all six subject-language profiles from German prompts, MSA-vs-Tunisian-Arabic comparison and nationality false-positive protection.
+- Backend syntax checks and Vite production build passed; Vite completed in 2.44 seconds.
+- Runtime startup confirmed the API listening on port 10000.
+- This verification applies to language knowledge access version 1.2.3 and Linguistic Intelligence 1.3.4. It does not verify the later 1.3.5 response-language changes.
+
+### Current release alignment
+- The latest feature branch now includes Linguistic Intelligence 1.3.5 (commit 25cf8da89ba25e865a64a0f4efd63640c4f84a3d) and its tests (commit f225eb53d695d29d5746502eeb57331fa356dfa4).
+- Render STAGING is still on the earlier 1.3.4 deployment until the 1.3.5 build gate below completes.
+- Next action: build and test the latest feature-branch state, then deploy that exact commit to STAGING only.
+
