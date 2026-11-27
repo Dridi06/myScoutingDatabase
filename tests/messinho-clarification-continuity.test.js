@@ -90,8 +90,8 @@ test('router receives continuity as bounded dialogue evidence and route uses it 
 });
 
 test('segments comma and slash option lists without losing the selected option',()=>{
- const history=[{role:'user',text:'Suche einen Mittelfeldspieler.'},{role:'assistant',text:'Welche Position: links, zentral / rechts?'}];
- const result=buildMessinhoClarificationContinuity({message:'zentral',history,dialogueState:state('likely_answer',{pending_question:{text:'Welche Position: links, zentral / rechts?',kind:'position',options:['links','zentral','rechts']},clarification_reply:{status:'likely_answer',question_kind:'position',matched_option:'zentral',evidence:[]}})});
+ const history=[{role:'user',text:'Suche einen Mittelfeldspieler.'},{role:'assistant',text:'Welche Position: links, zentral / rechts? In welchem Land soll ich suchen?'}];
+ const result=buildMessinhoClarificationContinuity({message:'zentral',history,dialogueState:state('likely_answer',{pending_question:{text:'In welchem Land soll ich suchen?',kind:'location',options:['Deutschland','international']},clarification_reply:{status:'likely_answer',question_kind:'position',matched_option:'zentral',evidence:[]}})});
  assert.equal(result.status,'likely_answer');
  assert.equal(result.matched_option,'zentral');
 });
