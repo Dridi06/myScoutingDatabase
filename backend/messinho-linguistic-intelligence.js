@@ -96,25 +96,35 @@ export function normalizeMessinhoArabizi(input) {
   });
 }
 
-function tokenLanguageHint(token) {
+function tokenLanguageCandidates(token) {
   const normalized=String(token).toLocaleLowerCase();
   const ranked=Object.keys(WORDS).map(id=>({id,score:scoreProfile(id,[normalized],normalized)}))
     .sort((a,b)=>b.score-a.score);
-  const best=ranked[0], second=ranked[1];
-  if(!best||best.score<=1||best.score-(second?.score||0)<0.5)return null;
-  return best.id;
+  const best=ranked[0];
+  if(!best||best.score<=1)return [];
+  return ranked.filter(item=>best.score-item.score<0.5).map(item=>item.id);
 }
 
 function splitSentenceByLanguage(sentence) {
   const matches=[...sentence.matchAll(/[\p{L}\p{N}]+/gu)];
   if(matches.length<4)return [{text:sentence,language_hint:null}];
-  const rawLabels=matches.map(match=>tokenLanguageHint(match[0]));
+  const candidates=matches.map(match=>tokenLanguageCandidates(match[0]));
+  const labels=candidates.map(list=>list.length===1?list[0]:null);
+  // Resolve shared words such as "joueur" or "la" from nearby unambiguous words.
+  for(let i=0;i<labels.length;i++){
+    if(labels[i]||!candidates[i].length)continue;
+    let left=-1,right=-1;
+    for(let j=i-1;j>=0;j--)if(labels[j]){left=j;break;}
+    for(let j=i+1;j<labels.length;j++)if(labels[j]){right=j;break;}
+    if(left>=0&&candidates[i].includes(labels[left])&&(right<0||labels[right]===labels[left]||i-left<=right-i))labels[i]=labels[left];
+    else if(right>=0&&candidates[i].includes(labels[right]))labels[i]=labels[right];
+  }
   const counts=new Map();
-  for(const label of rawLabels)if(label)counts.set(label,(counts.get(label)||0)+1);
+  for(const label of labels)if(label)counts.set(label,(counts.get(label)||0)+1);
   const activeLanguages=[...counts].filter(([,count])=>count>=2).map(([language])=>language);
   if(activeLanguages.length<2)return [{text:sentence,language_hint:null}];
   const active=new Set(activeLanguages);
-  const labels=rawLabels.map(label=>label&&active.has(label)?label:null);
+  for(let i=0;i<labels.length;i++)if(labels[i]&&!active.has(labels[i]))labels[i]=null;
   for(let i=0;i<labels.length;i++){
     if(labels[i])continue;
     let left=-1,right=-1;
