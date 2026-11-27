@@ -4,7 +4,7 @@
  * This complements (never replaces) Admin-only API authorization.
  */
 const TARGET = "(?:messinho|myki|my\\s*ki|ki|system|plattform|agent|wissensbasis|wissensnetz|wissen|modell|lernmodell|programmiersandbox|autonomie|entwicklung|betriebsmodus|systemkonfiguration|systemregeln|kernregeln|modellgewichte|modellversion|wissensfreigabe|rollen\\s+und\\s+rechte|berechtigungen|admin.?einstellungen|agentensteuerung)";
-const ACTION = "(?:stoppe|pausiere|starte|aktiviere|deaktiviere|konfiguriere|konfigurier|ändere|aendere|verändere|veraendere|setze|schalte|entwickle|trainiere|lerne|importiere|einspiele|integriere|installiere|deinstalliere|lösche|loesche|gib(?:\\s+\\w+){0,5}\\s+frei|freigeben|übernimm|uebernimm)";
+const ACTION = "(?:stoppe|pausiere|starte|aktiviere|deaktiviere|konfiguriere|konfigurier|ändere|aendere|verändere|veraendere|setze|schalte|entwickle|trainiere|lerne|importiere|einspiele|integriere|installiere|deinstalliere|lösche|loesche|gib|gib(?:\\s+\\w+){0,5}\\s+frei|freigeben|übernimm|uebernimm)";
 const targetFirst = new RegExp('\\b' + TARGET + '\\b.{0,70}\\b' + ACTION + '\\b', 'i');
 const actionFirst = new RegExp('\\b' + ACTION + '\\b.{0,70}\\b' + TARGET + '\\b', 'i');
 
