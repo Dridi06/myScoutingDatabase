@@ -5182,3 +5182,31 @@ Make subject-language routing work when the scout asks in German (the primary pr
 - Next inspect the prompt/chat integration to confirm response_language is actually consumed by the live prompt path, then run the authorized authenticated STAGING chat checks.
 - Continue with phrase-level semantics only after this integration boundary is verified.
 
+
+
+## 28. Chat-prompt binding for Linguistic Intelligence 1.3.5 — 2026-11-27
+
+### Finding
+- The authenticated chat route already built the linguistic context, returned client-safe response metadata and injected the full linguistic context into the OpenAI system prompt.
+- The system prompt did not explicitly state that response_language/latest_segment_language must override the aggregate language when a message switches languages mid-sentence. The JSON context was present, but the behavioral priority was underspecified.
+
+### Implemented on STAGING feature branch
+- backend/server.js
+  - The system prompt now explicitly prioritizes response_language.
+  - latest_segment_language is used as the evidence for the final reply language.
+  - primary_language and conversation history are fallbacks only when no clear final segment exists.
+  - An explicit translation target applies only to the requested translation task and does not silently change later conversation language.
+  - The route continues to return buildMessinhoLinguisticResponseMetadata(linguisticContext), including response_language and latest_segment_language.
+- tests/messinho-prompt-context.test.js
+  - Added a source-level integration regression verifying the prompt priority, latest-segment instruction and response metadata wiring.
+
+### Traceability
+- System prompt integration commit: e01b85fb5ba5ca1ac309133b0f88be05cf78445f.
+- Regression test commit: fd906b76d7ae4f4be9a3785058c35b27cd2c1356.
+
+### Verification state
+- The current live STAGING baseline is deployment dep-dc4ntpirlj7c73e1fnsg, commit 094ccee77f7b9d347a8206cb7477b277ada986e8, with Linguistic Intelligence 1.3.5 and 491/491 tests passing.
+- This prompt-binding integration is committed but not yet built or deployed.
+- Next action: run the full STAGING build, confirm the new integration test, then deploy the exact tested commit.
+- No database migration or persistent knowledge write is required. Production remains untouched.
+
