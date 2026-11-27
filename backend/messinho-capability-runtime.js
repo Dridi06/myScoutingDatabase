@@ -206,7 +206,15 @@ function evaluationHandler(id,input){
    const observedChange=values.length>=2?values.at(-1)-values[0]:null;
    const ageFactor=age===null?null:age<=20?10:age<=23?6:age<=26?3:0;
    const indicator=Math.round(clamp(current+(observedChange===null?0:Math.max(-10,Math.min(10,observedChange))*.5)+(ageFactor===null?0:ageFactor)));
-   return result(id,'completed',{current_score:current,potential_indicator:indicator,observed_change:observedChange,age,confidence:values.length>=2&&age!==null?'longitudinal':'limited',limitations:values.length<2?['Keine ausreichende Entwicklungshistorie.']:[]});
+   const developmentForecast=forecastMessinhoPlayerDevelopment(rows,{horizonMonths:12});
+   const outcomeForecast=forecastMessinhoPlayerOutcome(input.success_history||input.verified_success_outcomes||[],{
+     position_group:normalizedPosition(p),age,current_score:current
+   });
+   return result(id,'completed',{current_score:current,potential_indicator:indicator,observed_change:observedChange,age,
+     development_forecast:developmentForecast,outcome_forecast:outcomeForecast,
+     confidence:developmentForecast.status==='completed'?developmentForecast.confidence:values.length>=2&&age!==null?'longitudinal':'limited',
+     limitations:[...(developmentForecast.limitations||[]),...(outcomeForecast.limitations||[]),
+       ...(developmentForecast.status!=='completed'?['Keine belastbare 12-Monats-Projektion: zu wenige verifizierte Verlaufsmessungen.']:[])]});
  }
  if(id==='competition_comparison'){
    const peers=getPlayers(input).filter(x=>normalizedPosition(x)===normalizedPosition(p));
