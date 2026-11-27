@@ -2,15 +2,44 @@
  * MESSINHO Agent Core — bounded plan / execute / validate state machine.
  * Provider-independent and read-only: no database writes, model activation or external calls.
  */
-import { runMessinhoCapabilityPlanAsync } from './messinho-orchestrator.js';
+import { runMessinhoCapabilityPlanAsync, getMessinhoCapabilityDiscovery } from './messinho-orchestrator.js';
 import { detectMessinhoKnowledgeGap } from './messinho-evolution.js';
 import { buildMessinhoPerformanceIntelligence } from './messinho-performance-intelligence.js';
 import { planMessinhoAutonomously, observeMessinhoExecution } from './messinho-autonomy.js';
 import { dispatchMessinhoMyKiProposals } from './messinho-myki-bridge.js';
 export const MESSINHO_AGENT_CORE_VERSION='2.0.0';
 export const MAX_AGENT_EXECUTION_BUDGET_MS=8000;
+export const MAX_AGENT_REPLAN_ATTEMPTS=1;
+export const MAX_AGENT_REPLAN_STEPS=8;
 const VALID_STATUSES=new Set(['completed','verified','proposal_ready','insufficient_data','error','denied','invalid_input','unknown_capability','unverified','needs_review','no_reliable_improvement']);
 function addEvent(trace,name,details={}) { return [...trace,{step:trace.length+1,event:name,at:new Date().toISOString(),...details}]; }
+/**
+ * Accept only registered, role-permitted capabilities and exclude every capability
+ * already attempted in this task. A semantic replan may add work, never repeat it.
+ */
+export function prepareMessinhoReplanPlan(candidatePlan, previousResults=[], role='scout') {
+ if(!candidatePlan||candidatePlan.denied||!Array.isArray(candidatePlan.steps))return null;
+ const catalogue=new Map(getMessinhoCapabilityDiscovery().map(item=>[item.id,item]));
+ const attempted=new Set((Array.isArray(previousResults)?previousResults:[])
+   .map(item=>item?.capability_id).filter(id=>typeof id==='string'));
+ const blocked=new Set(Array.isArray(candidatePlan.blocked_capabilities)?candidatePlan.blocked_capabilities:[]);
+ const eligible=[];
+ for(const id of candidatePlan.steps){
+  const capability=catalogue.get(id);
+  if(!capability||attempted.has(id))continue;
+  if(capability.admin_only&&role!=='admin'){blocked.add(id);continue;}
+  if(!eligible.includes(id))eligible.push(id);
+ }
+ if(!eligible.length)return null;
+ const steps=eligible.slice(0,MAX_AGENT_REPLAN_STEPS);
+ const deferred=[...new Set([
+  ...(candidatePlan.deferred_capabilities||[]).filter(id=>catalogue.has(id)&&!attempted.has(id)),
+  ...eligible.slice(MAX_AGENT_REPLAN_STEPS)
+ ])];
+ return {...candidatePlan,denied:false,steps,blocked_capabilities:[...blocked],
+  deferred_capabilities:deferred,replan:true,replan_excludes_attempted:true};
+}
+
 export function validateMessinhoAgentRun(plan,run) {
  const expected=Array.isArray(plan?.steps)?plan.steps:[];
  const results=Array.isArray(run?.results)?run.results:[];
@@ -26,7 +55,7 @@ export function validateMessinhoAgentRun(plan,run) {
    missing_inputs:[...new Set(results.flatMap(item=>Array.isArray(item?.missing_inputs)?item.missing_inputs:[]))],
    evidence_policy:'Only supplied database facts and server-validated research bundles are accepted; generated prose is not evidence.'};
 }
-export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scout',budgetMs=MAX_AGENT_EXECUTION_BUDGET_MS,onStep,onEngineeringProposal,shouldStop}={}) {
+export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scout',budgetMs=MAX_AGENT_EXECUTION_BUDGET_MS,onStep,onEngineeringProposal,shouldStop,replan}={}) {
  const started=Date.now(),budget=Math.max(250,Math.min(MAX_AGENT_EXECUTION_BUDGET_MS,Number(budgetMs)||MAX_AGENT_EXECUTION_BUDGET_MS));
  const autonomousPlanning=planMessinhoAutonomously(goal||plan?.goal||'',{role,context:input});
  plan=plan||autonomousPlanning.plan;
@@ -63,6 +92,42 @@ export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scou
    state.trace=addEvent(state.trace,'bounded_retry',{capabilities:failed,results:(retry.results||[]).map(item=>item.status)});
  }else if(failed.length){
    run={...run,status:'partial',deferred_capabilities:[...new Set([...(run.deferred_capabilities||[]),...failed])],replan_recommended:true};
+ }
+ // One model-assisted replan is allowed after the bounded retry still leaves errors.
+ // The callback cannot execute tools; its proposed IDs are revalidated below.
+ const unresolvedAfterRetry=(run.results||[]).filter(item=>item.status==='error');
+ const remainingAfterRetry=budget-(Date.now()-started);
+ if(!run.stop_requested&&unresolvedAfterRetry.length&&typeof replan==='function'&&remainingAfterRetry>=750){
+   try{
+     state.trace=addEvent(state.trace,'replan_requested',{attempt:1,failed_capabilities:unresolvedAfterRetry.map(item=>item.capability_id)});
+     const candidate=await replan({goal:state.goal,role,previous_results:run.results,
+       failed_capabilities:unresolvedAfterRetry.map(item=>item.capability_id),attempt:1});
+     const alternativePlan=prepareMessinhoReplanPlan(candidate,run.results,role);
+     if(alternativePlan){
+       const replanRun=await runMessinhoCapabilityPlanAsync(alternativePlan,agentInput,role,
+         {budgetMs:Math.max(250,Math.min(remainingAfterRetry,2500)),onStep,shouldStop});
+       const mergedResults=[...(run.results||[]),...(replanRun.results||[])];
+       const useful=mergedResults.filter(item=>['completed','verified','proposal_ready'].includes(item.status)).length;
+       const incompleteResults=mergedResults.filter(item=>['insufficient_data','error','denied','invalid_input','unknown_capability','unverified','needs_review','no_reliable_improvement'].includes(item.status));
+       const pending=[...new Set([...(run.deferred_capabilities||[]),...(replanRun.deferred_capabilities||[])])];
+       const replanSteps=[...new Set([...(plan.steps||[]),...(alternativePlan.steps||[])])];
+       plan={...plan,steps:replanSteps,discovered_capabilities:[...new Set([...(plan.discovered_capabilities||[]),...(alternativePlan.discovered_capabilities||[])])]};
+       run={...run,results:mergedResults,completed_steps:useful,total_steps:mergedResults.length,
+         status:run.stop_requested||replanRun.stop_requested?'stopped':pending.length||incompleteResults.length?'partial':useful?'completed':'insufficient_data',
+         deferred_capabilities:pending,blocked_capabilities:[...new Set([...(run.blocked_capabilities||[]),...(alternativePlan.blocked_capabilities||[])])],
+         missing_inputs:[...new Set(mergedResults.flatMap(item=>item.missing_inputs||[]))],
+         replan_recommended:incompleteResults.some(item=>['error','insufficient_data'].includes(item.status))||pending.length>0,
+         stop_requested:Boolean(run.stop_requested||replanRun.stop_requested),
+         execution_trace:{...run.execution_trace,replan_attempted:true,replan_capabilities:alternativePlan.steps,
+           replan_results:replanRun.results.map(item=>({capability_id:item.capability_id,status:item.status}))}};
+       state.trace=addEvent(state.trace,'replan_executed',{capabilities:alternativePlan.steps,
+         results:replanRun.results.map(item=>({capability_id:item.capability_id,status:item.status}))});
+     }else{
+       state.trace=addEvent(state.trace,'replan_not_available',{reason:'no_new_registered_capabilities'});
+     }
+   }catch(error){
+     state.trace=addEvent(state.trace,'replan_failed',{reason:error?.name==='TimeoutError'?'planner_timeout':'planner_or_execution_error'});
+   }
  }
  state={...state,phase:'validating'};
  const observation=observeMessinhoExecution(plan,run);
