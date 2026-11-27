@@ -5580,3 +5580,25 @@ Preserve meaning when a player description contains qualified evaluations, negat
 4. Keep human review for ambiguous dialect, sarcasm and high-impact scouting interpretations; do not auto-convert semantic cues into ratings.
 5. Continue to avoid persistent knowledge changes until rights and quality review are explicitly satisfied.
 
+## 35. MESSINHO Conversational Intelligence 2.0 — durable chat foundation — STAGING only — 2026-11-27
+
+- Work branch: `feature/messinho-conversational-intelligence-2`.
+- Base: current deployed STAGING branch `feature/messinho-unified-ai-integration` at commit `6429b055948915c1b40c2b1686f4c98cea1014cd`.
+- Production branch and LIVE services were not changed.
+- User confirmed the OpenAI connection is already configured. No duplicate provider integration or secret rotation was performed.
+- Removed the deterministic small-talk early return from the normal chat path. Greetings and ordinary conversation now reach the existing conversational model instead of being intercepted by canned response templates.
+- Improved conversational system instructions: maintain context, answer naturally, ask targeted clarifying questions, preserve linguistic nuance, distinguish evidence from inference, and avoid claiming tool execution that did not happen.
+- Provider failures are now surfaced as explicit, classified user-facing responses rather than silently falling back to a generic canned introduction.
+- Added authenticated conversation restore endpoint `GET /api/agent/conversation`.
+- Chat requests now load their last 20 turns from server-managed, owner-scoped storage; the browser-supplied history is no longer trusted as the source of truth.
+- Chat responses persist assistant messages and bounded research context; user messages are persisted before processing.
+- The workspace restores the latest conversation after authentication and sends the returned conversation ID on subsequent turns.
+- Added STAGING migration `20261127030000_messinho_conversational_memory.sql` and applied it successfully to Supabase project `myScoutingDatabase-staging` (`nwqwnrhupbyhshsprxjt`).
+- Added and applied `20261127031000_messinho_conversation_message_fk_index.sql` to cover the message-to-conversation foreign key.
+- Tables: `messinho_conversations`, `messinho_conversation_messages`; RLS enabled, direct anon/authenticated grants revoked, service-role access only, owner-scoped backend queries.
+- Confirmed both tables exist in the STAGING schema after migration.
+- Added regression coverage for safe research-context sanitization. GitHub Actions passed: 509/509 Node tests, backend syntax checks, and the full Vite production build (`MESSINHO staging branch CI`).
+- CI workflows were extended to run for this work branch and for pull requests targeting the STAGING integration branch.
+- Supabase post-migration advisors: no health findings; the new conversation FK is indexed. The new tables' indexes are currently reported as unused because the tables are still empty. Existing project-wide security warnings remain outside this change; the two new tables each have owner-scoped SELECT policies, RLS enabled, and no direct anon/authenticated grants.
+- Not yet complete: end-to-end authenticated Admin/Scout verification, streaming responses, conversation list/new-thread UX, and full runtime confirmation of the connected provider on Render STAGING.
+- Next: complete authenticated Admin/Scout and provider runtime verification on STAGING. PR #48 is open against `feature/messinho-unified-ai-integration`; do not deploy to LIVE.

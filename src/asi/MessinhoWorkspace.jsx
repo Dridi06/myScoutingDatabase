@@ -5,6 +5,7 @@ import MessinhoKnowledgeReviewPanel from './MessinhoKnowledgeReviewPanel.jsx';
 
 export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},compact=false}){
   const [messages,setMessages]=useState([{id:'welcome',role:'assistant',text:'Hallo! Ich bin Messinho, dein Scouting-Agent. Beschreibe einfach dein Ziel in normaler Sprache. Ich nutze die dafür bereits verfügbaren Analyse- und Scouting-Schritte automatisch, berücksichtige den Gesprächsverlauf und sage dir offen, wenn Daten oder Belege fehlen.'}]);
+  const [conversationId,setConversationId]=useState(null);
   const [draft,setDraft]=useState('');
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
@@ -40,6 +41,21 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   const [hypothesisLifecycleError,setHypothesisLifecycleError]=useState('');
   const messagesRef=useRef(null);
   useEffect(()=>{const container=messagesRef.current;if(!container)return;container.scrollTop=container.scrollHeight;},[messages,busy]);
+  useEffect(()=>{let active=true;(async()=>{
+    try{
+      const {data:{session}}=await supabase.auth.getSession();
+      if(!session?.access_token)return;
+      const response=await fetch('/api/agent/conversation',{headers:{Authorization:'Bearer '+session.access_token}});
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(payload.error||'Gesprächsverlauf konnte nicht geladen werden.');
+      if(!active)return;
+      setConversationId(payload.conversation_id||null);
+      if(Array.isArray(payload.messages)&&payload.messages.length){
+        setMessages(payload.messages.map(item=>({id:item.id,role:item.role,text:item.text,intent:item.intent||null,researchContext:item.researchContext||null,items:[]})));
+      }
+    }catch(error){if(active)console.warn('MESSINHO conversation restore unavailable:',error.message);}
+  })();return()=>{active=false;};},[supabase]);
+
   async function send(text=draft){
     const value=String(text||'').trim();
     if(!value||busy)return;
@@ -49,9 +65,10 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     try{
       const {data:{session}}=await supabase.auth.getSession();
       if(!session?.access_token)throw new Error('Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
-      const response=await fetch('/api/agent/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({message:value,history:messages.map(m=>({role:m.role,text:m.text,researchContext:m.researchContext})).slice(-20)})});
+      const response=await fetch('/api/agent/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({message:value,conversation_id:conversationId})});
       const payload=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(payload.error||'Messinho konnte nicht antworten.');
+      if(payload.conversation_id)setConversationId(payload.conversation_id);
       const next={id:'a-'+Date.now(),role:'assistant',text:payload.reply||'Ich habe die Anfrage verarbeitet.',intent:payload.intent,items:Array.isArray(payload.items)?payload.items:[],metrics:payload.metrics||null,engineVersion:payload.engine_version||payload.engineVersion||null,modelVersion:typeof payload.active_model==='string'?payload.active_model:payload.active_model?.version||payload.model_version||null,capabilityIds:Array.isArray(payload.capability_ids)?payload.capability_ids:Array.isArray(payload.capabilities)?payload.capabilities.map(item=>typeof item==='string'?item:item?.capability_id).filter(Boolean):[],researchContext:payload.researchContext||((payload.sources?.length||payload.profile)?{player:payload.player||null,profile:payload.profile||null,sources:payload.sources||[],researched_at:payload.researched_at||null}:null),correction:payload.input_correction?.applied?payload.input_correction:null};
       setMessages(prev=>[...prev,next]);
     }catch(e){

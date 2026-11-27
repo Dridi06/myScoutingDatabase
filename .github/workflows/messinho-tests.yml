@@ -5,9 +5,11 @@ on:
       - main
       - fix/messinho-runtime-coverage
       - feature/messinho-unified-ai-integration
+      - feature/messinho-conversational-intelligence-2
   pull_request:
     branches:
       - main
+      - feature/messinho-unified-ai-integration
 permissions:
   contents: read
 jobs:
