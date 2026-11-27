@@ -47,6 +47,7 @@ export async function planMessinhoGoalWithModel({
             'Select only capabilities that are genuinely needed to fulfil the user goal.',
             'Use the catalogue IDs exactly. Never invent IDs. Select no more than 12 capabilities.',
             'Choose a clarification question only when the goal cannot safely be understood.',
+            'Use the supplied MESSINHO semantic language bridge, active language profiles, mixed-language segments and approved vocabulary/aliases to understand the original goal, including dialect and code-switching. Do not treat normalized spellings as replacements for the user\'s words and do not invent vocabulary.',
             'Do not select admin_only capabilities for a scout.',
             'Prefer specialist runtime handlers over generic_fallback handlers when both genuinely satisfy the goal. Do not claim a generic fallback is a complete specialist implementation.',
             'Do not claim execution, research, evidence or results. You only create a plan.',
@@ -57,7 +58,8 @@ export async function planMessinhoGoalWithModel({
           ].join(' ')},
           {role:'user',content:JSON.stringify({goal:objective,user_role:role,capability_catalogue:catalogue,
             previous_execution:(Array.isArray(previousResults)?previousResults:[]).slice(-20).map(item=>({capability_id:item?.capability_id,status:item?.status,error_code:item?.error_code||null,missing_inputs:Array.isArray(item?.missing_inputs)?item.missing_inputs.slice(0,10):[]})),
-            failed_capabilities:(Array.isArray(failedCapabilities)?failedCapabilities:[]).slice(0,12)})}
+            failed_capabilities:(Array.isArray(failedCapabilities)?failedCapabilities:[]).slice(0,12),
+            linguistic_context:linguisticContext||null})}
         ]
       })
     });
