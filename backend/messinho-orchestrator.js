@@ -1,4 +1,4 @@
-import { executeMessinhoCapability } from './messinho-capability-runtime.js';
+import { executeMessinhoCapability, getMessinhoCapabilityRuntimeStatus } from './messinho-capability-runtime.js';
 import { getMessinhoCapabilityCatalog } from './messinho-capabilities.js';
 
 export const MAX_CAPABILITY_STEPS = 20;
@@ -197,7 +197,8 @@ function resolveDependencies(ids) {
 export function getMessinhoCapabilityDiscovery() {
   return CATALOGUE.map(item => ({
     id:item.id, name:item.name, group:item.group_id, description:item.description,
-    required_inputs:item.required_inputs, admin_only:ADMIN_ONLY.has(item.id)
+    required_inputs:item.required_inputs, admin_only:ADMIN_ONLY.has(item.id),
+    runtime_status:getMessinhoCapabilityRuntimeStatus(item.id)
   }));
 }
 

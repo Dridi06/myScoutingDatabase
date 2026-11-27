@@ -6,6 +6,7 @@ import { runMessinhoCapabilityPlanAsync, getMessinhoCapabilityDiscovery } from '
 import { detectMessinhoKnowledgeGap } from './messinho-evolution.js';
 import { buildMessinhoPerformanceIntelligence } from './messinho-performance-intelligence.js';
 import { planMessinhoAutonomously, observeMessinhoExecution } from './messinho-autonomy.js';
+import { buildMessinhoToolIntelligence } from './messinho-tool-intelligence.js';
 import { dispatchMessinhoMyKiProposals } from './messinho-myki-bridge.js';
 export const MESSINHO_AGENT_CORE_VERSION='2.0.0';
 export const MAX_AGENT_EXECUTION_BUDGET_MS=8000;
@@ -71,6 +72,8 @@ export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scou
      blocked_capabilities:plan?.blocked_capabilities||[],missing_inputs:[],replan_recommended:false,provider_independent:true,model_weights_changed:false},
      state,knowledge_gap:state.knowledge_gap||detectMessinhoKnowledgeGap(state.goal),validation:{valid:true,expected_steps:0,returned_steps:0}};
  }
+ const toolIntelligence=buildMessinhoToolIntelligence(plan,role,input);
+ state.trace=addEvent(state.trace,'tool_intelligence_ready',{selected:toolIntelligence.selected_count,specialist:toolIntelligence.specialist_count,generic_fallback:toolIntelligence.generic_fallback_count,unavailable:toolIntelligence.unavailable_count});
  const performanceIntelligence=buildMessinhoPerformanceIntelligence(input,goal||plan.goal);
  const agentInput={...input,_messinho_autonomous_performance_intelligence:performanceIntelligence};
  state={...state,phase:'executing',trace:addEvent(state.trace,'execution_started',{budget_ms:budget,max_steps:plan.steps.length,performance_intelligence:'automatic'})};
@@ -146,6 +149,6 @@ export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scou
  const phase=run.stop_requested?'stopped':!validation.valid?'failed':hasInputs?'waiting_for_input':incomplete?'partial':'completed';
  state={...state,phase,completed_at:new Date().toISOString(),elapsed_ms:Date.now()-started};
  state.trace=addEvent(state.trace,'agent_cycle_closed',{phase,elapsed_ms:state.elapsed_ms});
- return {plan,contract:autonomousPlanning.contract,observation,run:{...run,performance_intelligence:performanceIntelligence,autonomous_observation:observation,agent_core_version:MESSINHO_AGENT_CORE_VERSION,validation,
+ return {plan,contract:autonomousPlanning.contract,observation,tool_intelligence:toolIntelligence,run:{...run,tool_intelligence:toolIntelligence,performance_intelligence:performanceIntelligence,autonomous_observation:observation,agent_core_version:MESSINHO_AGENT_CORE_VERSION,validation,
    next_action:run.stop_requested?'stopped_by_admin':hasInputs?'ask_user_for_missing_inputs':hasErrors||observation.replan_recommended?'diagnose_and_replan':run.deferred_capabilities?.length?'resume_deferred_steps':'report_result',myki_dispatch:mykiDispatch},state,validation};
 }

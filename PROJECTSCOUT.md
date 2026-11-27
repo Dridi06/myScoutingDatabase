@@ -5756,3 +5756,15 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - No database schema change or migration was needed. No staging database was modified.
 - Validation status: pending CI for this commit. Manual authenticated restart/recovery verification remains required before enabling background resume in a deployed staging service.
 - Safety remains conservative: expired running tasks are quarantined for review rather than blindly replayed, because a crash may occur after a side effect but before its checkpoint.
+
+
+### 44. Autonomous Tool Intelligence — 2026-11-27
+
+- Added runtime-aware capability discovery. The goal planner now receives the actual handler classification for every registered capability: specialist handler, generic fallback, not dispatched, or not registered.
+- The semantic planner is instructed to prefer specialist handlers where they genuinely satisfy the goal and never describe a generic fallback as a complete specialist implementation.
+- Added a Tool Intelligence manifest to each Agent Core cycle. It reports selected capabilities, handler quality, role restrictions, and known input readiness before execution.
+- The manifest is diagnostic only. The existing orchestrator remains authoritative for capability registration, dependencies, execution, and Admin/Scout permission enforcement.
+- Input readiness uses explicit aliases for common scouting data (player metrics, positions, history, sources, outcomes, events and team context). Unknown input contracts are marked unassessed rather than falsely declared available.
+- Added deterministic tests for specialist-vs-fallback classification, role restrictions, missing inputs, and unknown input contracts.
+- No new external tool provider or API key is required. Existing semantic planning remains optional; deterministic fallback continues to work.
+- Validation status: pending CI for this commit. No deployment or production change.
