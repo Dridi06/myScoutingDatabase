@@ -88,3 +88,18 @@ test('router receives continuity as bounded dialogue evidence and route uses it 
  assert.match(source,/clarificationContinuity\.effective_message/);
  assert.match(source,/clarificationContinuity\.parser_history/);
 });
+
+test('segments comma and slash option lists without losing the selected option',()=>{
+ const history=[{role:'user',text:'Suche einen Mittelfeldspieler.'},{role:'assistant',text:'Welche Position: links, zentral / rechts?'}];
+ const result=buildMessinhoClarificationContinuity({message:'zentral',history,dialogueState:state('likely_answer',{pending_question:{text:'Welche Position: links, zentral / rechts?',kind:'position',options:['links','zentral','rechts']},clarification_reply:{status:'likely_answer',question_kind:'position',matched_option:'zentral',evidence:[]}})});
+ assert.equal(result.status,'likely_answer');
+ assert.equal(result.matched_option,'zentral');
+});
+
+test('scoped chat history is isolated by both owner and conversation identifiers',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+ const historyQuery=source.slice(source.indexOf(".from('messinho_conversation_messages')"),source.indexOf(".from('messinho_conversation_messages')")+600);
+ assert.match(historyQuery,/\.eq\('owner_id',ownerId\)/);
+ assert.match(historyQuery,/\.eq\('conversation_id',conversationId\)/);
+});
