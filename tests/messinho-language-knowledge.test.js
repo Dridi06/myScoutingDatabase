@@ -79,11 +79,11 @@ test('database selection uses only columns present in the versioned migration',a
 
 test('loads approved knowledge for every detected language segment in mixed-language messages',async()=>{
  const rows=[
-  {entry_key:'en.grammar.word_order',version:1,language_code:'en',entry_type:'grammar',topic:'Sentence structure',title:'English word order',content:{explanation:'English uses subject-verb-object order.'},tags:['subject','verb','object'],knowledge_status:'active'},
-  {entry_key:'fr.grammar.word_order',version:1,language_code:'fr',entry_type:'grammar',topic:'Syntaxe',title:'Ordre des mots',content:{explanation:'Le français suit généralement sujet-verbe-complément.'},tags:['sujet','verbe','complément'],knowledge_status:'active'},
+  {entry_key:'en.grammar.word_order',version:1,language_code:'en',entry_type:'grammar',topic:'Sentence structure',title:'English word order',content:{explanation:'English uses subject-verb-object order.'},tags:['subject','verb','object','player','league','ready'],knowledge_status:'active'},
+  {entry_key:'fr.grammar.word_order',version:1,language_code:'fr',entry_type:'grammar',topic:'Syntaxe',title:'Ordre des mots',content:{explanation:'Le français suit généralement sujet-verbe-complément.'},tags:['sujet','verbe','complément','joueur','analyser','points forts'],knowledge_status:'active'},
   {entry_key:'de.grammar.word_order',version:1,language_code:'de',entry_type:'grammar',topic:'Satzbau',title:'Deutsche Satzstellung',content:{explanation:'Im Hauptsatz steht das finite Verb normalerweise an zweiter Position.'},tags:['Verbzweit'],knowledge_status:'active'}
  ];
- const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'Hello, how are you? Bonjour, comment ça va?');
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'The player is not ready for this league yet. Bonjour, je voudrais analyser ce joueur et comprendre ses points forts.');
  assert.deepEqual(result.language_ids.sort(),['en','fr']);
  assert.deepEqual(result.items.map(item=>item.language_code).sort(),['en','fr']);
 });
