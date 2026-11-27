@@ -52,6 +52,7 @@ import { isMessinhoAdminOnlyCommand } from './messinho-command-access.js';
 import { buildMessinhoLinguisticContext, buildMessinhoLinguisticResponseMetadata } from './messinho-linguistic-intelligence.js';
 import { classifyMessinhoTurn, appendMessinhoLongTermMemories } from './messinho-conversational-intelligence.js';
 import { buildMessinhoDialogueState } from './messinho-dialogue-engine.js';
+import { resolveMessinhoEntityReferences } from './messinho-entity-resolution.js';
 import { guardMessinhoConversationReply } from './messinho-conversation-response-guard.js';
 import { findMessinhoLanguageKnowledge, formatMessinhoLanguageKnowledge } from './messinho-language-knowledge.js';
 
@@ -2270,7 +2271,6 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const correction=correctMessinhoInput(message);
     const interpretedMessage=correction.corrected;
     const linguisticContext=buildMessinhoLinguisticContext(message,history);
-    const dialogueState=buildMessinhoDialogueState({message,history,userRole:profile.role,linguisticContext});
     let linguisticKnowledgeStatus='not_loaded';
     const respond=async payload=>{
       const researchContext=payload.researchContext||((payload.sources?.length||payload.profile)?{
@@ -2301,6 +2301,16 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     }
     const actor={user:authData.user,profile};
     const agentMemory=await loadMessinhoAgentMemory(ownerId);
+    const entityResolution=resolveMessinhoEntityReferences({
+      message:interpretedMessage,history,activeEntities:agentMemory.active_entities
+    });
+    const dialogueState=buildMessinhoDialogueState({message,history,userRole:profile.role,linguisticContext});
+    dialogueState.entity_resolution=entityResolution;
+    const resolvedPlayerReference=entityResolution.status==='resolved'&&entityResolution.entity?.entity_type==='player'
+      ?entityResolution.entity.name:null;
+    const legacyPlayerFollowUp=!entityResolution.reference_detected
+      ?resolveMessinhoPlayerFollowUp(interpretedMessage,history):null;
+    const playerFollowUpName=resolvedPlayerReference||legacyPlayerFollowUp;
     const normalized=interpretedMessage.toLocaleLowerCase('de-DE').normalize('NFKC');
     // Semantic cognitive routing runs before all deterministic feature routing.
     // It interprets meaning, context, spelling/dictation variants and memory intent.
@@ -2374,7 +2384,11 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(cognitive.intent==='engineering'&&profile.role!=='admin'){
       return respond({reply:'Technische Änderungen und Systementwicklung sind ausschließlich Administratoren vorbehalten. Bei normalen Fragen helfe ich dir gerne weiter.',intent:'admin_command_denied',items:[],permission:{allowed:false,required_role:'admin'}});
     }
-    if(cognitive.intent==='scouting'&&!parseMessinhoScoutingRequest(interpretedMessage,history).shouldHandle&&!resolveMessinhoPlayerFollowUp(interpretedMessage,history)){
+    if(cognitive.intent==='scouting'&&entityResolution.reference_detected&&entityResolution.status!=='resolved'){
+      const options=entityResolution.candidates.map(item=>item.name).join(' oder ');
+      return respond({reply:options?'Ich sehe mehrere mögliche Bezüge: '+options+'. Welchen meinst du?':'Auf welchen Spieler, Verein oder welche Mannschaft beziehst du dich genau?',intent:'entity_reference_clarification',items:[],pending:true,entity_resolution:{status:entityResolution.status,reference_type:entityResolution.reference_type}});
+    }
+    if(cognitive.intent==='scouting'&&!parseMessinhoScoutingRequest(interpretedMessage,history).shouldHandle&&!playerFollowUpName){
       return respond({reply:'Ich möchte keine falsche Spielersuche starten. Welchen Spieler oder welche Scouting-Aufgabe meinst du genau?',intent:'scouting_clarification',items:[],pending:true});
     }
     const dialog=parseMessinhoScoutingRequest(interpretedMessage,history);
@@ -2450,7 +2464,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         knowledge_memory:{reused:false,kind:'hierarchical_knowledge_graph',status:canonicalResult.status||'miss'}
       });
     }
-    const isPlayerFollowUp=Boolean(resolveMessinhoPlayerFollowUp(interpretedMessage,history));
+    const isPlayerFollowUp=Boolean(playerFollowUpName);
     const help=/\b(hilfe|befehle|funktionen)\b/.test(normalized)||(/\bwas kannst du\b/.test(normalized)&&!isPlayerFollowUp);
     const wantsCandidates=/kandidat|shortlist|vorgemerkt|beobachtung/.test(normalized);
     const wantsComparison=/\b(vergleiche|vergleich|rangliste|ranking|bewerte meine kandidaten)\b/.test(normalized);
@@ -2486,7 +2500,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       return respond({reply,intent:'mathematics_'+mathResult.kind,calculation:mathResult,items:[]});
     }
     if(isPlayerFollowUp){
-      const rememberedPlayer=resolveMessinhoPlayerFollowUp(interpretedMessage,history);
+      const rememberedPlayer=playerFollowUpName;
       const priorResearch=[...history].reverse().find(item=>item.role==='assistant'&&item.researchContext?.sources?.length);
       const context=priorResearch?.researchContext;
       if(!context){
