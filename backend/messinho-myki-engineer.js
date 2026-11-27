@@ -27,27 +27,27 @@ const responseJson=async response=>{
 
 export function isMessinhoEngineeringRequest(message=''){
   const value=String(message).toLocaleLowerCase('de-DE').normalize('NFKC');
-  return /(my\\s*ki|messinho).{0,70}(entwickl|verbesser|selbstdiagnos|systempr[uü]f|codepr[uü]f|optimier)/i.test(value)||
+  return /(my\s*ki|messinho).{0,70}(entwickl|verbesser|selbstdiagnos|systempr[uü]f|codepr[uü]f|optimier)/i.test(value)||
     /(system|dich selbst).{0,50}(pr[uü]f|analysier|verbesser|optimier)/i.test(value);
 }
 
 /** Verifies that every removed/context line exists in the exact pinned source revision. */
 export function validateMessinhoEngineeringPatchAgainstSources(patch,sources=[]){
   if(typeof patch!=='string'||!Array.isArray(sources))return {ok:false,reason:'invalid_patch_or_sources'};
-  const sourceMap=new Map(sources.map(item=>[item.path,String(item.content||'').replace(/\\r\\n/g,'\\n').split('\\n')]));
+  const sourceMap=new Map(sources.map(item=>[item.path,String(item.content||'').replace(/\r\n/g,'\n').split('\n')]));
   const sections=patch.split(/(?=^diff --git )/m).filter(section=>section.startsWith('diff --git '));
   if(!sections.length)return {ok:false,reason:'diff_sections_missing'};
   for(const section of sections){
-    const header=section.match(/^diff --git a\\/(.+) b\\/(.+)$/m);
+    const header=section.match(/^diff --git a\/(.+) b\/(.+)$/m);
     if(!header||header[1]!==header[2]||!sourceMap.has(header[1]))return {ok:false,reason:'source_file_not_allowlisted'};
     const sourceLines=sourceMap.get(header[1]);let cursor=0,hunks=0;
-    const lines=section.split('\\n');
+    const lines=section.split('\n');
     for(let i=0;i<lines.length;i++){
       if(!lines[i].startsWith('@@'))continue;
       hunks++;const oldLines=[];
       for(i++;i<lines.length&&!lines[i].startsWith('@@')&&!lines[i].startsWith('diff --git ');i++){
         const line=lines[i];
-        if(line.startsWith('\\\\'))continue;
+        if(line.startsWith('\\'))continue;
         if(line.startsWith(' ')||line.startsWith('-'))oldLines.push(line.slice(1));
         else if(line.startsWith('+')){}
         else if(line!=='')return {ok:false,reason:'invalid_hunk_line'};
@@ -68,7 +68,7 @@ export function validateMessinhoEngineeringPatchAgainstSources(patch,sources=[])
 export async function generateMessinhoEngineeringProposal({goal,env=process.env,fetchImpl=fetch}={}){
   const apiKey=String(env.OPENAI_API_KEY||'');
   if(!apiKey)return {ok:false,code:'MYKI_ENGINEERING_PROVIDER_UNAVAILABLE',message:'Die technische Vorschlagsprüfung ist derzeit nicht verfügbar.'};
-  const cleanGoal=String(goal||'').replace(/[\\u0000-\\u001f\\u007f]/g,' ').replace(/\\s+/g,' ').trim().slice(0,700);
+  const cleanGoal=String(goal||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,700);
   if(cleanGoal.length<8)return {ok:false,code:'MYKI_ENGINEERING_GOAL_REQUIRED',message:'Bitte beschreibe kurz, was MESSINHO prüfen soll.'};
   try{
     const commitResponse=await fetchImpl('https://api.github.com/repos/'+REPOSITORY+'/commits/'+encodeURIComponent(BRANCH),{
@@ -91,7 +91,7 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
       headers:{Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},
       body:JSON.stringify({model:env.OPENAI_MODEL||'gpt-4.1-mini',temperature:0.1,response_format:{type:'json_object'},max_tokens:4500,
         messages:[
-          {role:'system',content:SYSTEM_PROMPT+'\\n\\nPROGRAMMIER-LERNBASIS: '+JSON.stringify(learning)},
+          {role:'system',content:SYSTEM_PROMPT+'\n\nPROGRAMMIER-LERNBASIS: '+JSON.stringify(learning)},
           {role:'user',content:JSON.stringify({goal:cleanGoal,repository:REPOSITORY,branch:BRANCH,source_commit:sourceSha,allowed_files:ALLOWED_FILES,source_files:files})}
         ]})
     });
