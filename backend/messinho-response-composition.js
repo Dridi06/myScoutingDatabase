@@ -46,8 +46,12 @@ export function buildMessinhoResponseCompositionContext({
     followUpPolicy='Do not ask the user to repeat an objection already stated.';
   }else if(acts.includes('question')){
     primary='answer_directly_then_explain';
-    shape='direct_answer_then_short_reason';
+    shape=(followUp!=='none'||continuity.follow_up_likely)?'contextual_question_follow_up':'direct_answer_then_short_reason';
     guidance=['Give the answer first when the available information permits.','Explain the key reason or uncertainty afterwards.'];
+    if(followUp!=='none'||continuity.follow_up_likely){
+      guidance.push('Resolve references against the recent exchange and preserve its established constraints.');
+      continuityMode='continue_relevant_recent_goal';
+    }
     followUpPolicy='Ask one question only if a missing detail changes the answer.';
   }else if(acts.includes('explicit_emotion')){
     primary='acknowledge_explicit_feeling';
