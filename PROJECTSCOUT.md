@@ -4372,3 +4372,35 @@ Hocharabisch und tunesische Derja sind getrennte Sprachprofile. MESSINHO soll zu
 - Die Remote-Migrationshistorie enthält zusätzlich zwei idempotente Registrierungen mit den Versionen 20261127013647 und 20261127013650, die bei einer erneuten Registrierung derselben Sprachwissensmigrationen entstanden sind.
 - Die Tabellenprüfung zeigt weiterhin 30 eindeutige Eintragsschlüssel und 36 Versionszeilen; es wurden keine Wissenseinträge verdoppelt.
 - Die ursprünglichen, tatsächlich passenden Repository-Migrationsdateien bleiben 20261127013548 und 20261127013559. Die zusätzlichen Remote-Historieneinträge werden nicht gelöscht; vor einem späteren Supabase-CLI-db-push ist die Migrationshistorie separat abzugleichen.
+
+
+## 19. myKI MESSINHO-Aktivitätsmonitor — 2026-11-27
+
+### Anforderung und Umsetzung
+- Der Admin-Bereich `myKI` zeigt jetzt direkt unter der myKI-Kopfzeile einen eigenen, responsiven Bildschirm **„MESSINHO Aktivitätsmonitor“**.
+- Neue Komponente: `src/asi/MyKiActivityMonitor.jsx`.
+- Integration: `src/main.jsx`; Gestaltung: `src/styles.css`.
+- Der Monitor fragt ausschließlich die bestehende geschützte Statusroute `GET /api/admin/myki/status` ab. Die Route verlangt einen freigeschalteten Admin über `requireApprovedMessinhoAdmin`.
+- Aktualisierung nach Öffnen und anschließend alle 30 Sekunden; zusätzlich manuelle Aktualisierung.
+- Angezeigt werden Betriebsmodus, tatsächliche Aufgabeninformation (falls gespeichert), letzter Entwicklungsprüflauf, automatische Scheduler-Freigabe, Sandbox-Status und die nächsten zustandsabhängigen Schritte mit verständlicher Begründung.
+- Der Monitor ist bewusst **read-only**. Er ändert weder Betriebsmodus noch Aufgaben, Sandbox-Freigaben, Tickets, Daten oder Deployments.
+- Der Plan unterscheidet gesperrte, ausstehende, vorgesehene, zu prüfende und abgeschlossene Schritte. Eine bloße Konfiguration wird nicht als erfolgreicher Sandbox-Test ausgegeben.
+- Der vereinbarte Rhythmus wird sichtbar dargestellt: 03:00–08:00 Selbstentwicklung, 08:00–10:00 Pause, 10:00–23:00 Tagesphase, 23:00–03:00 Nachtruhe. Der Chat für Admins und Scouts bleibt davon unabhängig erreichbar.
+- Die Anzeige behauptet keine laufende autonome Entwicklung, wenn kein entsprechender gespeicherter Arbeitsnachweis vorliegt.
+
+### Tests und Deployment
+- Finaler Feature-Branch-Code-Commit: `06989936718ecb5cb853b39a9c8070463d492e93`.
+- GitHub Actions, Workflow `MESSINHO staging branch CI`, Run `45924388904`: erfolgreich; Regressionstests, Backend-Syntaxprüfungen und Vite-Produktionsbuild bestanden.
+- Render Workspace: `My Workspace`, vom Eigentümer bestätigt.
+- Ausschließlich Render-STAGING-Service `srv-dc3chlqjnfac73acd6ig` verwendet; Auto-Deploy bleibt deaktiviert.
+- Deployment `dep-dc4e1mtg1s2s73e4luqg`, Commit `06989936718ecb5cb853b39a9c8070463d492e93`, Status `live`, abgeschlossen am `2026-11-27T01:46:53Z`.
+- Runtime-Logs bestätigen `npm start`, Backend-Start, Supabase Data API HTTP 200 und Render-Meldung „Your service is live“.
+- STAGING-URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- Kein Produktionscode, kein Main-Branch, kein Produktions-Render-Service und keine Produktionsdaten wurden in diesem Arbeitsschritt verändert.
+
+### Grenzen und offene Verifikation
+- Der Build und der STAGING-Prozessstart sind bestätigt. Ein authentifizierter Browser-/Admin-E2E-Test des neuen Bildschirms wurde in diesem Schritt nicht durchgeführt; hierfür ist eine angemeldete Admin-Sitzung erforderlich.
+- Der Statusmonitor liest die bestehenden Statusdaten. Er ersetzt keine fehlende Telemetrie und kann keine nicht gespeicherten Gedanken oder Aktivitäten anzeigen.
+- Der isolierte Engineering-Workflow `45924388916` war beim Dokumentationsabschluss noch nicht als erfolgreicher Kandidatenlauf mit Compiler-/Callback-Nachweis bestätigt; die Payload-Vorbereitung wurde übersprungen. Deshalb darf MESSINHO weiterhin nicht als erfolgreich autonom programmierend oder selbstintegrierend bezeichnet werden.
+- MESSINHO-Betriebsmodus und Sandbox-Freigabe werden durch den Monitor nicht verändert. Die Entscheidung über Aktivierung und kritische Änderungen bleibt beim Admin.
+- Nächster Schritt: mit einem freigeschalteten Admin-Konto auf STAGING anmelden, myKI öffnen und Statusabruf, mobile Darstellung, 30-Sekunden-Aktualisierung sowie Fehlerzustände kontrollieren. Danach die echte Sandbox-Payload-/Compiler-/Callback-Kette separat abschließen.
