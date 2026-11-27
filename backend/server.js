@@ -483,6 +483,13 @@ app.get('/api/admin/myki/status',requireSupabaseAdmin,async(req,res)=>{
     return res.json({
       scheduler_enabled:isMessinhoEngineeringAutoReviewEnabled(process.env),
       maturity:buildMessinhoMaturityReport(),
+      autonomy_mode:isMessinhoEngineeringAutoReviewEnabled(process.env)?'bounded_admin_review':'interactive_only',
+      sandbox:{
+        enabled:isMessinhoSandboxStagingAllowed(process.env),
+        github_credential_configured:Boolean(process.env.MESSINHO_SANDBOX_GITHUB_TOKEN),
+        state:!isMessinhoSandboxStagingAllowed(process.env)?'disabled':
+          !process.env.MESSINHO_SANDBOX_GITHUB_TOKEN?'credential_missing':'configured_not_yet_end_to_end_verified'
+      },
       run_state:data?.status==='running'?'running':'paused',
       schedule:{time_zone:'Europe/Berlin',daily_at:'20:00',review_date:schedule.review_date,due:schedule.due},
       last_run:data||null,
