@@ -110,9 +110,10 @@ export function rankMessinhoPlayers(candidates = [], modelProfiles = null) {
     .sort((a,b) => (b.messinho_rating.score ?? -1) - (a.messinho_rating.score ?? -1)
       || b.messinho_rating.evidence_coverage - a.messinho_rating.evidence_coverage);
 }
-export function sanitizeMessinhoHistory(history) {
+export function sanitizeMessinhoHistory(history, {limit = 20} = {}) {
   if (!Array.isArray(history)) return [];
-  return history.slice(-20).filter(item =>
+  const safeLimit = Math.max(1, Math.min(80, Number.isInteger(limit) ? limit : 20));
+  return history.slice(-safeLimit).filter(item =>
     item && ['user','assistant'].includes(item.role) && typeof item.text === 'string'
   ).map(item => {
     const safe = { role: item.role, text: item.text.slice(0, 1200) };
