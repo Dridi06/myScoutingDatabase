@@ -5012,3 +5012,34 @@ Separate the language used to write a request from the language whose grammar, v
 - Then improve phrase-level intent matching and dialect-aware retrieval ranking using the existing approved knowledge corpus, without adding unreviewed external data or changing stored knowledge.
 - Keep language identification, subject-language routing, knowledge retrieval and actual translation quality as separate verifiable capabilities.
 
+
+
+## 24. Cross-language subject detection for German prompts — 2026-11-27
+
+### Objective
+Make subject-language routing work when the scout asks in German (the primary product language) about another language or dialect. Detection must distinguish a language-learning topic from nationality/location references.
+
+### Implemented on STAGING feature branch
+- backend/messinho-language-knowledge.js
+  - Access-layer version advanced from 1.2.2 to 1.2.3.
+  - Added German-language subject aliases for all six profiles: deutsche Grammatik, englische Grammatik, französische Grammatik, spanische Grammatik, Hocharabisch and tunesische Derja.
+  - Added French/Spanish/German language-name variants to the explicit subject matcher.
+  - Retained conservative phrase matching: a phrase such as “tunesischer Spieler” alone must not load Derja knowledge.
+  - Explicit language routing remains separate from input-language detection and actual translation.
+- tests/messinho-language-knowledge.test.js
+  - Added three regressions covering all six profiles from German prompts, MSA-vs-Tunisian-Arabic comparison, and false-positive nationality protection.
+
+### Traceability
+- Implementation commits:
+  - d1e16e84960514909cd8cc907ad50001edc1b8ff — expanded language mentions.
+  - 8f5ec8cc2b0a2f793a0920c64e2a672b283597e0 — German spelling variants for French.
+- Test commit:
+  - 2c4c4ebb2b3440e14ce082f17cad25584a231060 — German subject-language regressions.
+- No database changes or migrations.
+
+### Verification state
+- Previous requested-language routing is live on STAGING, deployment dep-dc4nsatg1s2s73f5t8gg, with 486/486 tests passing.
+- This German-prompt enhancement is not yet built or deployed.
+- Next: run full STAGING build, confirm all new cases, then deploy the exact branch commit.
+- Production remains untouched.
+
