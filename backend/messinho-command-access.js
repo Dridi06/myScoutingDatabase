@@ -9,7 +9,7 @@ const targetFirst = new RegExp('\\b' + TARGET + '\\b.{0,70}\\b' + ACTION + '\\b'
 const actionFirst = new RegExp('\\b' + ACTION + '\\b.{0,70}\\b' + TARGET + '\\b', 'i');
 
 const clean = value => typeof value === 'string'
-  ? value.normalize('NFKC').replace(/[\x00-\x1f\x7f]/g, ' ').trim().slice(0, 1200)
+  ? value.normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[ä]/g, 'ae').replace(/[ö]/g, 'oe').replace(/[ü]/g, 'ue').replace(/ß/g, 'ss').replace(/[\x00-\x1f\x7f]/g, ' ').trim().slice(0, 1200)
   : '';
 
 export function isMessinhoAdminOnlyCommand(value) {
