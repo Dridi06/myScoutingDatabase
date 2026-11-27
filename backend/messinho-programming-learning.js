@@ -2,7 +2,7 @@
  * MESSINHO programming curriculum — first-party, versioned learning foundation.
  * The curriculum is durable source-controlled knowledge, not a claim of model-weight training.
  */
-export const MESSINHO_PROGRAMMING_CURRICULUM_VERSION='1.0.0';
+export const MESSINHO_PROGRAMMING_CURRICULUM_VERSION='1.1.0';
 export const MESSINHO_PROGRAMMING_CURRICULUM=Object.freeze([
  {level:1,id:'foundations',title:'Programmiergrundlagen',topics:[
   'Variablen, Konstanten, Datentypen, Operatoren und Ausdrücke',
@@ -34,8 +34,20 @@ export const MESSINHO_PROGRAMMING_CURRICULUM=Object.freeze([
   'RAG, Embeddings, Quellenherkunft, Wissensversionen und Aktualitätsprüfung',
   'Evaluation, Baselines, Kalibrierung, Drift, Regression und kontrollierte Selbstoptimierung'
  ],mastery:'Kann eine Änderung anhand messbarer Kriterien bewerten, Risiken begrenzen und einen überprüfbaren Rollback-Plan liefern.'}
-]);
-export function buildMessinhoProgrammingLearningContext({maxTopics=24,includeExamples=true}={}) {
+ ,
+ {level:5,id:'professional-engineering',title:'Professionelle Softwareentwicklung und Problemlösung',topics:[
+  'Systematische Fehleranalyse: Symptom, Reproduktion, Eingrenzung, Ursache und Korrektur getrennt dokumentieren',
+  'Code-Review: Korrektheit, Lesbarkeit, Wartbarkeit, Komplexität, Seiteneffekte und API-Kompatibilität bewerten',
+  'Threat Modeling: Schutzgüter, Angreifer, Eintrittspunkte, Vertrauensgrenzen und Missbrauchsszenarien identifizieren',
+  'Performance Engineering: Profiling, Datenbankabfragen, Caching, Speicherverbrauch und messbare Engpässe',
+  'Nebenläufigkeit: Race Conditions, Locks, atomare Operationen, Transaktionen und konsistente Zustandsübergänge',
+  'API- und Datenbankmigrationen: Rückwärtskompatibilität, Expand-and-Contract und sichere Rollback-Strategien',
+  'Frontend-Qualität: Accessibility, Tastaturbedienung, responsive Layouts, Ladezustände und Fehlerbehandlung',
+  'Teststrategie: Risiko-basierte Testauswahl, Property-based Tests, Fuzzing und Grenzwert-/Negativtests',
+  'Betrieb: strukturierte Logs, Metriken, Traces, Alarmierung, Fehlerbudgets und Incident-Postmortems',
+  'Technische Entscheidungen: Alternativen, Kosten, Risiken, Annahmen und nachvollziehbare Architekturentscheidungen'
+ ],mastery:'Kann eine technische Änderung mit nachvollziehbaren Belegen, Risikoanalyse, Alternativen, Testmatrix und Rollback-Plan professionell begründen.'}
+]);\nexport function buildMessinhoProgrammingLearningContext({maxTopics=24,includeExamples=true}={}) {
  const lessons=MESSINHO_PROGRAMMING_CURRICULUM.map(level=>({
   level:level.level,title:level.title,topics:level.topics.slice(0,Math.max(1,Math.min(12,maxTopics))),
   mastery:level.mastery
@@ -54,6 +66,27 @@ export function buildMessinhoProgrammingLearningContext({maxTopics=24,includeExa
    'Aus Admin-Feedback und späteren Testergebnissen Prinzipien ableiten, aber falsche oder unbestätigte Vorschläge nicht als Wissen speichern.',
    'Kein selbstständiges Anwenden, Mergen oder Deployen eines Patches; nur Vorschlag und Ticket bis zur ausdrücklichen Freigabe.'
   ],
+  engineering_method:[
+   '1. Auftrag und Akzeptanzkriterien präzisieren; fehlende Angaben als Fragen kennzeichnen.',
+   '2. Relevante Dateien, Aufrufer, Abhängigkeiten, Datenflüsse und vorhandene Tests lesen.',
+   '3. Fehlerhypothese mit konkretem Codebeleg und reproduzierbarem Szenario formulieren.',
+   '4. Mindestens eine Alternative vergleichen; die kleinste sichere Änderung bevorzugen.',
+   '5. Rollen, Mandantengrenzen, RLS, Datenschutz, Eingaben, Secrets und externe Effekte prüfen.',
+   '6. Positive, negative, Grenzwert-, Berechtigungs- und Regressionstests definieren.',
+   '7. Tatsächliche Testergebnisse, Build, offene Risiken und nicht geprüfte Annahmen getrennt berichten.',
+   '8. Patch-Diff, betroffene Dateien, Rückrollschritte und Admin-Freigabepunkt dokumentieren.'
+  ],
+  proposal_quality_gate:{
+   required:['problem_evidence','root_cause','minimal_patch','test_matrix','security_review','alternative_considered','rollback_plan','source_revision'],
+   reject_if:['source_context_mismatch','unreproducible_claim','unapproved_protected_file','missing_test_plan','secret_or_personal_data_exposure','automatic_production_change'],
+   scoring_dimensions:['correctness','security','maintainability','performance','testability','backward_compatibility']
+  },
+  knowledge_intake:{
+   rule:'Vom Administrator bereitgestellte Programmierunterlagen sind zunächst Quellenmaterial, nicht automatisch freigegebenes Wissen.',
+   required_metadata:['title','source_or_author','version_or_date','license_or_usage_rights','topic','content'],
+   workflow:['source_check','relevance_and_quality_review','extract_concepts','cross_check_against_existing_knowledge','create_versioned_learning_proposal','admin_approval','persistent_integration','regression_evaluation'],
+   instruction:'Unklare Herkunft, widersprüchliche Inhalte, veraltete APIs oder unsichere Beispiele markieren und nicht ungeprüft übernehmen.'
+  },
   examples:includeExamples?[
    {principle:'Input validieren',example:'Grenzwerte und Typen am API-Eingang prüfen; niemals blind dem Client vertrauen.'},
    {principle:'Least privilege',example:'Scout darf nur freigegebene eigene Organisationsdaten sehen; Admin-Funktionen serverseitig prüfen.'},
