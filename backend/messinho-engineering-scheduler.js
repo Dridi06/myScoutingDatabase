@@ -22,7 +22,7 @@ export function getMessinhoEngineeringReviewSchedule(now=new Date()){
 export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),generate=generateMessinhoEngineeringProposal,persist=persistMessinhoMyKiProposal}={}){
  if(!db)return {ok:false,code:'DATABASE_UNAVAILABLE'};
  const schedule=getMessinhoEngineeringReviewSchedule(now);
- if(!schedule.due)return {ok:true,skipped:'not_due',review_date:schedule.review_date};
+ if(!schedule.due&&!force)return {ok:true,skipped:'not_due',review_date:schedule.review_date};
  const {data:control,error:controlError}=await db.from('messinho_agent_control')
   .select('mode,stop_requested').eq('id','global').maybeSingle();
  if(controlError)return {ok:false,code:'CONTROL_STATE_UNAVAILABLE'};
