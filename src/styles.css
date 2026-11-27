@@ -2951,3 +2951,15 @@ input,select,textarea{
 .myki-pagination button.active{background:linear-gradient(145deg,#e9d39b,#b58c48);border-color:#d8b76d;color:#1d222a;font-weight:800}
 .myki-pagination button:disabled{opacity:.38;cursor:not-allowed}
 @media(max-width:560px){.myki-pagination{align-items:flex-start;flex-direction:column}.myki-pagination>div{width:100%}.myki-pagination button{flex:1}}
+
+.myki-sandbox-panel{margin:18px 0;padding:16px;border:1px solid rgba(218,180,91,.22);border-radius:12px;background:rgba(8,12,18,.48)}
+.myki-sandbox-panel>p,.myki-sandbox-empty{font-size:12px;line-height:1.6;color:#aeb9c8}
+.myki-sandbox-record{display:grid;gap:8px;padding:12px;margin-top:10px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.025)}
+.myki-sandbox-record>div{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.myki-sandbox-record b{font-size:12px;color:#e8edf4}
+.myki-sandbox-record p{margin:0;color:#c4ccd7;font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+.myki-sandbox-record small{font-size:10px;color:#8f9bad;overflow-wrap:anywhere}
+.myki-sandbox-record pre{max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:10px;border-radius:7px;background:#080c12;color:#c7d0dd;font-size:10px}
+.myki-sandbox-record details summary{cursor:pointer;color:#d8b76d;font-size:11px}
+.myki-sandbox-memory{margin-top:18px}
+.myki-sandbox-memory h4{margin:0 0 8px;color:#e3c77f;font-size:12px}
