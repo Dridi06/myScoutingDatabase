@@ -12,13 +12,14 @@ const CLAIM_PATTERNS = [
   /\b(?:he|hemos|había|habíamos)\b[^.!?\n]{0,120}\b(?:guardado|guardada|creado|creada|eliminado|eliminada|actualizado|actualizada|desplegado|desplegada|reparado|reparada|corregido|corregida|instalado|instalada|ejecutado|ejecutada)\b/iu,
   /(?:قمت(?:\s+ب)?|حفظت|أنشأت|حذفت|عدلت|حدّثت|نشرت|نفذت|أصلحت|ثبتت)[^.!؟?\n]{0,120}(?:حفظ|إنشاء|حذف|تعديل|تحديث|نشر|تنفيذ|إصلاح|تثبيت)/u
 ];
-const NEGATION = /(?:\b(?:nicht|nie|kein(?:e|en|er|es)?|not|never|no|pas|jamais|nunca|tampoco|haven't|hasn't|didn't|don't|cannot|can't)\b|n['’]ai\s+pas|n['’]avons\s+pas|لم\s+|ما\s+)/iu;
+const NEGATION = /(?:\b(?:nicht|nie|nichts|kein(?:e|en|er|es)?|not|never|nothing|no|pas|jamais|nunca|nada|ning[uú]n|ninguna|tampoco|haven't|hasn't|didn't|don't|cannot|can't)\b|n['’]ai\s+pas|n['’]avons\s+pas|لم\s+|ما\s+)/iu;
 
 function hasUnverifiedMutationClaim(reply) {
   return CLAIM_PATTERNS.some(pattern => {
     const match = pattern.exec(reply);
     if (!match) return false;
-    const phrase = match[0].replace(/\bnicht\s+nur\b/iu, 'nur');
+    const sentenceStart = Math.max(reply.lastIndexOf('.', match.index), reply.lastIndexOf('!', match.index), reply.lastIndexOf('?', match.index), reply.lastIndexOf('\n', match.index)) + 1;
+    const phrase = reply.slice(Math.max(sentenceStart, match.index - 24), match.index + match[0].length).replace(/\bnicht\s+nur\b/iu, 'nur');
     return !NEGATION.test(phrase);
   });
 }
