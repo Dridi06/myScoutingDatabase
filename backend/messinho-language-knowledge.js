@@ -26,7 +26,7 @@ const LANGUAGE_MENTION_PATTERNS = [
   {id:'ar',pattern:/\b(?:modern standard arabic|modernes hocharabisch|hocharabisch|msa|fusha|classical arabic|klassisches arabisch|arabic grammar|arabische grammatik|arabic language|arabische sprache|in arabic|to arabic|arabisch|arabe standard moderne|arabe litteral|arabe classique|grammaire arabe)\b|(?:العربية الفصحى|الفصحى)/iu},
   {id:'de',pattern:/\b(?:german language|german grammar|german word order|in german|to german|auf deutsch|ins deutsche|deutsche sprache|deutsche grammatik|deutsche wortstellung|deutsch)\b/iu},
   {id:'en',pattern:/\b(?:english language|english grammar|english word order|in english|to english|auf englisch|ins englische|englische sprache|englische grammatik|englisch)\b/iu},
-  {id:'fr',pattern:/\b(?:french language|french grammar|in french|to french|en francais|langue francaise|grammaire francaise|francais|franzoesisch|franzosisch|franzoesische sprache|franzoesische grammatik|auf franzoesisch|ins franzoesische)\b/iu},
+  {id:'fr',pattern:/\b(?:french language|french grammar|in french|to french|en francais|langue francaise|grammaire francaise|francais|franzoesisch|franzosisch|franzoesische sprache|franzoesische grammatik|franzosische sprache|franzosische grammatik|auf franzoesisch|ins franzoesische|auf franzosisch|ins franzosische)\b/iu},
   {id:'es',pattern:/\b(?:spanish language|spanish grammar|in spanish|to spanish|espanol|idioma espanol|gramatica espanola|spanische sprache|spanische grammatik|auf spanisch|ins spanische|spanisch)\b/iu}
 ];
 function inferRequestedLanguageIds(message, action) {
