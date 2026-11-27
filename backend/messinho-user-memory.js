@@ -3,7 +3,7 @@ const MAX_NOTE_LENGTH=240;
 
 export function detectExplicitMessinhoRememberRequest(input){
   if(typeof input!=='string')return null;
-  const match=input.trim().match(/^(?:bitte\\s+)?(?:merke\\s+dir|merk\\s+dir|erinnere\\s+dich|speichere(?:\\s+dir)?|notiere(?:\\s+dir)?|remember|please\\s+remember)(?:\\s*[:,-]\\s*|\\s+)(?:bitte\\s+)?(.+?)\\s*[.!?]*$/iu);
+  const match=input.trim().match(/^(?:bitte\s+)?(?:merke\s+dir|merk\s+dir|erinnere\s+dich|speichere(?:\s+dir)?|notiere(?:\s+dir)?|remember|please\s+remember)(?:\s*[:,-]\s*|\s+)(?:bitte\s+)?(.+?)\s*[.!?]*$/iu);
   if(!match)return null;
   const note=match[1].trim().replace(/^["'„“”]+|["'„“”]+$/g,'').slice(0,MAX_NOTE_LENGTH).trim();
   return note.length>=2?note:null;
@@ -12,8 +12,8 @@ export function detectExplicitMessinhoRememberRequest(input){
 export function isMessinhoMemoryRecallRequest(input){
   if(typeof input!=='string')return false;
   const normalized=input.trim().toLocaleLowerCase('de-DE');
-  return /\\b(was habe ich dir (?:gesagt|genannt|aufgetragen)|welches? (?:testwort|wort|ding) habe ich dir (?:gesagt|genannt)|was hast du dir gemerkt|woran sollst du dich erinnern|was erinnerst du)\\b/u.test(normalized)
-    || /\\b(what did i ask you to remember|what do you remember about me|what did i tell you to remember)\\b/i.test(normalized);
+  return /\b(was habe ich dir (?:gesagt|genannt|aufgetragen)|welches? (?:testwort|wort|ding) habe ich dir (?:gesagt|genannt)|was hast du dir gemerkt|woran sollst du dich erinnern|was erinnerst du)\b/u.test(normalized)
+    || /\b(what did i ask you to remember|what do you remember about me|what did i tell you to remember)\b/i.test(normalized);
 }
 
 export function appendMessinhoUserNote(userPreferences,note,createdAt=new Date().toISOString()){
