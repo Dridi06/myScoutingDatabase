@@ -26,7 +26,7 @@ export async function persistMessinhoMyKiProposal({db,proposal,now=new Date(),id
   if(!record.ok) return {ok:false,code:'MYKI_TICKET_REJECTED',error:record.error};
   const {data,error}=await db.rpc('asi_create_messinho_myki_ticket',{p_ticket:record.ticket});
   if(error) {
-    if(error.code==='23505') return {ok:true,duplicate:true,code:'MYKI_DUPLICATE',ticket_id:record.ticket.ticket_id};
+    if(error.code==='23505') return {ok:true,duplicate:true,code:'MYKI_DUPLICATE'};
     return {ok:false,code:'MYKI_PERSIST_FAILED',error_code:error.code||'unknown'};
   }
   return {ok:true,duplicate:false,ticket_id:data?.ticket_id||record.ticket.ticket_id,ticket:data||record.ticket};
