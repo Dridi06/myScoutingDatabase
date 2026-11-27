@@ -5730,3 +5730,13 @@ Preserve meaning when a player description contains qualified evaluations, negat
 3. Review prompt/context size and ensure Admin/Scout output does not leak internal diagnostics.
 4. Merge to the STAGING integration branch only after CI passes and the owner approves.
 5. Deploy the exact verified commit to the dedicated STAGING Render service only after explicit approval; then verify health and authenticated Admin/Scout behavior.
+
+
+### CI verification addendum — 2026-11-27
+- First test run found one weak Spanish integration fixture: the sample was too short for the conservative six-language detector and correctly returned ambiguous. The test fixture was replaced with an established longer Spanish sample; detection thresholds and production logic were not weakened.
+- Final tested code commit: `a53ec1992301018d4954556c88f01495eff37759`.
+- GitHub Actions results for that exact code commit:
+  - MESSINHO Node tests: success — 531/531 passed, 0 failed.
+  - MESSINHO backend syntax: success.
+  - MESSINHO staging branch CI: success — regression suite, backend syntax and Vite production build completed successfully.
+- The PR remains open and unmerged. Render STAGING has not been redeployed; the current live deployment is unchanged.
