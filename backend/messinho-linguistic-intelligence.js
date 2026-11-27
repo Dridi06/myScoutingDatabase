@@ -5,6 +5,8 @@
  * Dialect, script and code-switching are represented separately so Tunisian Derja is not
  * incorrectly collapsed into Modern Standard Arabic.
  */
+import { analyzeMessinhoGrammar } from './messinho-grammar-engine.js';
+
 export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.9';
 
 export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
@@ -292,6 +294,7 @@ export function analyzeMessinhoLanguage(input, options = {}) {
   const mixed = detected.length > 1 && detected.some(item=>item.profile.id!==primary);
   const profile = MESSINHO_LANGUAGE_PROFILES.find(item=>item.id===primary);
   const signals = inferConversationSignals(text,tokens,primary);
+  const grammar_analysis = primary ? analyzeMessinhoGrammar(text,primary) : {status:'language_ambiguous',language_id:null,findings:[],source_preserved:true};
   const notes = [];
   if (!primary) notes.push('Language confidence is insufficient; preserve the original wording and ask a short clarification only if needed.');
   if (mixed) notes.push('Possible code-switching: interpret clauses in context and do not force a single-language translation.');
@@ -307,6 +310,7 @@ export function analyzeMessinhoLanguage(input, options = {}) {
     scripts:scriptOf(text),
     languages:detected.map(item=>({id:item.profile.id,name:item.profile.name,evidence_score:Number(item.score.toFixed(2))})),
     signals,
+    grammar_analysis,
     grammar_focus:profile?.capabilities||[],
     notes,
     policy:{translated:false,rewritten:false,source_text_preserved:true,dictionary_corpus_included:false,claims_fluency:false}
@@ -380,6 +384,8 @@ export function buildMessinhoLinguisticContext(message, history = []) {
       'If meaning is ambiguous and materially affects the answer, ask one concise clarification.',
       'Do not invent dictionary definitions or claim a translation was verified when it was not.',
       'Analyze each sentence or segment independently when languages are mixed; preserve original segment order and wording.',
+      'Use grammar_analysis as bounded evidence only; distinguish a detected structure from a confirmed error and never rewrite the source unless correction is requested.',
+      'Evaluate Tunisian Derja with its own grammar profile; never mark dialect forms incorrect merely because they differ from Modern Standard Arabic.',
       'Never convert standalone digits, scores, dates, ages or shirt numbers as Arabizi letters.',
       'For a translation request without a clear target language, ask one concise question before translating.'
     ]
