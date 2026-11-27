@@ -2136,7 +2136,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const interpretedMessage=correction.corrected;
     const linguisticContext=buildMessinhoLinguisticContext(message,history);
     let linguisticKnowledgeStatus='not_loaded';
-    const respond=payload=>res.json({...payload,linguistic_intelligence:{version:linguisticContext.version,status:linguisticContext.status,primary_language:linguisticContext.primary_language,primary_language_name:linguisticContext.primary_language_name,confidence:linguisticContext.confidence,languages:linguisticContext.languages,scripts:linguisticContext.scripts,signals:linguisticContext.signals},linguistic_knowledge:{status:linguisticKnowledgeStatus},input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
+    const respond=payload=>res.json({...payload,linguistic_intelligence:{version:linguisticContext.version,status:linguisticContext.status,primary_language:linguisticContext.primary_language,primary_language_name:linguisticContext.primary_language_name,confidence:linguisticContext.confidence,languages:linguisticContext.languages,scripts:linguisticContext.scripts,signals:linguisticContext.signals,action:linguisticContext.action,segments:linguisticContext.segments},linguistic_knowledge:{status:linguisticKnowledgeStatus},input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
     // Scouts may use MESSINHO for scouting and conversation, but cannot issue
     // commands that alter MESSINHO, its knowledge governance, operating mode,
     // model, sandbox, or platform-wide configuration. Enforce before routing.
