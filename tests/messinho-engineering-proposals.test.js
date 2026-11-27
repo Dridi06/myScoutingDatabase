@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {normalizeMessinhoEngineeringProposal,evaluateMessinhoEngineeringProposal,MESSINHO_ENGINEERING_PROPOSAL_POLICY} from '../backend/messinho-engineering-proposals.js';
-const diff=(path='backend/example.js')=>`diff --git a/${path} b/${path}
+const diff=(path='backend/messinho-quality-control.js')=>`diff --git a/${path} b/${path}
 index 1111111..2222222 100644
 --- a/${path}
 +++ b/${path}
@@ -78,4 +78,24 @@ index 1111111..2222222 100644
 `;
  assert.equal(normalizeMessinhoEngineeringProposal({...valid,patch:uiDiff}).ok,true);
  assert.equal(normalizeMessinhoEngineeringProposal({...valid,patch:uiDiff.replaceAll('src/asi/MyKiChat.jsx','src/admin/Root.jsx')}).ok,false);
+});
+
+test('proposal gate matches the exact isolated-workflow patch allowlist',()=>{
+ const allowed=[
+  'backend/messinho-quality-control.js','backend/messinho-input-correction.js',
+  'backend/messinho-task-policy.js','backend/messinho-development.js',
+  'backend/messinho-performance-intelligence.js','backend/messinho-research.js',
+  'backend/messinho-math.js','backend/messinho-conversation.js',
+  'backend/messinho-learning.js','backend/messinho-knowledge-learning.js',
+  'src/asi/MyKiChat.jsx','src/asi/myki-chat.css',
+  'tests/messinho-quality-control.test.js','tests/messinho-task-policy.test.js',
+  'tests/messinho-development.test.js','tests/messinho-capability-runtime.test.js',
+  'tests/responsive-layout.test.js'
+ ];
+ for(const path of allowed){
+  assert.equal(normalizeMessinhoEngineeringProposal({...valid,patch:diff(path)}).ok,true,path);
+ }
+ for(const path of ['backend/example.js','backend/server.js','tests/example.test.js','docs/notes.md','.github/workflows/other.yml','supabase/migrations/change.sql']){
+  assert.equal(normalizeMessinhoEngineeringProposal({...valid,patch:diff(path)}).ok,false,path);
+ }
 });
