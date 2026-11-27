@@ -4561,7 +4561,7 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 ## 24. Linguistic Intelligence — Segmentverständnis, Arabizi-Schutz und mehrsprachiger Wissensabruf — 2026-11-27
 
 ### Implementiert auf dem Feature-Branch
-- `backend/messinho-linguistic-intelligence.js` auf Version **1.2.0** angehoben.
+- `backend/messinho-linguistic-intelligence.js` zunächst auf Version **1.2.0**, danach im Feature-Branch auf **1.3.0** erweitert (zusätzliche Lexikonevidenz für alle sechs Sprachprofile).
 - Jede Satz-/Abschnittsgrenze erhält nun eine eigene Sprachdiagnose. Die globale Primärsprache bleibt als vorsichtiger Hinweis bestehen; gemischte Nachrichten werden nicht auf eine Sprache reduziert.
 - Arabizi-Normalisierung ersetzt Ziffern nur innerhalb lateinischer Wörter. Freistehende Zahlen, Jahreszahlen, Trikotnummern, Spielstände und Statistiken bleiben unverändert.
 - Zielsprachenerkennung erweitert: zusätzliche französische, spanische, arabische und tunesische Formulierungen für die sechs festgelegten Profile.
@@ -4569,7 +4569,7 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - Pragmatiksignale verwenden Unicode-fähige Worttoken statt ASCII-`\b`-Grenzen. Dadurch werden arabische und tunesische Verneinung, Unsicherheit, Kontrast, Höflichkeit und Frageformen besser erkannt.
 - Der bestehende Chat-Prompt erhält zusätzliche Regeln zur segmentweisen Auswertung, zur unveränderten Reihenfolge des Originaltextes und zum Schutz von Zahlen.
 - Ein widersprüchlicher Prompt-Satz, der zuvor Deutsch als Gesprächssprache vorgab, wurde entfernt. MESSINHO richtet seine Antwortsprache nun ausdrücklich nach der letzten Nutzernachricht, sofern keine Zielsprache verlangt wird.
-- `backend/messinho-language-knowledge.js` auf Version **1.1.0** erweitert: Der Wissensabruf sammelt jetzt die erkannten Sprachprofile aller Nachrichtensegmente und lädt passende aktive Wissenseinträge für jede erkannte Sprache sowie gemeinsame Einträge. Die bisherige Beschränkung auf nur eine globale Primärsprache entfällt.
+- `backend/messinho-language-knowledge.js` auf Version **1.2.0** erweitert: Der Wissensabruf sammelt jetzt die erkannten Sprachprofile aller Nachrichtensegmente und lädt passende aktive Wissenseinträge für jede erkannte Sprache sowie gemeinsame Einträge. Die bisherige Beschränkung auf nur eine globale Primärsprache entfällt.
 - Die Wissensbasis bleibt read-only für den Chat. Es gibt weiterhin keine Scout-Schreibrechte und keine automatische Aktivierung neuer Wissensstände.
 
 ### Regressionstests und CI-Nachweis
@@ -4592,7 +4592,7 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - Keine Änderung an `main`, Produktion oder PFMS/PFSS.
 
 ### Noch offen — ausdrücklich keine Vollabnahme
-1. Die vorhandene Wissensbasis umfasst weiterhin nur 30 unterschiedliche Eintragsschlüssel / 36 Versionszeilen. Systematische Morphologie, breite Grammatikabdeckung, Bedeutungsfelder, idiomatische Varianten und Fachwortschatz sind noch nicht vollständig aufgebaut.
+1. Die Wissensbasis umfasst nach beiden Curriculum-Erweiterungen 78 unterschiedliche Eintragsschlüssel / 84 Versionszeilen über sechs Sprachprofile. Systematische Morphologie, breite Grammatikabdeckung, Bedeutungsfelder, idiomatische Varianten und Fachwortschatz sind noch nicht vollständig aufgebaut.
 2. Arabizi-Schreibvarianten und tunesische regionale Varianten benötigen einen größeren, kuratierten Testkorpus.
 3. Die Sprachdetektion ist weiterhin heuristisch; sie ist kein vollständiges Sprachmodell und kein Nachweis muttersprachlicher Kompetenz.
 4. Übersetzungs- und Korrekturqualität muss pro Sprache mit unabhängigen Referenzfällen und muttersprachlicher Prüfung bewertet werden.
@@ -4603,3 +4603,33 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - Sprachwissensmodell fachlich erweitern: pro Profil strukturierte Morphologie, Satzbau, Flexion, Semantik, Pragmatik, Kollokationen, idiomatische Wendungen, Register und fußballspezifische Terminologie.
 - Danach Testkorpus und Retrieval so ausbauen, dass jede Sprache und jedes Segment gezielt mit den passenden, versionierten Wissensbausteinen versorgt wird.
 - Lizenz-/Herkunftsmetadaten, Gegenprüfung, Teststatus und Admin-Freigabe bleiben Pflicht; keine ungeprüften Inhalte werden aktiv.
+## 25. Linguistic Intelligence — Curriculum v2, Fachsprache und Retrieval-Balance — 2026-11-27
+
+### Implementiert
+- Zusätzliche Migration `supabase/migrations/20261127022739_messinho_linguistic_curriculum_v2.sql`; auf dediziertem Supabase-STAGING-Projekt erfolgreich angewendet.
+- 24 zusätzliche original erstellte, versionierte Einträge: je sechs Sprachprofile mit Grammatik/komplexen Satzstrukturen, Pragmatik/Register, Fußball- und Scoutingterminologie sowie Dialogklärung.
+- Die neue Wissensstruktur enthält Lernziele, typische Fehler, Beispielsätze, Review-Fragen und kontextabhängige Fachbegriffe. Die Einträge sind ausdrücklich Lernmaterial und keine Behauptung vollständiger muttersprachlicher Beherrschung.
+- Gesamtbestand nach Datenbankprüfung: **84 Versionszeilen, 78 eindeutige Eintragsschlüssel, sechs Sprachprofile**. Je Profil 13 eindeutige Einträge und 14 Versionszeilen.
+- `backend/messinho-language-knowledge.js` Version **1.2.0** indexiert zusätzlich typische Fehler, Lernziele, Review-Fragen und weitere Inhaltsfelder. Leichte Flexionsvarianten werden beim Abruf berücksichtigt.
+- Mehrsprachiger Abruf wurde ausbalanciert: bis zu drei Wissenseinträge pro erkannter Sprache, anschließend gemeinsame Wissenseinträge und begrenztes Auffüllen; maximal acht Einträge pro Chatantwort.
+- Der Chat-Prompt ordnet Wissenseinträge explizit dem passenden Sprachsegment zu. Wissenseinträge gelten als Daten, nicht als Anweisungen, und dürfen Systemregeln nicht überschreiben.
+- Der Datenbankzugriff bleibt streng read-only für die Laufzeit: `anon` und `authenticated` haben keinen SELECT-Zugriff; `service_role` besitzt SELECT, aber keine INSERT-, UPDATE- oder DELETE-Rechte. RLS bleibt aktiviert.
+
+### Tests und Prüfungen
+- Zusätzliche Regressionstests für alle sechs Sprachprofile, Fachwortschatz, Flexionsvarianten, Lernmetadaten und balancierten mehrsprachigen Wissensabruf.
+- Ein Zwischenlauf fand zwei echte Testlücken (Flexionsabgleich beim Fachbegriff und zusätzliche Spracherkennungsbegriffe). Die Lexikonevidenz und Tokenvarianten wurden erweitert; die Tests wurden danach erneut ausgeführt.
+- GitHub Actions auf Commit `a0ddc65c26471cef737e1854139277b593ca0721`: **459 Tests bestanden, 0 fehlgeschlagen**.
+- Backend-Syntaxprüfung erfolgreich; vollständiger STAGING-Branch-CI-Build erfolgreich; Staging-Health-Smoke erfolgreich.
+- Die isolierte Engineering-Sandbox-Prüfung war zum letzten Statusabruf noch nicht abgeschlossen; daher keine vollständige technische Endabnahme behaupten.
+
+### Deployment-Grenze
+- Render-STAGING-Service `srv-dc3chlqjnfac73acd6ig` verfolgt weiterhin den Feature-Branch; Auto-Deploy bleibt deaktiviert.
+- Die Sprachänderungen wurden **nicht** auf Render ausgerollt. Letzter bestätigter LIVE-Commit vor diesem Arbeitsblock: `ea7109db18fa155de0e014ebbabbed638b04066a`.
+- Keine Änderungen an `main` oder Produktion; keine Produktionsmigration und keine Produktionsdaten angefasst.
+
+### Noch offen
+1. Größerer, kuratierter Testkorpus mit muttersprachlicher Prüfung für Deutsch, Englisch, Französisch, Hocharabisch, tunesische Derja (Arabisch und Arabizi) und Spanisch.
+2. Breitere Morphologie, Kollokationen, idiomatische Wendungen, regionale Varianten und Registerabdeckung; die aktuelle Basis ist ein strukturierter Anfang, kein vollständiges Wörterbuch.
+3. Unabhängige Qualitätsmessung für Übersetzung, Korrektur, Code-Switching und arabisch-tunesische Dialekterkennung.
+4. Authentifizierte End-to-End-Tests im tatsächlichen MESSINHO-Chat für Admin und Scout sowie Rollen-/Tenant-Isolation.
+5. Deployment auf dediziertes STAGING erst nach Abschluss aller Prüfungen und expliziter Freigabe; Production bleibt gesperrt.
