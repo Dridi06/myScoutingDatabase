@@ -74,3 +74,18 @@ test('replan rejects unknown capability IDs and completed/denied plans',()=>{
  assert.equal(prepareMessinhoReplanPlan({denied:false,steps:['invented_tool']},[],'admin'),null);
  assert.equal(prepareMessinhoReplanPlan({denied:true,steps:['overall_score']},[],'admin'),null);
 });
+
+test('semantic replanning receives bounded execution feedback',async()=>{
+ const result=await planMessinhoGoalWithModel({goal:'Analysiere Spieler X',role:'scout',apiKey:'test',
+  previousResults:[{capability_id:'holistic_player_analysis',status:'error',error_code:'TEST'}],
+  failedCapabilities:['holistic_player_analysis'],
+  fetchImpl:async(_url,options)=>{
+   const body=JSON.parse(options.body);
+   const payload=JSON.parse(body.messages[1].content);
+   assert.deepEqual(payload.failed_capabilities,['holistic_player_analysis']);
+   assert.deepEqual(payload.previous_execution,[{capability_id:'holistic_player_analysis',status:'error',error_code:'TEST',missing_inputs:[]}]);
+   return fakeResponse({capability_ids:['source_cross_check'],confidence:0.91,needs_clarification:false,clarification_question:'',rationale:'Alternative Quellenprüfung.'});
+  }});
+ assert.equal(result.status,'planned');
+ assert.ok(result.plan.steps.includes('source_cross_check'));
+});
