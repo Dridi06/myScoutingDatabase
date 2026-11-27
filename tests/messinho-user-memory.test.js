@@ -38,7 +38,7 @@ test('authenticated chat handles remember and recall before scouting parser and 
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
   const saveRoute=source.indexOf('const rememberNote=detectExplicitMessinhoRememberRequest(interpretedMessage)');
   const scoutingRoute=source.indexOf('const dialog=parseMessinhoScoutingRequest(interpretedMessage,history)');
-  const researchRoute=source.indexOf('researchMessinhoPlayerProfile(term)');
+  const researchRoute=source.indexOf('researchMessinhoPlayerProfile(term)',saveRoute);
   assert.ok(saveRoute>0&&saveRoute<scoutingRoute,'memory commands must be resolved before scouting intent');
   assert.ok(saveRoute<researchRoute,'memory commands must be resolved before external player research');
   assert.match(source,/saveMessinhoAgentMemory\(ownerId,\{\.\.\.agentMemory,user_preferences:nextPreferences\}\)/);
