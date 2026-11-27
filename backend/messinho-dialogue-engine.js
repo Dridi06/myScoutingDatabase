@@ -10,7 +10,7 @@ const MAX_HISTORY_WINDOW = 60;
 const MAX_QUESTION_TEXT = 320;
 const SENSITIVE_CONTEXT_PATTERN = /(?:password|api[ _-]?key|access[ _-]?token|secret|private[ _-]?key|krank(?:heit|en)?|diagnos(?:e|ed)|medikament|therapie|depress(?:ion|iv)|diabetes|blutdruck|religion|muslim|islam|christ(?:entum|lich)|j[uü]disch|polit(?:ik|ische partei)|wahlentscheidung|ethn(?:ie|isch)|sexuell(?:e|er)? orientierung|homosexuell|straf(?:tat|verfahren)|vorstrafe)/iu;
 const MAX_FOCUS = 4;
-const CONNECTOR_PATTERN = /^\s*[¿¡]?\s*(?:w(?:\s+(?:kifech|chnowa|chnou|3lech|win|9addech))?|und|aber|also|dann|danach|davon|dazu|damit|darauf|deshalb|außerdem|zudem|weiter|nochmal|genau|and|but|then|also|moreover|furthermore|what about|how about|et|mais|alors|ensuite|en plus|y|pero|entonces|adem[aá]s|وبعد|وزيد|أما|شنوة|شنو|علاش|توا|باهي|إي|لا)(?:$|[\s,:;!?؟])/iu;
+const CONNECTOR_PATTERN = /^\s*[¿¡]?\s*(?:w(?:\s+(?:kifech|chnowa|chnou|3lech|win|9addech))?|und|aber|also|dann|danach|davon|dazu|damit|darauf|deshalb|außerdem|zudem|weiter|nochmal|and|but|then|also|moreover|furthermore|what about|how about|et|mais|alors|ensuite|en plus|y|pero|entonces|adem[aá]s|وبعد|وزيد|أما|شنوة|شنو|علاش|توا|باهي|إي|لا)(?:$|[\s,:;!?؟])/iu;
 const REFERENTIAL_QUESTION_PATTERN = /^\s*(?:wie|warum|wieso|weshalb|welcher|welche|welches|was ist mit|wie sieht es mit|how|why|which|what about|how about|pourquoi|comment|lequel|laquelle|y cómo|por qué|cuál|شنوة|شنو|علاش|كيف|وين|قداش|كفاش)\b[\s\S]{0,260}\b(?:er|sie|es|ihn|ihm|sein(?:e|en|er|es)?|ihr(?:e|en|er|es)?|the same|that one|this one|he|she|it|him|her|his|hers|elle|lui|ça|cela|il|elle|lo|la|él|ella|eso|هذا|هذه|هو|هي|متاعو|متاعها)\b/iu;
 const SHORT_FOLLOW_UP_PATTERN = /^\s*(?:ja|nein|ok|okay|genau|weiter|warum|wieso|weshalb|stimmt|richtig|mehr|nochmal|yes|no|more|again|continue|right|exactly|oui|non|encore|continuer|sí|no|más|vale|صحيح|إي|لا|باهي|اي|علاش|كيفاش)\s*[.!؟?]*\s*$/iu;
 const QUESTION_PATTERN = /[?؟]|\b(?:welche|welcher|welches|was|wer|wie|warum|wieso|wo|wann|which|what|who|how|why|where|when|pourquoi|comment|quoi|qui|وين|علاش|شنوة|شنو)\b/iu;
@@ -58,14 +58,16 @@ function extractOptions(question) {
 }
 function classifyQuestionKind(question, options) {
   const text = normalizeAnswer(question);
+  const hasToken = (...tokens) => tokens.some(token => (' ' + text + ' ').includes(' ' + token + ' '));
   if (/\b(?:welcher spieler|wen meinst|welchen spieler|which player|who do you mean|quel joueur|qué jugador|أي لاعب|شنوّة لاعب)\b/u.test(text)) return 'player_reference';
-  if (/\b(?:bundesliga|regionalliga|liga|league|level|spielklasse|niveau|division|championship)\b/u.test(text)) return 'target_level';
-  if (/\b(?:wo|wohin|standort|region|land|country|location|where|which country|deutschland|international|quel pays|donde|فين|وين)\b/u.test(text)) return 'location';
-  if (/\b(?:alt|alter|jahrgang|geburtsjahr|age|born|how old|quel age|que edad|عمر)\b/u.test(text)) return 'age';
-  if (/\b(?:position|positions|rolle|role|poste|posición|مركز)\b/u.test(text)) return 'position';
-  if (/\b(?:fuß|fuss|schussbein|preferred foot|left foot|right foot|pied|pie|القدم)\b/u.test(text)) return 'preferred_foot';
+  if (hasToken('bundesliga','regionalliga','liga','league','level','spielklasse','niveau','division','championship')) return 'target_level';
+  // Classify the semantic subject before the generic "A or B" choice fallback.
+  if (hasToken('wo','wohin','standort','region','land','country','location','where','deutschland','international','donde','فين','وين','tunisia','tunesien')) return 'location';
+  if (hasToken('alt','alter','jahrgang','geburtsjahr','age','born','old','años','عمر') || /\b(?:how old|quel âge|quel age|qué edad)\b/u.test(text)) return 'age';
+  if (hasToken('position','positions','rolle','role','poste','posición','مركز')) return 'position';
+  if (hasToken('fuß','fuss','schussbein','preferred','foot','left','right','pied','pie','القدم')) return 'preferred_foot';
   if (/\b(?:wie viele|anzahl|quantity|how many|combien|cuántos|قداش)\b/u.test(text)) return 'quantity';
-  if (/\b(?:verein|mannschaft|team|club|équipe|equipo|النادي|الفريق)\b/u.test(text)) return 'club_or_team';
+  if (hasToken('verein','mannschaft','team','club','équipe','equipo','النادي','الفريق')) return 'club_or_team';
   if (options.length > 1) return 'choice';
   if (/\b(?:soll ich|möchtest du|willst du|do you want|should i|tu veux|quieres|تحب)\b/u.test(text)) return 'yes_no';
   return 'generic';
@@ -112,7 +114,7 @@ export function classifyMessinhoClarificationReply(message, pendingQuestion = nu
       && ['yes_no','generic'].includes(pendingQuestion.kind)) {
     return { status: 'likely_answer', answer_shape: 'confirmation', question_kind: pendingQuestion.kind, matched_option: null, confidence: 0.94, evidence: ['bounded_confirmation_answer'] };
   }
-  if (wordCount(text) <= 12) {
+  if (wordCount(text) <= 8) {
     return { status: 'likely_answer', answer_shape: 'short_value', question_kind: pendingQuestion.kind, matched_option: null, confidence: 0.72, evidence: ['short_non_question_reply_after_pending_question'] };
   }
   return { status: 'candidate_answer', answer_shape: 'free_text', question_kind: pendingQuestion.kind, matched_option: null, confidence: 0.58, evidence: ['free_text_after_pending_question_requires_semantic_review'] };
