@@ -81,8 +81,8 @@ function inferConversationSignals(text, tokens, languageId) {
   );
   const uncertainty = has(
     'vielleicht','eigentlich','wohl','eventuell','maybe','perhaps','possibly',
-    'peut-être','quizás','quizas','talvez','ربما','يمكن','ممكن'
-  );
+    'quizá','quizás','quizas','talvez','ربما','يمكن','ممكن'
+  ) || hasPhrase('peut-être','peut etre','a lo mejor','tal vez');
   const contrast = has(
     'aber','jedoch','doch','but','however','although','mais','pourtant','pero',
     'aunque','لكن','أما','بل'
