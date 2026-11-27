@@ -50,6 +50,7 @@ import { persistMessinhoDiagnosticTicket } from './messinho-diagnostic-ticket.js
 import { buildMessinhoForecastContext } from './messinho-forecast-context.js';
 import { isMessinhoAdminOnlyCommand } from './messinho-command-access.js';
 import { buildMessinhoLinguisticContext, buildMessinhoLinguisticResponseMetadata } from './messinho-linguistic-intelligence.js';
+import { detectExplicitMessinhoRememberRequest, isMessinhoMemoryRecallRequest, appendMessinhoUserNote, getMessinhoUserNotes } from './messinho-user-memory.js';
 import { findMessinhoLanguageKnowledge, formatMessinhoLanguageKnowledge } from './messinho-language-knowledge.js';
 
 const app=express();
@@ -2295,10 +2296,25 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(profile.role==='scout'&&isMessinhoAdminOnlyCommand(interpretedMessage)){
       return respond({reply:'Diese Anweisung ist aus Sicherheitsgründen Administratoren vorbehalten. Du kannst MESSINHO weiterhin uneingeschränkt für normale Scouting-Fragen, Spieleranalysen und Recherchen nutzen.',intent:'admin_command_denied',items:[],permission:{allowed:false,required_role:'admin'}});
     }
-    const dialog=parseMessinhoScoutingRequest(interpretedMessage,history);
     const actor={user:authData.user,profile};
     const agentMemory=await loadMessinhoAgentMemory(ownerId);
     const normalized=interpretedMessage.toLocaleLowerCase('de-DE').normalize('NFKC');
+    // Explicit user memory commands must be resolved before scouting/player-name
+    // extraction and external research. Notes are private to the authenticated owner.
+    const rememberNote=detectExplicitMessinhoRememberRequest(interpretedMessage);
+    if(rememberNote){
+      const nextPreferences=appendMessinhoUserNote(agentMemory.user_preferences,rememberNote);
+      const persisted=await saveMessinhoAgentMemory(ownerId,{...agentMemory,user_preferences:nextPreferences});
+      if(!persisted)return respond({reply:'Ich habe verstanden, was ich mir merken soll, konnte es aber gerade nicht dauerhaft speichern. Ich werde nicht behaupten, dass es gespeichert wurde. Bitte versuche es erneut.',intent:'user_memory_save_failed',items:[],memory:{persisted:false}});
+      return respond({reply:'Verstanden. Ich habe mir „'+rememberNote.replace(/[<>]/g,'')+'“ für dein persönliches MESSINHO-Konto gemerkt. Du kannst mich später danach fragen.',intent:'user_memory_saved',items:[],memory:{persisted:true,note_count:getMessinhoUserNotes(nextPreferences).length}});
+    }
+    if(isMessinhoMemoryRecallRequest(interpretedMessage)){
+      const notes=getMessinhoUserNotes(agentMemory.user_preferences);
+      if(!notes.length)return respond({reply:'Ich habe für dein persönliches Konto noch keine gespeicherten Merkpunkte gefunden.',intent:'user_memory_empty',items:[],memory:{persisted:true,note_count:0}});
+      const latest=notes.slice(-5).reverse();
+      return respond({reply:'Das habe ich mir für dich gemerkt:\n'+latest.map((item,index)=>(index+1)+'. '+item.text).join('\n'),intent:'user_memory_recalled',items:[],memory:{persisted:true,note_count:notes.length}});
+    }
+    const dialog=parseMessinhoScoutingRequest(interpretedMessage,history);
     if(profile.role==='admin'&&profile.approved&&profile.approval_status==='approved'&&/\b(woran arbeitest du|was arbeitest du gerade|was machst du gerade|aktueller arbeitsstand|was ist dein status|arbeitest du gerade)\b/i.test(normalized)){
       const [{data:control},{data:task},{data:review}]=await Promise.all([
         db.from('messinho_agent_control').select('mode,stop_requested,current_task,status_message,updated_at').eq('id','global').maybeSingle(),
