@@ -97,7 +97,8 @@ export function normalizeMessinhoArabizi(input) {
 }
 
 function tokenLanguageHint(token) {
-  const ranked=Object.keys(WORDS).map(id=>({id,score:scoreProfile(id,[token],token)}))
+  const normalized=String(token).toLocaleLowerCase();
+  const ranked=Object.keys(WORDS).map(id=>({id,score:scoreProfile(id,[normalized],normalized)}))
     .sort((a,b)=>b.score-a.score);
   const best=ranked[0], second=ranked[1];
   if(!best||best.score<=1||best.score-(second?.score||0)<0.5)return null;
