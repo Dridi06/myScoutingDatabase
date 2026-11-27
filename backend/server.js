@@ -28,6 +28,7 @@ import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './me
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
 import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 import { planMessinhoAutonomously } from './messinho-autonomy.js';
+import { planMessinhoGoalWithModel } from './messinho-goal-planner.js';
 import { classifyMessinhoProviderFailure, resolveMessinhoLiveQuestion, buildMessinhoKnowledgeApplicationFollowUp, buildMessinhoVo2maxApplicationQuery, isMessinhoVo2maxApplicationDataReply } from './messinho-conversation.js';
 import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
 import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
@@ -2545,7 +2546,13 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       if(error)return res.status(500).json({error:'Deine Kandidaten konnten nicht geladen werden.'});
       return respond({reply:(data||[]).length?'Ich habe deine zuletzt recherchierten Kandidaten geladen.':'In deinem persönlichen Kandidatenbereich sind noch keine Einträge vorhanden.',intent:'candidates',items:data||[]});
     }
-    const autonomousDecision=planMessinhoAutonomously(interpretedMessage,{role:profile.role,context:agentMemory});
+    const autonomousDecision=await planMessinhoGoalWithModel({goal:interpretedMessage,role:profile.role,context:agentMemory,
+      apiKey:process.env.OPENAI_API_KEY,model:process.env.OPENAI_MODEL||'gpt-4.1-mini'});
+    if(autonomousDecision.status==='needs_clarification'){
+      return respond({reply:autonomousDecision.clarification_question||'Welches konkrete Ziel soll ich bearbeiten?',
+        intent:'agent_plan_clarification',items:[],pending:true,
+        agent_planning:{source:autonomousDecision.planning_source,confidence:autonomousDecision.confidence||null}});
+    }
     const automaticPlan=autonomousDecision.plan;
     if(automaticPlan){
       if(automaticPlan.denied)return respond({reply:formatMessinhoCapabilityResults({status:'denied'}),intent:'capability_access_denied',items:[]});
@@ -2604,7 +2611,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       let reply=formatMessinhoCapabilityResults(run,player.name||player.player_name||null);
       const forecastDataStatus=forecastContext._messinho_forecast_data_status;
       if(forecastRelevant&&forecastDataStatus&&!forecastDataStatus.performance_points&&!forecastDataStatus.market_value_points&&!forecastDataStatus.transfer_signals&&!forecastDataStatus.verified_outcomes)reply+='\n\nFür diesen Spieler liegen derzeit keine ausreichend verifizierten Verlaufs- oder Vertragsdaten vor. Ich werde deshalb keine belastbare Zukunftsprognose erfinden.';
-      return respond({reply,intent:'automatic_capability_orchestration',items:players.map(p=>({id:p.player_id||p.id,name:p.name||p.player_name,club:p.club||p.current_club,positions:p.positions||[]})),orchestration:{label:run.label,status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,provider_independent:true,model_weights_changed:false,agent_core_version:run.agent_core_version,agent_phase:agentCycle.state.phase,validation:agentCycle.validation,observation:agentCycle.observation,goal_contract:agentCycle.contract,next_action:run.next_action,replan_recommended:run.replan_recommended,myki_dispatch:run.myki_dispatch||null,forecast_data_status:profile.role==='admin'?forecastDataStatus:undefined,prediction_records_saved:predictionPersistence.stored},memory:{persisted:memoryPersisted,active_player_ids:nextMemory.active_player_ids,preferences:nextMemory.user_preferences},task_checkpoint:taskRecord?{...taskRecord,...(finalizedTask||{}),pending_capabilities:run.deferred_capabilities||[]}:null,capability_results:profile.role==='admin'?run.results:undefined});
+      return respond({reply,intent:'automatic_capability_orchestration',items:players.map(p=>({id:p.player_id||p.id,name:p.name||p.player_name,club:p.club||p.current_club,positions:p.positions||[]})),orchestration:{label:run.label,status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,provider_independent:true,model_weights_changed:false,planning_source:autonomousDecision.planning_source||'deterministic_fallback',planner_status:autonomousDecision.planner_status||autonomousDecision.status||null,planner_confidence:autonomousDecision.confidence||null,agent_core_version:run.agent_core_version,agent_phase:agentCycle.state.phase,validation:agentCycle.validation,observation:agentCycle.observation,goal_contract:agentCycle.contract,next_action:run.next_action,replan_recommended:run.replan_recommended,myki_dispatch:run.myki_dispatch||null,forecast_data_status:profile.role==='admin'?forecastDataStatus:undefined,prediction_records_saved:predictionPersistence.stored},memory:{persisted:memoryPersisted,active_player_ids:nextMemory.active_player_ids,preferences:nextMemory.user_preferences},task_checkpoint:taskRecord?{...taskRecord,...(finalizedTask||{}),pending_capabilities:run.deferred_capabilities||[]}:null,capability_results:profile.role==='admin'?run.results:undefined});
     }
     const searchTerm=extractMessinhoPlayerSearchTerm(interpretedMessage);
     if(searchTerm){
