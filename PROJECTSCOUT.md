@@ -4179,7 +4179,7 @@ Dieser Abschnitt ersetzt für die autonome Engineering-Planung die ältere Angab
 
 ### 15.1 Prüfstand nach Commit 0559ad94
 
-- 409/409 automatisierte Node-Tests bestanden.
+- 422/422 automatisierte Node-Tests bestanden.
 - Backend-JavaScript-Syntaxprüfung bestanden.
 - Staging-Branch-CI bestanden.
 - Staging-Health-Smoke-Test bestanden.
@@ -4309,3 +4309,16 @@ Hocharabisch und tunesische Derja sind getrennte Sprachprofile. MESSINHO soll zu
 
 ### Änderungsprotokoll
 | 2026-11-27 | MESSINHO soll normale Konversation mit Grammatik- und Wortschatzverständnis in Deutsch, Englisch, Französisch, Arabisch, Tunesisch und Spanisch unterstützen. | In Feature-Branch implementiert; Verifikation offen | Hocharabisch und tunesische Derja getrennt; Derja arabische Schrift und Arabizi; keine Duden-Vollkopie; bestehende Wissensgraph-/Rechte-Governance bleibt maßgeblich. |
+
+
+## 17. Aktueller STAGING-Release und Freigabestatus — 2026-11-27
+
+- Render-STAGING-Service srv-dc3chlqjnfac73acd6ig ist mit Commit a1e272da3a32a2cea63cf661b7af1624d9b161d6 live; Deployment dep-dc4drcc9v7es73el86eg meldet status live.
+- Runtime-Logs bestätigen API-Start, Supabase Data API HTTP 200 sowie konfigurierte Tavily- und OpenAI-Verbindung.
+- 422/422 Node-Tests bestanden; Backend-Syntax, Staging-Branch-CI, Health-Smoke und Vite-Produktionsbuild bestanden.
+- Supabase-STAGING-Migration 20261127012816_messinho_engineering_work_windows ist angewendet; review_slot und Composite-Unique-Index sind vorhanden.
+- messinho_agent_control bleibt absichtlich mode=paused und stop_requested=true. Es wurde kein autonomer Lauf gestartet.
+- MESSINHO_SANDBOX_GITHUB_TOKEN und die explizite Sandbox-Freigabe sind laut STAGING-Audit noch nicht konfiguriert. Der Push-Workflow besitzt keinen Kandidaten-Payload; daher liegt noch kein echter Compiler-/Kandidatenlauf mit Ergebnis-Callback vor.
+- STAGING enthält derzeit 0 Spieler, 0 External-Evidence-Datensätze, 0 Vertrags-Snapshots, 0 Prognose-Datensätze und 0 verifizierte Prognose-Outcomes. Die Prognosepipeline ist integriert, aber echte individuelle Prognosen benötigen zuerst Spielerdaten und verifizierte Historien.
+- Production wurde nicht verändert. Kein automatisches Merge, keine automatische Integration und kein Production-Deployment.
+- Nächster Freigabeschritt: fein granularen GitHub-Token direkt in Render-STAGING als Secret MESSINHO_SANDBOX_GITHUB_TOKEN hinterlegen (nur Repository Dridi06/myScoutingDatabase; Actions write, Contents read), MESSINHO_SANDBOX_ENABLED=true und MESSINHO_STAGING_RENDER_SERVICE_ID=srv-dc3chlqjnfac73acd6ig setzen. Danach echten Kandidatenlauf auslösen, Callback und Audit prüfen und erst anschließend den Admin-Modus auf Weiterentwickeln setzen.
