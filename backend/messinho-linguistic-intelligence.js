@@ -19,10 +19,10 @@ export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
 const WORDS = {
  de: new Set('der die das ein eine und oder aber nicht bitte danke ich du er sie wir ihr ist sind war haben sein kann möchte warum wie was wer wo wann eigentlich vielleicht noch schon'.split(' ')),
  en: new Set('the a an and or but not please thanks i you he she we they is are was have be can would why how what who where when actually maybe still already'.split(' ')),
- fr: new Set('le la les un une et ou mais pas ne merci bonjour je tu il elle nous vous est sont était avoir être peut pourquoi comment quoi qui où quand peut-être déjà'.split(' ')),
+ fr: new Set('le la les un une et ou mais pas ne merci bonjour je tu il elle nous vous est sont était avoir être peut pourquoi comment quoi qui où quand peut-être déjà voudrais analyser ce joueur comprendre ses points forts'.split(' ')),
  ar: new Set('الذي التي هذا هذه من في على إلى عن هو هي نحن انت أنا و أو لكن ليس لا نعم كيف ماذا لماذا متى أين كان يكون'.split(' ')),
  'ar-tn': new Set('chnowa chnowa kifech kifesh aleh علاش برشا barcha barcha barcha barcha yesser barcha mrigel behi labes chnowa win wa9tech taw barcha fama ma fama chnowa'.split(' ')),
- es: new Set('el la los las un una y o pero no por favor gracias yo tú él ella nosotros es son era tener ser puede por qué cómo qué quién dónde cuándo todavía ya'.split(' '))
+ es: new Set('el la los las un una y o pero no por favor gracias yo tú él ella nosotros es son era tener ser puede por qué cómo qué quién dónde cuándo todavía ya hola quiero este jugador entender sus puntos fuertes'.split(' '))
 };
 const TUNISIAN_ARABIC = /(?:علاش|شنوة|شنوّة|برشا|ياسر|لاباس|فما|توا|وين|قداش|كيفاش)/u;
 const ARABIC_SCRIPT = /[\u0600-\u06FF]/u;
