@@ -5770,3 +5770,18 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Per-language read-only breakdown: 14 entries per profile for `de`, `en`, `fr`, `es`, `ar` (MSA), and `ar-tn` (Tunisian Derja); all 14 entries in each profile are active and each profile has all four entry types (`grammar`, `lexicon`, `pragmatics`, `conversation`).
 - Conclusion: no missing-table defect has been established. No migration or database modification was necessary or performed. The prior warning must not be treated as a production/runtime incident.
 - Deployment remains live. Authenticated Admin/Scout browser-level conversation and retrieval verification is still outstanding. Production/LIVE remains untouched.
+
+
+## 2026-11-27 — MESSINHO Linguistic Intelligence 1.4.0: Cross-language semantic frames
+- Implemented in `backend/messinho-linguistic-intelligence.js` and merged via PR #57 from `feature/messinho-semantic-frames` into `feature/messinho-unified-ai-integration`.
+- Version advanced from 1.3.9 to 1.4.0.
+- Added bounded, explainable cross-language concept evidence for player readiness, performance quality, development, capability and availability across German, English, French, Spanish, Modern Standard Arabic and Tunisian Derja.
+- Added segment-level evidence frames that preserve the original segment text and language boundaries. Negation/qualification, uncertainty and contrast remain separate evidence dimensions; no absolute player verdict is generated from a single cue.
+- Exposed `semantic_frames` and `semantic_summary` through the stable linguistic response metadata so downstream chat orchestration can consume the evidence.
+- Added explicit limitations: lexical/discourse evidence only; not a full semantic parser, not reference resolution, and not a reliable full clause-level negation-scope parser.
+- Regression coverage added for all six language profiles, qualified evaluation and English/French code-switching.
+- CI on PR #57: 536/536 Node tests passed; backend syntax and production-build workflow passed; dedicated backend-syntax check passed.
+- No database migration or write was needed; the existing 84 language knowledge rows remain unchanged.
+- PR #57 merged by squash as commit `22842c9cafd47dbd1f7492e2d98f57e87ba7b1dc` into the STAGING integration branch.
+- Render auto-deploy remains disabled. This change is merged to the STAGING source branch but has **not** yet been manually deployed to the STAGING service. Production/LIVE remains untouched.
+- Next: deploy this exact integration-branch commit to Render STAGING after deployment authorization, then run authenticated Admin/Scout end-to-end checks for all six profiles, code-switching, negation scope, follow-up clarification, and response-language continuity. Continue by improving clause-level scope and reference resolution only after the current behavior is measured.
