@@ -4160,3 +4160,19 @@ Dieser Abschnitt ersetzt für die autonome Engineering-Planung die ältere Angab
 - Die Migrationshistorie enthält 20261127011122 für messinho_agent_control. Die entsprechende SQL-Datei wird als Source of Truth im Repository abgelegt. Die frühere asi_core_schema-Migration bleibt ein offener Schema-Drift-Punkt.
 - Der aktuelle Zeitplan erlaubt höchstens zwei Reviews pro Tag. Ein fortlaufender mehrstufiger Entwicklungsprozess über das ganze Arbeitszeitfenster bleibt offen und wird nicht als umgesetzt ausgegeben.
 - Production bleibt unangetastet. Der Fachwissensimport (Biologie usw.) folgt erst nach erfolgreicher Agenten- und Prognosefreigabe.
+
+
+
+## 15. Verbindliche Rollen- und Befehlsgrenze für MESSINHO — 2026-11-27
+
+**Grundsatz:** Scouts dürfen MESSINHO als Scouting-Assistent nutzen, aber keine system- oder MESSINHO-verändernden Verwaltungsbefehle ausführen. Diese Rechte sind ausschließlich freigeschalteten Administratoren vorbehalten.
+
+**Scout darf:** Spieler suchen, recherchieren, vergleichen und analysieren; normale Fragen zu Fußball, Taktik, Training und Scouting stellen; freigegebene Wissenseinträge verwenden; eigene Scout-Aufgaben ausführen.
+
+**Ausschließlich Admin darf:** MESSINHO pausieren, stoppen, starten oder den Betriebs-/Entwicklungsmodus ändern; autonome Entwicklung und Programmier-Sandbox steuern; Code/Systemkonfiguration verändern; Kernwissen importieren, freigeben oder aktivieren; Modellversionen, Modellgewichte, Scoring-Grundlagen, Kernregeln oder Agentenverhalten verändern; Rollen, Berechtigungen und administrative MESSINHO-Funktionen verwalten.
+
+**Technische Durchsetzung:** Die Trennung muss serverseitig erfolgen; UI-Ausblendung allein reicht nicht. Der Chat-Endpunkt prüft Scout-Nachrichten vor dem Routing auf administrative Änderungsabsichten und weist solche Befehle verständlich ab. Direkte Admin-API-Routen benötigen weiterhin eigene serverseitige Admin-Prüfungen. Neue Funktionen sind standardmäßig Admin-only, bis ihre Scout-Freigabe ausdrücklich geprüft wurde. Normale Scout-Fragen und Spieleranalysen bleiben verfügbar.
+
+**Status:** Zentrale Befehlsprüfung im Feature-Branch implementiert; Tests hinzugefügt. Vollständiger End-to-End-Audit aller schreibenden API-Endpunkte/RPCs, CI-Ausführung und STAGING-Browserprüfung sind noch offen. Keine Production-Änderung.
+
+| 2026-11-27 | Scouts dürfen keine wichtigen Befehle geben, die MESSINHO oder das System verändern. | Accepted; server-side guard implemented in feature branch; verification pending | Scout-Chat bleibt für normale Scouting-Aufgaben offen. Systemsteuerung, Kernwissen, Lern-/Modelländerungen, Sandbox und administrative Befehle sind Admin-only. Vollständigen Schreib-Endpunkt-Audit vor STAGING-Freigabe durchführen. |
