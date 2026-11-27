@@ -4980,3 +4980,35 @@ Separate the language used to write a request from the language whose grammar, v
 - Next action: full STAGING build, verify the new routing tests, then deploy the exact branch commit if all checks pass.
 - Production remains untouched.
 
+
+
+### Successful STAGING verification — requested-language routing — 2026-11-27
+- Render STAGING deployment: dep-dc4nsatg1s2s73f5t8gg.
+- Deployed commit: 623a72321fe29fbf711816c1b51c0e5a4ef9d768.
+- Render confirmed status live at 2026-11-27T12:57:55.940086Z.
+- Full automated Node suite: 486 tests, 486 passed, 0 failed, 0 skipped.
+- All four new regressions passed: English request for Derja grammar, MSA/Derja comparison, explicit French translation target, and nationality false-positive guard.
+- Backend syntax checks completed; Vite production build succeeded in 2.44 seconds.
+- Runtime startup log confirmed myScoutingDatabase API listening on port 10000.
+- No Supabase schema/data migration or write operation was required. Existing knowledge rows remain unchanged and read-only for chat/scout roles.
+- Production branch, Render production service and production Supabase remain untouched.
+- Authenticated browser conversation tests are still pending. Automated route and retrieval tests prove the code path with test fixtures, not the full UI experience with real user sessions.
+
+### Status after requested-language routing
+| Capability | Status |
+|---|---|
+| Detect input language | Implemented for six profiles |
+| Detect vocalized Arabic and Derja | Implemented; regression-tested |
+| Retrieve Arabic knowledge with vocalized input | Implemented; regression-tested |
+| Retrieve subject-language knowledge when prompt is in another language | Implemented for explicit language mentions and translation targets |
+| Compare MSA and Tunisian Derja from English prompt | Regression-tested |
+| Prevent nationality-only false positives | Regression-tested |
+| Full Node test suite | 486/486 passed |
+| STAGING deployment | Live on dep-dc4nsatg1s2s73f5t8gg |
+| Production | Untouched |
+
+### Next step
+- Authenticated STAGING chat validation for Admin and Scout using German prompts about Derja, MSA-vs-Derja comparisons, translation requests, Arabizi and mixed-language sentences.
+- Then improve phrase-level intent matching and dialect-aware retrieval ranking using the existing approved knowledge corpus, without adding unreviewed external data or changing stored knowledge.
+- Keep language identification, subject-language routing, knowledge retrieval and actual translation quality as separate verifiable capabilities.
+
