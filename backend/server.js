@@ -43,6 +43,7 @@ import { normalizeMessinhoEngineeringProposal } from './messinho-engineering-pro
 import { dispatchMessinhoSandboxJob, isMessinhoSandboxStagingAllowed } from './messinho-sandbox-dispatch.js';
 import { persistMessinhoSandboxResult, normalizeMessinhoSandboxResult, hashMessinhoEngineeringPatch } from './messinho-engineering-memory.js';
 import { loadMessinhoApprovedEngineeringMemory } from './messinho-engineering-memory-context.js';
+import { verifyMessinhoGitHubActionsIdentity } from './messinho-github-oidc.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -1511,12 +1512,17 @@ app.delete('/api/admin/myki/tickets/:ticketId',myKiTicketLimiter,async(req,res)=
 });
 app.post('/api/internal/messinho/engineering-results',async(req,res)=>{
   try{
-    const expected=String(process.env.MESSINHO_SANDBOX_CALLBACK_SECRET||'');
-    const supplied=String(req.headers['x-messinho-sandbox-secret']||'');
-    if(!expected||supplied.length!==expected.length||!timingSafeEqual(Buffer.from(supplied),Buffer.from(expected)))return res.status(403).json({error:'Sandbox-Ergebnis nicht autorisiert.'});
+    if(!isMessinhoSandboxStagingAllowed(process.env))return res.status(403).json({error:'Sandbox-Ergebnisse dürfen nur auf STAGING entgegengenommen werden.'});
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const normalized=normalizeMessinhoSandboxResult(req.body||{});
     if(!normalized.ok)return res.status(400).json({error:'Sandbox-Ergebnis ist ungültig.'});
+    const authorization=String(req.headers.authorization||'');
+    const token=authorization.startsWith('Bearer ')?authorization.slice(7):'';
+    const identity=await verifyMessinhoGitHubActionsIdentity({
+      token,sourceSha:normalized.value.source_sha,runId:normalized.value.github_run_id,
+      runAttempt:normalized.value.github_run_attempt
+    });
+    if(!identity.ok)return res.status(403).json({error:'Sandbox-Ergebnis stammt nicht aus dem freigegebenen GitHub-Prüflauf.'});
     const saved=await persistMessinhoSandboxResult({db,result:normalized.value});
     if(!saved.ok)return res.status(500).json({error:'Sandbox-Ergebnis konnte nicht revisionssicher gespeichert werden.',code:saved.code});
     return res.json({ok:true,...saved.result});
