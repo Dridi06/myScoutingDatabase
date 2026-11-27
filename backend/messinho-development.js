@@ -78,6 +78,126 @@ export function auditMessinhoPredictions(pairs = []) {
   return {status:'completed',verified_pairs:valid.length,metrics:{mae:round(mean(residuals.map(Math.abs))),bias:round(mean(residuals)),rmse:round(Math.sqrt(mean(residuals.map(x=>x*x)))),within_5_points:round(residuals.filter(x=>Math.abs(x)<=5).length/valid.length*100,1),within_10_points:round(residuals.filter(x=>Math.abs(x)<=10).length/valid.length*100,1)},calibration,largest_errors:errors.slice().sort((a,b)=>Math.abs(b.error)-Math.abs(a.error)).slice(0,10),method:'Nur administrativ verifizierte Ergebnisse; Prognosen und Outcomes müssen dieselbe Messgröße verwenden.'};
 }
 
+
+const dateMs = value => {
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+const wilsonInterval = (successes, total, z = 1.96) => {
+  if (!total) return null;
+  const p = successes / total, z2 = z * z, denominator = 1 + z2 / total;
+  const center = (p + z2 / (2 * total)) / denominator;
+  const margin = z * Math.sqrt((p * (1 - p) / total) + z2 / (4 * total * total)) / denominator;
+  return { low: round(clamp((center - margin) * 100, 0, 100), 1), high: round(clamp((center + margin) * 100, 0, 100), 1) };
+};
+
+/**
+ * Evidence-gated longitudinal projection. It is a trend extrapolation, not a
+ * calibrated probability and never imputes missing observations.
+ */
+export function forecastMessinhoPlayerDevelopment(history = [], { horizonMonths = 12, minimumPoints = 3 } = {}) {
+  const horizon = Number.isFinite(Number(horizonMonths)) ? Math.max(1, Math.min(36, Number(horizonMonths))) : 12;
+  const points = (Array.isArray(history) ? history : []).flatMap(row => {
+    if (row?.verification_status !== 'verified') return [];
+    const time = dateMs(row.observed_at || row.recorded_at || row.date || row.season_date);
+    const value = finite(row.overall_score ?? row.score ?? row.observed_value);
+    if (time === null || value === null || value < 0 || value > 100) return [];
+    return [{ time, value, player_id: row.player_id ?? null }];
+  }).sort((a,b)=>a.time-b.time);
+  const unique = points.filter((point,index)=>index===0||point.time!==points[index-1].time);
+  if (unique.length < Math.max(3, minimumPoints)) return {
+    status:'insufficient_data', forecast:null, verified_points:unique.length,
+    required_points:Math.max(3, minimumPoints), missing_inputs:['mindestens drei administrativ verifizierte, datierte Messpunkte']
+  };
+  const spanDays = (unique.at(-1).time - unique[0].time) / 86400000;
+  if (spanDays < 180) return {
+    status:'insufficient_data', forecast:null, verified_points:unique.length,
+    span_days:round(spanDays,1), missing_inputs:['mindestens sechs Monate vergleichbare Verlaufshistorie']
+  };
+  const ids = [...new Set(unique.map(x=>x.player_id).filter(Boolean))];
+  if (ids.length > 1) return { status:'invalid_data', forecast:null, reason:'mixed_player_history' };
+  const origin = unique[0].time, xs = unique.map(x=>(x.time-origin)/(86400000*30.4375)), ys = unique.map(x=>x.value);
+  const meanX=mean(xs),meanY=mean(ys);
+  const denominator=xs.reduce((sum,x)=>sum+(x-meanX)**2,0);
+  if (!denominator) return { status:'insufficient_data', forecast:null, reason:'no_time_variation' };
+  const slope=xs.reduce((sum,x,i)=>sum+(x-meanX)*(ys[i]-meanY),0)/denominator;
+  const intercept=meanY-slope*meanX;
+  const residuals=ys.map((y,i)=>y-(intercept+slope*xs[i]));
+  const residualStd=Math.sqrt(mean(residuals.map(x=>x*x)));
+  const projected=clamp(intercept+slope*(xs.at(-1)+horizon),0,100);
+  const range=clamp(1.96*residualStd*Math.sqrt(1+1/unique.length),2,25);
+  const coverage=unique.length>=8&&spanDays>=365? 'high' : unique.length>=5&&spanDays>=270? 'moderate':'low';
+  return {
+    status:'completed', method:'verified_linear_trend_extrapolation', horizon_months:horizon,
+    verified_points:unique.length, span_days:round(spanDays,1),
+    observed_start:round(ys[0],1), observed_latest:round(ys.at(-1),1),
+    observed_change:round(ys.at(-1)-ys[0],1), trend_points_per_month:round(slope,3),
+    forecast:{projected_score:round(projected,1),range_low:round(clamp(projected-range,0,100),1),range_high:round(clamp(projected+range,0,100),1)},
+    confidence:coverage, confidence_is_calibrated:false,
+    limitations:['Trendfortschreibung ist keine kausal begründete Spielerentwicklung.','Keine Verletzungs-, Einsatzzeit- oder Vereinswechselwirkung ohne passende geprüfte Daten.','Der Wertebereich ist eine indikative Streuung, kein statistisch kalibriertes Prognoseintervall.']
+  };
+}
+
+/** Empirical cohort rate only; never label an uncalibrated rate as an individual probability. */
+export function forecastMessinhoTransferProbability(cases = [], context = {}, { minimumCases = 30 } = {}) {
+  const position=String(context.position_group||'').toLowerCase();
+  const level=String(context.target_level||'').toLowerCase();
+  if(!position||!level)return {status:'insufficient_data',estimate:null,missing_inputs:['position_group','target_level']};
+  const cohort=(Array.isArray(cases)?cases:[]).filter(row=>
+    row?.verification_status==='verified'&&typeof row.transferred==='boolean'&&
+    String(row.position_group||'').toLowerCase()===position&&
+    String(row.target_level||'').toLowerCase()===level
+  );
+  if(cohort.length<minimumCases)return {status:'insufficient_data',estimate:null,verified_comparable_cases:cohort.length,required_cases:minimumCases};
+  const successes=cohort.filter(row=>row.transferred).length;
+  return {
+    status:'completed',estimate:{historical_transfer_rate_pct:round((successes+1)/(cohort.length+2)*100,1),interval_95:wilsonInterval(successes,cohort.length)},
+    verified_comparable_cases:cohort.length,successful_transfers:successes,
+    interpretation:'Historische Basisrate vergleichbarer Fälle, keine individuelle Wechselwahrscheinlichkeit.',
+    limitations:['Keine Aussage über die konkrete Wechselabsicht des Spielers.','Vertragslage, konkrete Vereinsnachfrage und aktuelle Berichte müssen separat belegt werden.']
+  };
+}
+
+/** Empirical success/failure cohort forecast, requiring a sufficiently large verified peer group. */
+export function forecastMessinhoPlayerOutcome(cases = [], context = {}, { minimumCases = 30 } = {}) {
+  const position=String(context.position_group||'').toLowerCase();
+  const age=finite(context.age), score=finite(context.current_score);
+  if(!position||age===null||score===null)return {status:'insufficient_data',estimate:null,missing_inputs:['position_group','age','current_score']};
+  const cohort=(Array.isArray(cases)?cases:[]).filter(row=>{
+    if(row?.verification_status!=='verified'||typeof row.success!=='boolean')return false;
+    const rowAge=finite(row.age),rowScore=finite(row.current_score);
+    return String(row.position_group||'').toLowerCase()===position&&rowAge!==null&&Math.abs(rowAge-age)<=3&&rowScore!==null&&Math.abs(rowScore-score)<=10;
+  });
+  if(cohort.length<minimumCases)return {status:'insufficient_data',estimate:null,verified_comparable_cases:cohort.length,required_cases:minimumCases};
+  const successes=cohort.filter(row=>row.success).length;
+  return {
+    status:'completed',estimate:{historical_success_rate_pct:round((successes+1)/(cohort.length+2)*100,1),interval_95:wilsonInterval(successes,cohort.length)},
+    verified_comparable_cases:cohort.length,successful_outcomes:successes,failed_outcomes:cohort.length-successes,
+    interpretation:'Historische Erfolgs-/Misserfolgsrate einer vergleichbaren, administrativ verifizierten Spielergruppe; keine individuelle Erfolgsgarantie.',
+    limitations:['Erfolg muss im Datensatz einheitlich und vorab definiert sein.','Kohortenrate ist nicht kausal und nicht automatisch auf einzelne Spieler übertragbar.']
+  };
+}
+
+/** Historical value trend only; distinct from the externally researched current market estimate. */
+export function forecastMessinhoMarketValue(history = [], { horizonMonths = 12, minimumPoints = 3 } = {}) {
+  const points=(Array.isArray(history)?history:[]).flatMap(row=>{
+    if(row?.verification_status!=='verified'||String(row.currency||'EUR').toUpperCase()!=='EUR')return[];
+    const time=dateMs(row.observed_at||row.date),value=finite(row.value_eur);
+    return time!==null&&value!==null&&value>0&&value<=500000000?[{time,value}]:[];
+  }).sort((a,b)=>a.time-b.time);
+  const unique=points.filter((point,index)=>index===0||point.time!==points[index-1].time);
+  const span=unique.length?(unique.at(-1).time-unique[0].time)/86400000:0;
+  if(unique.length<Math.max(3,minimumPoints)||span<180)return {status:'insufficient_data',forecast:null,verified_points:unique.length,required_points:Math.max(3,minimumPoints),missing_inputs:['mindestens drei verifizierte EUR-Marktwertmessungen über sechs Monate']};
+  const origin=unique[0].time,xs=unique.map(x=>(x.time-origin)/(86400000*30.4375)),ys=unique.map(x=>x.value);
+  const mx=mean(xs),my=mean(ys),den=xs.reduce((s,x)=>s+(x-mx)**2,0);
+  if(!den)return {status:'insufficient_data',forecast:null,reason:'no_time_variation'};
+  const slope=xs.reduce((s,x,i)=>s+(x-mx)*(ys[i]-my),0)/den,intercept=my-slope*mx;
+  const projected=Math.max(0,intercept+slope*(xs.at(-1)+Math.max(1,Math.min(36,Number(horizonMonths)||12))));
+  const residual=ys.map((y,i)=>y-(intercept+slope*xs[i]));
+  const spread=Math.sqrt(mean(residual.map(x=>x*x)));
+  return {status:'completed',method:'verified_historical_value_trend',horizon_months:Math.max(1,Math.min(36,Number(horizonMonths)||12)),verified_points:unique.length,forecast:{projected_value_eur:Math.round(projected),indicative_low_eur:Math.round(Math.max(0,projected-1.96*spread)),indicative_high_eur:Math.round(projected+1.96*spread)},confidence:unique.length>=8&&span>=365?'moderate':'low',confidence_is_calibrated:false,limitations:['Historische Marktwertfortschreibung, keine offizielle Marktwertangabe.','Transfergerüchte, Vertragslaufzeit, Ligawechsel und Marktbedingungen sind nicht automatisch berücksichtigt.','Bandbreite ist indikativ und nicht statistisch kalibriert.']};
+}
+
 function correlation(xs,ys) {
   const mx=mean(xs),my=mean(ys);
   const numerator=xs.reduce((sum,x,i)=>sum+(x-mx)*(ys[i]-my),0);
