@@ -5,7 +5,7 @@
  * Dialect, script and code-switching are represented separately so Tunisian Derja is not
  * incorrectly collapsed into Modern Standard Arabic.
  */
-export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.3';
+export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.4';
 
 export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
   { id:'de', name:'Deutsch', family:'Germanic', scripts:['Latin'], variants:['de-DE','de-AT','de-CH'], capabilities:['grammar','cases','articles','word_order','compound_words','spelling','semantics','pragmatics'] },
@@ -15,6 +15,20 @@ export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
   { id:'ar-tn', name:'تونسي / Derja', family:'Arabic dialect', scripts:['Arabic','Latin/Arabizi'], variants:['Tunisian Arabic'], capabilities:['dialect_lexicon','arabizi','code_switching','context','pragmatics'] },
   { id:'es', name:'Español', family:'Romance', scripts:['Latin'], variants:['es-ES','es-MX','es-419'], capabilities:['grammar','gender','agreement','conjugation','word_order','spelling','semantics','pragmatics'] }
 ]);
+
+/**
+ * Arabic normalization used only for detection/scoring.
+ * The original user text is never replaced or returned in normalized form.
+ */
+export function normalizeMessinhoArabicForAnalysis(input) {
+  return String(input ?? '').normalize('NFKC')
+    .replace(/[\u064B-\u065F\u0670\u0640]/gu, '')
+    .replace(/[أإآٱ]/gu, 'ا')
+    .replace(/ى/gu, 'ي')
+    .replace(/ؤ/gu, 'و')
+    .replace(/ئ/gu, 'ي');
+}
+const normalizeArabicToken = value => normalizeMessinhoArabicForAnalysis(value).toLocaleLowerCase();
 
 const WORDS = {
  de: new Set('der die das ein eine und oder aber nicht bitte danke hallo guten gutenmorgen gutenabend ich du er sie wir ihr ist sind war haben sein kann möchte warum wie was wer wo wann eigentlich vielleicht noch schon heute spieler team erkläre erklären erklär mir den im progressiven pass scouting fußball begriff begriffe dieser dieses diese einen einem einer für mit aus auf zu von dass weil wenn sehr gut stark schwach leistung analyse bewertung spielerprofil'.split(' ')),
@@ -33,7 +47,7 @@ function clean(value) {
   return String(value ?? '').normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 4000);
 }
 function words(value) {
-  return clean(value).toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) || [];
+  return (clean(value).toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) || []).map(normalizeArabicToken);
 }
 function countHits(tokens, lexicon) { return tokens.reduce((n, token) => n + (lexicon.has(token) ? 1 : 0), 0); }
 function countArabicHits(tokens, lexicon) {
@@ -47,13 +61,14 @@ function countArabicHits(tokens, lexicon) {
 }
 function scoreProfile(id, tokens, text) {
   const lexicon = WORDS[id];
+  const analysisText = normalizeMessinhoArabicForAnalysis(text);
   let score = id === 'ar' ? countArabicHits(tokens, lexicon) : countHits(tokens, lexicon);
   if (id === 'ar-tn') {
     if (LATIN_DERJA.test(text)) score += 5;
-    if (TUNISIAN_ARABIC.test(text)) score += 7;
-    if (ARABIC_SCRIPT.test(text) && /[ڨڤپچگ]/u.test(text)) score += 2;
+    if (TUNISIAN_ARABIC.test(analysisText)) score += 7;
+    if (ARABIC_SCRIPT.test(analysisText) && /[ڨڤپچگ]/u.test(analysisText)) score += 2;
   }
-  if (id === 'ar' && ARABIC_SCRIPT.test(text) && !TUNISIAN_ARABIC.test(text)) score += 1;
+  if (id === 'ar' && ARABIC_SCRIPT.test(analysisText) && !TUNISIAN_ARABIC.test(analysisText)) score += 1;
   if (['de','en','fr','es'].includes(id) && LATIN_SCRIPT.test(text)) score += 0.1;
   return score;
 }
