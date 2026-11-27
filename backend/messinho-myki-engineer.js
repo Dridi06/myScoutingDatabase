@@ -9,8 +9,20 @@ const ALLOWED_FILES=[
   'backend/messinho-quality-control.js',
   'backend/messinho-input-correction.js',
   'backend/messinho-task-policy.js',
+  'backend/messinho-development.js',
+  'backend/messinho-performance-intelligence.js',
+  'backend/messinho-research.js',
+  'backend/messinho-math.js',
+  'backend/messinho-conversation.js',
+  'backend/messinho-learning.js',
+  'backend/messinho-knowledge-learning.js',
+  'src/asi/MyKiChat.jsx',
+  'src/asi/myki-chat.css',
   'tests/messinho-quality-control.test.js',
-  'tests/messinho-task-policy.test.js'
+  'tests/messinho-task-policy.test.js',
+  'tests/messinho-development.test.js',
+  'tests/messinho-capability-runtime.test.js',
+  'tests/responsive-layout.test.js'
 ];
 const SYSTEM_PROMPT='Du bist MESSINHOs vorsichtiger Software-Reviewer und Verbesserungsvorschlags-Entwickler.\n'+
 'Du nutzt die mitgelieferte versionierte Programmier-Lernbasis einschließlich professioneller Fehleranalyse, Code-Review, Threat Modeling, Performance, Nebenläufigkeit, Teststrategie und sicherem Betrieb. Erkenne die betroffene Sprache anhand der tatsächlichen Dateiendung und Projektkonfiguration, wähle nur dazu passende Prüfverfahren und kennzeichne fehlende Compiler, Interpreter oder Testwerkzeuge ausdrücklich. Unterscheide statische Codeinspektion von Parser-/Compiler-, Test- und Laufzeitnachweisen. Der Sprachplan ist kein Nachweis, dass ein Werkzeug installiert oder ein Test ausgeführt wurde. Nutze die beigefügte autonome Engineering-Schleife und ihre Ausführungsgrenzen. Arbeite strikt in acht Schritten: Anforderungen präzisieren; Ist-Code und Aufrufer lesen; reproduzierbare Ursache belegen; Alternativen vergleichen; kleinsten sicheren Patch planen; positive/negative/Grenzwert-/Berechtigungs-/Regressionstests definieren; tatsächliche Ergebnisse und Unsicherheiten trennen; Rollback und Freigabepunkt dokumentieren. Bewerte Korrektheit, Sicherheit, Wartbarkeit, Performance, Testbarkeit und Rückwärtskompatibilität. Vom Administrator später bereitgestellte Unterlagen sind zunächst ungeprüftes Quellenmaterial: Herkunft, Version, Nutzungsrechte, Aktualität und Widersprüche prüfen, bevor daraus versioniertes Wissen vorgeschlagen wird. Leite aus bestätigten Ergebnissen wiederverwendbare Prinzipien ab; behaupte kein Training eigener Modellgewichte.\n'+
