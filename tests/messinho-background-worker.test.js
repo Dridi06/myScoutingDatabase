@@ -13,9 +13,10 @@ const task = overrides => ({
   context:{player:{name:'Testspieler',performance_metrics:{technical:80}}},
   completed_results:[],...overrides
 });
-function mockDb({mode='developing',stopRequested=false}={}) {
+function mockDb({mode='developing',stopRequested=false,profile={id:'owner-1',role:'scout',approved:true,approval_status:'approved'}}={}) {
   const writes=[],state={mode,stop_requested:stopRequested};
   return {writes,state,from(table){
+    if(table==='profiles')return {select(){return {eq(){return {maybeSingle:async()=>({data:profile,error:null})};}};}};
     if(table==='messinho_agent_control')return {select(){return {eq(){return {maybeSingle:async()=>({data:state,error:null})};}};}};
     return {update(patch){writes.push(patch);return {
       eq(){return this;},select(){return this;},async maybeSingle(){return {data:{id:'task-1'},error:null};}
@@ -91,4 +92,27 @@ test('background worker observes a stop request between capability steps',async(
  assert.equal(result.stopped,true);
  assert.equal(db.writes[0].status,'partial');
  assert.equal(db.writes[0].next_retry_at,null);
+});
+
+
+test('worker blocks tasks when the owner role or approval changed after task creation',async()=>{
+ const db=mockDb({profile:{id:'owner-1',role:'admin',approved:true,approval_status:'approved'}});
+ let executed=false;
+ const result=await processMessinhoBackgroundTask({db,task:task(),workerId:'worker-1',
+  execute:async()=>{executed=true;return {status:'completed',results:[],deferred_capabilities:[]};}});
+ assert.equal(executed,false);
+ assert.equal(result.reason,'owner_role_changed');
+ assert.equal(db.writes[0].status,'failed');
+});
+
+test('worker never re-executes a capability already checkpointed as successful',async()=>{
+ const db=mockDb();let executedPlan=null;
+ const result=await processMessinhoBackgroundTask({db,task:task({
+  pending_capabilities:['overall_score'],
+  completed_results:[{capability_id:'overall_score',status:'completed'}]
+ }),workerId:'worker-1',execute:async plan=>{executedPlan=plan;return {status:'completed',results:[],deferred_capabilities:[]};}});
+ assert.equal(executedPlan,null);
+ assert.equal(result.status,'completed');
+ assert.equal(result.reason,'checkpoint_already_complete');
+ assert.equal(db.writes[0].status,'completed');
 });

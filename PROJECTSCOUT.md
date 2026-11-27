@@ -5745,3 +5745,14 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - GitHub Actions on that exact commit: Node tests #1442 — **532/532 passed**; backend syntax #1410 — **passed**; full STAGING build #682 — **passed**, including Vite production build.
 - The separate latest Node test run #1443 was still running when recorded; run #1442 already passed on the same commit.
 - PR #55 remains open and mergeable. No merge or Render deployment has been triggered. User-authenticated Admin/Scout browser tests remain the final runtime acceptance step.
+
+
+### 43. Persistent task memory hardening — 2026-11-27
+
+- Revalidated the existing durable task ledger, per-step checkpoints, manual resume endpoint, lease-based staging worker, and explicit opt-in read-only background resume. This infrastructure already existed; this block hardens it rather than duplicating it.
+- Background workers now re-read the task owner's live profile on every claim and fail closed if the owner is missing, unapproved, or their role differs from the role recorded when the task was created. This prevents a queued Admin task from retaining Admin authority after a downgrade.
+- Resume planning now removes duplicate pending IDs and skips capabilities already recorded with a successful terminal status (completed, verified, proposal_ready). It never replays those successful steps.
+- Added deterministic tests for owner mismatch, revoked approval, role downgrade, duplicate pending entries, and completed-step replay prevention.
+- No database schema change or migration was needed. No staging database was modified.
+- Validation status: pending CI for this commit. Manual authenticated restart/recovery verification remains required before enabling background resume in a deployed staging service.
+- Safety remains conservative: expired running tasks are quarantined for review rather than blindly replayed, because a crash may occur after a side effect but before its checkpoint.
