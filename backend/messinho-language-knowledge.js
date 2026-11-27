@@ -5,7 +5,7 @@
  */
 import { analyzeMessinhoLanguage, buildMessinhoLinguisticContext, MESSINHO_LANGUAGE_PROFILES, normalizeMessinhoArabicForAnalysis } from './messinho-linguistic-intelligence.js';
 
-const VERSION = '1.2.1';
+const VERSION = '1.2.2';
 const STOP = new Set('der die das ein eine und oder aber nicht bitte danke ich du er sie wir ihr ist sind the a an and or but not please thanks i you he she we they is are was have be le la les un une et ou mais pas ne merci je tu il elle nous vous el los las una y pero por favor gracias yo tú él ella من في على إلى عن هو هي نحن انت أنا و أو لكن لا نعم كيف ماذا لماذا متى أين'.split(' ').map(normalizeMessinhoArabicForAnalysis));
 const norm = value => normalizeMessinhoArabicForAnalysis(
   String(value ?? '').normalize('NFKC').toLocaleLowerCase().normalize('NFD')
@@ -21,6 +21,24 @@ const expandToken = token => {
   return variants;
 };
 const tokens = value => [...new Set(norm(value).split(' ').filter(token=>token.length>1 && !STOP.has(token)).flatMap(expandToken))];
+const LANGUAGE_MENTION_PATTERNS = [
+  {id:'ar-tn',pattern:/\\b(?:tunisian\\s+(?:derja|arabic|dialect)|derja|tounsi|bil derja|bil tounsi)\\b|(?:الدارجة التونسية|اللهجة التونسية|بالتونسي|تونسي|تونسية)/iu},
+  {id:'ar',pattern:/\\b(?:modern standard arabic|msa|fusha|classical arabic|arabic grammar|arabic language|in arabic|to arabic|arabisch|arabische grammatik)\\b|(?:العربية الفصحى|الفصحى)/iu},
+  {id:'de',pattern:/\\b(?:german language|german grammar|german word order|in german|to german|auf deutsch|deutsch)\\b/iu},
+  {id:'en',pattern:/\\b(?:english language|english grammar|english word order|in english|to english|auf englisch|englisch)\\b/iu},
+  {id:'fr',pattern:/\\b(?:french language|french grammar|in french|to french|en francais|francais|franzoesisch|franzosisch)\\b/iu},
+  {id:'es',pattern:/\\b(?:spanish language|spanish grammar|in spanish|to spanish|espanol|spanisch)\\b/iu}
+];
+function inferRequestedLanguageIds(message, action) {
+  const requested = new Set();
+  if (action?.mode === 'translate' && action.target_language) requested.add(action.target_language);
+  const normalized = norm(message);
+  for (const item of LANGUAGE_MENTION_PATTERNS) {
+    if (item.pattern.test(normalized)) requested.add(item.id);
+  }
+  return [...requested];
+}
+
 
 function scoreEntry(queryTokens, row, languageIds) {
   const content = row.content && typeof row.content==='object' ? row.content : {};
@@ -46,12 +64,14 @@ export async function findMessinhoLanguageKnowledge(db, message, history=[]) {
   const detection = analyzeMessinhoLanguage(message);
   const linguisticContext = buildMessinhoLinguisticContext(message,history);
   const languageId = detection.primary_language;
+  const requestedLanguageIds = inferRequestedLanguageIds(message,linguisticContext.action);
   const languageIds = new Set([
     ...(languageId?[languageId]:[]),
-    ...linguisticContext.segments.map(segment=>segment.language_analysis?.primary_language).filter(Boolean)
+    ...linguisticContext.segments.map(segment=>segment.language_analysis?.primary_language).filter(Boolean),
+    ...requestedLanguageIds
   ]);
   const queryTokens = tokens([message,...(Array.isArray(history)?history.slice(-3).map(item=>item?.text||''):[])].join(' '));
-  if (!db) return {status:'unavailable',version:VERSION,language_id:languageId,language_ids:[...languageIds],items:[]};
+  if (!db) return {status:'unavailable',version:VERSION,language_id:languageId,language_ids:[...languageIds],requested_language_ids:requestedLanguageIds,items:[]};
   try {
     const {data,error}=await db.from('messinho_language_knowledge')
       .select('entry_key,version,language_code,entry_type,topic,title,content,tags,level,knowledge_status,provenance_type,created_at')
@@ -91,11 +111,11 @@ export async function findMessinhoLanguageKnowledge(db, message, history=[]) {
       }
     }
     const items=selected.slice(0,8).map(({row,score})=>({...row,relevance:Number(score.toFixed(3))}));
-    return {status:items.length?'hit':'miss',version:VERSION,language_id:languageId,language_ids:[...languageIds],items,
+    return {status:items.length?'hit':'miss',version:VERSION,language_id:languageId,language_ids:[...languageIds],requested_language_ids:requestedLanguageIds,items,
       policy:'active_first_party_authored_entries_only'};
   } catch(error) {
     console.warn('MESSINHO language knowledge lookup unavailable:',error.code||error.message||'unknown');
-    return {status:'unavailable',version:VERSION,language_id:languageId,language_ids:[...languageIds],items:[]};
+    return {status:'unavailable',version:VERSION,language_id:languageId,language_ids:[...languageIds],requested_language_ids:requestedLanguageIds,items:[]};
   }
 }
 
