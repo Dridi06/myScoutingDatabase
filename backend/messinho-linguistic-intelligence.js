@@ -5,7 +5,7 @@
  * Dialect, script and code-switching are represented separately so Tunisian Derja is not
  * incorrectly collapsed into Modern Standard Arabic.
  */
-export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.5';
+export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.6';
 
 export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
   { id:'de', name:'Deutsch', family:'Germanic', scripts:['Latin'], variants:['de-DE','de-AT','de-CH'], capabilities:['grammar','cases','articles','word_order','compound_words','spelling','semantics','pragmatics'] },
@@ -282,6 +282,29 @@ export function analyzeMessinhoLanguage(input, options = {}) {
     grammar_focus:profile?.capabilities||[],
     notes,
     policy:{translated:false,rewritten:false,source_text_preserved:true,dictionary_corpus_included:false,claims_fluency:false}
+  };
+}
+
+/**
+ * Stable, client-safe language metadata for the chat API response.
+ * Keeps reply-language selection observable without exposing internal scoring tokens.
+ */
+export function buildMessinhoLinguisticResponseMetadata(context) {
+  if (!context || typeof context !== 'object') return null;
+  return {
+    version:context.version,
+    status:context.status,
+    primary_language:context.primary_language||null,
+    primary_language_name:context.primary_language_name||null,
+    response_language:context.response_language||context.primary_language||null,
+    latest_segment_language:context.latest_segment_language||null,
+    conversation_language_hint:context.conversation_language_hint||null,
+    confidence:context.confidence||0,
+    languages:Array.isArray(context.languages)?context.languages:[],
+    scripts:Array.isArray(context.scripts)?context.scripts:['unknown'],
+    signals:context.signals||null,
+    action:context.action||null,
+    segments:Array.isArray(context.segments)?context.segments:[]
   };
 }
 
