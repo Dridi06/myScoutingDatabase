@@ -4,6 +4,7 @@ import {
   buildMessinhoCognitiveRouterMessages,
   validateMessinhoCognitiveDecision,
   appendMessinhoLongTermMemories,
+  isSensitiveMessinhoMemoryText,
   classifyMessinhoTurn
 } from '../backend/messinho-conversational-intelligence.js';
 
@@ -99,7 +100,7 @@ test('server applies semantic cognitive routing before fixed scouting and extern
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
   const route=source.indexOf('const cognitiveResult=await classifyMessinhoTurn');
   const scouting=source.indexOf('const dialog=parseMessinhoScoutingRequest(interpretedMessage,history)',route);
-  const research=source.indexOf('if(isMessinhoGeneralResearchQuestion(interpretedMessage))',route);
+  const research=source.indexOf("if(cognitive.intent==='general_research'||isMessinhoGeneralResearchQuestion(interpretedMessage))",route);
   assert.ok(route>0&&scouting>route,'semantic routing must precede scouting parsing');
   assert.ok(research>route,'semantic routing must precede external research');
   assert.match(source,/if\(cognitive\.intent==='clarify'\)/);
