@@ -28,7 +28,7 @@ export function normalizeMessinhoEngineeringProposal(input={}){
  const rollback=clean(input.rollback_plan,1000),benchmark=clean(input.benchmark_id,120);
  if(id.length<6||title.length<8||rationale.length<30||patch.length<20||patch.length>24000||testPlan.length<2||rollback.length<20||benchmark.length<4)
   return {ok:false,error:'Titel, Begründung, begrenzter Patch, mindestens zwei Tests, Benchmark und Rollback-Plan sind erforderlich.'};
- if(/\b(?:exec|spawn|child_process|eval|new Function|process\.env|process\.binding|fetch\s*\(|https?:\/\/|node:(?:fs|net|http|vm|child_process)|(?:readFile|writeFile|unlink|createWriteStream|createReadStream)\s*\()/i.test(patch))
+ if(/\b(?:exec|spawn|child_process|eval|new Function|process\.env|process\.binding|fetch\s*\(|https?:\/\/|node:(?:fs|net|http|vm|child_process)|(?:readFile|writeFile|unlink|createWriteStream|createReadStream)\w*\s*\()/i.test(patch))
   return {ok:false,error:'Der Patch enthält nicht zulässige Ausführungs-, Datei-, Umgebungs- oder Netzwerkzugriffe.'};
  if(/^(?:new file mode|deleted file mode|old mode|new mode|rename from|rename to|copy from|copy to|GIT binary patch|Binary files)/m.test(patch))
   return {ok:false,error:'Dateianlagen, Löschungen, Umbenennungen, Modusänderungen und Binärpatches sind nicht zulässig.'};
