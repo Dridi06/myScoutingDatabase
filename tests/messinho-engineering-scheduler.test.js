@@ -168,7 +168,7 @@ test('explicit admin development runs bypass only the automatic-review toggle an
   generate:async()=>({ok:true,proposal:null,source_sha:'a'.repeat(40)})
  });
  assert.equal(result.status,'no_improvement');
- assert.equal(db.state.claim.review_slot,'manual_123e4567e89b12d3a456');
+ assert.equal(db.state.claim.review_slot,'manual_123e4567e89b12d3a4564266');
  assert.equal(isMessinhoEngineeringStagingService({RENDER:'true',RENDER_SERVICE_ID:'stage',MESSINHO_STAGING_RENDER_SERVICE_ID:'stage'}),true);
 });
 
