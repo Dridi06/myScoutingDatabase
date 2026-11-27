@@ -109,3 +109,14 @@ test('server applies semantic cognitive routing before fixed scouting and extern
   assert.match(source,/cognitive\.confidence<0\.72/);
   assert.match(source,/action_blocked:true/);
 });
+
+
+test('cognitive router receives the shared multilingual vocabulary and segment context',()=>{
+  const context={version:'1.0.0',response_language:'de',active_language_profiles:[{id:'ar-tn',name:'Tunisian Derja'}],
+    mixed_language_segments:[{text:'chnowa joueur?',language_id:'ar-tn'}],
+    approved_vocabulary_and_rules:[{language:'ar-tn',terms:['joueur','mrigel'],aliases:['la3eb']} ]};
+  const messages=buildMessinhoCognitiveRouterMessages({message:'chnowa joueur?',linguisticContext:context});
+  const payload=JSON.parse(messages[1].content);
+  assert.deepEqual(payload.linguistic_context.approved_vocabulary_and_rules[0].terms,['joueur','mrigel']);
+  assert.match(messages[0].content,/approved vocabulary terms, aliases, grammar notes/i);
+});
