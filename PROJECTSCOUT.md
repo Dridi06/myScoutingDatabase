@@ -4568,6 +4568,7 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - Übersetzungsaktionen geben den Originalauftrag mit und kennzeichnen fehlende Zielsprache ausdrücklich als Rückfragebedarf. Es wird keine Zielsprache geraten.
 - Pragmatiksignale verwenden Unicode-fähige Worttoken statt ASCII-`\b`-Grenzen. Dadurch werden arabische und tunesische Verneinung, Unsicherheit, Kontrast, Höflichkeit und Frageformen besser erkannt.
 - Der bestehende Chat-Prompt erhält zusätzliche Regeln zur segmentweisen Auswertung, zur unveränderten Reihenfolge des Originaltextes und zum Schutz von Zahlen.
+- Ein widersprüchlicher Prompt-Satz, der zuvor Deutsch als Gesprächssprache vorgab, wurde entfernt. MESSINHO richtet seine Antwortsprache nun ausdrücklich nach der letzten Nutzernachricht, sofern keine Zielsprache verlangt wird.
 - `backend/messinho-language-knowledge.js` auf Version **1.1.0** erweitert: Der Wissensabruf sammelt jetzt die erkannten Sprachprofile aller Nachrichtensegmente und lädt passende aktive Wissenseinträge für jede erkannte Sprache sowie gemeinsame Einträge. Die bisherige Beschränkung auf nur eine globale Primärsprache entfällt.
 - Die Wissensbasis bleibt read-only für den Chat. Es gibt weiterhin keine Scout-Schreibrechte und keine automatische Aktivierung neuer Wissensstände.
 
@@ -4575,16 +4576,17 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - Neue Tests für segmentweise Mehrsprachigkeit, Arabizi-Zahlenschutz, fehlende Zielsprache, zusätzliche Zielsprachvarianten, arabische Pragmatiksignale und mehrsprachigen Wissensabruf.
 - Ein erster CI-Lauf zeigte eine fehlerhafte Escape-Sequenz in einer französischen Höflichkeitsphrase; der Syntaxfehler wurde korrigiert.
 - Ein weiterer Test zeigte, dass die kurze französische Beispielphrase nicht genügend eindeutige Evidenz für eine eigene Segmentklassifikation enthielt. Der Test wurde auf einen aussagekräftigeren Satz umgestellt; die Erkennung bleibt konservativ.
-- Finaler Feature-Branch-Commit: `2ff10bcae28589c84d72778b6ec75705cc7feedd`.
+- Finaler Linguistic-Code-Commit vor Prompt-Korrektur: `2ff10bcae28589c84d72778b6ec75705cc7feedd`; die Prompt-Korrektur folgt in Commit `784c726e66e6b59aab4256de1080907bec24c717`.
 - GitHub Actions: **455 Tests bestanden, 0 fehlgeschlagen**.
 - Backend-Syntaxprüfung erfolgreich.
 - Vollständiger STAGING-Branch-CI-Build erfolgreich; Vite **1.640 Module** transformiert, Produktionsbuild erfolgreich.
 - Staging-Health-Smoke-Workflow erfolgreich. Dieser Health-Check bestätigt nicht, dass die neuen Sprachänderungen bereits auf Render live sind.
 
 ### Datenbank und Deployment
-- Supabase-STAGING-Projekt `nwqwnrhupbyhshsprxjt` read-only geprüft: 36 Versionszeilen, 30 unterschiedliche Sprachwissensschlüssel, RLS aktiviert. Die Tabelle hat keine direkten Policies; der vorgesehene Runtime-Zugriff erfolgt über den serverseitigen Service-Role-Lesezugriff.
-- Vorhandene Migrationen für die Sprachwissensbasis und Lexikonerweiterung sind im STAGING-Migrationsverlauf vorhanden.
-- In diesem Umsetzungsschritt wurde **keine Datenbankmigration** ausgeführt und kein Wissenseintrag verändert.
+- Supabase-STAGING-Projekt `nwqwnrhupbyhshsprxjt`: nach der Erweiterung 60 Versionszeilen und 54 unterschiedliche Sprachwissensschlüssel; je Profil 9 unterschiedliche Einträge (10 Versionszeilen durch vorhandene Versionierung). RLS ist aktiviert. `anon` und `authenticated` haben keinen Lesezugriff; `service_role` hat ausschließlich SELECT, keine INSERT-/UPDATE-/DELETE-Rechte.
+- Die neue STAGING-Migration `20261127022717_messinho_language_curriculum_expansion` wurde angewendet und als `supabase/migrations/20261127022717_messinho_language_curriculum_expansion.sql` im Feature-Branch gesichert.
+- 24 original erstellte Wissenseinträge ergänzt: je Profil Morphologie, komplexer Satzbau, Semantik/Pragmatik und Fußballfachwortschatz. Alle Einträge sind als `original_authored` versioniert und bleiben über die bestehende Service-Role-Leseschranke geschützt.
+- Die neuen Inhalte sind eine interne Grundlagenbasis, keine muttersprachlich zertifizierte Grammatik oder vollständige Wörterbuchabdeckung. Regionale Prüfung bleibt offen.
 - Render-STAGING-Service `srv-dc3chlqjnfac73acd6ig` verfolgt weiterhin `feature/messinho-unified-ai-integration`; Auto-Deploy ist deaktiviert.
 - Letzter bestätigter Render-LIVE-Commit bleibt `ea7109db18fa155de0e014ebbabbed638b04066a`. Die neuen Sprachänderungen sind daher **noch nicht auf STAGING deployed**.
 - Keine Änderung an `main`, Produktion oder PFMS/PFSS.
