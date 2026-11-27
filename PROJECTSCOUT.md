@@ -5779,3 +5779,15 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - No patch is automatically applied to the repository. No integration or deployment is authorized; the Admin ticket remains the review and approval point.
 - The automatic sandbox gate is opt-in and remains inactive unless the staging environment variables and GitHub credential are configured. The requested_by audit field is populated with the initiating Admin account. The branch change is code-only; no Render deployment or production action occurred.
 - Validation: GitHub Actions Node tests #1464 — passed; backend syntax #1431 — passed; full STAGING CI #703 — passed, including Vite production build. The separate isolated engineering workflow has not yet run a real ticket patch; a staging sandbox dispatch and OIDC callback still require the staging environment's configured credentials and explicit Admin-side verification.
+
+
+## 46. MESSINHO Semantic Language Bridge 1.0 — implementation record — 2026-11-27
+
+- Added `backend/messinho-semantic-language-bridge.js` as a read-only integration layer over the existing `messinho-linguistic-intelligence.js` and `messinho-language-knowledge.js` modules.
+- The bridge carries all six existing language profiles (German, English, French, Modern Standard Arabic, Tunisian Derja including Arabic script and Latin Arabizi, and Spanish), detected mixed-language segments, response-language selection, conversational signals, and approved active versioned vocabulary/grammar entries into the cognitive router and semantic goal planner.
+- Vocabulary terms, aliases, examples, grammar notes, common errors and usage notes are bounded and tagged with their language. Existing source text is preserved; no dictionary is rewritten, no knowledge entry is activated, and no new language database migration is introduced.
+- The same already-loaded knowledge result is reused later in the conversation response path to avoid a duplicate database read.
+- Knowledge lookup failure degrades to language detection/profile context with an empty approved vocabulary list; it does not block ordinary conversation solely because the vocabulary store is unavailable.
+- Added deterministic tests for multi-language profile/vocabulary joining, read-only knowledge lookup and graceful fallback, cognitive-router context delivery, and goal-planner context delivery.
+- No production branch, LIVE Render service, production Supabase, user/player/scout records, or persistent language knowledge was changed. No deployment or merge was performed.
+- Validation for this commit: pending GitHub Actions. Authenticated STAGING acceptance must still test natural German, English, French, MSA Arabic, Tunisian Derja in Arabic script, Latin Arabizi, and mixed-language requests with both Admin and Scout accounts.
