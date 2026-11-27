@@ -5,7 +5,7 @@
  * Dialect, script and code-switching are represented separately so Tunisian Derja is not
  * incorrectly collapsed into Modern Standard Arabic.
  */
-export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.4';
+export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.5';
 
 export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
   { id:'de', name:'Deutsch', family:'Germanic', scripts:['Latin'], variants:['de-DE','de-AT','de-CH'], capabilities:['grammar','cases','articles','word_order','compound_words','spelling','semantics','pragmatics'] },
@@ -298,22 +298,30 @@ export function buildMessinhoLinguisticContext(message, history = []) {
   })).filter(item=>item.analysis.status!=='empty');
   const recentPrimary = prior.filter(item=>item.role==='user'&&item.analysis.primary_language).slice(-3).map(item=>item.analysis.primary_language);
   const continuityLanguage = recentPrimary.length>=2 && recentPrimary.every(id=>id===recentPrimary[0]) ? recentPrimary[0] : null;
+  // A mixed message keeps its aggregate primary language for analysis, but the
+  // reply language follows the last confidently identified segment.
+  const segments=splitLanguageSegments(clean(message)).map(segment=>{
+    const analysis=analyzeMessinhoLanguage(segment.text);
+    return {
+      ...segment,
+      language_analysis:{
+        ...analysis,
+        primary_language:analysis.primary_language||segment.language_hint
+      }
+    };
+  });
+  const latestSegmentLanguage=[...segments].reverse()
+    .map(segment=>segment.language_analysis?.primary_language||segment.language_hint)
+    .find(Boolean)||null;
+  const responseLanguage=latestSegmentLanguage||current.primary_language||continuityLanguage||null;
   return {
     ...current,
-    conversation_language_hint:current.primary_language||continuityLanguage||null,
-    // Detect language independently for each segment. Mixed messages are not
-    // flattened to one language merely because one profile wins the global score.
-    segments:splitLanguageSegments(clean(message)).map(segment=>{
-      const analysis=analyzeMessinhoLanguage(segment.text);
-      return {
-        ...segment,
-        language_analysis:{
-          ...analysis,
-          primary_language:analysis.primary_language||segment.language_hint
-        }
-      };
-    }),
-    action:detectLanguageAction(message,current.primary_language||continuityLanguage||null),
+    conversation_language_hint:responseLanguage,
+    response_language:responseLanguage,
+    latest_segment_language:latestSegmentLanguage,
+    // Keep original segment order and text; do not flatten mixed-language messages.
+    segments,
+    action:detectLanguageAction(message,responseLanguage),
     conversation_policy:[
       'Reply in the language of the latest user message unless the user requests another language.',
       'Preserve names, numbers, football terms and quoted source wording.',
