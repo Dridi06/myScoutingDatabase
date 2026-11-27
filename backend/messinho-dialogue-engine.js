@@ -77,5 +77,7 @@ export function validateMessinhoDialogueState(value) {
   if (typeof value.continuity.follow_up_likely !== 'boolean') return false;
   if (typeof value.continuity.assistant_awaiting_answer !== 'boolean') return false;
   if (!Array.isArray(value.recent_user_focus) || value.recent_user_focus.length > MAX_FOCUS) return false;
+  if (!value.older_context || !Array.isArray(value.older_context.user_goal_candidates) || value.older_context.user_goal_candidates.length > 3) return false;
+  if (!Array.isArray(value.older_context.historical_assistant_questions) || value.older_context.historical_assistant_questions.length > 2) return false;
   return value.evidence_policy === 'Extractive conversation clues only; not verified facts, permissions, or durable memory.';
 }
