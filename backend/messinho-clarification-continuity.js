@@ -43,9 +43,9 @@ function classifyQuestion(question, fallback) {
   if(/\b(?:soll ich|should i|do you want|möchtest du|willst du|تحب)\b/u.test(text))return 'yes_no';
   return fallback || 'generic';
 }
-function answerForQuestion(message, question, fallback) {
+function answerForQuestion(message, question, fallback, suppliedOptions=null) {
   const text=normalize(message);
-  const options=optionCandidates(question);
+  const options=Array.isArray(suppliedOptions)&&suppliedOptions.length?suppliedOptions:optionCandidates(question);
   const matches=options.filter(option=>{
     const candidate=normalize(option);
     return candidate&&(text===candidate||text.startsWith(candidate+' ')||text.endsWith(' '+candidate));
