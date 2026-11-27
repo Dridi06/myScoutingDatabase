@@ -5852,3 +5852,45 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Final tested code commit: `1ddfde7c59b2bd916c6fe28cf36be95034f74071`; checkpoint commit: `b32492fb2c2044c807e664877479652f783d0ed2` (documentation-only after the tested code).
 - GitHub Actions for the checkpoint commit: **553/553 Node tests passed, 0 failed**; backend syntax workflow passed; full STAGING branch CI passed, including the Vite production build (1,640 modules transformed).
 - PR #58 remains Draft and unmerged. No Render deployment or database migration was performed.
+
+
+## 2026-11-27 — MESSINHO Conversation Engine — Block 2: evidence-bounded entity reference resolution
+
+### Scope and implementation
+- Added `backend/messinho-entity-resolution.js` (version 1.0.0) as a deterministic, transient resolver connected to the existing Dialogue Engine and cognitive router.
+- The resolver distinguishes `player`, `club`, and `team` references and returns explicit `resolved`, `ambiguous`, `unresolved`, or `not_applicable` outcomes with bounded candidates, confidence, evidence labels, and reason codes.
+- Candidate sources are restricted to structured research metadata already stored in the authenticated conversation history and the current owner's `active_entities` memory. It does not search arbitrary users, organizations, or global player records.
+- Player-to-club/team relations are used only when the relationship is present in structured player metadata.
+- Supports bounded reference cues in German, English, French, Spanish, Modern Standard Arabic and Tunisian Derja.
+- Ambiguous references such as multiple players or an unclear “der andere” trigger a focused clarification. A contrast can resolve only when exactly one active player and exactly one alternative are grounded.
+- Explicitly named multiple players are not treated as an unresolved pronoun. When a pronoun appears alongside another explicit player name, the resolver asks for clarification rather than assuming which player was intended.
+- Added safe structured entity metadata to `sanitizeMessinhoHistory`; only allowlisted IDs, names, current club/team relations and entity types are retained. Arbitrary metadata fields are discarded.
+- Updated the authenticated chat response context to persist the allowlisted structured entities when present, then attach the transient resolution result to the existing `dialogue_state`.
+- Updated the cognitive-router prompt to treat entity resolution as evidence only, never as a verified fact, permission, or action authorization.
+- Added a deterministic routing guard: unresolved/ambiguous scouting references cannot silently start a player search.
+- Existing owner and conversation filters remain unchanged. The resolver is not a new memory store and does not persist its own output.
+
+### Files changed
+- `backend/messinho-entity-resolution.js` — new resolver.
+- `tests/messinho-entity-resolution.test.js` — regression tests for unique/multiple/unresolved references, player-to-club relations, explicit names, contrast, five language examples, bounds, sanitizer and owner scope.
+- `backend/messinho-engine.js` — allowlisted structured entity metadata in sanitized history.
+- `backend/messinho-conversational-intelligence.js` — safe interpretation policy for entity-resolution evidence.
+- `backend/server.js` — authenticated chat integration and clarification guard.
+- `.github/workflows/messinho-tests.yml` and `.github/workflows/messinho-staging-ci.yml` — include the conversation-engine branch in push CI triggers.
+
+### Checkpoint and verification
+- Work branch: `feature/messinho-conversation-engine`.
+- PR #58 remains Draft and unmerged; target remains `feature/messinho-unified-ai-integration`.
+- Latest resolver logic commit: `01d918d125a0ed5af950f117288ebf17fda6ba2a`.
+- Latest regression-test commit: `406c861891de59a169daf5e7314462048318bc80`.
+- CI trigger updates: `05596bc37b653c32dc9922fb4efbcf62f37e15e4` and `e6840339a02d099d47e68ef4a10c1c71fe53812f`.
+- Earlier Dialogue Engine baseline remains 553/553 tests on commit `b32492fb2c2044c807e664877479652f783d0ed2`; that result does not verify this new block.
+- **Current Block 2 CI status: not yet verified.** The GitHub workflow/status lookup has not returned a run for the new head. Do not describe the new tests as passed until a run for the exact final commit is available.
+- No Render deployment, no Supabase migration, no database writes, no user/player/scout data changes, no model-weight changes, and no production/LIVE changes.
+
+### Known limitations and next actions
+1. The resolver only resolves entities already represented in structured conversation metadata or active owner memory; it does not yet extract arbitrary named entities from free text or independently query the player database.
+2. Club/team follow-ups are resolved as references, but a complete club/team research workflow is a separate capability integration.
+3. Review the exact latest CI run and fix all failures before marking Block 2 verified.
+4. Continue with Block 3 — robust multi-turn conversation state and clarification lifecycle — only after Block 2 passes exact-commit CI.
+5. The latest main-branch language-bridge commits are not copied into this feature branch; evaluate and integrate them separately without merging or changing production.
