@@ -97,7 +97,8 @@ test('segments comma and slash option lists and accepts only a grounded offered 
 });test('scoped chat history is isolated by both owner and conversation identifiers',async()=>{
  const {readFile}=await import('node:fs/promises');
  const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
- const historyQuery=source.slice(source.indexOf(".from('messinho_conversation_messages')"),source.indexOf(".from('messinho_conversation_messages')")+600);
+ const historyStart=source.indexOf('const {data:storedHistory,error:historyError}=await db.from(\'messinho_conversation_messages\')');
+ const historyQuery=source.slice(historyStart,historyStart+500);
  assert.match(historyQuery,/\.eq\('owner_id',ownerId\)/);
  assert.match(historyQuery,/\.eq\('conversation_id',conversationId\)/);
 });
