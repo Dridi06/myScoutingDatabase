@@ -56,6 +56,16 @@ function words(value) {
   const normalized = normalizeMessinhoArabicForAnalysis(clean(value).toLocaleLowerCase());
   return normalized.match(/[\p{L}\p{N}]+/gu) || [];
 }
+
+/**
+ * Return the existing first-party detection vocabulary for a language.
+ * These are language-identification cues, not a complete dictionary or translation source.
+ */
+export function getMessinhoLanguageDetectionLexicon(languageId=null) {
+  if(languageId)return WORDS[languageId]?[...WORDS[languageId]].sort():[];
+  return Object.fromEntries(Object.entries(WORDS).map(([id,terms])=>[id,[...terms].sort()]));
+}
+
 function countHits(tokens, lexicon) { return tokens.reduce((n, token) => n + (lexicon.has(token) ? 1 : 0), 0); }
 function countArabicHits(tokens, lexicon) {
   // Arabic conjunctions و / ف can attach directly to the following word.
