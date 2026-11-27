@@ -27,7 +27,7 @@ test('dialogue engine marks an unanswered assistant question without claiming to
 
 test('dialogue engine does not mark a full new request as a follow-up by default',()=>{
   const state=buildMessinhoDialogueState({message:'Analysiere bitte die Leistungsdaten von Karim Benzema in der letzten Saison.',history:[
-    {role:'assistant',text:'Gerne. Was möchtest du wissen?'}
+    {role:'assistant',text:'Gerne, ich kann dir dabei helfen.'}
   ]});
   assert.equal(state.continuity.follow_up_likely,false);
 });
