@@ -3,14 +3,14 @@ const MAX_EVIDENCE=10, MAX_TEXT=420;
 function clean(value){return String(value??'').replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim().slice(0,MAX_TEXT);}
 const ALLOWED_METRIC_KEYS=new Set(['top_speed_kmh','sprint_speed_kmh','max_speed_kmh','maximum_speed_kmh','speed_kmh','top_speed','sprint_speed','max_speed','sprint_10m_seconds','sprint_20m_seconds','sprint_30m_seconds','sprint_40m_seconds','sprint_100m_seconds','acceleration_10m_seconds','acceleration_20m_seconds','acceleration_30m_seconds','acceleration_40m_seconds']);
 function canonicalMetricKey(raw){
- const key=String(raw||'').toLowerCase().normalize('NFKD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+ const key=String(raw||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
  const aliases={hoechstgeschwindigkeit:'top_speed_kmh',hochste_geschwindigkeit:'top_speed_kmh',sprintgeschwindigkeit:'sprint_speed_kmh',maximale_geschwindigkeit:'max_speed_kmh',max_speed:'max_speed_kmh',top_speed:'top_speed_kmh',sprint_speed:'sprint_speed_kmh'};
  return aliases[key]||key;
 }
 function metricNumber(rawValue,rawUnit=''){
  if(typeof rawValue==='number'&&Number.isFinite(rawValue))return {value:rawValue,unit:String(rawUnit||'').slice(0,12)};
  const text=String(rawValue??'').trim();
- const match=text.match(/^([0-9]+(?:[.,][0-9]+)?)\\s*(km\\/h|kmh|kph|m\\/s|sekunden|seconds|s)?$/iu);
+ const match=text.match(/^([0-9]+(?:[.,][0-9]+)?)\s*(km\/h|kmh|kph|m\/s|sekunden|seconds|s)?$/iu);
  if(!match)return null;
  return {value:Number(match[1].replace(',','.')),unit:String(rawUnit||match[2]||'').slice(0,12)};
 }
