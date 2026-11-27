@@ -5710,3 +5710,17 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - No database migration or persistent user/player/scout/learning data changes. No production branch, LIVE Render service or production Supabase changes.
 - Current status: code committed to the work branch; PR #55 open. CI status has not yet returned through the available GitHub status queries. Do not merge or deploy until the test suite, backend syntax and Vite production build pass.
 - Next: verify GitHub Actions on PR #55; correct any failures; review the final diff; then request explicit approval before deploying to STAGING. After deployment, test authenticated Admin and Scout requests, including semantic multi-capability planning, clarification, provider outage fallback and role isolation.
+
+
+## 42. MESSINHO Agent Core 4.1 — bounded semantic replanning — 2026-11-27
+
+- Continued on the isolated work branch `feature/messinho-autonomous-agent-semantic-planner`; PR #55 still targets STAGING integration only.
+- Added one bounded model-assisted replan after the existing single retry still leaves execution errors. The model receives only bounded execution metadata (capability IDs, statuses, error codes, missing input keys) and the failed capability IDs.
+- Replan proposals are revalidated against the registered capability catalogue, role permissions and the already-attempted capability set. No capability already attempted in the task can be selected again. Maximum one replan and eight new steps; normal agent execution budget remains capped at eight seconds.
+- The replan execution results are merged into the task run and the durable task checkpoint callback receives the accumulated results. Stop requests are still honoured.
+- Validation now treats explicitly deferred steps as pending, not falsely missing; they are still never reported as completed.
+- Added tests for replan filtering, Admin-only capability blocking for Scouts, unknown IDs, execution feedback and deferred-step validation.
+- CI on earlier semantic planner commit exposed five failing planner tests. Backend syntax checks passed. Failure diagnosis is being isolated; do not merge or deploy while the test suite is red.
+- Added the isolated work branch to the push filters of the three MESSINHO CI workflows so subsequent branch commits run the full test, syntax and build checks directly.
+- No database migrations, source-data mutation, model-weight changes, production branch, LIVE Render service or production Supabase changes.
+- Next: use the CI failure detail to correct the planner test/runtime issue, require all test/syntax/build workflows green, review PR #55, then seek explicit approval before STAGING deployment. After deployment, test Admin/Scout isolation and forced-failure replanning using controlled staging fixtures.
