@@ -60,3 +60,36 @@ test('agent validation treats explicitly deferred steps as pending rather than m
  assert.equal(validation.valid,true);
  assert.deepEqual(validation.missing_results,[]);
 });
+
+test('agent core performs one bounded semantic replan after the retry still fails',async()=>{
+ const plan={goal:'Testziel',label:'Test',steps:['overall_score'],discovered_capabilities:['overall_score'],
+  blocked_capabilities:[],deferred_capabilities:[],matched_intents:[]};
+ let calls=0,replanCalls=0;
+ const runPlan=async(currentPlan)=>{
+  calls++;
+  if(calls<=2)return {status:'partial',results:[{capability_id:'overall_score',status:'error',
+    error_code:'CONTROLLED_TEST_FAILURE',provenance:{capability_id:'overall_score'}}],
+    completed_steps:0,total_steps:1,blocked_capabilities:[],deferred_capabilities:[],
+    missing_inputs:[],replan_recommended:true,stop_requested:false,execution_policy:{budget_ms:2000}};
+  return {status:'completed',results:[{capability_id:'position_analysis',status:'completed',
+    provenance:{capability_id:'position_analysis'}}],completed_steps:1,total_steps:1,
+    blocked_capabilities:[],deferred_capabilities:[],missing_inputs:[],
+    replan_recommended:false,stop_requested:false,execution_policy:{budget_ms:2000}};
+ };
+ const cycle=await executeMessinhoAgentPlan({plan,goal:'Testziel',role:'scout',input:{},
+  runPlan,
+  replan:async request=>{
+   replanCalls++;
+   assert.deepEqual(request.failed_capabilities,['overall_score']);
+   return {denied:false,goal:'Testziel',label:'Alternative Prüfung',
+    steps:['overall_score','position_analysis'],discovered_capabilities:['overall_score','position_analysis'],
+    blocked_capabilities:[],deferred_capabilities:[]};
+  }});
+ assert.equal(calls,3,'initial execution, one retry, and one alternative execution');
+ assert.equal(replanCalls,1,'only one model-assisted replan is permitted');
+ assert.ok(cycle.plan.steps.includes('position_analysis'));
+ assert.ok(cycle.run.results.some(item=>item.capability_id==='position_analysis'&&item.status==='completed'));
+ assert.ok(cycle.state.trace.some(item=>item.event==='replan_executed'));
+ assert.equal(cycle.validation.valid,true);
+ assert.equal(cycle.run.model_weights_changed,false);
+});
