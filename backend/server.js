@@ -56,6 +56,7 @@ import { buildMessinhoClarificationContinuity } from './messinho-clarification-c
 import { resolveMessinhoEntityReferences } from './messinho-entity-resolution.js';
 import { guardMessinhoConversationReply } from './messinho-conversation-response-guard.js';
 import { findMessinhoLanguageKnowledge, formatMessinhoLanguageKnowledge } from './messinho-language-knowledge.js';
+import { buildMessinhoConversationMemory, formatMessinhoConversationMemory } from './messinho-conversation-memory.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -2324,12 +2325,15 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     // Approved, first-party language knowledge is part of the same cognitive turn.
     // Semantic cognitive routing runs before all deterministic feature routing.
     // It interprets meaning, context, spelling/dictation variants and memory intent.
+    const conversationMemory=buildMessinhoConversationMemory({history,conversationId});
+    const conversationMemoryContext=formatMessinhoConversationMemory(conversationMemory);
     const cognitiveResult=await classifyMessinhoTurn({
       message,
       history,
       memory:agentMemory,
       linguisticContext:{...linguisticContext,dialogue_state:dialogueState},
       linguisticKnowledgeContext,
+      conversationMemoryContext,
       userRole:profile.role,
       apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
       baseUrl:process.env.MESSINHO_MODEL_BASE_URL||process.env.OPENAI_BASE_URL||'https://api.openai.com/v1',
