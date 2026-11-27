@@ -1,9 +1,9 @@
 name: MESSINHO backend syntax
 on:
   push:
-    branches: [feature/messinho-unified-ai-integration]
+    branches: [feature/messinho-unified-ai-integration, feature/messinho-conversational-intelligence-2]
   pull_request:
-    branches: [main]
+    branches: [main, feature/messinho-unified-ai-integration]
 jobs:
   backend-syntax:
     runs-on: ubuntu-latest
