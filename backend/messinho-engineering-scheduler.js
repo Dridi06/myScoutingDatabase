@@ -41,7 +41,7 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
   const {data:afterGenerate,error:afterGenerateError}=await db.from('messinho_agent_control')
     .select('mode,stop_requested').eq('id','global').maybeSingle();
   if(afterGenerateError||afterGenerate?.mode!=='developing'||afterGenerate?.stop_requested){
-    await finish('stopped',{source_sha:generated.source_sha||null,error_code:'ADMIN_STOP_REQUESTED'});
+    await finish('failed',{source_sha:generated.source_sha||null,error_code:'ADMIN_STOP_REQUESTED'});
     return {ok:true,status:'stopped',review_date:schedule.review_date};
   }
   if(!generated.ok){await finish('failed',{error_code:generated.code||'REVIEW_FAILED'});return {ok:false,code:generated.code||'REVIEW_FAILED'};}
