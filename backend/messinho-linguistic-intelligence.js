@@ -5,7 +5,7 @@
  * Dialect, script and code-switching are represented separately so Tunisian Derja is not
  * incorrectly collapsed into Modern Standard Arabic.
  */
-export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.2';
+export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.3.3';
 
 export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
   { id:'de', name:'Deutsch', family:'Germanic', scripts:['Latin'], variants:['de-DE','de-AT','de-CH'], capabilities:['grammar','cases','articles','word_order','compound_words','spelling','semantics','pragmatics'] },
@@ -36,9 +36,18 @@ function words(value) {
   return clean(value).toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) || [];
 }
 function countHits(tokens, lexicon) { return tokens.reduce((n, token) => n + (lexicon.has(token) ? 1 : 0), 0); }
+function countArabicHits(tokens, lexicon) {
+  // Arabic conjunctions و / ف can attach directly to the following word.
+  // Match one known prefix for scoring only; never rewrite the source token.
+  return tokens.reduce((count, token) => {
+    if (lexicon.has(token)) return count + 1;
+    if (/^[وف][\\p{L}]+$/u.test(token) && lexicon.has(token.slice(1))) return count + 1;
+    return count;
+  }, 0);
+}
 function scoreProfile(id, tokens, text) {
   const lexicon = WORDS[id];
-  let score = countHits(tokens, lexicon);
+  let score = id === 'ar' ? countArabicHits(tokens, lexicon) : countHits(tokens, lexicon);
   if (id === 'ar-tn') {
     if (LATIN_DERJA.test(text)) score += 5;
     if (TUNISIAN_ARABIC.test(text)) score += 7;
