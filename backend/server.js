@@ -623,14 +623,16 @@ app.get('/api/admin/myki/status',myKiStatusLimiter,async(req,res)=>{
     const activeTask=latestTask?.status==='running'?latestTask:null;
     return res.json({
       scheduler_enabled:isMessinhoEngineeringAutoReviewEnabled(process.env)&&mode==='developing'&&!control?.stop_requested,
+      self_repair_enabled:mode==='working'&&!control?.stop_requested&&getMessinhoEngineeringReviewSchedule().due,
       maturity:buildMessinhoMaturityReport(),autonomy_mode:mode,
       control:{mode,stop_requested:!!control?.stop_requested,current_task:control?.current_task||activeTask?.goal||null,
         status_message:control?.status_message||null,updated_at:control?.updated_at||null},
       current_work:latestTask?{task_id:latestTask.id,goal:latestTask.goal,status:latestTask.status,last_error:latestTask.last_error||null,
-        pending_steps:Array.isArray(latestTask.pending_capabilities)?latestTask.pending_capabilities.length:0,updated_at:latestTask.updated_at}:null,
+        pending_steps:Array.isArray(latestTask.pending_capabilities)?latestTask.pending_capabilities.length:0,updated_at:latestTask.updated_at}:
+        mode==='working'&&control?.current_task?{goal:control.current_task,status:'running',pending_steps:0,updated_at:control.updated_at}:null,
       sandbox:{enabled:isMessinhoSandboxStagingAllowed(process.env),github_credential_configured:Boolean(process.env.MESSINHO_SANDBOX_GITHUB_TOKEN),
         state:!isMessinhoSandboxStagingAllowed(process.env)?'disabled':!process.env.MESSINHO_SANDBOX_GITHUB_TOKEN?'credential_missing':'configured_not_yet_end_to_end_verified'},
-      run_state:activeTask?'running':review?.status==='running'?'running':mode,
+      run_state:activeTask|| (mode==='working'&&control?.current_task)?'running':review?.status==='running'?'running':mode,
       schedule:{time_zone:'Europe/Berlin',work_windows:[{key:'morning',from:'03:00',until:'08:00'},{key:'daytime',from:'10:00',until:'23:00'}],
         rest_windows:[{from:'08:00',until:'10:00'},{from:'23:00',until:'03:00'}],
         active_window:schedule.review_slot,phase:schedule.phase,review_date:schedule.review_date,due:schedule.due},
@@ -653,6 +655,8 @@ app.post('/api/admin/myki/control',myKiControlLimiter,async(req,res)=>{
     }
     if(action!=='set_mode'||!['paused','working','developing'].includes(mode))
       return res.status(400).json({error:'Ungültiger Betriebsmodus.'});
+    if(mode==='working'&&!getMessinhoEngineeringReviewSchedule().due)
+      return res.status(409).json({error:'Die autonome Systemprüfung ist nur zwischen 03:00–08:00 und 10:00–23:00 Uhr (Berlin) freigegeben.'});
     const {data,error}=await db.from('messinho_agent_control').update({
       mode,stop_requested:false,
       status_message:mode==='paused'?'MESSINHO ist pausiert und startet keine autonomen Entwicklungsaufträge. Laufende Chat-Aufträge dürfen regulär abgeschlossen werden.':
@@ -662,11 +666,7 @@ app.post('/api/admin/myki/control',myKiControlLimiter,async(req,res)=>{
       updated_by:actor.user.id,updated_at:new Date().toISOString(),stopped_at:null
     }).eq('id','global').select('mode,stop_requested,status_message,updated_at').single();
     if(error||!data)return res.status(503).json({error:'Der Betriebsmodus konnte nicht dauerhaft gespeichert werden.'});
-    if(mode==='working'){
-      const schedule=getMessinhoEngineeringReviewSchedule();
-      if(!schedule.due)return res.status(409).json({error:'Die autonome Systemprüfung ist nur zwischen 03:00–08:00 und 10:00–23:00 Uhr (Berlin) freigegeben.'});
-      void runMessinhoSelfRepairCycle(actor.user.id);
-    }
+    if(mode==='working')void runMessinhoSelfRepairCycle(actor.user.id);
     if(mode==='developing'&&isMessinhoEngineeringAutoReviewEnabled(process.env)){
       void runMessinhoScheduledEngineeringReview({db,force:true})
         .then(result=>{if(!result.ok)console.warn('MESSINHO admin-triggered development run did not complete:',result.code);})
