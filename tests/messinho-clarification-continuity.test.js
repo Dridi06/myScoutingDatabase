@@ -84,7 +84,7 @@ test('router receives continuity as bounded dialogue evidence and route uses it 
  const {readFile}=await import('node:fs/promises');
  const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
  assert.match(source,/buildMessinhoClarificationContinuity/);
- assert.match(source,/clarification_continuity:clarificationContinuity/);
+ assert.match(source,/dialogueState\\.continuity\\.clarification_continuity=clarificationContinuity/);
  assert.match(source,/clarificationContinuity\.effective_message/);
  assert.match(source,/clarificationContinuity\.parser_history/);
 });
