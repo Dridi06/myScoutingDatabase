@@ -91,7 +91,7 @@ export function normalizeMessinhoArabizi(input) {
   // Convert digits only when the token has a recognizable Arabizi shape:
   // a digit-led word (3lech) or an embedded Arabizi digit (wa9tech).
   // Do not corrupt football IDs such as U19, model names, dates or statistics.
-  return clean(input).replace(/[\\p{L}0-9]+/gu, token => {
+  return clean(input).replace(/[\p{L}0-9]+/gu, token => {
     if (!/[A-Za-zÀ-ÖØ-öø-ÿ]/u.test(token)) return token;
     const looksLikeArabizi = /^[2356789][A-Za-zÀ-ÖØ-öø-ÿ]+$/u.test(token) ||
       /^[A-Za-zÀ-ÖØ-öø-ÿ]+[2356789][A-Za-zÀ-ÖØ-öø-ÿ]+$/u.test(token);
