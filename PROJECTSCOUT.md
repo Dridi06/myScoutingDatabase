@@ -3893,3 +3893,13 @@ All existing branch, staging-only, security, approval, no-repeat, black/navy-and
 - Tests auf Commit `aa1c46217115bcc759a851fa3f82aeebeadb78a4`: **365/365 Node-Tests bestanden**, Backend-Syntax erfolgreich, Staging-Branch-CI erfolgreich und Staging-Health-Smoke erfolgreich.
 - Die Codeprüfung führt keine Tests aus; deshalb werden Ticket-Tests ehrlich als `not_run` geführt. Es ist ein Vorschlag-/Review-System, kein autonomer Patch-Executor.
 - Noch offen vor produktiver STAGING-Nutzung: Render-Staging-Service auf den geprüften Branch-HEAD manuell deployen (Auto-Deploy ist aus), prüfen, ob `OPENAI_API_KEY` und `OPENAI_MODEL` auf STAGING gesetzt sind, Admin-/Scout-Rollenpfade live testen und ein echtes End-to-End-Ticket erzeugen. Keine Produktion und kein `main`.
+
+
+### STAGING release — myKI Engineering Review Bridge — 2026-11-27
+- Render STAGING service `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`) wurde manuell bereitgestellt; Deployment `dep-dc4chtuq1p3s73dj661g`, Commit `4d7e458db3c2be5aef21524aa2bf3740f2283ede`, Status `live`.
+- Build erfolgreich; App-Startlog: `myScoutingDatabase API listening on 10000`; Supabase Data API HTTP 200; Tavily und OpenAI in STAGING konfiguriert; Render meldet `Your service is live`.
+- Der Service bleibt auf `feature/messinho-unified-ai-integration`, Auto-Deploy bleibt deaktiviert. Kein Merge in `main`, kein Produktionsdeploy.
+- Staging-Supabase-Kontrolle nach Bereitstellung: myKI-Ticketanzahl 0, Eventanzahl 0. Es wurden bewusst keine künstlichen Testtickets angelegt.
+- **Noch offener Live-Test:** authentifizierte Admin-Sitzung im Staging öffnen und im bestehenden MESSINHO-Chat den Selbstprüfungsauftrag auslösen. Erwartete Ergebnisse: entweder ein belegter Vorschlag als myKI-Ticket mit `not_run`-Teststatus oder eine ehrliche Meldung, dass kein hinreichend sicherer Verbesserungsvorschlag gefunden wurde. Der echte Admin-Chat-/Ticket-Ende-zu-Ende-Aufruf wurde mangels Test-Admin-Sitzung noch nicht durchgeführt.
+- **Admin-Testadresse:** https://myscoutingdatabase-messinho-staging.onrender.com
+- Nächster Schritt: Admin-Test in Staging durchführen, Ticketliste/Kopierfunktion und rollenbasierten Scout-Ausschluss prüfen; anschließend die sechs Qualitätsgates und einen separaten Staging-Integrationsprozess entwickeln. Keine automatische Codeausführung oder Produktion.
