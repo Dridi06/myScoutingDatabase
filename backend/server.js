@@ -472,69 +472,35 @@ app.get('/api/admin/messinho-diagnostics',requireSupabaseAdmin,async(req,res)=>{
   if(error)return res.status(500).json({error:'MESSINHO-Diagnosehistorie konnte nicht geladen werden.',detail:error.message});
   return res.json(data||[]);
 });
-app.get('/api/admin/myki/status',requireApprovedMessinhoAdmin,async(req,res)=>{
+app.get('/api/admin/myki/status',async(req,res)=>{
+  const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
   if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
   try{
-    const [{data:review,error:reviewError},{data:control,error:controlError},{data:activeTasks,error:taskError}]=await Promise.all([
+    const [{data:review,error:reviewError},{data:control,error:controlError},{data:tasks,error:taskError}]=await Promise.all([
       db.from('messinho_engineering_review_runs').select('review_date,status,started_at,finished_at,ticket_id,error_code')
         .order('review_date',{ascending:false}).limit(1).maybeSingle(),
       db.from('messinho_agent_control').select('mode,stop_requested,current_task,status_message,updated_at,stopped_at').eq('id','global').maybeSingle(),
-      db.from('messinho_agent_tasks').select('id,goal,status,updated_at,pending_capabilities').eq('owner_id',req.user.id).eq('status','running').order('updated_at',{ascending:false}).limit(1)
+      db.from('messinho_agent_tasks').select('id,goal,status,updated_at,pending_capabilities,last_error').eq('owner_id',actor.user.id)
+        .in('status',['running','partial','completed','failed']).order('updated_at',{ascending:false}).limit(1)
     ]);
     if(reviewError||controlError||taskError)return res.status(500).json({error:'Der MESSINHO-Aktivitätsstatus konnte nicht vollständig geladen werden. Bitte Staging-Migration prüfen.'});
-    const schedule=getMessinhoEngineeringReviewSchedule();
-    const mode=control?.mode||'paused';
-    const activeTask=activeTasks?.[0]||null;
+    const schedule=getMessinhoEngineeringReviewSchedule(),mode=control?.mode||'paused',latestTask=tasks?.[0]||null;
+    const activeTask=latestTask?.status==='running'?latestTask:null;
     return res.json({
       scheduler_enabled:isMessinhoEngineeringAutoReviewEnabled(process.env)&&mode==='developing'&&!control?.stop_requested,
-      maturity:buildMessinhoMaturityReport(),
-      autonomy_mode:mode,
+      maturity:buildMessinhoMaturityReport(),autonomy_mode:mode,
       control:{mode,stop_requested:!!control?.stop_requested,current_task:control?.current_task||activeTask?.goal||null,
         status_message:control?.status_message||null,updated_at:control?.updated_at||null},
-      current_work:activeTask?{task_id:activeTask.id,goal:activeTask.goal,status:activeTask.status,
-        pending_steps:Array.isArray(activeTask.pending_capabilities)?activeTask.pending_capabilities.length:0,updated_at:activeTask.updated_at}:null,
-      sandbox:{
-        enabled:isMessinhoSandboxStagingAllowed(process.env),
-        github_credential_configured:Boolean(process.env.MESSINHO_SANDBOX_GITHUB_TOKEN),
-        state:!isMessinhoSandboxStagingAllowed(process.env)?'disabled':
-          !process.env.MESSINHO_SANDBOX_GITHUB_TOKEN?'credential_missing':'configured_not_yet_end_to_end_verified'
-      },
+      current_work:latestTask?{task_id:latestTask.id,goal:latestTask.goal,status:latestTask.status,last_error:latestTask.last_error||null,
+        pending_steps:Array.isArray(latestTask.pending_capabilities)?latestTask.pending_capabilities.length:0,updated_at:latestTask.updated_at}:null,
+      sandbox:{enabled:isMessinhoSandboxStagingAllowed(process.env),github_credential_configured:Boolean(process.env.MESSINHO_SANDBOX_GITHUB_TOKEN),
+        state:!isMessinhoSandboxStagingAllowed(process.env)?'disabled':!process.env.MESSINHO_SANDBOX_GITHUB_TOKEN?'credential_missing':'configured_not_yet_end_to_end_verified'},
       run_state:activeTask?'running':review?.status==='running'?'running':mode,
       schedule:{time_zone:'Europe/Berlin',daily_at:'20:00',review_date:schedule.review_date,due:schedule.due},
       last_run:review||null,status_unavailable:false
     });
-  }catch(error){
-    console.error('myKI status failed:',error.message);
-    return res.status(500).json({error:'Der MESSINHO-Aktivitätsstatus ist vorübergehend nicht verfügbar.'});
-  }
+  }catch(error){console.error('myKI status failed:',error.message);return res.status(500).json({error:'Der MESSINHO-Aktivitätsstatus ist vorübergehend nicht verfügbar.'});}
 });
-app.post('/api/admin/myki/control',myKiTicketLimiter,async(req,res)=>{
-  try{
-    const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
-    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
-    const action=String(req.body?.action||'');
-    const mode=String(req.body?.mode||'');
-    if(action==='stop'){
-      const {data,error}=await db.from('messinho_agent_control').update({
-        mode:'paused',stop_requested:true,status_message:'Stopp angefordert. MESSINHO beendet den aktuellen Arbeitsschritt kontrolliert.',
-        updated_by:actor.user.id,updated_at:new Date().toISOString()
-      }).eq('id','global').select('mode,stop_requested,status_message,updated_at').single();
-      if(error||!data)return res.status(503).json({error:'Der Stopp konnte nicht dauerhaft gespeichert werden.'});
-      return res.json({ok:true,control:data,message:'Stopp angefordert. Laufende Arbeit wird am nächsten sicheren Haltepunkt beendet.'});
-    }
-    if(action!=='set_mode'||!['paused','working','developing'].includes(mode))
-      return res.status(400).json({error:'Ungültiger Betriebsmodus.'});
-    const {data,error}=await db.from('messinho_agent_control').update({
-      mode,stop_requested:false,status_message:mode==='paused'?'MESSINHO ist pausiert.':
-        mode==='working'?'MESSINHO wartet auf konkrete Admin-Aufträge.':
-        'MESSINHO darf freigegebene Entwicklungsprüfungen selbstständig ausführen.',
-      updated_by:actor.user.id,updated_at:new Date().toISOString(),stopped_at:null
-    }).eq('id','global').select('mode,stop_requested,status_message,updated_at').single();
-    if(error||!data)return res.status(503).json({error:'Der Betriebsmodus konnte nicht dauerhaft gespeichert werden.'});
-    return res.json({ok:true,control:data,message:'Der MESSINHO-Betriebsmodus wurde gespeichert.'});
-  }catch(error){console.error('myKI control update failed:',error.message);return res.status(500).json({error:'Die MESSINHO-Steuerung ist vorübergehend nicht verfügbar.'});}
-});
-
 app.post('/api/admin/messinho-diagnostics/run',requireSupabaseAdmin,async(req,res)=>{
   try{
     const run=await executeMessinhoDiagnostics(req.user.sub);
@@ -1228,7 +1194,8 @@ async function finalizeMessinhoAgentTask(taskId,ownerId,run,priorResults=[],atte
     const {data,error}=await db.from('messinho_agent_tasks').update({
       status,completed_results:combined,pending_capabilities:pending.slice(0,100),
       attempt_count:attemptCount,updated_at:new Date().toISOString(),lease_until:null,
-      last_error:(run?.results||[]).some(item=>item.status==='error')?'Ein oder mehrere Arbeitsschritte meldeten einen Fehler.':null
+      last_error:run?.stop_requested?'Vom Administrator kontrolliert gestoppt.':
+        (run?.results||[]).some(item=>item.status==='error')?'Ein oder mehrere Arbeitsschritte meldeten einen Fehler.':null
     }).eq('id',taskId).eq('owner_id',ownerId).eq('status','running').select('id').maybeSingle();
     if(error){console.warn('MESSINHO task finalization failed:',error.message);return null;}
     if(!isMessinhoTaskWriteConfirmed(data,taskId)){console.warn('MESSINHO task finalization did not update the expected owner/task.');return null;}
@@ -2269,6 +2236,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const taskRecord=await createMessinhoAgentTask(ownerId,interpretedMessage,automaticPlan,agentInput,profile.role);
       const agentCycle=await executeMessinhoAgentPlan({plan:automaticPlan,input:agentInput,goal:interpretedMessage,role:profile.role,
         onStep:checkpoint=>taskRecord?checkpointMessinhoAgentTask(taskRecord.id,ownerId,checkpoint.completed_results,checkpoint.pending_capabilities):undefined,
+        shouldStop:async()=>{
+          const {data:control,error}=await db.from('messinho_agent_control').select('mode,stop_requested').eq('id','global').maybeSingle();
+          return Boolean(error||control?.stop_requested||control?.mode==='paused');
+        },
         onEngineeringProposal:proposal=>persistMessinhoMyKiProposal({db,proposal})});
       const run=agentCycle.run;
       const finalizedTask=taskRecord?await finalizeMessinhoAgentTask(taskRecord.id,ownerId,run):null;
