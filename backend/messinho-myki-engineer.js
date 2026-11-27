@@ -32,7 +32,7 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
   const cleanGoal=String(goal||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,700);
   if(cleanGoal.length<8)return {ok:false,code:'MYKI_ENGINEERING_GOAL_REQUIRED',message:'Bitte beschreibe kurz, was MESSINHO prüfen soll.'};
   try{
-    const commitResponse=await fetchImpl('https://api.github.com/repos/'+REPOSITORY+'/commits/'+BRANCH,{
+    const commitResponse=await fetchImpl('https://api.github.com/repos/'+REPOSITORY+'/commits/'+encodeURIComponent(BRANCH),{
       headers:{Accept:'application/vnd.github+json','User-Agent':'myScoutingDatabase-MESSINHO-Engineering'},signal:AbortSignal.timeout(10000)
     });
     const commit=await responseJson(commitResponse);
