@@ -4662,3 +4662,44 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 3. Authentifizierte Admin-/Scout-End-to-End-Tests sowie Rollen- und Tenant-Isolation im tatsächlichen Chat.
 4. Abschluss der isolierten Engineering-Sandbox-Prüfung.
 5. STAGING-Deployment erst nach vollständigem Prüfnachweis und ausdrücklicher Freigabe; Production bleibt gesperrt.
+
+## 27. Linguistic Intelligence 1.3.1 und erfolgreiche isolierte Engineering-Sandbox — 2026-11-27
+
+### Sprachverarbeitung und Chat-Integration
+- `backend/messinho-linguistic-intelligence.js` ist im Feature-Branch auf Version **1.3.1**.
+- Sechs Profile bleiben unterstützt: Deutsch, Englisch, Französisch, Hocharabisch, tunesische Derja (Arabisch und lateinisches Arabizi) und Spanisch.
+- Arabizi-Ziffern werden weiterhin nur innerhalb erkannter lateinischer Arabizi-Tokens behandelt. Zahlen, Jahreszahlen, Spielstände, Formationen und Kennungen wie `U19`, `4-3-3` oder `Messi9` bleiben geschützt.
+- Die Normalisierung ist bewusst konservativ. Sie ist keine vollständige Arabizi-Transliteration und kein Nachweis muttersprachlicher Beherrschung.
+- Die Sprachintelligenz und das freigegebene Sprachwissen sind tatsächlich in die authentifizierte Chat-Route integriert: Kontextaufbau, Wissensabruf, Prompt-Injektion und Antwortmetadaten werden durch Regressionstests geprüft.
+- Die Wissensbasis bleibt auf dem zuletzt geprüften Stand bei **84 Versionszeilen / 78 eindeutigen Eintragsschlüsseln** über sechs Profile; sie ist eine intern erstellte Grundlage, kein vollständiges Wörterbuch.
+
+### Build- und Sandbox-Korrektur
+- Das Frontend-Buildskript ruft Vite direkt über Node auf, statt einen möglicherweise nicht ausführbaren npm-Binär-Shim zu verwenden.
+- Der isolierte Runner stellt im temporären Projektverzeichnis einen ausführbaren Vite-Launcher her. Diese Anpassung betrifft nur die wegwerfbare Sandbox-Kopie.
+- Die erste Sandbox-Ausführung scheiterte beim Laden der nativen Rollup-Bibliothek mit `ERR_DLOPEN_FAILED`, weil die temporären Docker-Dateisysteme keine Ausführung erlaubten.
+- In `.github/workflows/messinho-isolated-engineering.yml` wurden deshalb die temporären Mounts `/work` und `/tmp` mit `exec` konfiguriert. Die Änderung ist auf den isolierten Container beschränkt.
+
+### Verifizierte Abnahme
+- Commit mit Sandbox-Korrektur: `bd45f706d04f85f7b0ee95ac00445c23d4ff5646`.
+- GitHub Actions Job **Isolated toolchain and project validation**: erfolgreich abgeschlossen.
+- Der Job hat exakt diesen Commit ausgecheckt und die dedizierte Compiler-Image-Erstellung erfolgreich abgeschlossen.
+- Regressionstests: **466 bestanden, 0 fehlgeschlagen**.
+- Vite-Produktionsbuild: erfolgreich; **1.640 Module** transformiert.
+- Toolchain-Smoke-Checks erfolgreich für Node.js, Python, Java, Go, Rust, GCC, Clang, PHP, Composer, Maven, PHPUnit, HTML-Validator, ShellCheck und PostgreSQL.
+- Die isolierte PostgreSQL-Prüfung für den Engineering-Memory-Vertrag war erfolgreich; das Ergebnis wurde als `passed` akzeptiert, ein erneuter identischer Eintrag korrekt als Duplikat erkannt und der Vertragstest bestätigte `engineering_memory_contract_ok`.
+- Sandbox-Ergebnis: `MESSINHO_SANDBOX_OUTCOME=toolchain_smoke_passed`.
+- Die Sandbox hat damit den vorhandenen Projektstand im isolierten Werkzeugcontainer gebaut und geprüft. Das ist noch kein Nachweis, dass MESSINHO bereits beliebige Kandidatenänderungen autonom sicher entwickeln, bewerten und integrieren kann.
+
+### Deployment- und Sicherheitsstatus
+- Änderungen liegen auf `feature/messinho-unified-ai-integration`; aktueller bestätigter Branch-HEAD ist `bd45f706d04f85f7b0ee95ac00445c23d4ff5646`.
+- Render-STAGING wurde in diesem Arbeitsschritt **nicht deployed**; Auto-Deploy bleibt deaktiviert.
+- Supabase-STAGING wurde in diesem Arbeitsschritt nicht verändert; keine Migration ausgeführt.
+- `main`, Produktion und Produktionsdaten wurden nicht verändert.
+- Keine automatische Übernahme von KI-generiertem Code. Kandidaten bleiben bis zur Prüfung und ausdrücklichen Admin-Freigabe außerhalb der laufenden Anwendung.
+
+### Nächste Schritte
+1. Die Engineering-Sandbox nicht nur mit dem Baseline-Projekt, sondern mit einem begrenzten, ausdrücklich freigegebenen Kandidaten-Patch durchlaufen lassen: Patch-Validierung, isolierter Build, Tests, Diff-Prüfung und Ergebnisvergleich.
+2. Sicherstellen, dass Fehler, Compiler-Ausgaben, Testresultate und Artefakt-Hashes dauerhaft und nachvollziehbar dem richtigen Ticket, Quell-Commit und Kandidaten zugeordnet werden.
+3. Admin-Workflow „Arbeiten“ und „Weiterentwickeln“ auf dem dedizierten STAGING authentifiziert testen; Scout-Negativtest für privilegierte Befehle durchführen.
+4. Mehrsprachige Chat-E2E-Tests mit unabhängigen Referenzfällen und muttersprachlicher Prüfung ergänzen.
+5. Erst nach vollständigem Nachweis und ausdrücklicher Freigabe auf Render-STAGING deployen. Production bleibt gesperrt.
