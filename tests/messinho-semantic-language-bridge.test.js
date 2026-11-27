@@ -35,10 +35,13 @@ test('semantic language bridge carries existing language profiles and approved v
     linguisticContext,knowledgeResult
   });
   assert.equal(result.version,MESSINHO_SEMANTIC_LANGUAGE_BRIDGE_VERSION);
+  assert.equal(result.supported_languages.length,6);
   assert.deepEqual(result.active_language_profiles.map(item=>item.id),['de','ar-tn']);
   assert.equal(result.mixed_language_segments.length,2);
   assert.equal(result.approved_vocabulary_and_rules[0].language,'ar-tn');
   assert.deepEqual(result.approved_vocabulary_and_rules[0].terms,['joueur','mrigel']);
+  const structured=buildMessinhoSemanticLanguageContext({linguisticContext,knowledgeResult:{...knowledgeResult,items:[{...knowledgeResult.items[0],content:{...knowledgeResult.items[0].content,terms:[{term:'joueur',meaning:'Spieler'}]}}]}});
+  assert.deepEqual(structured.approved_vocabulary_and_rules[0].terms,[{term:'joueur',meaning:'Spieler'}]);
   assert.match(result.interpretation_policy.join(' '),/Tunisian Derja/);
 });
 
