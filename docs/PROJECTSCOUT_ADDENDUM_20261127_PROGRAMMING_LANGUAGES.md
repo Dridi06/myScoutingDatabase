@@ -24,6 +24,9 @@ Scope: feature branch only; STAGING-only policy remains unchanged.
 - Wired the same context into the existing `/api/agent/chat` system prompt only when a signed-in Admin asks a programming/software-development question. Scout requests never receive this programming context. This lets the existing MESSINHO conversation use the language knowledge without creating a second agent.
 - MESSINHO's existing engineering reviewer receives this expanded context automatically through the existing learning-context builder. No separate agent or provider was added.
 - Added regression tests for all 11 profiles, minimum concept/tool coverage, versioning and deterministic context generation.
+- Added `backend/messinho-code-intelligence.js`: source-file language detection for 11 language groups, per-language validation plans, exclusion of secrets/generated files, and an autonomous engineering loop with evidence gates.
+- Integrated the code-intelligence protocol into the reusable programming-learning context and the existing engineering reviewer. The reviewer must distinguish static inspection from parser/compiler/test/runtime evidence and must not claim tools ran when they did not.
+- Added regression tests for source-language detection, path exclusions, language-specific validation plans and the improvement loop.
 - Added the detailed curriculum reference at `docs/MESSINHO_PROGRAMMING_LANGUAGE_CURRICULUM.md`.
 
 ## Learning order
@@ -38,10 +41,14 @@ Project-relevant technologies are prioritized first: JavaScript/TypeScript, Pyth
 - Code execution, patch application, merge and deployment remain outside autonomous permissions.
 - No player/scout data, database schema, RLS, auth, roles, production or `main` were changed.
 
+## Remaining autonomy gap
+
+The engineering pipeline still operates in proposal-only mode. It reads a fixed allowlist of five JavaScript files, generates a patch proposal and does not execute generated code or run tests. It is therefore not yet a multi-language autonomous implementation-and-validation sandbox. The new language detector and validation plans are foundations, not proof of practical execution in Python, Java, Go, Rust, C/C++, C#, PHP or Bash. A separate ephemeral, resource-limited sandbox and exact-revision test/benchmark evidence pipeline are required before MESSINHO can safely execute candidate changes. Admin approval remains required before repository changes or deployment.
+
 ## Verification state
 
 - Code and test files have been committed to `feature/messinho-unified-ai-integration`.
-- Latest code commit at this checkpoint: `1673a4a1f278909da2b363c9cf9c17028ea2d2f4`.
+- Latest code commits include the language-aware planner and test additions; final checkpoint commit is recorded after this document update.
 - GitHub combined commit status currently returns no status entries. Therefore CI execution/result is not yet confirmed.
-- No Render STAGING deployment was triggered for this curriculum change. Do not treat the new language curriculum as live until CI is green and the exact commit is deployed and checked on STAGING.
+- No Render STAGING deployment was triggered for this curriculum change or the added code-intelligence module. Do not treat the new language curriculum as live until CI is green and the exact commit is deployed and checked on STAGING.
 - Next: confirm CI on the branch HEAD; if green, manually deploy that exact HEAD to Render STAGING; then verify MESSINHO's effective language context in an authenticated Admin session. Production remains untouched.
