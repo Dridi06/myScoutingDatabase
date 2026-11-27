@@ -237,3 +237,10 @@ test('clarification lifecycle recognizes Tunisian Derja answers and questions',(
   assert.equal(age.continuity.pending_question.kind,'age');
   assert.equal(age.continuity.clarification_reply.answer_shape,'numeric');
 });
+
+
+test('Tunisian Derja acknowledgements are not mistaken for discourse connectors',()=>{
+  for(const reply of ['باهي','إي','لا']){
+    assert.equal(classifyMessinhoFollowUp(reply),'short_reply',reply);
+  }
+});
