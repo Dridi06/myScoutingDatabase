@@ -85,7 +85,7 @@ const ACTION_PATTERNS = {
 const TARGET_LANGUAGE_PATTERNS = [
   {id:'de',pattern:/(?:auf|ins|in) deutsch|\bto german\b|\bin german\b/u},
   {id:'en',pattern:/(?:auf|ins|in) englisch|\bto english\b|\bin english\b/u},
-  {id:'fr',pattern:/(?:auf|ins|in) französisch|\bto french\b|\bin french\b|\ben français\b/u},
+  {id:'fr',pattern:/(?:auf|ins|in) französisch|\bto french\b|\bin french\b|\binto french\b|\ben français\b/u},
   {id:'ar',pattern:/(?:auf|ins|in) hocharabisch|\bmodern standard arabic\b|\bfusha\b|بالعربية الفصحى/u},
   {id:'ar-tn',pattern:/(?:auf|ins|in) tunesisch|\btunisian derja\b|\bderja\b|بالتونسي/u},
   {id:'es',pattern:/(?:auf|ins|in) spanisch|\bto spanish\b|\bin spanish\b|\ben español\b/u}
