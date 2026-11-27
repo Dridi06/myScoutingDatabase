@@ -1,11 +1,6 @@
-export const MESSINHO_COGNITIVE_ROUTER_VERSION='1.0.0';
+import { requestMessinhoModelCompletion, resolveMessinhoModelConfig } from './messinho-model-runtime.js';
 
-const MESSINHO_GREETING_PATTERN=/^(?:hi|hallo|hey|heya|moin|servus|guten morgen|guten tag|guten abend|sal[aä]m|salam|as[- ]?sal[aä]mu alaikum|peace)\s*[!.?,]*$/iu;
-
-export function isMessinhoGreeting(message){
-  const normalized=String(message||'').trim().normalize('NFKC').replace(/\s+/gu,' ');
-  return normalized.length>0&&normalized.length<=48&&MESSINHO_GREETING_PATTERN.test(normalized);
-}
+export const MESSINHO_COGNITIVE_ROUTER_VERSION='1.1.0';
 
 export const MESSINHO_INTENTS=Object.freeze([
   'conversation','clarify','memory_save','memory_recall','scouting','general_research','engineering'
@@ -91,55 +86,47 @@ export function appendMessinhoLongTermMemories(preferences,candidates,createdAt=
   return next;
 }
 
-export async function classifyMessinhoTurn({message,history=[],memory={},linguisticContext=null,userRole='scout',apiKey,model='gpt-4.1-mini',fetchImpl=fetch,timeoutMs=18000}={}){
-  if(!apiKey||typeof fetchImpl!=='function')return {status:'unavailable',decision:null};
-  try{
-    const response=await fetchImpl('https://api.openai.com/v1/chat/completions',{
-      method:'POST',
-      signal:AbortSignal.timeout(timeoutMs),
-      headers:{'Content-Type':'application/json',Authorization:'Bearer '+apiKey},
-      body:JSON.stringify({
-        model,temperature:0.1,
-        response_format:{
-          type:'json_schema',
-          json_schema:{
-            name:'messinho_cognitive_route',
-            strict:true,
-            schema:{
+export async function classifyMessinhoTurn({message,history=[],memory={},linguisticContext=null,userRole='scout',apiKey,baseUrl,model,fetchImpl=fetch,timeoutMs=18000}={}){
+  const config=resolveMessinhoModelConfig({
+    ...process.env,
+    ...(apiKey!==undefined?{MESSINHO_MODEL_API_KEY:apiKey}:{}),
+    ...(baseUrl!==undefined?{MESSINHO_MODEL_BASE_URL:baseUrl}:{}),
+    ...(model!==undefined?{MESSINHO_MODEL_NAME:model}:{})
+  });
+  const result=await requestMessinhoModelCompletion({
+    messages:buildMessinhoCognitiveRouterMessages({message,history,memory,linguisticContext,userRole}),
+    model:config.model,apiKey:config.apiKey,baseUrl:config.baseUrl,fetchImpl,timeoutMs,temperature:0.1,
+    responseFormat:{
+      type:'json_schema',
+      json_schema:{
+        name:'messinho_cognitive_route',
+        strict:true,
+        schema:{
+          type:'object',additionalProperties:false,
+          properties:{
+            intent:{type:'string',enum:MESSINHO_INTENTS},
+            confidence:{type:'number',minimum:0,maximum:1},
+            reply:{type:'string'},
+            clarification_question:{type:'string'},
+            memory_items:{type:'array',maxItems:3,items:{
               type:'object',additionalProperties:false,
               properties:{
-                intent:{type:'string',enum:MESSINHO_INTENTS},
-                confidence:{type:'number',minimum:0,maximum:1},
-                reply:{type:'string'},
-                clarification_question:{type:'string'},
-                memory_items:{type:'array',maxItems:3,items:{
-                  type:'object',additionalProperties:false,
-                  properties:{
-                    text:{type:'string',maxLength:320},
-                    category:{type:'string',enum:['preference','project','stable_fact','active_goal']},
-                    confidence:{type:'number',minimum:0,maximum:1}
-                  },required:['text','category','confidence']
-                }}
-              },required:['intent','confidence','reply','clarification_question','memory_items']
-            }
-          }
-        },
-        messages:buildMessinhoCognitiveRouterMessages({message,history,memory,linguisticContext,userRole})
-      })
-    });
-    if(!response.ok){
-      const providerPayload=await response.json().catch(()=>({}));
-      const providerError=providerPayload?.error||{};
-      const errorCode=typeof providerError.code==='string'?providerError.code:
-        (typeof providerError.type==='string'?providerError.type:'provider_rejected_request');
-      return {status:'provider_error',decision:null,http_status:response.status,error_code:errorCode};
+                text:{type:'string',maxLength:320},
+                category:{type:'string',enum:['preference','project','stable_fact','active_goal']},
+                confidence:{type:'number',minimum:0,maximum:1}
+              },required:['text','category','confidence']
+            }}
+          },required:['intent','confidence','reply','clarification_question','memory_items']
+        }
+      }
     }
-    const payload=await response.json();
-    const raw=payload.choices?.[0]?.message?.content;
-    const parsed=typeof raw==='string'?JSON.parse(raw):null;
+  });
+  if(result.status!=='completed')return {...result,decision:null};
+  try{
+    const parsed=JSON.parse(result.content);
     const decision=validateMessinhoCognitiveDecision(parsed);
-    return decision?{status:'completed',decision}:{status:'invalid_output',decision:null};
-  }catch(error){
-    return {status:'error',decision:null,error_code:error?.name==='TimeoutError'?'timeout':'router_error'};
+    return decision?{status:'completed',decision,provider_compatibility:result.compatibility_mode||'native'}:{status:'invalid_output',decision:null,error_code:'invalid_decision_schema'};
+  }catch{
+    return {status:'invalid_output',decision:null,error_code:'invalid_json_response'};
   }
 }
