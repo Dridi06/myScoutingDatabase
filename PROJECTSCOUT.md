@@ -5906,3 +5906,37 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - The exact final code commit is verified. The subsequent PROJECTSCOUT documentation checkpoint is documentation-only.
 - PR #58 remains Draft, open and unmerged. No Render deployment, Supabase migration, database write, production/LIVE change or model-weight change was performed.
 - Next: begin Block 3 only after confirming the PR head and preserving this verified checkpoint.
+
+
+## 2026-11-27 — Block 3 checkpoint: multi-turn clarification lifecycle
+
+### Implemented on the feature branch
+- Extended `backend/messinho-dialogue-engine.js` to version 1.2.0.
+- Added bounded pending-question extraction: question text, question kind, and up to four offered options.
+- Added `classifyMessinhoClarificationReply` with explicit states: `none`, `likely_answer`, `ambiguous`, `candidate_answer`, and `new_topic`.
+- Recognizes exact offered-option answers, numeric answers for suitable question types, short confirmations, short free-text answers and new questions that should not be forced into the previous task.
+- Question kinds include player reference, target level, location, age, position, preferred foot, quantity, club/team, choice, yes/no and generic.
+- Option matching is intended to support German, English, French, Spanish and Arabic examples; Tunisian Derja remains covered by the broader language cues and needs additional dedicated lifecycle tests.
+- Cognitive-router prompt now instructs MESSINHO to preserve the previous goal/filters for likely answers, ask one focused question for ambiguous replies, and avoid forcing new topics into pending tasks. A clarification signal alone never authorizes an action.
+- Added regression tests for exact options, age numbers, unlisted options, topic changes, confirmations, multilingual option choices, free text and router policy.
+
+### Files changed
+- `backend/messinho-dialogue-engine.js`
+- `backend/messinho-conversational-intelligence.js`
+- `tests/messinho-dialogue-engine.test.js`
+
+### Save and verification status
+- Work branch: `feature/messinho-conversation-engine`.
+- PR #58 remains Draft and unmerged.
+- Latest Block 3 test commit: `23aa8453a549797390dae95615f8e025a8b80f07`.
+- Dialogue Engine implementation commits: `6dd68d35ea3433ed4a622ebd09fe96631d25f84b` and `e0d124dacd21e53fe73428e3b68f911b09df7999`.
+- Cognitive-router clarification policy commit: `713c33a50917f3b2d15ce50e7c24397cf4bf304b`.
+- **Block 3 CI has not yet been verified on the exact latest commit.** Block 2's 564/564 passing result applies only to its previously verified code commit and must not be attributed to Block 3.
+- No Render deployment, Supabase migration, database write, production/LIVE change or model-weight change.
+
+### Next actions
+1. Run and inspect CI on the exact current branch head; fix any failures without weakening the tests.
+2. Review pending-question extraction for multi-question assistant messages, negated questions and Arabic/Derja option segmentation.
+3. Ensure the clarification result is passed through the existing authenticated chat pipeline and used to preserve the actual prior scouting filters; do not silently infer filters that are absent.
+4. Add a dedicated Derja clarification-answer test matrix.
+5. Update PR #58 and this checkpoint with the exact verified code commit before declaring Block 3 complete.
