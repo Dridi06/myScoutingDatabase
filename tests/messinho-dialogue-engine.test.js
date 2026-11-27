@@ -198,3 +198,43 @@ test('cognitive router receives explicit clarification lifecycle handling rules'
   assert.match(source,/When status is ambiguous, ask one focused clarification/);
   assert.match(source,/never execute an action solely because of this status/);
 });
+
+
+test('clarification classification prioritizes short acknowledgement over connector matching',()=>{
+  assert.equal(classifyMessinhoFollowUp('Genau.'),'short_reply');
+  assert.equal(classifyMessinhoFollowUp('Genau, danke.'),'discourse_connector');
+});
+
+test('location and age questions are classified before generic option choices',()=>{
+  const location=buildMessinhoDialogueState({message:'international',history:[
+    {role:'assistant',text:'Soll ich in Deutschland oder international suchen?'}
+  ]});
+  assert.equal(location.continuity.pending_question.kind,'location');
+  assert.equal(location.continuity.clarification_reply.status,'likely_answer');
+  const age=buildMessinhoDialogueState({message:'21 Jahre',history:[
+    {role:'assistant',text:'Wie alt soll der Spieler maximal sein?'}
+  ]});
+  assert.equal(age.continuity.pending_question.kind,'age');
+  assert.equal(age.continuity.clarification_reply.answer_shape,'numeric');
+});
+
+test('long natural-language clarification is held for semantic review',()=>{
+  const state=buildMessinhoDialogueState({message:'Am liebsten im Großraum Berlin, aber Brandenburg wäre auch möglich.',history:[
+    {role:'assistant',text:'In welcher Region soll ich suchen?'}
+  ]});
+  assert.equal(state.continuity.clarification_reply.status,'candidate_answer');
+  assert.equal(state.continuity.clarification_reply.answer_shape,'free_text');
+});
+
+test('clarification lifecycle recognizes Tunisian Derja answers and questions',()=>{
+  const derja=buildMessinhoDialogueState({message:'تونس',history:[
+    {role:'assistant',text:'تحب نلوّج في ألمانيا ولا تونس؟'}
+  ]});
+  assert.equal(derja.continuity.assistant_awaiting_answer,true);
+  assert.equal(derja.continuity.clarification_reply.status,'likely_answer');
+  const age=buildMessinhoDialogueState({message:'20',history:[
+    {role:'assistant',text:'قداش عمر اللاعب؟'}
+  ]});
+  assert.equal(age.continuity.pending_question.kind,'age');
+  assert.equal(age.continuity.clarification_reply.answer_shape,'numeric');
+});
