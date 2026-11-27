@@ -5816,3 +5816,16 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - PR #58: https://github.com/Dridi06/myScoutingDatabase/pull/58 (draft, targets `feature/messinho-unified-ai-integration`).
 - No database changes, Render deployment, production branch changes, LIVE changes, or production Supabase access.
 - CI is being rerun after correcting the regression fixture for a new-topic request following an assistant question. Record final results for the exact final PR head before merge.
+
+### Extended-context milestone — long conversations
+- Extended the authenticated chat's bounded history window from 20 to 60 messages (up to 30 user/assistant exchanges) while preserving the existing owner/conversation filters.
+- Updated `sanitizeMessinhoHistory` with an optional bounded limit (default remains 20 for all existing callers); the chat route explicitly requests 60.
+- The Dialogue Engine now keeps the latest 12 turns as recent context and creates a small extractive older-context bundle from the preceding window:
+  - up to three older user-goal candidates;
+  - up to two historical assistant questions, explicitly labelled historical rather than pending.
+- Obvious sensitive older excerpts are excluded from this additional summary. No older messages are promoted to facts or durable memory.
+- Added regression coverage for long-history continuity, privacy filtering, bounds and server query integration.
+- Final tested code commit: `369996bd901571b7d0e3568dad38f8c973941132`.
+- Exact-commit GitHub Actions: Node tests **544/544 passed**; backend syntax + test workflow passed; complete STAGING branch CI passed including Vite production build.
+- The later documentation-only commit does not change the tested code.
+- PR #58 remains draft and unmerged. No Render deployment or database changes were performed.
