@@ -4,7 +4,7 @@ PROJECT=/work/project
 mkdir -p "$PROJECT" /tmp/messinho-home
 tar --exclude=.git --exclude=node_modules --exclude='.env*' --exclude='**/.env*' --exclude='*.pem' --exclude='*.key' --exclude='secrets' --exclude='credentials' -C /src -cf - . | tar --no-same-owner --no-same-permissions --no-overwrite-dir -C "$PROJECT" -xf -
 mkdir -p "$PROJECT/node_modules"
-cp -a /deps/. "$PROJECT/node_modules/"
+cp -R /deps/. "$PROJECT/node_modules/"
 # npm lifecycle scripts are disabled on the host; restore executable bits on copied bin shims inside tmpfs.
 for executable in "$PROJECT"/node_modules/.bin/*; do
   [[ -e "$executable" ]] && chmod u+x "$executable" || true
