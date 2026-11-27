@@ -5,6 +5,7 @@
 const MAX_HISTORY = 60;
 const MAX_CONTEXT_MESSAGES = 10;
 const GOAL_PATTERN = /(?:^|[^\p{L}\p{N}])(?:suche|such|finde|identifiziere|scoute|recherchiere|analysiere|vergleiche|stelle|ermittle|need|find|search|scout|research|analyse|analyze|compare|cherche|trouve|busca|encuentra|investiga|قلب|نلوّج|نبحث)(?=$|[^\p{L}\p{N}])/iu;
+const NEW_TOPIC_PATTERN = /\b(?:frage zur|frage über|frage ueber|erklär|erklaer|wie funktioniert|warum|wieso|steuer|allgemeine frage|unabhängig davon|unabhaengig davon|anderes thema|by the way|unrelated question|new topic|autre sujet|por cierto|موضوع آخر|سؤال آخر)\b/iu;
 const NEGATION_PATTERN = /\b(?:nicht|kein(?:e|en|er|es)?|nie|not|never|no|pas|jamais|nunca|ningún|ninguna)\b|(?:ما\s+|لم\s+)/iu;
 const YES_PATTERN = /^(?:ja|yes|oui|sí|si|إي|اي|باهي)$/iu;
 const NO_PATTERN = /^(?:nein|no|non|لا)$/iu;
@@ -59,7 +60,10 @@ function answerForQuestion(message, question, fallback) {
 function findGoalIndex(history) {
   for(let i=history.length-1;i>=0;i--){
     const item=history[i];
-    if(item?.role==='user'&&GOAL_PATTERN.test(clean(item.text)))return i;
+    if(item?.role!=='user')continue;
+    const text=clean(item.text);
+    if(NEW_TOPIC_PATTERN.test(text))return -1;
+    if(GOAL_PATTERN.test(text))return i;
   }
   return -1;
 }
