@@ -9,6 +9,18 @@ cp -R /deps/. "$PROJECT/node_modules/"
 for executable in "$PROJECT"/node_modules/.bin/*; do
   [[ -e "$executable" ]] && chmod u+x "$executable" || true
 done
+# npm install --ignore-scripts can leave the Vite shim non-executable in the
+# mounted dependency tree. Replace only this disposable copy with an explicit
+# Node launcher; never mutate the read-only host dependency mount.
+VITE_PACKAGE="$PROJECT/node_modules/vite/bin/vite.js"
+if [[ -f "$VITE_PACKAGE" ]]; then
+  rm -f "$PROJECT/node_modules/.bin/vite"
+  cat > "$PROJECT/node_modules/.bin/vite" <<'VITE_LAUNCHER'
+#!/usr/bin/env sh
+exec node "$(dirname "$0")/../vite/bin/vite.js" "$@"
+VITE_LAUNCHER
+  chmod 0755 "$PROJECT/node_modules/.bin/vite"
+fi
 cd "$PROJECT"
 git init -q
 git config user.email sandbox@messinho.invalid
