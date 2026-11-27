@@ -5,8 +5,18 @@ import {
   validateMessinhoCognitiveDecision,
   appendMessinhoLongTermMemories,
   isSensitiveMessinhoMemoryText,
-  classifyMessinhoTurn
+  classifyMessinhoTurn,
+  isMessinhoGreeting
 } from '../backend/messinho-conversational-intelligence.js';
+
+test('simple German and multilingual greetings are recognized without a provider call',()=>{
+  for(const greeting of ['Hallo',' Hallo! ','Guten Morgen','Moin','Salam','As-salamu alaikum','Hey']) {
+    assert.equal(isMessinhoGreeting(greeting),true,greeting);
+  }
+  for(const message of ['Hallo, suche einen Stürmer','Wie geht es dir?','']) {
+    assert.equal(isMessinhoGreeting(message),false,message);
+  }
+});
 
 test('router prompt prioritizes meaning, context and natural language over fixed commands',()=>{
   const messages=buildMessinhoCognitiveRouterMessages({
