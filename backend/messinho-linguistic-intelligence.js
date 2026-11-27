@@ -5,7 +5,7 @@
  * Dialect, script and code-switching are represented separately so Tunisian Derja is not
  * incorrectly collapsed into Modern Standard Arabic.
  */
-export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.0.0';
+export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.1.0';
 
 export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
   { id:'de', name:'Deutsch', family:'Germanic', scripts:['Latin'], variants:['de-DE','de-AT','de-CH'], capabilities:['grammar','cases','articles','word_order','compound_words','spelling','semantics','pragmatics'] },
@@ -66,6 +66,47 @@ function inferConversationSignals(text, tokens, languageId) {
   return { intent, questions, politeness, negation, uncertainty, contrast, token_count:tokens.length, language_id:languageId };
 }
 
+
+const ARABIZI_DIGITS = Object.freeze({ '2':'ء', '3':'ع', '5':'خ', '6':'ط', '7':'ح', '8':'غ', '9':'ق' });
+export function normalizeMessinhoArabizi(input) {
+  return clean(input).replace(/[2356789]/g, digit => ARABIZI_DIGITS[digit] || digit);
+}
+function splitLanguageSegments(text) {
+  return clean(text).split(/(?<=[.!?؟۔؛;])\s+/u).filter(Boolean).slice(0,12).map((value,index)=>({
+    index, text:value.slice(0,500), scripts:scriptOf(value)
+  }));
+}
+const ACTION_PATTERNS = {
+  translate: /\b(übersetz(?:e|en)?|translate|tradu(?:is|ire|ce|zca)|ترجم|tarjem|tarjemli)\b/u,
+  correct: /\b(korrigier(?:e|en)?|verbesser(?:e|n)?|correct|corrig(?:e|ez)|corrige|صحح|salla7|sa77a7)\b/u,
+  explain: /\b(erklär(?:e|en)?|erläuter(?:e|n)?|explain|explique(?:r)?|explica(?:r)?|اشرح|فسر|fassar|fasser)\b/u,
+  rephrase: /\b(formulier(?:e|en)? um|umformulier(?:e|en)?|rephrase|reformul(?:e|er)|reformula(?:r)?|أعد الصياغة)\b/u
+};
+const TARGET_LANGUAGE_PATTERNS = [
+  {id:'de',pattern:/(?:auf|ins|in) deutsch|\bto german\b|\bin german\b/u},
+  {id:'en',pattern:/(?:auf|ins|in) englisch|\bto english\b|\bin english\b/u},
+  {id:'fr',pattern:/(?:auf|ins|in) französisch|\bto french\b|\bin french\b|\ben français\b/u},
+  {id:'ar',pattern:/(?:auf|ins|in) hocharabisch|\bmodern standard arabic\b|\bfusha\b|بالعربية الفصحى/u},
+  {id:'ar-tn',pattern:/(?:auf|ins|in) tunesisch|\btunisian derja\b|\bderja\b|بالتونسي/u},
+  {id:'es',pattern:/(?:auf|ins|in) spanisch|\bto spanish\b|\bin spanish\b|\ben español\b/u}
+];
+function detectLanguageAction(text, languageId) {
+  const normalized = clean(text).toLocaleLowerCase();
+  let mode = 'answer';
+  for (const [candidate,pattern] of Object.entries(ACTION_PATTERNS)) {
+    if (pattern.test(normalized)) { mode=candidate; break; }
+  }
+  const target = TARGET_LANGUAGE_PATTERNS.find(item=>item.pattern.test(normalized))?.id || null;
+  const instructions = {
+    translate:'Translate faithfully; preserve names, numbers, football terminology, negation, uncertainty and register. If the target is unclear, ask.',
+    correct:'Correct language errors while preserving intended meaning and tone. Do not invent content.',
+    explain:'Explain meaning, grammar or wording in the user language, with a short example when useful.',
+    rephrase:'Rephrase without changing facts, certainty, intent or tone.',
+    answer:'Answer naturally in the latest user language, using conversation context and approved knowledge.'
+  };
+  return {mode,explicit:mode!=='answer',target_language:mode==='translate'?target:null,source_language:languageId||null,preserve_original:true,instruction:instructions[mode],confidence:mode==='answer'?0.5:0.9};
+}
+
 /**
  * Analyze text without silently translating or rewriting it.
  * Mixed-language messages return per-language evidence and a conservative primary guess.
@@ -121,6 +162,8 @@ export function buildMessinhoLinguisticContext(message, history = []) {
   return {
     ...current,
     conversation_language_hint:current.primary_language||continuityLanguage||null,
+    segments:splitLanguageSegments(clean(message)),
+    action:detectLanguageAction(message,current.primary_language||continuityLanguage||null),
     conversation_policy:[
       'Reply in the language of the latest user message unless the user requests another language.',
       'Preserve names, numbers, football terms and quoted source wording.',
