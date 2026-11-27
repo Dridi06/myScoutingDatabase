@@ -88,12 +88,12 @@ export default function MyKiChat({supabase}){
     <button type="button" className={operatingMode==='developing'?'selected':''} onClick={()=>changeControl('set_mode','developing')} disabled={controlBusy}><TrendingUp size={15}/> Weiterentwickeln</button>
     <button type="button" className="stop" onClick={()=>changeControl('stop')} disabled={controlBusy}><PauseCircle size={15}/> Stop</button>
    </div>
-   <p className="myki-control-description">{status.control?.status_message||'Wähle, ob MESSINHO pausiert, auf deine Aufträge wartet oder freigegebene Entwicklungsprüfungen selbstständig ausführt.'}</p>
+   <p className="myki-control-description">{status.control?.status_message||'Arbeiten startet die Systemfehlersuche mit Diagnose, Ticket und isolierter Reparaturprüfung. Weiterentwickeln sucht nach neuen Verbesserungen.'}</p>
    {status.current_work&&<div className="myki-current-work"><b>Letzter Arbeitsauftrag</b><span>{status.current_work.goal}</span><small>Status: {status.current_work.status==='running'?'läuft':status.current_work.last_error||status.current_work.status} · offene Schritte: {status.current_work.pending_steps}</small></div>}
   </div>
   <div className="myki-agent-meta">
-   <span><Activity size={14}/> Selbstprüfung: {status.scheduler_enabled?'aktiviert':'derzeit deaktiviert'}</span>
-   <span>Autonomie: {operatingMode==='developing'?'autonome Entwicklungsprüfungen':operatingMode==='working'?'Admin-Aufträge':'pausiert'}</span>
+   <span><Activity size={14}/> Selbstprüfung: {(status.self_repair_enabled||status.scheduler_enabled)?'aktiviert':'derzeit deaktiviert'}</span>
+   <span>Autonomie: {operatingMode==='developing'?'autonome Entwicklungsprüfungen':operatingMode==='working'?'Systemfehlersuche und Reparaturprüfung':'pausiert'}</span>
    <span>Programmier-Sandbox: {status.sandbox?.state==='configured_not_yet_end_to_end_verified'?'Zugangsdaten konfiguriert – E2E-Prüfung offen':status.sandbox?.state==='credential_missing'?'GitHub-Zugangsdaten fehlen':'derzeit gesperrt'}</span>
    <span><PauseCircle size={14}/> Entwicklungszeit: 03:00–08:00 und 10:00–23:00 Uhr (Berlin)</span>
    <span>Ruhezeiten: 08:00–10:00 Uhr Pause · 23:00–03:00 Uhr Nachtruhe</span>
