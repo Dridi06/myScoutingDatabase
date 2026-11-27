@@ -5679,3 +5679,18 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Merged to STAGING source branch but not yet deployed to Render. No LIVE/Production code or database has been touched.
 - Next: run complete CI and inspect failures; review the cognitive prompt, response language behavior, memory privacy, confidence thresholds and fallback safety. Then open PR into STAGING integration branch. Deploy only after CI passes and user-approved staging rollout.
 - Follow-up roadmap: multi-turn conversation summaries beyond 20 turns, memory correction/deletion workflow, retrieval relevance ranking, user-visible memory controls, tool/function selection with permission gates, and evaluation suite for typo/dictation/ambiguous intent cases. Do not claim ChatGPT-level model capability; target equivalent conversational UX using current configured model and specialized MESSINHO tools.
+
+
+## 40. MESSINHO Conversational Intelligence 3.0 — STAGING deployment verified — 2026-11-27
+
+- PR #52 is merged into the STAGING integration branch; merge commit: `5b5417fd45ad6f79b1ba553b36db108aa6a5f83e`.
+- STAGING branch head deployed: `a18563f7bf1a89d2702f55850fe58ef8abc84971`.
+- Render STAGING service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`); deployment: `dep-dc4t378u01pc73f9stjg`; status: `live`; finished at `2026-11-27T18:53:56.635Z`.
+- Runtime startup confirmed API listening on port 10000, Supabase Data API HTTP 200, OpenAI configured, model `gpt-4.1-mini`.
+- CI before deployment: 521/521 tests passed; backend syntax passed; Vite production build passed; STAGING branch CI passed.
+- Implemented semantic intent routing for ordinary conversation, clarification, memory save/recall, scouting, general research and engineering. Handles context, typos, dictation/autocorrect, fragments and pronouns; routes before fixed feature parsers.
+- Added bounded owner-scoped adaptive memory with privacy filtering and validation. Action intents below confidence 0.72 are blocked/clarified; memory extraction requires confidence >=0.8. Existing role authorization remains authoritative; Scouts cannot run engineering actions.
+- No database migration was required for this release. No production branch, LIVE Render service or production Supabase resource was changed.
+- **Verification boundary:** deployment and startup are verified. Authenticated browser-level Admin/Scout conversation, memory persistence/recall after refresh, and cross-account isolation have not yet been manually confirmed by the owner.
+- Next user-assisted checks on STAGING: (1) “Hallo Messinho, wie geht es dir?” (2) “Merk dir bitte, dass wir gerade die neue Gesprächsintelligenz testen.” (3) “Was hast du dir gemerkt?” (4) “Und was wollten wir damit erreichen?” Then repeat memory isolation separately for Admin and Scout accounts if available.
+- Follow-up engineering: expand evaluation for typos/dictation/ambiguous follow-ups; add memory correction/deletion controls and relevance ranking; evaluate long-conversation summarization; verify language-aware responses across German, English, French, Spanish, MSA Arabic, Tunisian Derja and Arabizi. Keep all work STAGING-only and deploy only with explicit approval.
