@@ -51,3 +51,12 @@ test('agent core exposes a knowledge gap instead of pretending an unknown questi
  assert.equal(cycle.knowledge_gap.reason,'no_matching_capability_or_verified_evidence');
  assert.equal(cycle.state.phase,'needs_clarification');
 });
+
+test('agent validation treats explicitly deferred steps as pending rather than missing',()=>{
+ const plan={steps:['overall_score','position_score']};
+ const run={results:[{capability_id:'overall_score',status:'completed',provenance:{capability_id:'overall_score'}}],
+  deferred_capabilities:['position_score']};
+ const validation=validateMessinhoAgentRun(plan,run);
+ assert.equal(validation.valid,true);
+ assert.deepEqual(validation.missing_results,[]);
+});
