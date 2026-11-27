@@ -4056,3 +4056,53 @@ Die folgenden Punkte sind im bisherigen Journal mit konkreten Implementierungs-,
 - Bei Unsicherheit Status als `nicht verifiziert` dokumentieren, nicht schätzen.
 
 **Nächster konkreter Arbeitsschritt:** P0 vollständig abschließen. Erst wenn Branch-HEAD, CI und STAGING-Deployment eindeutig übereinstimmen, P1 (Admin-/Scout-Ende-zu-Ende-Test) ausführen. Danach P2 vor P3 — die Sandbox darf nicht vor bewiesenen Daten- und Berechtigungsgrenzen aktiviert werden.
+
+
+## 13. Admin-Steuerung, kooperativer Stopp und Reifegrad — 2026-11-27
+
+### 13.1 Verbindliche Bedienung im Admin-myKI-Bereich
+- Die Reifegradanzeige wird ausschließlich über die geschützte Admin-Statusroute \`/api/admin/myki/status\` geladen. Die Route verlangt einen freigeschalteten Administrator. Die normale Scout-Chatroute gibt keine Reifegrad-, Steuerungs- oder Engineering-Statusdaten aus.
+- Die Reifegradskala ist in \`backend/messinho-maturity.js\` definiert:
+  - 0–19 Anfänger-Agent
+  - 20–39 Verbesserter Agent
+  - 40–59 Erweiterter Agent
+  - 60–79 Super Agent
+  - 80–99 High-Level Premium Agent – im Ausbau
+  - 100 High-Level Premium Agent
+- Aktueller nachweisbasierter Wert aus den neun Reifebereichen: **46/100 — Erweiterter Agent**. Das ist der Code-/Teststand, keine Bestätigung des aktuellen Live-Deployments.
+- Letzter vollständig bestandener Backend-CI-Lauf zum dokumentierten Prüfzeitpunkt: Commit \`85b5d384fdcc0dc3ddc9950284b797ace89e4892\`, 396 Tests bestanden, 0 fehlgeschlagen. Die Reifegradbewertung bleibt konservativ, bis die Funktionen auf STAGING Ende-zu-Ende geprüft sind.
+
+### 13.2 Betriebsmodi
+- \`paused\`: keine autonomen Engineering-Prüfungen starten. Normale direkte Chatfragen und vom Admin angeforderte Analysen bleiben möglich.
+- \`working\`: MESSINHO wartet auf konkrete Admin-Aufträge und bearbeitet diese über den bestehenden Agenten.
+- \`developing\`: MESSINHO darf die freigegebene technische Selbstprüfung starten. Bei Admin-Aktivierung wird – sofern die explizite STAGING-Umgebungsfreigabe vollständig erfüllt ist – sofort ein Entwicklungsreview angestoßen. Der tägliche Scheduler bleibt auf Europe/Berlin 20:00 und verwendet den idempotenten Tages-Ledger.
+- \`stop\`: setzt den Modus auf \`paused\` und setzt \`stop_requested=true\`. Die Agent-Orchestrierung prüft das Signal zwischen einzelnen Fähigkeiten, speichert bereits erledigte Ergebnisse und lässt nicht ausgeführte Fähigkeiten als offen zurück. Ein gestoppter Lauf wird nicht als abgeschlossen ausgegeben; automatische Wiederholungen und myKI-Vorschlagsübergabe werden für diesen Lauf unterdrückt.
+- Der Scheduler prüft den Admin-Modus vor dem Start und erneut nach der Vorschlagsgenerierung. Wenn während der Generierung ein Stopp eingeht, wird kein Ticket mehr gespeichert.
+- Der Admin kann MESSINHO im Chat fragen: „Woran arbeitest du gerade?“ Die Antwort wird aus dem gespeicherten Task-/Review-Status erzeugt und nennt Auftrag, Status und offene Schritte. Während einer laufenden Anfrage bleibt diese reine Statusfrage im UI absendbar.
+
+### 13.3 Technische Umsetzung
+- Frontend: \`src/asi/MyKiChat.jsx\`, \`src/asi/myki-chat.css\`.
+- Geschützte API: \`GET /api/admin/myki/status\`, \`POST /api/admin/myki/control\`.
+- Statusfrage im Chat: Admin-only Intent \`myki_live_work_status\` in \`backend/server.js\`.
+- Dauerhafte Steuerung: vorhandene Tabelle \`public.messinho_agent_control\` auf \`myScoutingDatabase-staging\`; Migration \`20261127011122\` ist in der Staging-Migrationshistorie vorhanden. Die Tabelle war bereits mit \`mode='paused'\` und \`stop_requested=true\` initialisiert. Es wurde keine zweite Steuerungstabelle angelegt.
+- Agent-Haltepunkt: \`backend/messinho-orchestrator.js\` prüft \`shouldStop\` vor jedem Fähigkeitsschritt. \`backend/messinho-agent-core.js\` unterdrückt bei Stopp Retry und myKI-Proposal-Dispatch.
+- Engineering-Scheduler: \`backend/messinho-engineering-scheduler.js\` respektiert \`paused\`/\`developing\` und den Stop-Flag; der manuelle Start ist nur bei gültigem explizitem STAGING-Gate aktiv.
+- Es wurden keine produktiven Daten oder produktiven Deployments verändert.
+
+### 13.4 Testnachweise
+- Neue Orchestrator-Regression: kooperativer Stopp lässt nicht ausgeführte Fähigkeiten offen und meldet \`stopped\`.
+- Neue Scheduler-Regression: \`paused\` blockiert den autonomen Start; Stopp während der Vorschlagsgenerierung verhindert das Speichern eines myKI-Tickets.
+- Admin-Steuerungs- und Statuscode wurde in der Backend-Syntaxprüfung und im vollständigen \`npm test\` des Commit \`85b5d384fdcc0dc3ddc9950284b797ace89e4892\` geprüft.
+- Ergebnis: 396 Tests bestanden, 0 fehlgeschlagen.
+- Nicht nachgewiesen: Admin-/Scout-Ende-zu-Ende-Tests im Browser, Statusroute auf dem aktuellen Render-STAGING-Deploy, tatsächlicher Stop eines laufenden Render-Prozesses und erneuter Sandbox-Workflow nach der Korrektur \`cp -a\` → \`cp -R\`.
+
+### 13.5 Noch zwingend offen
+1. Neueste Feature-Branch-Revision nach den Admin-Control-Änderungen mit Render-STAGING-Deployment vergleichen; nicht auf Basis eines älteren Commits freigeben.
+2. Supabase-STAGING-Migrationstabelle und \`messinho_agent_control\`-Row nochmals gegen den aktuellen Code prüfen; die vorhandene Steuerungstabelle verwenden, keine Duplikate anlegen.
+3. Auf STAGING als Admin testen: Statusanzeige, 46/100, Pause, Arbeiten, Weiterentwickeln, Statusfrage während eines Laufs und Stop.
+4. Als Scout und als nicht freigeschalteter Admin Negativtests durchführen; keine Reifegrad- oder Steuerungsdaten dürfen sichtbar sein.
+5. Einen laufenden Agentenauftrag starten, Stop auslösen und beweisen, dass am nächsten sicheren Haltepunkt beendet, der Zwischenstand gespeichert und kein Vorschlag nach dem Stop erzeugt wird.
+6. Sandbox-Workflow mit korrigierter Dependency-Kopie erneut ausführen; erst nach erfolgreichem Baseline- und Kandidatenlauf den Engineering-Reifegrad erhöhen.
+7. Erst nach erfolgreicher STAGING-Abnahme und ausdrücklicher Eigentümerfreigabe über einen Produktionsstart sprechen.
+
+**Aktueller Betriebszustand der Datenbanksteuerung:** \`paused\`, \`stop_requested=true\`. MESSINHO startet dadurch keine autonome Entwicklungsprüfung, bis ein Administrator in myKI bewusst einen anderen Modus auswählt.
