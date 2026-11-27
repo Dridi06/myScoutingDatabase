@@ -5636,6 +5636,10 @@ Preserve meaning when a player description contains qualified evaluations, negat
   - Node regression suite: 510/510 passed.
   - Backend JavaScript syntax: passed.
   - Full STAGING CI and Vite production build: passed; 1,640 modules transformed and build completed successfully.
-- PR #49 merged only into the STAGING integration branch. Render STAGING deployment is the next step because Render Auto-Deploy is disabled.
-- Authenticated Admin/Scout end-to-end verification is still outstanding; no credentials or user session were impersonated.
+- PR #49 merged only into the STAGING integration branch.
+- Render STAGING deployment: `dep-dc4q1isipgvc738i6cgg`, exact deployed commit `9f03f8d29257e0304a3e21d75e865b3f7875881f`, status `live`, completed at `2026-11-27T15:25:39.943Z`.
+- Runtime startup confirmed `npm start`, API listening on port 10000, Supabase server credentials present, Supabase Data API HTTP 200, OpenAI configured, Tavily configured, model `gpt-4.1-mini`.
+- GitHub Actions for the deployed commit: Node tests, backend syntax, staging health smoke all succeeded; full staging CI (510/510 tests, backend syntax, Vite build) succeeded.
+- Render Auto-Deploy remains intentionally disabled; future code changes require explicit STAGING deployment.
+- Authenticated Admin/Scout end-to-end verification is still outstanding; no credentials or user session were impersonated. The next user-assisted check is to test Admin and Scout separately, then refresh/re-login and confirm private history restoration.
 - Production branch, Render LIVE service, and production Supabase remain untouched.
