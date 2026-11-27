@@ -66,7 +66,7 @@ export function assessMessinhoProgrammingLearning({concept,explanation,testEvide
  const valid=['approved','rejected','needs_revision'].includes(reviewStatus);
  const clean=value=>String(value??'').replace(/[\x00-\x1f\x7f]/g,' ').trim();
  const name=clean(concept),why=clean(explanation),evidence=clean(testEvidence);
- if(name.length<4||why.length<20||evidence.length<12||!valid)
+ if(name.length<2||why.length<20||evidence.length<12||!valid)
   return {eligible:false,reason:'verified_learning_evidence_required'};
  return {eligible:true,record:{concept:name.slice(0,160),principle:why.slice(0,1200),
   evidence:evidence.slice(0,1000),review_status:reviewStatus,
