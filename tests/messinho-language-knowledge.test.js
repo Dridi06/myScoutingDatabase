@@ -154,3 +154,19 @@ test('retrieves a dedicated approved foundation for each of the six language pro
   assert.equal(result.items[0]?.entry_key,fixture.key,fixture.id+' should retrieve its own language foundation');
  }
 });
+
+
+test('caps multi-language retrieval at eight items even with three detected languages',async()=>{
+ const rows=['en','fr','de'].flatMap(language=>Array.from({length:4},(_,index)=>({
+  entry_key:language+'.grammar.topic_'+index,version:1,language_code:language,
+  entry_type:'grammar',topic:'Grammar',title:'Grammar '+index,
+  content:{explanation:'player league analyse joueur analyser performance sentence structure'},
+  tags:['player','league','analyse','joueur'],knowledge_status:'active'
+ })));
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'The player is ready for the league. Bonjour, analysons le joueur. Der Spieler ist bereit für die Liga.');
+ assert.ok(result.items.length<=8);
+ for(const language of ['en','fr','de']){
+  assert.ok(result.items.some(item=>item.language_code===language),language+' must remain represented');
+  assert.ok(result.items.filter(item=>item.language_code===language).length<=3);
+ }
+});
