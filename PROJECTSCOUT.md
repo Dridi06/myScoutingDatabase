@@ -4322,3 +4322,37 @@ Hocharabisch und tunesische Derja sind getrennte Sprachprofile. MESSINHO soll zu
 - STAGING enthält derzeit 0 Spieler, 0 External-Evidence-Datensätze, 0 Vertrags-Snapshots, 0 Prognose-Datensätze und 0 verifizierte Prognose-Outcomes. Die Prognosepipeline ist integriert, aber echte individuelle Prognosen benötigen zuerst Spielerdaten und verifizierte Historien.
 - Production wurde nicht verändert. Kein automatisches Merge, keine automatische Integration und kein Production-Deployment.
 - Nächster Freigabeschritt: fein granularen GitHub-Token direkt in Render-STAGING als Secret MESSINHO_SANDBOX_GITHUB_TOKEN hinterlegen (nur Repository Dridi06/myScoutingDatabase; Actions write, Contents read), MESSINHO_SANDBOX_ENABLED=true und MESSINHO_STAGING_RENDER_SERVICE_ID=srv-dc3chlqjnfac73acd6ig setzen. Danach echten Kandidatenlauf auslösen, Callback und Audit prüfen und erst anschließend den Admin-Modus auf Weiterentwickeln setzen.
+
+
+
+## 18. Sprachwissensbasis — STAGING-Integration und Verifikation — 2026-11-27
+
+### Umgesetzt
+- Neue Tabelle `public.messinho_language_knowledge` ausschließlich im Supabase-STAGING-Projekt `nwqwnrhupbyhshsprxjt` angelegt.
+- Zugehörige Repository-Migrationen verwenden die tatsächlich in STAGING registrierten Versionsnummern:
+  - `20261127013548_messinho_language_knowledge_base.sql`
+  - `20261127013559_messinho_language_lexicon_expansion.sql`
+- 30 unterschiedliche Einträge über sechs Profile (de, en, fr, ar, ar-tn, es); 36 append-only Versionszeilen. Je Sprache fünf aktuelle Wissenseinträge: drei Grammatik, ein Lexikon, eine Pragmatik. Das Lexikon besitzt Version 1 und Version 2; alte Versionen bleiben erhalten.
+- RLS aktiviert. `anon` und `authenticated` besitzen kein SELECT; nur `service_role` besitzt SELECT. Keine Schreibrechte für Scout/Admin-Chatrollen.
+- Chatintegration liest aktive Wissenseinträge und übergibt nur passende Sprachgrundlagen an den Dialogkontext.
+- Datenbankabfrage wurde an das tatsächliche Schema angepasst: `created_at` statt nicht vorhandener Spalte `updated_at`.
+- Sprachdiagnose und Sprachwissen verwenden den ursprünglichen Nachrichtentext. Die deutsche Tippfehlerkorrektur bleibt davon getrennt; der Originaltext wird für Erkennung und Wissenssuche nicht überschrieben. Historische Nutzernachrichten werden nicht mehr pauschal durch den deutschen Korrektor geschickt.
+- Fehler bei der Sprachwissensabfrage führen fail-closed zu leerem Wissenskontext; keine erfundenen Einträge.
+
+### Datenbankprüfung
+- STAGING-Abfrage bestätigt je Sprache 5 unterschiedliche aktive Einträge und 6 gespeicherte Versionen.
+- Insgesamt 30 unterschiedliche Eintragsschlüssel und 36 Versionszeilen.
+- Privilegienprüfung bestätigt: anon=false, authenticated=false, service_role=true für SELECT.
+- RLS ist aktiv.
+- Keine Produktionsdatenbank verändert.
+
+### Tests / CI
+- Auf Commit `35c2579807c8e93ded6adaca595a7a5afa6055a5` waren Node-Tests, Backend-Syntax, Staging-Branch-CI und Staging-Health-Smoke erfolgreich.
+- Anschließend wurden ein reales Schema-Problem (`updated_at` statt `created_at`) behoben und ein Regressionstest für die Spaltenauswahl ergänzt. Die endgültigen Prüfungen für die nachfolgenden Commits müssen erneut abgewartet und auf dem exakten HEAD bestätigt werden.
+- Der isolierte Engineering-Sandbox-Lauf ist noch nicht abgeschlossen; ein erfolgreicher Compiler-/Kandidatenlauf und Callback sind nicht belegt.
+
+### Release-Grenzen
+- Render-STAGING Auto-Deploy ist deaktiviert. Eine neue Bereitstellung erfolgt erst nach erfolgreicher Prüfung des exakten Branch-HEAD und ausdrücklicher Freigabe.
+- MESSINHO bleibt in `messinho_agent_control` pausiert. Keine autonome Entwicklung gestartet.
+- Production, main, Produktionsdaten und Produktionsgeheimnisse wurden nicht verändert.
+- Diese 30 Einträge sind eine erste Grundlagenbasis, kein vollständiges Wörterbuch und kein Nachweis muttersprachlicher Beherrschung. Ausbau erfolgt stufenweise mit Qualitätsprüfung, regionaler Differenzierung und rechtmäßigen Quellen.
