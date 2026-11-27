@@ -92,7 +92,7 @@ export function buildMessinhoClarificationContinuity({message,history=[],dialogu
   };
   const relevantQuestions=questions.length?questions:[pending?.text].filter(Boolean);
   if(relevantQuestions.length>1){
-    const outcomes=relevantQuestions.map(question=>answerForQuestion(current,question,pending?.kind));
+    const outcomes=relevantQuestions.map((question,index)=>answerForQuestion(current,question,pending?.kind,index===relevantQuestions.length-1?pending?.options:null));
     const matches=outcomes.filter(item=>item.status==='likely_answer');
     if(matches.length!==1)return {
       status:'ambiguous',active:false,action_blocked:true,task_goal:null,applied_answers:[],
