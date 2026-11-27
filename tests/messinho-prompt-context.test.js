@@ -34,3 +34,12 @@ test('package build invokes Vite through Node instead of an executable shim',asy
   const packageJson=JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8'));
   assert.match(packageJson.scripts.build,/node \.\/node_modules\/vite\/bin\/vite\.js build$/);
 });
+
+
+test('MESSINHO prompt prioritizes the latest detected segment for reply language',async()=>{
+  const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+  assert.match(source,/Für die Antwortsprache hat response_language Vorrang/);
+  assert.match(source,/latest_segment_language/);
+  assert.match(source,/letzte eindeutig erkannte Sprachsegment-Sprache/);
+  assert.match(source,/buildMessinhoLinguisticResponseMetadata\(linguisticContext\)/);
+});
