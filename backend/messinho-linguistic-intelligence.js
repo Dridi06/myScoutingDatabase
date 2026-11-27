@@ -123,7 +123,7 @@ function inferConversationSignals(text, tokens, languageId) {
   const politeness = has('bitte','please','merci','شكرا','عافاك','عيشك') || hasPhrase('por favor') ||
     hasPhrase("s'il vous plaît",'من فضلك','لو سمحت');
   const normalizedArabicSignalText=normalizeMessinhoArabicForAnalysis(text);
-  const arabicNegation=/(?<![\\p{L}])(?:لا|موش|ماني|ما|مش|ليس|ليست|لم|لن|مازالش)(?![\\p{L}])/u.test(normalizedArabicSignalText);
+  const arabicNegation=/(?<![\p{L}])(?:لا|موش|ماني|ما|مش|ليس|ليست|لم|لن|مازالش)(?![\p{L}])/u.test(normalizedArabicSignalText);
   const negation = has(
     'nicht','kein','keine','keinen','no','not','pas','ne','nunca','jamás',
     'لا','موش','ماني','ما','مش','ليس','ليست','لم','لن','مازالش','mouch'
