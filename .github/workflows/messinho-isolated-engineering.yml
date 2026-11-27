@@ -52,7 +52,7 @@ jobs:
           const job=JSON.parse(raw);
           if(process.env.EXPECTED_REF!=='refs/heads/feature/messinho-unified-ai-integration')throw new Error('sandbox_ref_rejected');
           if(job.source_sha!==process.env.EXPECTED_SHA||!/^[a-f0-9]{40}$/.test(job.source_sha))throw new Error('source_revision_mismatch');
-          if(!/^[0-9a-f-]{36}$/i.test(job.job_id)||!/^[0-9a-f-]{36}$/i.test(job.ticket_id))throw new Error('job_identity_invalid');
+          if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(job.job_id)||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(job.ticket_id))throw new Error('job_identity_invalid');
           if(typeof job.patch!=='string'||job.patch.length<20||job.patch.length>24000)throw new Error('patch_size_invalid');
           const headers=[...job.patch.matchAll(/^diff --git a\/(.+) b\/(.+)$/gm)];
           if(!headers.length||headers.length>8)throw new Error('patch_file_count_invalid');
