@@ -5551,3 +5551,32 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - The stable metadata cue-order test passed after switching to order-independent comparison.
 - Next: rerun the full STAGING build gate. Do not deploy 1.3.9 until all 508 tests and the production frontend build pass.
 
+
+
+## 34. MESSINHO Linguistic Intelligence 1.3.9 — semantic nuance cues — STAGING release verified — 2026-11-27
+
+- Render STAGING deployment: dep-dc4o53l6iffs73dcklr0.
+- Exact deployed commit: 73b9573d129289e7b6f72c312fe9f7b59d199587.
+- Render status: live; finished at 2026-11-27T13:16:58.957230Z.
+- Full Node suite: 508 tests, 508 passed, 0 failed.
+- Backend syntax checks passed; Vite production build completed successfully and Render reported Build successful.
+- Runtime log confirmed npm start and myScoutingDatabase API listening on port 10000.
+- Verified regression coverage now includes:
+  - German, English, French, Spanish, MSA Arabic and Tunisian Derja;
+  - qualified negative/positive evaluation phrases (not bad, pas mal, موش خايب);
+  - not-necessarily and not-yet phrases;
+  - uncertainty and contrast;
+  - Tunisian Arabizi (mouch khayeb, mouch bel dharoura, yemken, ama);
+  - normalized Arabic hamza/diacritics and preservation of original source text;
+  - metadata publication of semantic cues to the chat response.
+- Semantic cue arrays are evidence hints only. They do not create player ratings or replace source wording.
+- No database migration, persistent knowledge write, player/scout/account change, or model-weight update occurred.
+- Production branch, Render production service and production Supabase remain untouched.
+
+### Next work after 1.3.9
+1. Verify authenticated Admin and Scout chat end-to-end on STAGING using representative German, English, French, Spanish, MSA, Derja, Arabizi and mixed-language prompts.
+2. Verify the UI consumes response_language and displays semantic cue metadata without exposing internal diagnostics to Scouts.
+3. Expand phrase-level idiom and ambiguity handling only from the existing approved language corpus.
+4. Keep human review for ambiguous dialect, sarcasm and high-impact scouting interpretations; do not auto-convert semantic cues into ratings.
+5. Continue to avoid persistent knowledge changes until rights and quality review are explicitly satisfied.
+
