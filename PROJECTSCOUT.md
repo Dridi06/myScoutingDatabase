@@ -6328,3 +6328,53 @@ Improve the natural two-person conversation experience by giving the existing co
 3. Run authenticated dialogue acceptance tests for correction, disagreement, ordinary statements, new-topic changes, follow-up continuity, explicit emotion, and multilingual/code-switch input.
 4. Review false positives and false negatives before expanding cue coverage.
 5. Keep PR #58 Draft and unmerged until the owner explicitly authorizes otherwise.
+
+
+## 28. Block 8 — Conversational Response Intelligence — 2026-11-28
+
+**Status: implementation committed to the STAGING feature branch; exact-head CI and runtime acceptance are pending.**
+
+### Objective
+Turn dialogue and pragmatic cues into a useful response structure, so MESSINHO answers the user's actual contribution in context rather than merely classifying the message. The response must remain natural and adaptive, not a rigid template.
+
+### Implementation
+- Added `backend/messinho-response-composition.js`:
+  - Builds a bounded response-shaping contract for the existing cognitive turn.
+  - Distinguishes correction, disagreement, direct questions, opinions, explicit self-reported feelings, pending acknowledgements, follow-up questions, ambiguous clarification and topic changes.
+  - For corrections/disagreement: acknowledge, reconsider evidence and reasoning, then correct or explain.
+  - For direct questions: answer first, then explain; when it is also a follow-up, preserve references and constraints from the recent exchange.
+  - For opinions: engage fairly and separate evidence from interpretation.
+  - For explicit feelings: acknowledge only what the user directly stated, without diagnosis or assumptions.
+  - For ambiguous clarification: ask one focused question and do not start the dependent task.
+  - For new topics: do not carry old task filters forward.
+  - Explicitly avoids unnecessary follow-up questions and forced response templates.
+- Updated `backend/messinho-conversational-intelligence.js`:
+  - Includes `response_composition_context` in the same model request as the actual message, dialogue state, language knowledge, conversation memory, reasoning evidence and pragmatic cues.
+  - Adds instructions to treat the response plan as guidance only, never expose it to users, and keep evidence and application safety authoritative.
+- Updated `backend/server.js`:
+  - Builds the response composition context from the current interpreted message, existing dialogue state, clarification lifecycle and pragmatic context.
+  - Passes it through the existing authenticated `POST /api/agent/chat` route.
+- Added `tests/messinho-response-composition.test.js`:
+  - Covers corrections, disagreement, questions, follow-up questions, opinions, explicit emotion, ambiguous clarification and new-topic boundaries.
+  - Verifies that the plan reaches the cognitive model request and that the authenticated chat route constructs and forwards it.
+
+### Safety and scope
+- This is response planning guidance, not an independent chatbot or a deterministic answer generator.
+- It does not create facts, user memories, permissions, tool calls, or actions.
+- The model remains responsible for composing the actual natural-language reply; evidence validation and application role checks remain in force.
+- No database migration, persistent data mutation, provider secret change, model-weight training or production deployment.
+
+### Checkpoint
+- Work branch: `feature/messinho-conversation-engine`.
+- PR #58 remains open, Draft and unmerged.
+- Block 8 implementation is committed to the feature branch. Exact-head CI is pending; do not report the tests as passed until verified.
+- Render STAGING remains on the previously verified Block 6 deployment `dep-dc51a4s9v7es738pj5vg`, commit `f5817aa38fc8f53a3e40fef47524e7eba8c78a7f`. Block 7 and Block 8 are not deployed.
+- Authenticated Admin/Scout end-to-end conversation testing remains outstanding.
+- Production branch, production Render service and production database remain untouched.
+
+### Next actions
+1. Verify Node tests, backend syntax and full STAGING CI on the exact current PR head.
+2. Review and fix any regression before deployment.
+3. Deploy the exact tested head to the named Render STAGING service only.
+4. Test natural multi-turn dialogue, correction, disagreement, follow-up question with preserved constraints, ambiguous reference, explicit emotion and topic change using authenticated accounts.
+5. Keep PR #58 Draft and unmerged until the owner explicitly authorizes otherwise.
