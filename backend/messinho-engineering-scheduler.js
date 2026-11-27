@@ -8,6 +8,9 @@ export const MESSINHO_ENGINEERING_REVIEW_TIME_ZONE='Europe/Berlin';
 export const MESSINHO_ENGINEERING_WORK_WINDOWS=Object.freeze([{key:'morning',start:3,end:8},{key:'daytime',start:10,end:23}]);
 export const MESSINHO_ENGINEERING_REVIEW_INTERVAL_MS=15*60*1000;
 
+export function isMessinhoEngineeringStagingService(env=process.env){
+ return env.RENDER==='true'&&Boolean(env.RENDER_SERVICE_ID)&&env.RENDER_SERVICE_ID===env.MESSINHO_STAGING_RENDER_SERVICE_ID;
+}
 export function isMessinhoEngineeringAutoReviewEnabled(env=process.env){
  return env.MESSINHO_ENGINEERING_AUTOREVIEW_ENABLED==='true'&&env.RENDER==='true'&&
   Boolean(env.RENDER_SERVICE_ID)&&env.RENDER_SERVICE_ID===env.MESSINHO_STAGING_RENDER_SERVICE_ID&&
@@ -39,17 +42,19 @@ export function buildMessinhoSelfRepairGoal(checks=[]) {
 }
 
 /** One idempotent review per Berlin date and allowed work window. */
-export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),getCurrentTime=()=>new Date(),generate=generateMessinhoEngineeringProposal,persist=persistMessinhoMyKiProposal,env=process.env,sandboxAllowed=isMessinhoSandboxStagingAllowed,dispatch=dispatchMessinhoSandboxJob,hashPatch=hashMessinhoEngineeringPatch,makeJobId=randomUUID,mode='developing',goal=null}={}){
+export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),getCurrentTime=()=>new Date(),generate=generateMessinhoEngineeringProposal,persist=persistMessinhoMyKiProposal,env=process.env,sandboxAllowed=isMessinhoSandboxStagingAllowed,dispatch=dispatchMessinhoSandboxJob,hashPatch=hashMessinhoEngineeringPatch,makeJobId=randomUUID,mode='developing',goal=null,force=false}={}){
  if(!db)return {ok:false,code:'DATABASE_UNAVAILABLE'};
  if(!['developing','working'].includes(mode))return {ok:false,code:'INVALID_REVIEW_MODE'};
+ if(force&&!isMessinhoEngineeringStagingService(env))return {ok:false,code:'STAGING_GATE_CLOSED'};
  const schedule=getMessinhoEngineeringReviewSchedule(now);
  if(!schedule.due)return {ok:true,skipped:schedule.phase,review_date:schedule.review_date,phase:schedule.phase};
  const {data:control,error:controlError}=await db.from('messinho_agent_control')
   .select('mode,stop_requested,updated_by').eq('id','global').maybeSingle();
  if(controlError)return {ok:false,code:'CONTROL_STATE_UNAVAILABLE'};
- if(control?.mode!==mode||control?.stop_requested)return {ok:true,skipped:'admin_mode_not_active',review_date:schedule.review_date,review_slot:schedule.review_slot};
+ if(control?.mode!==mode||control?.stop_requested)return {ok:true,skipped:'admin_mode_not_active',review_date:schedule.review_date,review_slot:reviewSlot};
+ const reviewSlot=force?'manual_'+String(makeJobId()).replace(/[^a-f0-9]/gi,'').slice(0,24):schedule.review_slot;
  const {data:claim,error:claimError}=await db.from('messinho_engineering_review_runs')
-  .insert({review_date:schedule.review_date,review_slot:schedule.review_slot,status:'running',started_at:now.toISOString()})
+  .insert({review_date:schedule.review_date,review_slot:reviewSlot,status:'running',started_at:now.toISOString()})
   .select('id').maybeSingle();
  if(claimError?.code==='23505')return {ok:true,skipped:'already_claimed',review_date:schedule.review_date,review_slot:schedule.review_slot};
  if(claimError||!claim?.id)return {ok:false,code:'REVIEW_CLAIM_FAILED'};
@@ -115,7 +120,7 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
     sandboxStatus='work_window_ended';
   }
   await finish(status,{source_sha:generated.source_sha||null,ticket_id:saved.ticket_id||null,error_code:sandboxCode});
-  return {ok:true,status,ticket_id:saved.ticket_id||null,review_date:schedule.review_date,review_slot:schedule.review_slot,
+  return {ok:true,status,ticket_id:saved.ticket_id||null,review_date:schedule.review_date,review_slot:reviewSlot,
     sandbox_status:sandboxStatus,sandbox_job_id:sandboxJobId};
  }catch{
   try{await finish('failed',{error_code:'REVIEW_EXECUTION_FAILED'});}catch{}
