@@ -74,3 +74,25 @@ test('database selection uses only columns present in the versioned migration',a
  assert.match(selected[0],/created_at/);
  assert.doesNotMatch(selected[0],/updated_at/);
 });
+
+
+test('loads approved knowledge for every detected language segment in mixed-language messages',async()=>{
+ const rows=[
+  {entry_key:'en.grammar.word_order',version:1,language_code:'en',entry_type:'grammar',topic:'Sentence structure',title:'English word order',content:{explanation:'English uses subject-verb-object order.'},tags:['subject','verb','object'],knowledge_status:'active'},
+  {entry_key:'fr.grammar.word_order',version:1,language_code:'fr',entry_type:'grammar',topic:'Syntaxe',title:'Ordre des mots',content:{explanation:'Le français suit généralement sujet-verbe-complément.'},tags:['sujet','verbe','complément'],knowledge_status:'active'},
+  {entry_key:'de.grammar.word_order',version:1,language_code:'de',entry_type:'grammar',topic:'Satzbau',title:'Deutsche Satzstellung',content:{explanation:'Im Hauptsatz steht das finite Verb normalerweise an zweiter Position.'},tags:['Verbzweit'],knowledge_status:'active'}
+ ];
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'Hello, how are you? Bonjour, comment ça va?');
+ assert.deepEqual(result.language_ids.sort(),['en','fr']);
+ assert.deepEqual(result.items.map(item=>item.language_code).sort(),['en','fr']);
+});
+
+test('returns all segment languages when the overall message is mixed',async()=>{
+ const rows=[
+  {entry_key:'ar.lexicon.core',version:1,language_code:'ar',entry_type:'lexicon',topic:'Arabic',title:'Arabic words',content:{explanation:'Arabic vocabulary context.'},tags:['لاعب'],knowledge_status:'active'},
+  {entry_key:'ar-tn.lexicon.core',version:1,language_code:'ar-tn',entry_type:'lexicon',topic:'Derja',title:'Tunisian words',content:{explanation:'Tunisian Derja vocabulary context.'},tags:['barcha'],knowledge_status:'active'}
+ ];
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'كيف حالك؟ Chnowa rayek?');
+ assert.ok(result.language_ids.includes('ar'));
+ assert.ok(result.language_ids.includes('ar-tn'));
+});
