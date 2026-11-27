@@ -9,7 +9,7 @@ function fakeDb(rows, selected=[]) {
 
 test('language knowledge is registered for six language profiles and append-only',()=>{
  const summary=getMessinhoLanguageKnowledgeSummary();
- assert.equal(summary.version,'1.2.2');
+ assert.equal(summary.version,'1.2.3');
  assert.equal(summary.profiles.length,6);
  assert.equal(summary.retention,'append_only_versions');
  assert.equal(summary.write_access,'none_from_chat_or_scout_roles');
@@ -238,4 +238,31 @@ test('loads an explicit translation target language even when it differs from th
 test('does not infer a language pack from a nationality adjective alone',async()=>{
  const result=await findMessinhoLanguageKnowledge(fakeDb([]),'I watched a German player yesterday.');
  assert.equal(result.requested_language_ids.includes('de'),false);
+});
+
+
+test('recognizes all six subject languages when the request is written in German',async()=>{
+ const cases=[
+  ['de','Erkläre mir die deutsche Grammatik.'],
+  ['en','Erkläre mir die englische Grammatik.'],
+  ['fr','Erkläre mir die französische Grammatik.'],
+  ['es','Erkläre mir die spanische Grammatik.'],
+  ['ar','Erkläre mir Hocharabisch.'],
+  ['ar-tn','Erkläre mir die tunesische Derja-Grammatik.']
+ ];
+ for(const [language,message] of cases){
+  const result=await findMessinhoLanguageKnowledge(fakeDb([]),message);
+  assert.ok(result.requested_language_ids.includes(language),message);
+ }
+});
+
+test('recognizes a German comparison request for MSA and Tunisian Arabic',async()=>{
+ const result=await findMessinhoLanguageKnowledge(fakeDb([]),'Vergleiche Hocharabisch und tunesisches Arabisch.');
+ assert.ok(result.requested_language_ids.includes('ar'));
+ assert.ok(result.requested_language_ids.includes('ar-tn'));
+});
+
+test('a Tunisian nationality adjective alone does not load Derja knowledge',async()=>{
+ const result=await findMessinhoLanguageKnowledge(fakeDb([]),'Der tunesische Spieler ist 19 Jahre alt.');
+ assert.equal(result.requested_language_ids.includes('ar-tn'),false);
 });
