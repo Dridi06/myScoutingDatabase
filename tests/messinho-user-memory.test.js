@@ -12,7 +12,7 @@ test('recognizes explicit German and English remember commands without treating 
   assert.equal(detectExplicitMessinhoRememberRequest('Merke dir Staging Alpha'),'Staging Alpha');
   assert.equal(detectExplicitMessinhoRememberRequest('Bitte merke dir: Testwort 42'),'Testwort 42');
   assert.equal(detectExplicitMessinhoRememberRequest('Remember staging alpha'),'staging alpha');
-  assert.equal(detectExplicitMessinhoRememberRequest('Staging Alpha'),'Staging Alpha');
+  assert.equal(detectExplicitMessinhoRememberRequest('Staging Alpha'),null);
   assert.equal(detectExplicitMessinhoRememberRequest('Was bedeutet merken?'),null);
 });
 
