@@ -52,6 +52,7 @@ import { isMessinhoAdminOnlyCommand } from './messinho-command-access.js';
 import { buildMessinhoLinguisticContext, buildMessinhoLinguisticResponseMetadata } from './messinho-linguistic-intelligence.js';
 import { classifyMessinhoTurn, appendMessinhoLongTermMemories } from './messinho-conversational-intelligence.js';
 import { buildMessinhoDialogueState } from './messinho-dialogue-engine.js';
+import { buildMessinhoClarificationContinuity } from './messinho-clarification-continuity.js';
 import { resolveMessinhoEntityReferences } from './messinho-entity-resolution.js';
 import { guardMessinhoConversationReply } from './messinho-conversation-response-guard.js';
 import { findMessinhoLanguageKnowledge, formatMessinhoLanguageKnowledge } from './messinho-language-knowledge.js';
@@ -2308,6 +2309,8 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     });
     const dialogueState=buildMessinhoDialogueState({message,history,userRole:profile.role,linguisticContext});
     dialogueState.entity_resolution=entityResolution;
+    const clarificationContinuity=buildMessinhoClarificationContinuity({message:interpretedMessage,history,dialogueState});
+    dialogueState.continuity.clarification_continuity=clarificationContinuity;
     const resolvedPlayerReference=entityResolution.status==='resolved'&&entityResolution.entity?.entity_type==='player'&&entityResolution.reason!=='explicit_known_entity_mention'
       ?entityResolution.entity.name:null;
     const legacyPlayerFollowUp=!entityResolution.reference_detected
@@ -2334,6 +2337,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       });
     }
     const cognitive=cognitiveResult.decision;
+    if(clarificationContinuity.action_blocked&&['scouting','general_research','engineering'].includes(cognitive.intent)){
+      const choices=clarificationContinuity.options?.length?' Bitte wähle '+clarificationContinuity.options.join(' oder ')+'.':'';
+      return respond({reply:'Ich möchte deine Antwort noch eindeutig zuordnen. '+(clarificationContinuity.question||'Welche der offenen Fragen meinst du?')+choices,intent:'clarification_continuity_blocked',items:[],pending:true,clarification_continuity:{status:clarificationContinuity.status,reason:clarificationContinuity.reason,action_blocked:true}});
+    }
     const actionIntents=['memory_save','scouting','general_research','engineering'];
     if(actionIntents.includes(cognitive.intent)&&cognitive.confidence<0.72){
       return respond({
@@ -2390,10 +2397,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const options=entityResolution.candidates.map(item=>item.name).join(' oder ');
       return respond({reply:options?'Ich sehe mehrere mögliche Bezüge: '+options+'. Welchen meinst du?':'Auf welchen Spieler, Verein oder welche Mannschaft beziehst du dich genau?',intent:'entity_reference_clarification',items:[],pending:true,entity_resolution:{status:entityResolution.status,reference_type:entityResolution.reference_type}});
     }
-    if(cognitive.intent==='scouting'&&!parseMessinhoScoutingRequest(interpretedMessage,history).shouldHandle&&!playerFollowUpName){
+    if(cognitive.intent==='scouting'&&!parseMessinhoScoutingRequest(clarificationContinuity.status==='likely_answer'?clarificationContinuity.effective_message:interpretedMessage,clarificationContinuity.status==='likely_answer'?clarificationContinuity.parser_history:clarificationContinuity.status==='new_topic'?[]:history).shouldHandle&&!playerFollowUpName){
       return respond({reply:'Ich möchte keine falsche Spielersuche starten. Welchen Spieler oder welche Scouting-Aufgabe meinst du genau?',intent:'scouting_clarification',items:[],pending:true});
     }
-    const dialog=parseMessinhoScoutingRequest(interpretedMessage,history);
+    const dialog=parseMessinhoScoutingRequest(clarificationContinuity.status==='likely_answer'?clarificationContinuity.effective_message:interpretedMessage,clarificationContinuity.status==='likely_answer'?clarificationContinuity.parser_history:clarificationContinuity.status==='new_topic'?[]:history);
     if(profile.role==='admin'&&profile.approved&&profile.approval_status==='approved'&&/\b(woran arbeitest du|was arbeitest du gerade|was machst du gerade|aktueller arbeitsstand|was ist dein status|arbeitest du gerade)\b/i.test(normalized)){
       const [{data:control},{data:task},{data:review}]=await Promise.all([
         db.from('messinho_agent_control').select('mode,stop_requested,current_task,status_message,updated_at').eq('id','global').maybeSingle(),
