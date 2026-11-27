@@ -2216,9 +2216,9 @@ app.get('/api/agent/conversation',async(req,res)=>{
     if(conversationError)return res.status(503).json({error:'Der Gesprächsverlauf ist momentan nicht verfügbar.'});
     if(!conversation)return res.json({conversation_id:null,messages:[]});
     const {data:rows,error:messagesError}=await db.from('messinho_conversation_messages').select('id,role,content,metadata,created_at')
-      .eq('owner_id',authData.user.id).eq('conversation_id',conversation.id).order('created_at',{ascending:true}).limit(40);
+      .eq('owner_id',authData.user.id).eq('conversation_id',conversation.id).order('created_at',{ascending:false}).limit(40);
     if(messagesError)return res.status(503).json({error:'Die Nachrichten konnten nicht geladen werden.'});
-    return res.json({conversation_id:conversation.id,messages:(rows||[]).map(row=>({
+    return res.json({conversation_id:conversation.id,messages:(rows||[]).reverse().map(row=>({
       id:row.id,role:row.role,text:row.content,intent:row.metadata?.intent||null,researchContext:row.metadata?.researchContext||null,created_at:row.created_at
     }))});
   }catch(error){console.error('MESSINHO conversation restore failed:',error.message);return res.status(500).json({error:'Der Gesprächsverlauf konnte nicht wiederhergestellt werden.'});}
