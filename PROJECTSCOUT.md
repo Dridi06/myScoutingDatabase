@@ -5439,3 +5439,39 @@ Add deterministic, bounded semantic cues so MESSINHO does not flatten qualified 
 - No Supabase migration, language-knowledge row write, player/scout/account change or model-weight change is part of this work.
 - Production remains untouched.
 
+
+
+## 32. Semantic nuance intelligence 1.3.9 — qualified evaluation and clause cues — 2026-11-27
+
+### Objective
+Preserve meaning when a player description contains qualified evaluations, negation, uncertainty or contrast. These are conservative evidence cues, not a sentiment model and not a replacement for full semantic interpretation.
+
+### Implemented on STAGING feature branch
+- backend/messinho-linguistic-intelligence.js
+  - Version advanced from 1.3.8 to 1.3.9.
+  - Exposes negation_scope_cues, qualified_evaluation_cues, uncertainty_cues and contrast_cues.
+  - Covers qualified patterns including “not bad”, “not necessarily”, “not yet”, “not enough” and “not only” across supported language variants.
+  - Added French “pas mal” and Tunisian Arabizi cues including “mouch khayeb”, “mouch bel dharoura”, “yemken” and “ama”.
+  - Existing boolean signals remain backward compatible.
+- backend/server.js
+  - System prompt now treats semantic cue fields as cautious hints.
+  - Explicitly instructs the model to preserve negation, qualification, uncertainty and contrast without inventing a stronger evaluation.
+  - Reply language continues to prioritize response_language and the last clear segment.
+- tests/messinho-linguistic-intelligence.test.js
+  - Added cross-language regressions for qualified evaluation, uncertainty and contrast across all six profiles.
+  - Added not-necessarily coverage, Arabizi coverage, direct-negation false-positive protection and metadata propagation coverage.
+- tests/messinho-prompt-context.test.js
+  - Added prompt-level assertions for all four semantic cue fields and response-language priority.
+
+### Traceability
+- Semantic cue implementation commit: f9452d4e71507545ef254a4fbf360ef96e517f41.
+- System prompt integration commit: fcdf18c33dde71b40cc16eec56fdb06be495d6b5.
+- Prompt regression commit: cf895c015a0d3fed77b5222215708904e42d007b.
+- Metadata regression commit: e0bd0e5830406260679336bacf16001eeb0fe256.
+
+### Verification state
+- Previous live STAGING baseline: Linguistic Intelligence 1.3.7 / Language Knowledge 1.2.5, deployment dep-dc4o1c5g1s2s73f6gar0, 500/500 tests passed.
+- Linguistic Intelligence 1.3.9 and semantic prompt integration are committed but not yet built or deployed.
+- Next: full STAGING build, inspect each new semantic regression, then deploy only if all tests, backend syntax checks and Vite build pass.
+- No Supabase migration or persistent knowledge write is required. Production remains untouched.
+
