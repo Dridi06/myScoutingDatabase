@@ -16,8 +16,16 @@ import {
 export const MESSINHO_SEMANTIC_LANGUAGE_BRIDGE_VERSION='1.0.0';
 
 const clip=(value,max=500)=>String(value??'').slice(0,max);
+const compactKnowledgeItem=(item,maxText=240)=>{
+  if(typeof item==='string'||typeof item==='number')return clip(item,maxText);
+  if(!item||typeof item!=='object'||Array.isArray(item))return null;
+  const allowed=['term','word','lemma','meaning','definition','translation','example','usage','note','register','dialect'];
+  const output={};
+  for(const key of allowed)if(typeof item[key]==='string')output[key]=clip(item[key],maxText);
+  return Object.keys(output).length?output:null;
+};
 const compactList=(value,maxItems,maxText=240)=>Array.isArray(value)
-  ? value.slice(0,maxItems).map(item=>clip(item,maxText))
+  ? value.slice(0,maxItems).map(item=>compactKnowledgeItem(item,maxText)).filter(Boolean)
   : [];
 
 export function buildMessinhoSemanticLanguageContext({
@@ -65,6 +73,9 @@ export function buildMessinhoSemanticLanguageContext({
     primary_language:detected.primary_language||null,
     confidence:Number(detected.confidence)||0,
     scripts:Array.isArray(detected.scripts)?detected.scripts.slice(0,3):['unknown'],
+    supported_languages:MESSINHO_LANGUAGE_PROFILES.map(profile=>({
+      id:profile.id,name:profile.name,scripts:profile.scripts,variants:profile.variants
+    })),
     active_language_profiles:profiles,
     mixed_language_segments:segments,
     conversational_signals:detected.signals||null,
