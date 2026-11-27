@@ -6108,8 +6108,12 @@ Read this file from the current feature branch and inspect its latest HEAD and P
 9. Only later evaluate self-hosted inference and a custom-trained model against quality, latency, operating cost, privacy, and hardware requirements.
 
 ### Current status at checkpoint
-- Code changes are committed to this feature branch; CI and runtime verification are pending.
-- No new STAGING deployment has been triggered for these latest commits yet.
-- Existing STAGING deployment remains the earlier Block 4 commit until a tested deploy is explicitly started.
+- Implementation commit: `fc9ef66e573cc502aa6d61ed4b0401de24eef5a3`.
+- GitHub Actions on that code commit: MESSINHO Node tests — success (594/594); backend syntax — success; full STAGING branch CI including regression suite and Vite build — success.
+- Render STAGING service `myscoutingdatabase-messinho-staging`, service ID `srv-dc3chlqjnfac73acd6ig`, deployment `dep-dc50khm1egvs73a4qcpg`: status `live`, commit `fc9ef66e573cc502aa6d61ed4b0401de24eef5a3`, completed `2026-11-27T22:55:48Z`.
+- Runtime start logs confirm `node backend/server.js`, API listening on port 10000, OpenAI model configuration detected, and Supabase Data API HTTP 200.
+- **Not yet verified:** an authenticated live chat response through the new provider runtime. The previous test produced `provider_error`; use the newly added HTTP status and provider error code after the owner sends a test message to identify the exact provider-side cause.
+- No merge, no production deployment, no Supabase schema migration, no player/user data mutation, and no model training/weight changes were performed by this work.
+- Pull Request #58 remains open, Draft, and unmerged.
 - No merge, no production deployment, no Supabase schema migration, no player/user data mutation, and no model training/weight changes were performed by this work.
 - Pull Request #58 remains open and unmerged.
