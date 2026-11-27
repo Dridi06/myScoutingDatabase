@@ -5384,3 +5384,23 @@ Continue improving the language system after the verified Linguistic Intelligenc
 - No runtime code change was made in response to these two test failures; both were stale/incomplete test fixtures. The failed build did not replace the current live STAGING version.
 - Next: rerun full STAGING build and deploy only after all tests, syntax checks and Vite build pass.
 
+
+
+## 31. MESSINHO Language Knowledge 1.2.5 — STAGING release verified — 2026-11-27
+
+- Render STAGING deployment: dep-dc4o1c5g1s2s73f6gar0.
+- Exact deployed commit: 2752d22850f8b62b55ec0f60c934747c0f8e6078.
+- Render status: live; finished at 2026-11-27T13:08:40.136285Z.
+- Full Node suite: 500 tests, 500 passed, 0 failed.
+- Backend syntax checks passed; Vite production build succeeded in 2.42 seconds.
+- Runtime log confirmed the Node server started and the API listened on port 10000.
+- New regressions passed for exact Tunisian Derja phrase aliases, mixed English/French segment isolation, and vocalized Arabic phrase aliases.
+- Existing eight-item retrieval cap, active-only filtering, append-only versions, and fail-closed DB behavior remain covered by the full suite.
+- No Supabase migration or persistent knowledge write occurred. No player/scout/account data changed. Production remains untouched.
+
+### Next linguistic milestone
+- Add explicit, bounded semantic cues for negation scope, qualified evaluations (e.g. “not bad”, “not necessarily”), uncertainty and contrast across all six language profiles.
+- These cues must preserve the original wording and clause boundaries. They are evidence hints, not a replacement for full semantic interpretation or human review.
+- Add independent cross-language regression cases before deployment.
+- Authenticated Admin/Scout chat validation remains open.
+
