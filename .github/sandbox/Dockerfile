@@ -1,7 +1,7 @@
 FROM node:24-bookworm-slim
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     bash build-essential clang cmake composer curl default-jdk-headless git golang-go maven \
-    php-cli phpunit postgresql postgresql-client python3 python3-pytest rustc cargo shellcheck \
+    libpq-dev php-cli phpunit postgresql postgresql-client python3 python3-pytest rustc cargo shellcheck \
     && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
     && bash /tmp/dotnet-install.sh --channel 8.0 --install-dir /usr/share/dotnet \
