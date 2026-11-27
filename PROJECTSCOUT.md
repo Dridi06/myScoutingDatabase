@@ -5694,3 +5694,19 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - **Verification boundary:** deployment and startup are verified. Authenticated browser-level Admin/Scout conversation, memory persistence/recall after refresh, and cross-account isolation have not yet been manually confirmed by the owner.
 - Next user-assisted checks on STAGING: (1) “Hallo Messinho, wie geht es dir?” (2) “Merk dir bitte, dass wir gerade die neue Gesprächsintelligenz testen.” (3) “Was hast du dir gemerkt?” (4) “Und was wollten wir damit erreichen?” Then repeat memory isolation separately for Admin and Scout accounts if available.
 - Follow-up engineering: expand evaluation for typos/dictation/ambiguous follow-ups; add memory correction/deletion controls and relevance ranking; evaluate long-conversation summarization; verify language-aware responses across German, English, French, Spanish, MSA Arabic, Tunisian Derja and Arabizi. Keep all work STAGING-only and deploy only with explicit approval.
+
+
+## 41. MESSINHO semantic goal planner — Agent Core 4.0 foundation — STAGING PR pending — 2026-11-27
+
+- Work branch: `feature/messinho-autonomous-agent-semantic-planner`.
+- Pull request: #55 — `MESSINHO: add semantic goal planning to autonomous agent core`.
+- Base: current STAGING integration branch `feature/messinho-unified-ai-integration` at commit `a1aed1ab2086d90016f3f0c782abbc00a1fbbd26`.
+- Added `backend/messinho-goal-planner.js`: model-assisted goal-to-capability planning using the existing registered 100-capability catalogue.
+- The model may return only catalogue IDs; application code validates IDs, resolves registered dependencies, enforces Admin/Scout restrictions and caps the plan at 20 steps. The model cannot execute capabilities or grant permissions.
+- Provider failure, invalid output or low confidence uses the existing deterministic planner as a safe fallback. Ambiguous model plans return a targeted clarification.
+- Integrated the semantic planner into the existing authenticated chat route. Existing general research and engineering routes remain reachable when no capability plan is produced.
+- Added `buildMessinhoCapabilityPlanFromSelection` to `backend/messinho-orchestrator.js` to centralize dependency expansion and role filtering for model-selected capabilities.
+- Added `tests/messinho-goal-planner.test.js` for dependency resolution, invented-ID rejection/fallback, Scout denial of Admin-only capabilities, clarification, and provider-failure fallback.
+- No database migration or persistent user/player/scout/learning data changes. No production branch, LIVE Render service or production Supabase changes.
+- Current status: code committed to the work branch; PR #55 open. CI status has not yet returned through the available GitHub status queries. Do not merge or deploy until the test suite, backend syntax and Vite production build pass.
+- Next: verify GitHub Actions on PR #55; correct any failures; review the final diff; then request explicit approval before deploying to STAGING. After deployment, test authenticated Admin and Scout requests, including semantic multi-capability planning, clarification, provider outage fallback and role isolation.
