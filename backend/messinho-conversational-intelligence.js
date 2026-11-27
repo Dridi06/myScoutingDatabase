@@ -3,7 +3,7 @@ export const MESSINHO_COGNITIVE_ROUTER_VERSION='1.0.0';
 const MESSINHO_GREETING_PATTERN=/^(?:hi|hallo|hey|heya|moin|servus|guten morgen|guten tag|guten abend|sal[aä]m|salam|as[- ]?sal[aä]mu alaikum|peace)\s*[!.?,]*$/iu;
 
 export function isMessinhoGreeting(message){
-  const normalized=String(message||'').trim().normalize('NFKC').replace(/\\s+/gu,' ');
+  const normalized=String(message||'').trim().normalize('NFKC').replace(/\s+/gu,' ');
   return normalized.length>0&&normalized.length<=48&&MESSINHO_GREETING_PATTERN.test(normalized);
 }
 
