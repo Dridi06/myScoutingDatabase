@@ -18,6 +18,7 @@ const sourceFor=url=>url.endsWith('/backend/messinho-input-correction.js')?'cons
 test('recognizes explicit Admin self-review requests',()=>{
  assert.equal(isMessinhoEngineeringRequest('MESSINHO, entwickle eine Verbesserung für dich selbst'),true);
  assert.equal(isMessinhoEngineeringRequest('Bitte prüfe das System und optimiere es'),true);
+ assert.equal(isMessinhoEngineeringRequest('MESSINHO soll Programmieren lernen'),true);
  assert.equal(isMessinhoEngineeringRequest('Suche einen U19 Stürmer'),false);
 });
 
