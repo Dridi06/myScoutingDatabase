@@ -52,6 +52,7 @@ import { isMessinhoAdminOnlyCommand } from './messinho-command-access.js';
 import { buildMessinhoLinguisticContext, buildMessinhoLinguisticResponseMetadata } from './messinho-linguistic-intelligence.js';
 import { classifyMessinhoTurn, appendMessinhoLongTermMemories } from './messinho-conversational-intelligence.js';
 import { buildMessinhoDialogueState } from './messinho-dialogue-engine.js';
+import { guardMessinhoConversationReply } from './messinho-conversation-response-guard.js';
 import { findMessinhoLanguageKnowledge, formatMessinhoLanguageKnowledge } from './messinho-language-knowledge.js';
 
 const app=express();
@@ -2361,11 +2362,13 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       });
     }
     if(cognitive.intent==='conversation'){
-      if(!cognitive.reply){
-        return respond({reply:'Ich möchte dir sinnvoll antworten. Kannst du deine Frage bitte etwas genauer formulieren?',intent:'cognitive_reply_missing',items:[],pending:true});
+      const guardedReply=guardMessinhoConversationReply(cognitive);
+      if(!guardedReply.ok){
+        return respond({reply:guardedReply.reply,intent:'conversation_response_guard',items:[],pending:guardedReply.code==='empty_reply',
+          response_integrity:{guarded:true,reason:guardedReply.code}});
       }
       return respond({
-        reply:cognitive.reply,intent:'conversation',items:[],
+        reply:guardedReply.reply,intent:'conversation',items:[],
         memory:{updated:cognitive.memory_items.length>0,persisted:cognitiveMemoryPersisted}
       });
     }
