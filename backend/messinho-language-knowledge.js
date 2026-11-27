@@ -62,23 +62,32 @@ export async function findMessinhoLanguageKnowledge(db, message, history=[]) {
       .map(row=>scoreEntry(queryTokens,row,languageIds))
       .filter(item=>item.overlap>0)
       .sort((a,b)=>b.score-a.score||b.overlap-a.overlap);
-    // Keep retrieval balanced when the user switches language mid-message:
-    // up to three entries per detected language, then shared entries, then fill.
-    const selected=[];
-    for(const language of languageIds) {
-      selected.push(...ranked.filter(item=>item.row.language_code===language).slice(0,3));
+    let selected;
+    if(languageIds.size<=1) {
+      selected=ranked.slice(0,8);
+    } else {
+      // Round-robin up to three entries per language, then include shared
+      // foundations. This prevents one dominant segment from crowding out others.
+      selected=[];
+      const groups=new Map([...languageIds].map(language=>[
+        language,ranked.filter(item=>item.row.language_code===language)
+      ]));
+      for(let round=0;round<3&&selected.length<6;round++) {
+        for(const language of languageIds) {
+          if(selected.length>=6)break;
+          const item=groups.get(language)?.[round];
+          if(item)selected.push(item);
+        }
+      }
+      selected.push(...ranked.filter(item=>item.row.language_code==='shared').slice(0,Math.max(0,8-selected.length)));
+      for(const item of ranked) {
+        if(selected.length>=8)break;
+        const languageCount=selected.filter(existing=>existing.row.language_code===item.row.language_code).length;
+        if(languageCount>=3)continue;
+        if(!selected.some(existing=>existing.row.entry_key===item.row.entry_key))selected.push(item);
+      }
     }
-    selected.push(...ranked.filter(item=>item.row.language_code==='shared').slice(0,2));
-    for(const item of ranked) {
-      if(selected.length>=8)break;
-      const languageCount=selected.filter(existing=>existing.row.language_code===item.row.language_code).length;
-      if(languageCount>=3)continue;
-      if(!selected.some(existing=>existing.row.entry_key===item.row.entry_key))selected.push(item);
-    }
-    const candidates=selected
-      .sort((a,b)=>b.score-a.score||b.overlap-a.overlap)
-      .slice(0,8);
-    const items=selected.map(({row,score})=>({...row,relevance:Number(score.toFixed(3))}));
+    const items=selected.slice(0,8).map(({row,score})=>({...row,relevance:Number(score.toFixed(3))}));
     return {status:items.length?'hit':'miss',version:VERSION,language_id:languageId,language_ids:[...languageIds],items,
       policy:'active_first_party_authored_entries_only'};
   } catch(error) {
