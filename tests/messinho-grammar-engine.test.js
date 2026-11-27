@@ -61,3 +61,20 @@ test('returns safe states for empty, short and unsupported inputs',()=>{
   assert.equal(analyzeMessinhoGrammar('OK','en').status,'insufficient_text');
   assert.equal(analyzeMessinhoGrammar('hello there','it').status,'unsupported_language');
 });
+
+test('linguistic analysis attaches grammar evidence for every detected language profile',()=>{
+  const samples=[
+    ['de','Der Spieler ist heute sehr stark.'],
+    ['en','The player is ready for the match.'],
+    ['fr','Le joueur est très fort.'],
+    ['es','La jugadora juega muy bien.'],
+    ['ar','اللاعب ليس جاهزا للفريق.'],
+    ['ar-tn','اللاعب ما يلعبش اليوم.']
+  ];
+  for(const [language,text] of samples){
+    const result=analyzeMessinhoLanguage(text);
+    assert.equal(result.primary_language,language,text);
+    assert.equal(result.grammar_analysis.status,'analyzed',text);
+    assert.equal(result.grammar_analysis.language_id,language,text);
+  }
+});
