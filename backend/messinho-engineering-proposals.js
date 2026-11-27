@@ -28,8 +28,10 @@ export function normalizeMessinhoEngineeringProposal(input={}){
  const rollback=clean(input.rollback_plan,1000),benchmark=clean(input.benchmark_id,120);
  if(id.length<6||title.length<8||rationale.length<30||patch.length<20||patch.length>24000||testPlan.length<2||rollback.length<20||benchmark.length<4)
   return {ok:false,error:'Titel, Begründung, begrenzter Patch, mindestens zwei Tests, Benchmark und Rollback-Plan sind erforderlich.'};
- if(/\b(?:exec|spawn|child_process|eval|new Function|process\.env|fetch\s*\(|https?:\/\/)/i.test(patch))
-  return {ok:false,error:'Der Patch enthält nicht zulässige Ausführungs-, Umgebungs- oder Netzwerkzugriffe.'};
+ if(/\b(?:exec|spawn|child_process|eval|new Function|process\.env|process\.binding|fetch\s*\(|https?:\/\/|node:(?:fs|net|http|vm|child_process)|(?:readFile|writeFile|unlink|createWriteStream|createReadStream)\s*\()/i.test(patch))
+  return {ok:false,error:'Der Patch enthält nicht zulässige Ausführungs-, Datei-, Umgebungs- oder Netzwerkzugriffe.'};
+ if(/^(?:new file mode|deleted file mode|old mode|new mode|rename from|rename to|copy from|copy to|GIT binary patch|Binary files)/m.test(patch))
+  return {ok:false,error:'Dateianlagen, Löschungen, Umbenennungen, Modusänderungen und Binärpatches sind nicht zulässig.'};
  const headers=[...patch.matchAll(/^diff --git a\/(.+) b\/(.+)$/gm)];
  if(!headers.length)return {ok:false,error:'Es wurde kein nachvollziehbarer Unified-Diff übergeben.'};
  const paths=[];
@@ -39,6 +41,11 @@ export function normalizeMessinhoEngineeringProposal(input={}){
   if(!paths.includes(before))paths.push(before);
  }
  if(paths.length>8)return {ok:false,error:'Ein Vorschlag darf höchstens acht Dateien umfassen.'};
+ const oldHeaders=[...patch.matchAll(/^--- a\/(.+)$/gm)].map(match=>match[1]);
+ const newHeaders=[...patch.matchAll(/^\+\+\+ b\/(.+)$/gm)].map(match=>match[1]);
+ if(oldHeaders.length!==paths.length||newHeaders.length!==paths.length||
+   paths.some(path=>!oldHeaders.includes(path)||!newHeaders.includes(path)))
+  return {ok:false,error:'Die Dateiheader des Unified-Diffs sind unvollständig oder widersprüchlich.'};
  if(/^\s*(?:\+\+\+|---)\s+\/dev\/null/m.test(patch))return {ok:false,error:'Datei-Neuanlagen und Löschungen benötigen einen gesonderten Prüfprozess.'};
  return {ok:true,value:{
   id,title,rationale,patch,files:paths,test_plan:testPlan,benchmark_id:benchmark,
