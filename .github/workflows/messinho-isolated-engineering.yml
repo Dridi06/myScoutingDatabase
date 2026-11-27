@@ -63,7 +63,7 @@ jobs:
           if(!headers.length||headers.length>8)throw new Error('patch_file_count_invalid');
           for(const m of headers){
             const a=m[1],b=m[2];
-            const allowed=new Set(['backend/messinho-quality-control.js','backend/messinho-input-correction.js','backend/messinho-task-policy.js','tests/messinho-quality-control.test.js','tests/messinho-task-policy.test.js']);
+            const allowed=new Set(['backend/messinho-quality-control.js','backend/messinho-input-correction.js','backend/messinho-task-policy.js','backend/messinho-development.js','backend/messinho-performance-intelligence.js','backend/messinho-research.js','backend/messinho-math.js','backend/messinho-conversation.js','backend/messinho-learning.js','backend/messinho-knowledge-learning.js','src/asi/MyKiChat.jsx','src/asi/myki-chat.css','tests/messinho-quality-control.test.js','tests/messinho-task-policy.test.js','tests/messinho-development.test.js','tests/messinho-capability-runtime.test.js','tests/responsive-layout.test.js']);
             if(a!==b||!allowed.has(a))throw new Error('patch_path_rejected');
             if(/^backend\/(server|messinho-access|messinho-capability-runtime|messinho-orchestrator|messinho-agent-core|messinho-autonomy|messinho-rights-registry)\.js$/.test(a))throw new Error('protected_path_rejected');
           }
