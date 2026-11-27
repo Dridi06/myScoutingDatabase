@@ -70,7 +70,7 @@ export function buildMessinhoResponseCompositionContext({
   }
 
   if(!ALLOWED_MOVES.has(primary))primary='respond_naturally';
-  const safeMessage=String(message??'').replace(/[\\u0000-\\u001f\\u007f]/gu,' ').replace(/\\s+/gu,' ').trim().slice(0,1200);
+  const safeMessage=String(message??'').replace(/[\u0000-\u001f\u007f]/gu,' ').replace(/\s+/gu,' ').trim().slice(0,1200);
   return {
     version:MESSINHO_RESPONSE_COMPOSITION_VERSION,
     primary_move:primary,
