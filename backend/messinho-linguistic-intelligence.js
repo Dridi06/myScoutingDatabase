@@ -41,7 +41,7 @@ function countArabicHits(tokens, lexicon) {
   // Match one known prefix for scoring only; never rewrite the source token.
   return tokens.reduce((count, token) => {
     if (lexicon.has(token)) return count + 1;
-    if (/^[وف][\\p{L}]+$/u.test(token) && lexicon.has(token.slice(1))) return count + 1;
+    if (/^[وف][\p{L}]+$/u.test(token) && lexicon.has(token.slice(1))) return count + 1;
     return count;
   }, 0);
 }
