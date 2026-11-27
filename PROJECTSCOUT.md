@@ -4479,8 +4479,10 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - Arabizi-Normalisierung ersetzt niemals den Originaltext.
 - Keine muttersprachliche Evaluation, kein umfassendes Lexikon und keine vollständige Grammatik-/Morphologieabdeckung.
 - Keine Datenbankmigration und keine Änderung am Wissensbestand.
-- Der erste STAGING-Build fand einen Unicode-Wortgrenzenfehler bei deutschen Umlaut-Verben (1 Regressionstest rot); die Erkennung wurde anschließend auf Unicode-Zeichenklassen umgestellt. Der korrigierte Commit muss erneut vollständig geprüft werden.
-- CI, finaler Backend-Syntaxlauf, STAGING-Deployment und authentifizierter E2E-Test sind noch nicht bestätigt.
+- Die erste Build-Prüfung fand einen Unicode-Wortgrenzenfehler bei deutschen Umlaut-Verben (1 Regressionstest rot). Die Erkennung wurde auf Unicode-Zeichenklassen umgestellt.
+- Korrigierter STAGING-Build: **436 Tests bestanden, 0 fehlgeschlagen**; anschließend Backend-Syntaxprüfung und Vite-Produktionsbuild erfolgreich (Render Build erfolgreich).
+- STAGING-Deployment **live**: `dep-dc4e61tg1s2s73e51b9g`, deployter Commit `ad68fe5cc5119896172bf88ee4b0ad81e3b1b0de` (Branch `feature/messinho-unified-ai-integration`). Backend-Start und Supabase Data API HTTP 200 in Runtime-Logs bestätigt.
+- Kein DB-Schema und kein Sprachwissensbestand wurde verändert. Ein authentifizierter Admin-/Scout-Chat-E2E-Test ist noch offen; daher ist die tatsächliche Antwortqualität in allen sechs Sprachen noch nicht abgenommen.
 
 ### Nächster Schritt
 - Tests und Backend-Syntax für den exakten Commit ausführen und CI prüfen.
