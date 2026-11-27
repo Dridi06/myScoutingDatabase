@@ -6147,5 +6147,5 @@ Make the existing approved grammar, vocabulary, pragmatics and conversation know
 - An intermediate test commit `56d27faf` correctly failed because the new regression assertion caught that the language lookup had not yet been moved before routing. The lookup was moved to the correct location; commit `3437646e` passed all three workflows.
 
 ### Deployment gate
-- Previous STAGING deployment remains on `fc9ef66e` until the tested `3437646e` branch head is deployed.
+- Render STAGING deployment `dep-dc50mnt6e07s738vi2ag` is **live** on branch `feature/messinho-conversation-engine`, commit `f078eb7652e6b177b92b4598dcb0dac8328d9f52` (documentation-only commit containing the tested code from `3437646e`). Build succeeded; startup logs confirm API listening, model configuration present, and Supabase Data API HTTP 200.
 - No Production deployment, merge, database schema mutation, or model training performed.
