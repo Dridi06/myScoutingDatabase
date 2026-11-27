@@ -4913,3 +4913,37 @@ Ensure the Arabic orthographic improvements in Linguistic Intelligence 1.3.4 als
 - No Supabase migration or data mutation is required; the change affects query-token matching only.
 - Next action: run the full STAGING build and confirm the new tests pass, then deploy and verify the exact commit.
 
+
+
+### Successful STAGING verification — knowledge retrieval integration — 2026-11-27
+- Render STAGING deployment: dep-dc4nr656e07s73806gtg.
+- Deployed commit: fdcd0063b64b9ab1ace07a63d3f37a4d3397f7b3.
+- Render confirmed status live at 2026-11-27T12:55:32.126060Z.
+- Full automated Node suite: 482 tests, 482 passed, 0 failed, 0 skipped.
+- Both new knowledge retrieval regressions passed:
+  - Fully vocalized MSA retrieves the matching Arabic knowledge entry.
+  - Vocalized Tunisian Derja retrieves the matching Derja knowledge entry.
+- Existing integration test passed: the authenticated chat route loads and injects linguistic intelligence and approved language knowledge.
+- Backend JavaScript syntax checks completed; frontend Vite build succeeded in 2.41 seconds.
+- Runtime startup log confirmed the API listening on port 10000. Supabase Data API returned HTTP 200 during startup.
+- No schema or data migration was required; no Supabase write, user/player/scout data change, learning mutation, or model-weight change occurred.
+- Production branch, production Render service and production Supabase were not changed.
+- Authenticated browser-based conversation tests remain open; automated route coverage is not a substitute for manually testing the deployed UI with a real Admin/Scout session.
+
+### Current language-system status after this slice
+| Component | Version | Status |
+|---|---:|---|
+| Linguistic Intelligence | 1.3.4 | STAGING live; Arabic orthography and vocalized MSA/Derja detection normalized |
+| Language Knowledge access | 1.2.1 | STAGING live; Arabic normalization shared by retrieval and stop-word filtering |
+| Language profiles | 6 | German, English, French, MSA Arabic, Tunisian Derja/Arabizi, Spanish |
+| Automated regression suite | 482 tests | 482 passed, 0 failed |
+| Original source preservation | Covered | Normalization is analysis-only; source text remains unchanged |
+| Database writes/migrations | None | Existing approved first-party knowledge remains read-only to chat/scout roles |
+
+### Next technical slice
+1. Verify live language handling through authenticated Admin and Scout chat sessions using vocalized Arabic, unvocalized Arabic, Tunisian Derja, Arabizi and mixed-language sentences.
+2. Add phrase-level intent/semantic matching for Arabic and Derja without replacing the current conservative language-confidence rules.
+3. Improve dialect-aware retrieval ranking while preserving the existing eight-entry cap, first-party provenance and role isolation.
+4. Extend equivalent orthographic robustness to French/Spanish accent variants and German compound/umlaut variants where tests demonstrate a real retrieval miss.
+5. Keep translation quality claims separate from language detection; do not claim verified translation fluency without a separately tested translation provider/benchmark.
+
