@@ -17,12 +17,13 @@ test('language knowledge is registered for six language profiles and append-only
 test('retrieves only the detected language and shared language entries',async()=>{
  const rows=[
   {entry_key:'de.grammar.word_order',version:1,language_code:'de',entry_type:'grammar',topic:'Satzbau',title:'Verbzweitstellung',content:{explanation:'Im deutschen Hauptsatz steht das finite Verb meist an zweiter Satzposition.'},tags:['Verb','Hauptsatz'],knowledge_status:'active'},
-  {entry_key:'en.grammar.word_order',version:1,language_code:'en',entry_type:'grammar',topic:'Sentence structure',title:'English word order',content:{explanation:'English declarative clauses commonly use subject-verb-object order.'},tags:['word order'],knowledge_status:'active'}
+  {entry_key:'en.grammar.word_order',version:1,language_code:'en',entry_type:'grammar',topic:'Sentence structure',title:'English word order',content:{explanation:'English declarative clauses commonly use subject-verb-object order.'},tags:['word order'],knowledge_status:'active'},
+  {entry_key:'shared.grammar.word_order',version:1,language_code:'shared',entry_type:'grammar',topic:'Clause structure',title:'Shared clause structure',content:{explanation:'The position of the finite verb is an important part of clause structure.'},tags:['Verbzweitstellung','Hauptsatz'],knowledge_status:'active'}
  ];
- const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'Der Spieler ist heute sehr schnell.');
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'Wie funktioniert die Verbzweitstellung im deutschen Hauptsatz?');
  assert.equal(result.language_id,'de');
- assert.equal(result.items.length,1);
- assert.equal(result.items[0].entry_key,'de.grammar.word_order');
+ assert.equal(result.items.length,2);
+ assert.deepEqual(result.items.map(item=>item.entry_key).sort(),['de.grammar.word_order','shared.grammar.word_order']);
 });
 
 test('supports Tunisian Derja knowledge as its own language profile',async()=>{
@@ -37,7 +38,7 @@ test('latest version per entry wins without deleting prior versions',async()=>{
   {entry_key:'es.grammar.gender',version:2,language_code:'es',entry_type:'grammar',topic:'Género',title:'Updated rule',content:{explanation:'Version two'},tags:['gender'],knowledge_status:'active'},
   {entry_key:'es.grammar.gender',version:1,language_code:'es',entry_type:'grammar',topic:'Género',title:'Old rule',content:{explanation:'Version one'},tags:['gender'],knowledge_status:'active'}
  ];
- const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'Hola, el jugador es muy rápido.');
+ const result=await findMessinhoLanguageKnowledge(fakeDb(rows),'Hola, ¿cómo se usa el género gramatical en español?');
  assert.equal(result.items[0].version,2);
  assert.equal(result.items[0].title,'Updated rule');
 });
