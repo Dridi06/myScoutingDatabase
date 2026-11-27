@@ -43,8 +43,8 @@ function extractQuestionText(value) {
 }
 function cleanOptionSegment(value) {
   let option = cleanText(value, 120).replace(/^[¿¡\s]+/u, '').trim();
-  option = option.replace(/^(?:soll ich|sollen wir|möchtest du|moechtest du|willst du|wollen wir|do you want|should i|would you prefer|tu veux|veux-tu|quieres que|quieres|prefieres|¿quieres que|هل تريد|تحب)\s+/iu, '');
-  option = option.replace(/^(?:in|im|in der|in den|aus|auf|für|fuer|between|from|to|en|a|por|para|dans|au|aux|à)\s+/iu, '');
+  option = option.replace(/^(?:soll ich|sollen wir|möchtest du|moechtest du|willst du|wollen wir|do you want|should i|would you prefer|tu veux|veux-tu|tu préfères|tu preferes|quieres que|quieres|prefieres|¿quieres que|هل تريد|تحب)\s+/iu, '');
+  option = option.replace(/^(?:search|look for|find|suchen|recherchieren|in|im|in der|in den|aus|auf|für|fuer|between|from|to|en|a|por|para|dans|au|aux|à)\s+/iu, '');
   option = option.replace(/\s+(?:suchen|recherchieren|analysieren|finden|nehmen|starten|search|look|research|choose|chercher|rechercher|buscar|investigar)\s*[?؟.!]*$/iu, '');
   option = option.replace(/[?؟.!,:;]+$/u, '').trim();
   if (wordCount(option) > 5) option = option.split(/\s+/u).slice(-5).join(' ');
@@ -61,7 +61,7 @@ function classifyQuestionKind(question, options) {
   if (/\b(?:welcher spieler|wen meinst|welchen spieler|which player|who do you mean|quel joueur|qué jugador|أي لاعب|شنوّة لاعب)\b/u.test(text)) return 'player_reference';
   if (/\b(?:bundesliga|regionalliga|liga|league|level|spielklasse|niveau|division|championship)\b/u.test(text)) return 'target_level';
   if (/\b(?:wo|wohin|standort|region|land|country|location|where|which country|quel pays|dónde|فين|وين)\b/u.test(text)) return 'location';
-  if (/\b(?:alter|jahrgang|geburtsjahr|age|born|how old|quel âge|qué edad|عمر)\b/u.test(text)) return 'age';
+  if (/\b(?:alt|alter|jahrgang|geburtsjahr|age|born|how old|quel age|que edad|عمر)\b/u.test(text)) return 'age';
   if (/\b(?:position|positions|rolle|role|poste|posición|مركز)\b/u.test(text)) return 'position';
   if (/\b(?:fuß|fuss|schussbein|preferred foot|left foot|right foot|pied|pie|القدم)\b/u.test(text)) return 'preferred_foot';
   if (/\b(?:wie viele|anzahl|quantity|how many|combien|cuántos|قداش)\b/u.test(text)) return 'quantity';
