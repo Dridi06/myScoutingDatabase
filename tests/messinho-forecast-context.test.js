@@ -18,7 +18,8 @@ test('forecast context accepts only approved ordinary evidence and verified outc
   ],
   now:Date.parse('2026-11-27T12:00:00Z')
  });
- assert.equal(result.time_series.length,2);
+ // The verified outcome and the approved evidence record refer to the same date; count one observation.
+ assert.equal(result.time_series.length,1);
  assert.equal(result.market_value_history.length,1);
  assert.equal(result.transfer_evidence.length,1);
  assert.equal(result.contract_history.length,1);
