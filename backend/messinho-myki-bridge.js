@@ -61,7 +61,7 @@ export async function dispatchMessinhoMyKiProposals({role='scout',run,onProposal
  * applies the patch or authorizes integration/deployment.
  */
 export async function persistAndDispatchMessinhoMyKiProposal({
-  db,proposal,role='scout',env=process.env,fetchImpl=fetch
+  db,proposal,role='scout',requestedBy,env=process.env,fetchImpl=fetch
 }={}) {
   if(role!=='admin')return {ok:false,code:'MYKI_ADMIN_REQUIRED'};
   const saved=await persistMessinhoMyKiProposal({db,proposal});
@@ -76,7 +76,7 @@ export async function persistAndDispatchMessinhoMyKiProposal({
   const jobId=randomUUID(),patchSha=hashMessinhoEngineeringPatch(proposal.patch);
   const job={job_id:jobId,ticket_id:saved.ticket_id,source_sha:match[1],patch_sha256:patchSha,patch:proposal.patch};
   const {error:insertError}=await db.from('messinho_engineering_jobs').insert({
-    id:jobId,ticket_id:saved.ticket_id,requested_by:null,source_sha:match[1],patch_sha256:patchSha,status:'queued'
+    id:jobId,ticket_id:saved.ticket_id,requested_by:requestedBy,source_sha:match[1],patch_sha256:patchSha,status:'queued'
   });
   if(insertError)return {...saved,sandbox:{status:'failed',reason:'job_persistence_failed',error_code:insertError.code||'unknown'}};
   const dispatched=await dispatchMessinhoSandboxJob({job,env,fetchImpl});

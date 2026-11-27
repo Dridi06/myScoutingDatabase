@@ -60,3 +60,48 @@ test('does not dispatch proposals from partial or incomplete agent runs',async()
  const r=await dispatchMessinhoMyKiProposals({role:'admin',run,onProposal:async()=>{called=true;return {ok:true};}});
  assert.equal(r.skipped,'agent_run_incomplete');assert.equal(called,false);
 });
+
+
+import { persistAndDispatchMessinhoMyKiProposal } from '../backend/messinho-myki-bridge.js';
+const engineeringProposal={
+ id:'candidate-123456',title:'Sichere Verbesserung der Eingabeprüfung',
+ rationale:'Eine konkrete Eingabegrenze wird nicht einheitlich geprüft und kann mit einem kleinen Patch abgesichert werden.',
+ patch:'diff --git a/backend/messinho-input-correction.js b/backend/messinho-input-correction.js\nindex 1111111..2222222 100644\n--- a/backend/messinho-input-correction.js\n+++ b/backend/messinho-input-correction.js\n@@ -1 +1 @@\n-const value = 1;\n+const value = 2;\n',
+ test_plan:['Grenzfall prüfen','Regression prüfen'],
+ benchmark_id:'feature/messinho-autonomous-agent-semantic-planner@'+'a'.repeat(40),
+ rollback_plan:'Vorherigen Commit wiederherstellen und Regressionstests erneut ausführen.'
+};
+function engineeringDb(){
+ const calls=[];
+ return {calls,async rpc(name,args){calls.push({type:'rpc',name,args});return {data:{ticket_id:'22222222-2222-4222-8222-222222222222'},error:null};},
+  from(table){return {insert:async row=>{calls.push({type:'insert',table,row});return {error:null};},
+   update:patch=>({eq:async()=>{calls.push({type:'update',table,patch});return {error:null};}})};}};
+}
+test('autonomous engineering proposal persists an Admin ticket but does not auto-run without explicit opt-in',async()=>{
+ const db=engineeringDb();
+ const result=await persistAndDispatchMessinhoMyKiProposal({db,proposal:engineeringProposal,role:'admin',requestedBy:'11111111-1111-4111-8111-111111111111',env:{}});
+ assert.equal(result.ok,true);
+ assert.equal(result.sandbox.status,'not_dispatched');
+ assert.equal(result.sandbox.reason,'explicit_auto_review_opt_in_required');
+ assert.equal(db.calls.filter(x=>x.type==='insert').length,0);
+});
+test('autonomous engineering sandbox dispatch requires Admin and the staging gate',async()=>{
+ const db=engineeringDb();
+ const denied=await persistAndDispatchMessinhoMyKiProposal({db,proposal:engineeringProposal,role:'scout',env:{}});
+ assert.equal(denied.code,'MYKI_ADMIN_REQUIRED');
+ const closed=await persistAndDispatchMessinhoMyKiProposal({db,proposal:engineeringProposal,role:'admin',env:{MESSINHO_AUTO_SANDBOX_REVIEW_ENABLED:'true'}});
+ assert.equal(closed.sandbox.reason,'staging_gate_closed');
+});
+test('opted-in Admin engineering proposal is dispatched only against the pinned feature branch SHA',async()=>{
+ const db=engineeringDb(),calls=[];
+ const env={MESSINHO_AUTO_SANDBOX_REVIEW_ENABLED:'true',MESSINHO_SANDBOX_ENABLED:'true',RENDER:'true',
+  RENDER_SERVICE_ID:'staging-id',MESSINHO_STAGING_RENDER_SERVICE_ID:'staging-id',MESSINHO_SANDBOX_GITHUB_TOKEN:'token'};
+ const fetchImpl=async(url,options={})=>{calls.push({url,options});return url.includes('/commits/')?{ok:true,json:async()=>({sha:'a'.repeat(40)})}:{status:204};};
+ const result=await persistAndDispatchMessinhoMyKiProposal({db,proposal:engineeringProposal,role:'admin',
+  requestedBy:'11111111-1111-4111-8111-111111111111',env,fetchImpl});
+ assert.equal(result.ok,true);
+ assert.equal(result.sandbox.status,'queued');
+ assert.equal(result.sandbox.branch,'feature/messinho-autonomous-agent-semantic-planner');
+ assert.equal(db.calls.find(x=>x.type==='insert').row.requested_by,'11111111-1111-4111-8111-111111111111');
+ assert.equal(JSON.parse(calls[1].options.body).ref,'feature/messinho-autonomous-agent-semantic-planner');
+});
