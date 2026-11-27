@@ -4733,3 +4733,30 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 4. Übersetzungsqualität anhand von Bedeutung, Negation, Modalität, Eigennamen, Zahlen und Fußballterminologie messen.
 5. Zielsprachen-Erkennung in umgangssprachlichen Formulierungen aller sechs Profile erweitern.
 6. Weitere eigenständig verfasste Wissenseinträge versionieren und erst nach Inhaltsprüfung aktivieren.
+
+
+## 29. Linguistic Intelligence 1.3.3 – Arabische Konjunktionen und Regressionstestkorpus – 2026-11-27
+
+### Implementiert
+- Sprachmodul auf Version **1.3.3** angehoben.
+- MSA-Erkennung berücksichtigt nun beim Scoring genau ein angehängtes arabisches Konjunktionspräfix: **و** oder **ف**.
+- Das Präfix wird nur für die Erkennung berücksichtigt, wenn der verbleibende Token exakt im freigegebenen MSA-Lexikon vorhanden ist.
+- Keine destruktive Normalisierung: Originaltoken und Originalnachricht bleiben unverändert.
+- Dialektbegriffe wie **فما** bleiben durch den Vorrang exakter Lexikontreffer geschützt.
+- Regressionstests ergänzen MSA-Konjunktionen, Abgrenzung zur tunesischen Derja sowie Beispielsätze für alle sechs Profile mit Negation, Unsicherheit und der Kennung **U19**.
+- Dokumentation: `docs/MESSINHO_LINGUISTIC_INTELLIGENCE_1_3_3.md`.
+
+### Verifikation und Grenzen
+- Die Code- und Teständerungen sind auf `feature/messinho-unified-ai-integration`.
+- CI für 1.3.3 muss nach den letzten Commits vollständig abgeschlossen sein; bis dahin keine Freigabe als geprüft.
+- Auf dem vorherigen Commit 1.3.2 waren Node-Tests, Backend-Syntax, vollständiger Staging-Branch-CI-Build, Staging-Health-Smoke und isolierter Sandbox-Baseline-Lauf erfolgreich.
+- Der Sandbox-Baseline-Lauf beweist noch keinen echten Kandidaten-Patch-Dispatch mit OIDC-Callback.
+- Keine Supabase-Migration oder Änderung an Sprachwissensdatensätzen.
+- Render-STAGING nicht deployed; Auto-Deploy deaktiviert. `main`, Produktion und produktive Daten unverändert.
+
+### Nächste Schritte
+1. CI auf dem vollständigen 1.3.3-HEAD auswerten und gegebenenfalls Fehler beheben.
+2. Testkorpus für kurze mehrdeutige Äußerungen und realistische Sprachwechsel erweitern.
+3. Übersetzungsqualität anhand von Negation, Modalität, Eigennamen, Zahlen und Fußballterminologie messbar prüfen.
+4. Umgangssprachliche Zielsprachenbefehle in allen sechs Profilen erweitern.
+5. Tunesische Derja unabhängig muttersprachlich prüfen lassen.
