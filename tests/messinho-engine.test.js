@@ -30,6 +30,20 @@ test('history sanitizer limits, validates roles and truncates text',()=>{
  assert.deepEqual(sanitizeMessinhoHistory({bad:true}),[]);
 });
 
+test('conversation history sanitizer preserves bounded player research context for follow-up turns',()=>{
+ const history=[{role:'assistant',text:'Profil gefunden',researchContext:{
+  player:{name:'Beispielspieler',private_field:'must not pass'},
+  profile:{summary:'Belegtes Profil',facts:['Position: Mittelfeld']},
+  sources:[{title:'Vereinsseite',url:'https://example.org/player',publisher:'Verein',snippet:'Aktuelle Angaben'},{title:'Unsichere Quelle',url:'javascript:alert(1)'}]
+ }}];
+ const safe=sanitizeMessinhoHistory(history);
+ assert.equal(safe.length,1);
+ assert.equal(safe[0].researchContext.player.name,'Beispielspieler');
+ assert.equal(safe[0].researchContext.player.private_field,undefined);
+ assert.equal(safe[0].researchContext.sources.length,1);
+ assert.equal(safe[0].researchContext.sources[0].url,'https://example.org/player');
+});
+
 test('uses only an approved position profile when one is supplied',()=>{
  const candidate={positions:['Innenverteidiger'],analysis:{ratings:{technical:100,tactical:0,athletic:0,mental:0}}};
  const base=scoreMessinhoPlayer(candidate);
