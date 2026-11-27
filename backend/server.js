@@ -16,7 +16,7 @@ import { normalizeMessinhoHypothesisCreate, normalizeMessinhoHypothesisTransitio
 import { normalizeMyKiTicketProposal, createMyKiTicketRecord, buildMyKiCopyPacket } from './messinho-myki-tickets.js';
 import { persistMessinhoMyKiProposal } from './messinho-myki-bridge.js';
 import { generateMessinhoEngineeringProposal, isMessinhoEngineeringRequest } from './messinho-myki-engineer.js';
-import { startMessinhoEngineeringReviewScheduler, getMessinhoEngineeringReviewSchedule, isMessinhoEngineeringAutoReviewEnabled } from './messinho-engineering-scheduler.js';
+import { startMessinhoEngineeringReviewScheduler, runMessinhoScheduledEngineeringReview, getMessinhoEngineeringReviewSchedule, isMessinhoEngineeringAutoReviewEnabled } from './messinho-engineering-scheduler.js';
 
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
@@ -524,7 +524,12 @@ app.post('/api/admin/myki/control',myKiTicketLimiter,async(req,res)=>{
       updated_by:actor.user.id,updated_at:new Date().toISOString(),stopped_at:null
     }).eq('id','global').select('mode,stop_requested,status_message,updated_at').single();
     if(error||!data)return res.status(503).json({error:'Der Betriebsmodus konnte nicht dauerhaft gespeichert werden.'});
-    return res.json({ok:true,control:data,message:'Der MESSINHO-Betriebsmodus wurde gespeichert.'});
+    if(mode==='developing'&&isMessinhoEngineeringAutoReviewEnabled(process.env)){
+      void runMessinhoScheduledEngineeringReview({db,force:true})
+        .then(result=>{if(!result.ok)console.warn('MESSINHO admin-triggered development run did not complete:',result.code);})
+        .catch(error=>console.warn('MESSINHO admin-triggered development run failed:',error.message));
+    }
+    return res.json({ok:true,control:data,message:mode==='developing'?'MESSINHO startet eine autonome Entwicklungsprüfung.':'Der MESSINHO-Betriebsmodus wurde gespeichert.'});
   }catch(error){console.error('myKI control update failed:',error.message);return res.status(500).json({error:'Die MESSINHO-Steuerung ist vorübergehend nicht verfügbar.'});}
 });
 app.post('/api/admin/messinho-diagnostics/run',requireSupabaseAdmin,async(req,res)=>{
