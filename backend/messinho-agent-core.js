@@ -46,7 +46,8 @@ export function validateMessinhoAgentRun(plan,run) {
  const ids=results.map(item=>item?.capability_id).filter(Boolean);
  const duplicates=ids.filter((id,index)=>ids.indexOf(id)!==index);
  const unknownStatuses=results.filter(item=>!VALID_STATUSES.has(item?.status)).map(item=>item?.capability_id||'unknown');
- const missingResults=expected.filter(id=>!ids.includes(id));
+ const deferred=new Set(Array.isArray(run?.deferred_capabilities)?run.deferred_capabilities:[]);
+ const missingResults=expected.filter(id=>!ids.includes(id)&&!deferred.has(id));
  const malformed=results.filter(item=>!item||typeof item!=='object'||typeof item.capability_id!=='string');
  const missingProvenance=results.filter(item=>!['denied','invalid_input','unknown_capability'].includes(item?.status)&&(!item?.provenance||item.provenance.capability_id!==item.capability_id)).map(item=>item?.capability_id||'unknown');
  return {valid:duplicates.length===0&&unknownStatuses.length===0&&malformed.length===0&&missingProvenance.length===0&&missingResults.length===0,
@@ -105,7 +106,10 @@ export async function executeMessinhoAgentPlan({plan,input={},goal='',role='scou
      const alternativePlan=prepareMessinhoReplanPlan(candidate,run.results,role);
      if(alternativePlan){
        const replanRun=await runMessinhoCapabilityPlanAsync(alternativePlan,agentInput,role,
-         {budgetMs:Math.max(250,Math.min(remainingAfterRetry,2500)),onStep,shouldStop});
+         {budgetMs:Math.max(250,Math.min(remainingAfterRetry,2500)),
+          onStep:typeof onStep==='function'?checkpoint=>onStep({...checkpoint,
+            completed_results:[...(run.results||[]),...(checkpoint.completed_results||[])],
+            pending_capabilities:[...(checkpoint.pending_capabilities||[])]}):undefined,shouldStop});
        const mergedResults=[...(run.results||[]),...(replanRun.results||[])];
        const useful=mergedResults.filter(item=>['completed','verified','proposal_ready'].includes(item.status)).length;
        const incompleteResults=mergedResults.filter(item=>['insufficient_data','error','denied','invalid_input','unknown_capability','unverified','needs_review','no_reliable_improvement'].includes(item.status));
