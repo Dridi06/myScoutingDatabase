@@ -84,6 +84,8 @@ export async function planMessinhoGoalWithModel({
       rejected_capability_ids:ids.filter(id=>!catalogueIds.has(id)).slice(0,12),
       plan:{...plan,planning_source:'semantic_model',planner_confidence:confidence}};
   }catch(error){
-    return fallback(objective,role,context,error?.name==='TimeoutError'?'timeout':'planner_error');
+    const reason=error?.name==='TimeoutError'?'timeout':'planner_error';
+    const detail=String(error?.message||'').replace(/[\\r\\n]+/g,' ').slice(0,240);
+    return fallback(objective,role,context,reason,detail||error?.name||'unknown_error');
   }
 }
