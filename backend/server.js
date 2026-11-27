@@ -2596,6 +2596,12 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         _messinho_domain_knowledge:(domainKnowledge.items||[]).map(item=>({id:item.id,domain:item.domain,question:item.question,content:item.content,claims:item.claims,sources:item.sources,verified_at:item.verified_at,rights:item.rights,confidence:item.confidence,relevance:item.relevance}))};
       const taskRecord=await createMessinhoAgentTask(ownerId,interpretedMessage,automaticPlan,agentInput,profile.role);
       const agentCycle=await executeMessinhoAgentPlan({plan:automaticPlan,input:agentInput,goal:interpretedMessage,role:profile.role,
+        replan:async({goal,role,previous_results,failed_capabilities})=>{
+          const decision=await planMessinhoGoalWithModel({goal,role,context:agentMemory,
+            apiKey:process.env.OPENAI_API_KEY,model:process.env.OPENAI_MODEL||'gpt-4.1-mini',
+            previousResults:previous_results,failedCapabilities:failed_capabilities});
+          return decision.plan;
+        },
         onStep:checkpoint=>taskRecord?checkpointMessinhoAgentTask(taskRecord.id,ownerId,checkpoint.completed_results,checkpoint.pending_capabilities):undefined,
         shouldStop:async()=>{
           const {data:control,error}=await db.from('messinho_agent_control').select('mode,stop_requested').eq('id','global').maybeSingle();
