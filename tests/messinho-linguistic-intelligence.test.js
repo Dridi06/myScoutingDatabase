@@ -10,7 +10,7 @@ import {
 } from '../backend/messinho-linguistic-intelligence.js';
 
 test('registers six separate language profiles including Tunisian Derja',()=>{
-  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.0');
+  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.1');
   assert.deepEqual(MESSINHO_LANGUAGE_PROFILES.map(item=>item.id),['de','en','fr','ar','ar-tn','es']);
   assert.equal(getMessinhoLanguageProfile('ar-tn').name,'تونسي / Derja');
   assert.equal(getMessinhoLanguageProfile('ar').name,'العربية الفصحى');
@@ -160,6 +160,12 @@ test('recognizes Arabic and Derja negation, contrast, uncertainty and politeness
   assert.equal(result.signals.contrast,true);
   assert.equal(result.signals.uncertainty,true);
   assert.equal(result.signals.politeness,true);
+});
+
+
+test('Arabizi normalization preserves football age groups and mixed identifiers',()=>{
+  assert.equal(normalizeMessinhoArabizi('U19 U17 4-3-3 2026 Messi9 wa9tech 3lech'),
+    'U19 U17 4-3-3 2026 Messi9 waقtech عlech');
 });
 
 test('does not treat ordinary standalone statistics as Arabizi digits',()=>{
