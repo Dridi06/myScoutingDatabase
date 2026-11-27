@@ -5360,3 +5360,16 @@ Continue improving the language system after the verified Linguistic Intelligenc
 - Next: run full Node tests, backend syntax checks and Vite build. Fix any regression before deployment.
 - No Supabase migration or knowledge-row write is part of this code-only change. Production remains untouched.
 
+
+
+### First STAGING build feedback — separable German rephrase verb — 2026-11-27
+- The first build attempt for Linguistic Intelligence 1.3.7 / Language Knowledge 1.2.4 found one failing new regression before deployment.
+- The failing case was “Formuliere das auf Englisch um.”; the action classifier returned answer instead of rephrase because the separable German verb pattern only recognized “formuliere um” with no intervening object.
+- The other new cases passed, including explicit Derja explanation knowledge retrieval and task-scoped target language.
+- Corrective implementation commit: e0361d66b350e562ec881def2784863fee219545.
+  - The rephrase matcher now recognizes the separable verb “formuliere … um” with up to six intervening words.
+  - This is a bounded linguistic pattern, not a broad generic match.
+- The failed build did not deploy; previous live STAGING remains on the last successful deployment.
+- No database write/migration or production change occurred.
+- Next: rerun full STAGING build and verify all 497+ tests before release.
+
