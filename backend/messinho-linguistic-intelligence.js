@@ -71,7 +71,7 @@ const ARABIZI_DIGITS = Object.freeze({ '2':'ء', '3':'ع', '5':'خ', '6':'ط', '
 export function normalizeMessinhoArabizi(input) {
   // Arabizi digits are letters only inside Latin-script words. Preserve standalone
   // numbers (ages, shirt numbers, dates, scores and statistics) exactly.
-  return clean(input).replace(/[\\p{L}0-9]+/gu, token => {
+  return clean(input).replace(/[\p{L}0-9]+/gu, token => {
     if (!/[A-Za-zÀ-ÖØ-öø-ÿ]/u.test(token)) return token;
     return [...token].map(char => ARABIZI_DIGITS[char] || char).join('');
   });
@@ -89,12 +89,12 @@ const ACTION_PATTERNS = {
   rephrase: /(?<![\p{L}\p{N}])(?:formulier(?:e|en)? um|umformulier(?:e|en)?|rephrase|reformul(?:e|er)|reformula(?:r)?|أعد الصياغة)(?![\p{L}\p{N}])/u
 };
 const TARGET_LANGUAGE_PATTERNS = [
-  {id:'de',pattern:/(?:auf|ins|in) deutsch(?:e|er|en)?|\\bto german\\b|\\bin german\\b|\\ben allemand\\b|\\bal alemán\\b|إلى الألمانية/u},
-  {id:'en',pattern:/(?:auf|ins|in) englisch|\\bto english\\b|\\bin english\\b|\\ben anglais\\b|\\bal inglés\\b|إلى الإنجليزية/u},
-  {id:'fr',pattern:/(?:auf|ins|in) französisch|\\bto french\\b|\\bin french\\b|\\binto french\\b|\\ben français\\b|\\ben francais\\b|\\bal francés\\b|إلى الفرنسية/u},
-  {id:'ar',pattern:/(?:auf|ins|in) hocharabisch|\\bmodern standard arabic\\b|\\bfusha\\b|بالعربية الفصحى|إلى العربية الفصحى/u},
-  {id:'ar-tn',pattern:/(?:auf|ins|in) tunesisch|\\btunisian derja\\b|\\bderja\\b|بالتونسي|بالدارجة التونسية|\\bbil tounsi\\b|\\bbil derja\\b/u},
-  {id:'es',pattern:/(?:auf|ins|in) spanisch|\\bto spanish\\b|\\bin spanish\\b|\\ben español\\b|\\bal español\\b|إلى الإسبانية/u}
+  {id:'de',pattern:/(?:auf|ins|in) deutsch(?:e|er|en)?|\bto german\b|\bin german\b|\ben allemand\b|\bal alemán\b|إلى الألمانية/u},
+  {id:'en',pattern:/(?:auf|ins|in) englisch|\bto english\b|\bin english\b|\ben anglais\b|\bal inglés\b|إلى الإنجليزية/u},
+  {id:'fr',pattern:/(?:auf|ins|in) französisch|\bto french\b|\bin french\b|\binto french\b|\ben français\b|\ben francais\b|\bal francés\b|إلى الفرنسية/u},
+  {id:'ar',pattern:/(?:auf|ins|in) hocharabisch|\bmodern standard arabic\b|\bfusha\b|بالعربية الفصحى|إلى العربية الفصحى/u},
+  {id:'ar-tn',pattern:/(?:auf|ins|in) tunesisch|\btunisian derja\b|\bderja\b|بالتونسي|بالدارجة التونسية|\bbil tounsi\b|\bbil derja\b/u},
+  {id:'es',pattern:/(?:auf|ins|in) spanisch|\bto spanish\b|\bin spanish\b|\ben español\b|\bal español\b|إلى الإسبانية/u}
 ];
 
 function detectLanguageAction(text, languageId) {
