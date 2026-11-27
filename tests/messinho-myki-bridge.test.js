@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {dispatchMessinhoMyKiProposals,persistMessinhoMyKiProposal} from '../backend/messinho-myki-bridge.js';
 
-const diff=`diff --git a/backend/example.js b/backend/example.js
+const diff=`diff --git a/backend/messinho-quality-control.js b/backend/messinho-quality-control.js
 index 1111111..2222222 100644
---- a/backend/example.js
-+++ b/backend/example.js
+--- a/backend/messinho-quality-control.js
++++ b/backend/messinho-quality-control.js
 @@ -1 +1 @@
 -const value = 1;
 +const value = 2;
