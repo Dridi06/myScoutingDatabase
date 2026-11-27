@@ -83,49 +83,99 @@ export function appendMessinhoLongTermMemories(preferences,candidates,createdAt=
   return next;
 }
 
-export async function classifyMessinhoTurn({message,history=[],memory={},linguisticContext=null,userRole='scout',apiKey,model='gpt-4.1-mini',fetchImpl=fetch,timeoutMs=18000}={}){
-  if(!apiKey||typeof fetchImpl!=='function')return {status:'unavailable',decision:null};
-  try{
-    const response=await fetchImpl('https://api.openai.com/v1/chat/completions',{
-      method:'POST',
-      signal:AbortSignal.timeout(timeoutMs),
-      headers:{'Content-Type':'application/json',Authorization:'Bearer '+apiKey},
-      body:JSON.stringify({
-        model,temperature:0.1,
-        response_format:{
-          type:'json_schema',
-          json_schema:{
-            name:'messinho_cognitive_route',
-            strict:true,
-            schema:{
-              type:'object',additionalProperties:false,
-              properties:{
-                intent:{type:'string',enum:MESSINHO_INTENTS},
-                confidence:{type:'number',minimum:0,maximum:1},
-                reply:{type:'string'},
-                clarification_question:{type:'string'},
-                memory_items:{type:'array',maxItems:3,items:{
-                  type:'object',additionalProperties:false,
-                  properties:{
-                    text:{type:'string',maxLength:320},
-                    category:{type:'string',enum:['preference','project','stable_fact','active_goal']},
-                    confidence:{type:'number',minimum:0,maximum:1}
-                  },required:['text','category','confidence']
-                }}
-              },required:['intent','confidence','reply','clarification_question','memory_items']
-            }
-          }
-        },
-        messages:buildMessinhoCognitiveRouterMessages({message,history,memory,linguisticContext,userRole})
-      })
-    });
-    if(!response.ok)return {status:'provider_error',decision:null,http_status:response.status};
-    const payload=await response.json();
-    const raw=payload.choices?.[0]?.message?.content;
-    const parsed=typeof raw==='string'?JSON.parse(raw):null;
-    const decision=validateMessinhoCognitiveDecision(parsed);
-    return decision?{status:'completed',decision}:{status:'invalid_output',decision:null};
-  }catch(error){
-    return {status:'error',decision:null,error_code:error?.name==='TimeoutError'?'timeout':'router_error'};
+function parseResponsesText(payload){
+  if(typeof payload?.output_text==='string'&&payload.output_text.trim())return payload.output_text;
+  for(const item of payload?.output||[]){
+    if(item?.type!=='message')continue;
+    for(const part of item.content||[])if((part?.type==='output_text'||part?.type==='text')&&typeof part.text==='string')return part.text;
   }
+  return null;
+}
+
+function localConversationFallback(message){
+  const value=String(message||'').trim().toLocaleLowerCase('de-DE');
+  if(/^(hey|hallo|hi|guten morgen|guten tag|guten abend|moin|servus)(\\b|[!.?\\s])/iu.test(value)){
+    return {intent:'conversation',confidence:1,reply:'Hey! Schön, dass du da bist. Wie kann ich dir heute helfen?',clarification_question:'',memory_items:[]};
+  }
+  if(/^(danke|vielen dank|danke dir)(\\b|[!.?\\s])/iu.test(value)){
+    return {intent:'conversation',confidence:1,reply:'Sehr gerne! Wenn du noch etwas brauchst, bin ich da.',clarification_question:'',memory_items:[]};
+  }
+  if(/^(tsch[uü]ss|auf wiedersehen|bis bald|gute nacht)(\\b|[!.?\\s])/iu.test(value)){
+    return {intent:'conversation',confidence:1,reply:'Bis bald! Ich bin da, wenn du mich wieder brauchst.',clarification_question:'',memory_items:[]};
+  }
+  return {intent:'conversation',confidence:0.5,reply:'Ich bin gerade im eingeschränkten Gesprächsmodus, weil mein KI-Dienst vorübergehend nicht erreichbar ist. Deine Nachricht ist angekommen. Ich kann einfache Begrüßungen und kurze Rückmeldungen beantworten; für komplexe Fragen versuche es bitte gleich noch einmal.',clarification_question:'',memory_items:[]};
+}
+
+function retryDelay(response,attempt){
+  const header=response?.headers?.get?.('retry-after');
+  const seconds=Number(header);
+  if(Number.isFinite(seconds)&&seconds>=0)return Math.min(seconds*1000,2500);
+  return Math.min(250*Math.pow(2,attempt),1500)+Math.floor(Math.random()*150);
+}
+
+async function requestWithRetry(fetchImpl,url,options,{timeoutMs=12000,maxAttempts=2}={}){
+  let last={status:'provider_error',decision:null};
+  for(let attempt=0;attempt<maxAttempts;attempt++){
+    try{
+      const response=await fetchImpl(url,{...options,signal:AbortSignal.timeout(timeoutMs)});
+      if(response.ok)return {response};
+      const retryable=response.status===429||response.status===408||response.status===409||response.status>=500;
+      last={status:'provider_error',decision:null,http_status:response.status};
+      if(!retryable||attempt===maxAttempts-1)return {error:last};
+      await new Promise(resolve=>setTimeout(resolve,retryDelay(response,attempt)));
+    }catch(error){
+      last={status:'error',decision:null,error_code:error?.name==='TimeoutError'?'timeout':'network_error'};
+      if(attempt===maxAttempts-1)return {error:last};
+      await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)));
+    }
+  }
+  return {error:last};
+}
+
+export async function classifyMessinhoTurn({message,history=[],memory={},linguisticContext=null,userRole='scout',apiKey,model='gpt-4.1-mini',fetchImpl=fetch,timeoutMs=12000}={}){
+  if(!apiKey||typeof fetchImpl!=='function')return {status:'fallback',decision:localConversationFallback(message),error_code:'provider_not_configured'};
+  const messages=buildMessinhoCognitiveRouterMessages({message,history,memory,linguisticContext,userRole});
+  const schema={
+    type:'object',additionalProperties:false,
+    properties:{
+      intent:{type:'string',enum:MESSINHO_INTENTS},
+      confidence:{type:'number',minimum:0,maximum:1},
+      reply:{type:'string'},
+      clarification_question:{type:'string'},
+      memory_items:{type:'array',maxItems:3,items:{type:'object',additionalProperties:false,properties:{
+        text:{type:'string'},
+        category:{type:'string',enum:['preference','project','stable_fact','active_goal']},
+        confidence:{type:'number',minimum:0,maximum:1}
+      },required:['text','category','confidence']}}
+    },required:['intent','confidence','reply','clarification_question','memory_items']
+  };
+  const input=messages.map(item=>({role:item.role,content:[{type:'input_text',text:item.content}]}));
+  const primary=await requestWithRetry(fetchImpl,'https://api.openai.com/v1/responses',{
+    method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+apiKey},
+    body:JSON.stringify({model,input,text:{format:{type:'json_schema',name:'messinho_cognitive_route',strict:true,schema}}})
+  },{timeoutMs,maxAttempts:2});
+  if(primary.response){
+    try{
+      const payload=await primary.response.json();
+      const raw=parseResponsesText(payload);
+      const decision=validateMessinhoCognitiveDecision(typeof raw==='string'?JSON.parse(raw):null);
+      if(decision)return {status:'completed',decision,provider:'responses'};
+      primary.error={status:'invalid_output',decision:null};
+    }catch{primary.error={status:'invalid_output',decision:null};}
+  }
+  // Compatibility fallback: legacy endpoint is retained temporarily during migration.
+  const legacy=await requestWithRetry(fetchImpl,'https://api.openai.com/v1/chat/completions',{
+    method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+apiKey},
+    body:JSON.stringify({model,temperature:0.1,response_format:{type:'json_schema',json_schema:{name:'messinho_cognitive_route',strict:true,schema}},messages})
+  },{timeoutMs,maxAttempts:1});
+  if(legacy.response){
+    try{
+      const payload=await legacy.response.json();
+      const raw=payload.choices?.[0]?.message?.content;
+      const decision=validateMessinhoCognitiveDecision(typeof raw==='string'?JSON.parse(raw):null);
+      if(decision)return {status:'completed',decision,provider:'chat_completions_fallback'};
+    }catch{}
+  }
+  const failure=legacy.error||primary.error||{status:'provider_error',http_status:0};
+  return {status:'fallback',decision:localConversationFallback(message),error_code:failure.error_code||('http_'+(failure.http_status||'unknown')),http_status:failure.http_status||null};
 }

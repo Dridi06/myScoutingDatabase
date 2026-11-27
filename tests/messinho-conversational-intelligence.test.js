@@ -58,34 +58,35 @@ test('long-term memory merges, deduplicates, bounds length and preserves existin
   assert.equal(prefs.long_term_memory.length,50);
 });
 
-test('semantic router parses structured model decisions and fails closed on malformed output',async()=>{
-  const fetchImpl=async(_url,options)=>{
+test('semantic router uses the Responses API structured-output contract',async()=>{
+  const fetchImpl=async(url,options)=>{
+    assert.equal(url,'https://api.openai.com/v1/responses');
     const body=JSON.parse(options.body);
-    assert.equal(body.response_format.json_schema.strict,true);
-    return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({
+    assert.equal(body.text.format.type,'json_schema');
+    assert.equal(body.text.format.strict,true);
+    assert.ok(Array.isArray(body.input));
+    return {ok:true,json:async()=>({output_text:JSON.stringify({
       intent:'clarify',confidence:0.93,reply:'Meinst du, dass ich mir das merken soll?',
       clarification_question:'Meinst du, dass ich mir das merken soll?',memory_items:[]
-    })}}]})};
+    })})};
   };
   const result=await classifyMessinhoTurn({message:'Merk die Staging Alpha',apiKey:'test',fetchImpl});
   assert.equal(result.status,'completed');
+  assert.equal(result.provider,'responses');
   assert.equal(result.decision.intent,'clarify');
-  const malformed=await classifyMessinhoTurn({message:'x',apiKey:'test',fetchImpl:async()=>({ok:true,json:async()=>({choices:[{message:{content:'not json'}}]})})});
-  assert.equal(malformed.status,'error');
-  assert.equal(malformed.decision,null);
 });
 
 test('semantic router recognizes a memory-save decision without depending on a fixed phrase',async()=>{
   const fetchImpl=async(_url,options)=>{
     const body=JSON.parse(options.body);
-    const input=JSON.parse(body.messages[1].content);
+    const input=JSON.parse(body.input[1].content[0].text);
     assert.equal(input.current_message,'Merk die Staging Alpha');
     assert.equal(input.user_role,'admin');
     assert.ok(input.linguistic_context);
-    return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({
+    return {ok:true,json:async()=>({output_text:JSON.stringify({
       intent:'memory_save',confidence:0.91,reply:'Ich halte das für dich fest.',
       clarification_question:'',memory_items:[{text:'Staging Alpha',category:'project',confidence:0.92}]
-    })}}]})};
+    })})};
   };
   const result=await classifyMessinhoTurn({
     message:'Merk die Staging Alpha',history:[],memory:{},linguisticContext:{response_language:'de'},
@@ -108,4 +109,20 @@ test('server applies semantic cognitive routing before fixed scouting and extern
   assert.match(source,/appendMessinhoLongTermMemories/);
   assert.match(source,/cognitive\.confidence<0\.72/);
   assert.match(source,/action_blocked:true/);
+});
+
+
+test('provider outage still gives a natural greeting response and never starts an action',async()=>{
+  const result=await classifyMessinhoTurn({message:'Hey Messinho',apiKey:'test',fetchImpl:async()=>({ok:false,status:503,headers:{get:()=>null}})});
+  assert.equal(result.status,'fallback');
+  assert.equal(result.decision.intent,'conversation');
+  assert.match(result.decision.reply,/Schön, dass du da bist/);
+  assert.equal(result.decision.memory_items.length,0);
+});
+
+test('missing provider configuration still produces a safe local response',async()=>{
+  const result=await classifyMessinhoTurn({message:'Hallo Messinho'});
+  assert.equal(result.status,'fallback');
+  assert.equal(result.decision.intent,'conversation');
+  assert.match(result.decision.reply,/Schön, dass du da bist/);
 });

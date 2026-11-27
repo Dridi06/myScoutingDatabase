@@ -2310,14 +2310,15 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       apiKey:process.env.OPENAI_API_KEY,
       model:process.env.OPENAI_MODEL||'gpt-4.1-mini'
     });
-    if(cognitiveResult.status!=='completed'||!cognitiveResult.decision){
-      console.warn('MESSINHO cognitive router unavailable:',cognitiveResult.status,cognitiveResult.error_code||'');
+    if(!cognitiveResult.decision){
+      console.warn('MESSINHO cognitive router unavailable:',cognitiveResult.status,cognitiveResult.error_code||'',cognitiveResult.http_status||'');
       return respond({
-        reply:'Ich kann die Bedeutung deiner Nachricht gerade nicht zuverlässig einordnen. Deine Nachricht ist gespeichert. Bitte versuche es noch einmal; ich starte vorsichtshalber keine Recherche und führe keine Aktion aus.',
+        reply:'Ich bin gerade vorübergehend eingeschränkt. Deine Nachricht ist angekommen. Bitte versuche es gleich noch einmal.',
         intent:'cognitive_router_unavailable',items:[],
         cognitive_routing:{status:cognitiveResult.status||'unavailable',safe_fallback:true}
       });
     }
+    if(cognitiveResult.status==='fallback')console.warn('MESSINHO using local conversational fallback:',cognitiveResult.error_code||'provider_unavailable',cognitiveResult.http_status||'');
     const cognitive=cognitiveResult.decision;
     const actionIntents=['memory_save','scouting','general_research','engineering'];
     if(actionIntents.includes(cognitive.intent)&&cognitive.confidence<0.72){

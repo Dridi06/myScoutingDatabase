@@ -5694,3 +5694,21 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - **Verification boundary:** deployment and startup are verified. Authenticated browser-level Admin/Scout conversation, memory persistence/recall after refresh, and cross-account isolation have not yet been manually confirmed by the owner.
 - Next user-assisted checks on STAGING: (1) “Hallo Messinho, wie geht es dir?” (2) “Merk dir bitte, dass wir gerade die neue Gesprächsintelligenz testen.” (3) “Was hast du dir gemerkt?” (4) “Und was wollten wir damit erreichen?” Then repeat memory isolation separately for Admin and Scout accounts if available.
 - Follow-up engineering: expand evaluation for typos/dictation/ambiguous follow-ups; add memory correction/deletion controls and relevance ranking; evaluate long-conversation summarization; verify language-aware responses across German, English, French, Spanish, MSA Arabic, Tunisian Derja and Arabizi. Keep all work STAGING-only and deploy only with explicit approval.
+
+
+## 41. MESSINHO Reliable Agent Runtime — Responses API migration — PR #53 — 2026-11-27
+
+- Owner approved rebuilding the conversational runtime using an official OpenAI agent architecture, with the explicit requirement that MESSINHO remain responsive during provider outages.
+- New work branch: `feature/messinho-reliable-agent-runtime`; PR #53 targets only `feature/messinho-unified-ai-integration` (STAGING integration).
+- The current incident was confirmed in Render logs at 2026-11-27T19:09:06Z: `MESSINHO cognitive router unavailable: provider_error`. The current log did not include enough provider diagnostics to identify the exact upstream cause.
+- Primary semantic router migrated from Chat Completions to the official Responses API using strict structured outputs. Application-owned history and owner-scoped memory remain authoritative; no second conversation store was added.
+- Structured-output schema was aligned with the documented supported JSON Schema subset; memory text length remains enforced in application validation rather than an unsupported schema keyword.
+- Added bounded retries for transient network, timeout, 408/409/429 and 5xx failures, with Retry-After support and exponential backoff/jitter. Permanent failures are not repeatedly retried.
+- Retained Chat Completions as a temporary compatibility fallback during migration.
+- Added deterministic local responses for greetings, thanks and farewells when both provider routes fail. Other requests receive a clear limited-mode response rather than the previous dead-end cognitive-router error. Local fallback does not execute scouting, research, memory writes or engineering actions.
+- Server now accepts the explicit safe fallback decision and logs failure class/HTTP status without logging secrets or provider response bodies. Existing role authorization remains in force.
+- Added tests for Responses API request/response contract and provider-outage greeting fallback. Full CI is pending; do not merge/deploy until all checks pass and code review is complete.
+- PR: https://github.com/Dridi06/myScoutingDatabase/pull/53
+- No database migration, production branch, LIVE Render service or production Supabase change.
+- Availability limitation: no design can guarantee uninterrupted complex AI reasoning if every external model provider is unavailable. The target is continuous chat responsiveness, honest degraded-mode messaging, and safe recovery when service returns.
+- Next: verify CI, inspect all test failures, add regression for permanent 4xx/invalid structured output and request correlation; review API errors and model compatibility. Then merge to STAGING and request explicit approval before deploying to Render STAGING. After deployment, test Admin/Scout conversations and simulate provider failures safely.
