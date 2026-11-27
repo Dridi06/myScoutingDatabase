@@ -5954,10 +5954,11 @@ This entry supersedes the earlier Block 3 status that recorded four failing clar
 - **Branch:** `feature/messinho-conversation-engine`
 - **PR:** #58 — https://github.com/Dridi06/myScoutingDatabase/pull/58
 - **PR state:** Open, Draft, unmerged; target branch `feature/messinho-unified-ai-integration`.
-- **Final feature-branch HEAD:** `c7e8fdacdfd74e4a0b8da1d690eb8c8ee479a3b2`
+- **Final tested code/test commit:** `c7e8fdacdfd74e4a0b8da1d690eb8c8ee479a3b2` (runtime code changes are included in this tested PR head).
 - **Final runtime code fix:** `d7c83b75d389ef74b7a97b9e55846624f66a42db`
 - **Dialogue-engine code baseline before the final Derja precedence fix:** `b64c7036e0b0ed27d35402291b3efb6a544fddec`
 - **Final regression-test commit:** `c7e8fdacdfd74e4a0b8da1d690eb8c8ee479a3b2`
+- **Current feature-branch HEAD after documentation-only checkpoint:** `8e28486bcc75ede7c40df85511ffb5f287a76d47`.
 
 ### Corrections completed
 
