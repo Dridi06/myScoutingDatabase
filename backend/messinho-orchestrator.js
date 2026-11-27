@@ -1,4 +1,4 @@
-import { executeMessinhoCapability } from './messinho-capability-runtime.js';
+import { executeMessinhoCapability, getMessinhoCapabilityRuntimeStatus } from './messinho-capability-runtime.js';
 import { getMessinhoCapabilityCatalog } from './messinho-capabilities.js';
 
 export const MAX_CAPABILITY_STEPS = 20;
@@ -197,8 +197,29 @@ function resolveDependencies(ids) {
 export function getMessinhoCapabilityDiscovery() {
   return CATALOGUE.map(item => ({
     id:item.id, name:item.name, group:item.group_id, description:item.description,
-    required_inputs:item.required_inputs, admin_only:ADMIN_ONLY.has(item.id)
+    required_inputs:item.required_inputs, admin_only:ADMIN_ONLY.has(item.id),
+    runtime_status:getMessinhoCapabilityRuntimeStatus(item.id)
   }));
+}
+
+export function buildMessinhoCapabilityPlanFromSelection(ids, goal, role='scout', context={}) {
+  const requested=unique((Array.isArray(ids)?ids:[]).filter(id=>typeof id==='string'&&CATALOGUE_BY_ID.has(id)).slice(0,12));
+  if(!requested.length)return null;
+  const ordered=resolveDependencies(requested);
+  const blocked=ordered.filter(id=>ADMIN_ONLY.has(id)&&role!=='admin');
+  const allowed=ordered.filter(id=>!ADMIN_ONLY.has(id)||role==='admin');
+  const steps=allowed.slice(0,MAX_CAPABILITY_STEPS);
+  const deferred=allowed.slice(MAX_CAPABILITY_STEPS);
+  const labels=unique(requested.map(id=>CATALOGUE_BY_ID.get(id)?.group_name).filter(Boolean));
+  if(!steps.length&&blocked.length)return {denied:true,goal:String(goal||'').slice(0,MAX_GOAL_LENGTH),
+    label:'Geschützte MESSINHO-Funktion',steps:[],blocked_capabilities:blocked,
+    discovered_capabilities:requested,mode:'semantic_model_selection',role};
+  return {denied:false,goal:String(goal||'').slice(0,MAX_GOAL_LENGTH),
+    label:labels.join(' + ')||'Semantisch geplanter MESSINHO-Auftrag',labels,
+    matched_intents:[],discovered_capabilities:requested,steps,blocked_capabilities:blocked,
+    deferred_capabilities:deferred,max_steps:MAX_CAPABILITY_STEPS,
+    mode:'semantic_model_selection',role,
+    context_hints:context&&typeof context==='object'?Object.keys(context).slice(0,20):[]};
 }
 
 export function planMessinhoCapabilities(message, role='scout', context={}) {

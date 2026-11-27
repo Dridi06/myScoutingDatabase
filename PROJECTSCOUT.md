@@ -5694,3 +5694,103 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - **Verification boundary:** deployment and startup are verified. Authenticated browser-level Admin/Scout conversation, memory persistence/recall after refresh, and cross-account isolation have not yet been manually confirmed by the owner.
 - Next user-assisted checks on STAGING: (1) “Hallo Messinho, wie geht es dir?” (2) “Merk dir bitte, dass wir gerade die neue Gesprächsintelligenz testen.” (3) “Was hast du dir gemerkt?” (4) “Und was wollten wir damit erreichen?” Then repeat memory isolation separately for Admin and Scout accounts if available.
 - Follow-up engineering: expand evaluation for typos/dictation/ambiguous follow-ups; add memory correction/deletion controls and relevance ranking; evaluate long-conversation summarization; verify language-aware responses across German, English, French, Spanish, MSA Arabic, Tunisian Derja and Arabizi. Keep all work STAGING-only and deploy only with explicit approval.
+
+
+## 41. MESSINHO semantic goal planner — Agent Core 4.0 foundation — STAGING PR pending — 2026-11-27
+
+- Work branch: `feature/messinho-autonomous-agent-semantic-planner`.
+- Pull request: #55 — `MESSINHO: add semantic goal planning to autonomous agent core`.
+- Base: current STAGING integration branch `feature/messinho-unified-ai-integration` at commit `a1aed1ab2086d90016f3f0c782abbc00a1fbbd26`.
+- Added `backend/messinho-goal-planner.js`: model-assisted goal-to-capability planning using the existing registered 100-capability catalogue.
+- The model may return only catalogue IDs; application code validates IDs, resolves registered dependencies, enforces Admin/Scout restrictions and caps the plan at 20 steps. The model cannot execute capabilities or grant permissions.
+- Provider failure, invalid output or low confidence uses the existing deterministic planner as a safe fallback. Ambiguous model plans return a targeted clarification.
+- Integrated the semantic planner into the existing authenticated chat route for explicit `scouting` intents only. General research and engineering continue through their existing specialized routes and are not forced into the 100-capability scouting catalogue.
+- Added `buildMessinhoCapabilityPlanFromSelection` to `backend/messinho-orchestrator.js` to centralize dependency expansion and role filtering for model-selected capabilities.
+- Added `tests/messinho-goal-planner.test.js` for dependency resolution, invented-ID rejection/fallback, Scout denial of Admin-only capabilities, clarification, and provider-failure fallback.
+- No database migration or persistent user/player/scout/learning data changes. No production branch, LIVE Render service or production Supabase changes.
+- Current status: code committed to the work branch; PR #55 open. CI status has not yet returned through the available GitHub status queries. Do not merge or deploy until the test suite, backend syntax and Vite production build pass.
+- Next: verify GitHub Actions on PR #55; correct any failures; review the final diff; then request explicit approval before deploying to STAGING. After deployment, test authenticated Admin and Scout requests, including semantic multi-capability planning, clarification, provider outage fallback and role isolation.
+
+
+## 42. MESSINHO Agent Core 4.1 — bounded semantic replanning — 2026-11-27
+
+- Continued on the isolated work branch `feature/messinho-autonomous-agent-semantic-planner`; PR #55 still targets STAGING integration only.
+- Added one bounded model-assisted replan after the existing single retry still leaves execution errors. The model receives only bounded execution metadata (capability IDs, statuses, error codes, missing input keys) and the failed capability IDs.
+- Replan proposals are revalidated against the registered capability catalogue, role permissions and the already-attempted capability set. No capability already attempted in the task can be selected again. Maximum one replan and eight new steps; normal agent execution budget remains capped at eight seconds.
+- The replan execution results are merged into the task run and the durable task checkpoint callback receives the accumulated results. Stop requests are still honoured.
+- Validation now treats explicitly deferred steps as pending, not falsely missing; they are still never reported as completed.
+- Added tests for replan filtering, Admin-only capability blocking for Scouts, unknown IDs, execution feedback and deferred-step validation.
+- CI on earlier semantic planner commit exposed five failing planner tests. Backend syntax checks passed. Failure diagnosis is being isolated; do not merge or deploy while the test suite is red.
+- Added the isolated work branch to the push filters of the three MESSINHO CI workflows so subsequent branch commits run the full test, syntax and build checks directly.
+- No database migrations, source-data mutation, model-weight changes, production branch, LIVE Render service or production Supabase changes.
+- Next: use the CI failure detail to correct the planner test/runtime issue, require all test/syntax/build workflows green, review PR #55, then seek explicit approval before STAGING deployment. After deployment, test Admin/Scout isolation and forced-failure replanning using controlled staging fixtures.
+
+
+### 42.1 CI correction and verification — 2026-11-27
+
+- Root cause of the five planner regression failures: the planner's execution-feedback properties were added to the request payload but omitted from the function parameter destructuring. This caused `previousResults is not defined` and forced the safe fallback in tests.
+- Corrected the function signature; the semantic planner and all existing routes now pass the automated checks.
+- Verified exact feature-branch commit: `bdf699c0ec33eba22b05e9e7f9a0e8735216de42`.
+- GitHub Actions: MESSINHO Node tests run #1436 — **531/531 passed**; backend syntax run #1403 — **passed**; full STAGING build run #675 — **passed**, including Vite production build.
+- Pull request #55 is open, clean/mergeable, and targets only `feature/messinho-unified-ai-integration`.
+- No merge, Render deployment, database migration or production change has been performed. Authenticated browser tests and controlled forced-error replan tests on STAGING remain outstanding.
+
+
+### 42.2 Forced-failure replan integration test — 2026-11-27
+
+- Added injectable execution-runner boundary to the agent core for deterministic testing; production defaults to the existing `runMessinhoCapabilityPlanAsync` runtime.
+- Added an end-to-end agent-core test that forces the first capability to fail, forces its bounded retry to fail, supplies an alternative registered capability, executes the alternative, and verifies the replan trace and final provenance validation.
+- The test confirms exactly three execution calls (initial, one retry, one alternative run), exactly one replan request, no repeat of the attempted capability, and no model-weight mutation.
+- Latest code commit at verification: `1e3f5074d089ce07ec6c84a5c33cb79a21247570`.
+- GitHub Actions on that exact commit: Node tests #1442 — **532/532 passed**; backend syntax #1410 — **passed**; full STAGING build #682 — **passed**, including Vite production build.
+- The separate latest Node test run #1443 was still running when recorded; run #1442 already passed on the same commit.
+- PR #55 remains open and mergeable. No merge or Render deployment has been triggered. User-authenticated Admin/Scout browser tests remain the final runtime acceptance step.
+
+
+### 43. Persistent task memory hardening — 2026-11-27
+
+- Revalidated the existing durable task ledger, per-step checkpoints, manual resume endpoint, lease-based staging worker, and explicit opt-in read-only background resume. This infrastructure already existed; this block hardens it rather than duplicating it.
+- Background workers now re-read the task owner's live profile on every claim and fail closed if the owner is missing, unapproved, or their role differs from the role recorded when the task was created. This prevents a queued Admin task from retaining Admin authority after a downgrade.
+- Resume planning now removes duplicate pending IDs and skips capabilities already recorded with a successful terminal status (completed, verified, proposal_ready). It never replays those successful steps.
+- Added deterministic tests for owner mismatch, revoked approval, role downgrade, duplicate pending entries, and completed-step replay prevention.
+- No database schema change or migration was needed. No staging database was modified.
+- Validation: GitHub Actions Node tests #1464 — passed; backend syntax #1431 — passed; full STAGING CI #703 — passed, including Vite production build. Manual authenticated restart/recovery verification remains required before enabling background resume in a deployed staging service.
+- Safety remains conservative: expired running tasks are quarantined for review rather than blindly replayed, because a crash may occur after a side effect but before its checkpoint.
+
+
+### 44. Autonomous Tool Intelligence — 2026-11-27
+
+- Added runtime-aware capability discovery. The goal planner now receives the actual handler classification for every registered capability: specialist handler, generic fallback, not dispatched, or not registered.
+- The semantic planner is instructed to prefer specialist handlers where they genuinely satisfy the goal and never describe a generic fallback as a complete specialist implementation.
+- Added a Tool Intelligence manifest to each Agent Core cycle. It reports selected capabilities, handler quality, role restrictions, and known input readiness before execution.
+- The manifest is diagnostic only. The existing orchestrator remains authoritative for capability registration, dependencies, execution, and Admin/Scout permission enforcement.
+- Input readiness uses explicit aliases for common scouting data (player metrics, positions, history, sources, outcomes, events and team context). Unknown input contracts are marked unassessed rather than falsely declared available.
+- Added deterministic tests for specialist-vs-fallback classification, role restrictions, missing inputs, and unknown input contracts.
+- No new external tool provider or API key is required. Existing semantic planning remains optional; deterministic fallback continues to work.
+- Validation: GitHub Actions Node tests #1464 — passed; backend syntax #1431 — passed; full STAGING CI #703 — passed, including Vite production build. No deployment or production change.
+
+
+### 45. Engineering Intelligence — isolated test automation — 2026-11-27
+
+- Repointed engineering source pinning, sandbox dispatch, ticket baseline validation, and the isolated workflow to the active feature branch `feature/messinho-autonomous-agent-semantic-planner`. The former configuration pointed at the PR's staging-integration base branch, which could test the wrong source revision.
+- The isolated workflow now accepts only the active feature branch for dispatch and validates that the source SHA equals the exact workflow checkout SHA.
+- Added an Admin-only bridge that persists the validated proposal as a myKI ticket and can automatically queue a sandbox run only when both explicit environment gates are enabled: MESSINHO_AUTO_SANDBOX_REVIEW_ENABLED=true and the existing Render staging service identity gate.
+- The sandbox runs baseline and candidate builds/tests inside the disposable network-disabled container; evidence is accepted only through the existing GitHub Actions OIDC verification callback.
+- No patch is automatically applied to the repository. No integration or deployment is authorized; the Admin ticket remains the review and approval point.
+- The automatic sandbox gate is opt-in and remains inactive unless the staging environment variables and GitHub credential are configured. The requested_by audit field is populated with the initiating Admin account. The branch change is code-only; no Render deployment or production action occurred.
+- Validation: GitHub Actions Node tests #1464 — passed; backend syntax #1431 — passed; full STAGING CI #703 — passed, including Vite production build. The separate isolated engineering workflow has not yet run a real ticket patch; a staging sandbox dispatch and OIDC callback still require the staging environment's configured credentials and explicit Admin-side verification.
+
+
+## 46. MESSINHO Semantic Language Bridge 1.0 — implementation record — 2026-11-27
+
+- Added `backend/messinho-semantic-language-bridge.js` as a read-only integration layer over the existing `messinho-linguistic-intelligence.js` and `messinho-language-knowledge.js` modules.
+- The bridge carries all six existing language profiles (German, English, French, Modern Standard Arabic, Tunisian Derja including Arabic script and Latin Arabizi, and Spanish), detected mixed-language segments, response-language selection, conversational signals, the existing per-language detection lexicons, and approved active versioned vocabulary/grammar entries into the cognitive router and semantic goal planner. Detection lexicons are explicitly labelled as identification cues, not full dictionaries.
+- Vocabulary terms, aliases, examples, grammar notes, common errors and usage notes are bounded and tagged with their language. Existing source text is preserved; no dictionary is rewritten, no knowledge entry is activated, and no new language database migration is introduced.
+- The same already-loaded knowledge result is reused later in the conversation response path to avoid a duplicate database read.
+- Knowledge lookup failure degrades to language detection/profile context with an empty approved vocabulary list; it does not block ordinary conversation solely because the vocabulary store is unavailable.
+- Added deterministic tests for multi-language profile/vocabulary joining, read-only knowledge lookup and graceful fallback, cognitive-router context delivery, and goal-planner context delivery.
+- No production branch, LIVE Render service, production Supabase, user/player/scout records, or persistent language knowledge was changed. No deployment or merge was performed.
+- Latest implementation commit verified by CI: `7b9840983a50dbee946a20bc5051498b35779a64` (includes all supported profile metadata, per-language detection lexicons, structured vocabulary handling, and bridge regression coverage).
+- GitHub Actions: Node tests #1496 — **546/546 passed**; backend syntax #1461 — **passed**; full STAGING CI #733 — **passed**, including Vite production build.
+- An initial CI failure exposed an outdated route test that expected direct language-knowledge loading. The test was updated to assert the new shared bridge and single-load reuse; all checks then passed on the commit above.
+- The isolated engineering sandbox workflow #418 is still running its toolchain preparation; no ticket patch was supplied or applied. Authenticated STAGING acceptance must still test natural German, English, French, MSA Arabic, Tunisian Derja in Arabic script, Latin Arabizi, and mixed-language requests with both Admin and Scout accounts. Authenticated STAGING acceptance must still test natural German, English, French, MSA Arabic, Tunisian Derja in Arabic script, Latin Arabizi, and mixed-language requests with both Admin and Scout accounts.

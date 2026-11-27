@@ -1,5 +1,5 @@
 const REPOSITORY='Dridi06/myScoutingDatabase';
-const BRANCH='feature/messinho-unified-ai-integration';
+const BRANCH='feature/messinho-autonomous-agent-semantic-planner';
 const WORKFLOW='messinho-isolated-engineering.yml';
 const shaPattern=/^[a-f0-9]{40}$/i;
 const hashPattern=/^[a-f0-9]{64}$/i;

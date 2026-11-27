@@ -62,3 +62,37 @@ export function evaluateMessinhoTaskResume(task, {
   if (unsafe.length) return { allowed: false, reason: 'capability_not_approved_read_only', unsafe_capabilities: unsafe };
   return { allowed: true, reason: 'explicitly_opted_in_read_only_task', capabilities: pending };
 }
+
+
+/** Fail closed if the owner was removed, approval revoked, or role changed since task creation. */
+export function evaluateMessinhoTaskActor(task, profile) {
+  if (!task?.owner_id || !profile?.id || profile.id !== task.owner_id)
+    return { allowed:false, reason:'owner_profile_mismatch' };
+  const roles = new Set(['admin','scout','trainer','coach','manager','president']);
+  const savedRole = task.plan?.role;
+  if (!roles.has(profile.role) || !roles.has(savedRole))
+    return { allowed:false, reason:'invalid_task_role' };
+  if (profile.approved !== true || profile.approval_status !== 'approved')
+    return { allowed:false, reason:'owner_access_revoked' };
+  if (profile.role !== savedRole)
+    return { allowed:false, reason:'owner_role_changed' };
+  return { allowed:true, reason:'owner_role_revalidated', role:profile.role };
+}
+
+/** A checkpoint may lag after a process interruption; never replay a step already recorded successful. */
+export function getMessinhoUnfinishedCapabilities(task) {
+  const successful = new Set((Array.isArray(task?.completed_results) ? task.completed_results : [])
+    .filter(item => ['completed','verified','proposal_ready'].includes(item?.status))
+    .map(item => item?.capability_id).filter(id => typeof id === 'string'));
+  const pending = Array.isArray(task?.pending_capabilities) ? task.pending_capabilities : [];
+  const seen = new Set();
+  const remaining = [];
+  const skippedCompleted = [];
+  for (const id of pending) {
+    if (typeof id !== 'string' || !id || seen.has(id)) continue;
+    seen.add(id);
+    if (successful.has(id)) skippedCompleted.push(id);
+    else remaining.push(id);
+  }
+  return { capabilities:remaining, skipped_completed:[...new Set(skippedCompleted)] };
+}

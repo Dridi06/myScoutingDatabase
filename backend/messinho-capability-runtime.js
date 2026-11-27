@@ -545,6 +545,20 @@ export function executeMessinhoCapability(id,input={}){
  return {...output,name:meta.name,domain:allCatalog.find(g=>g.functions.some(f=>f.id===id))?.id||null,description:meta.description,implementation_level:specialist?'specialist_logic':'generic_fallback',specialist_logic_available:specialist,completion_verified:false,
   ...(knowledgeContext.length?{knowledge_context:{mode:'verified_reference_context',applied_to_explanation_only:true,score_or_model_weights_changed:false,entries:knowledgeContext.map(item=>({domain:item.domain,question:item.question,knowledge:item.content,claims:item.claims,sources:item.sources,verified_at:item.verified_at,confidence:item.confidence,knowledge_level:item.knowledge_level||null,knowledge_type:item.knowledge_type||null,formula:item.formula||null,limitations:item.limitations||[]}))}}:{})};
 }
+export function getMessinhoCapabilityRuntimeStatus(id){
+ const registered=[...analysisIds,...evaluationIds,...learningIds,...researchIds].includes(id);
+ if(!catalogById.has(id))return 'not_registered';
+ if(!registered)return 'not_dispatched';
+ return specialistCapabilityIds.has(id)?'specialist':'generic_fallback';
+}
+
+export function getMessinhoCapabilityRuntimeInventory(){
+ return [...catalogById.values()].map(item=>({
+  id:item.id,name:item.name,group:item.group_id,
+  runtime_status:getMessinhoCapabilityRuntimeStatus(item.id)
+ }));
+}
+
 export function getMessinhoRuntimeSummary(){
  const ids=[...analysisIds,...evaluationIds,...learningIds,...researchIds];
  const uniqueIds=new Set(ids);

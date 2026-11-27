@@ -14,7 +14,7 @@ import { normalizeMessinhoFeedback, normalizeMessinhoFeedbackReview } from './me
 import { buildMessinhoQualityIntelligence } from './messinho-quality-intelligence.js';
 import { normalizeMessinhoHypothesisCreate, normalizeMessinhoHypothesisTransition } from './messinho-improvement-governance.js';
 import { normalizeMyKiTicketProposal, createMyKiTicketRecord, buildMyKiCopyPacket } from './messinho-myki-tickets.js';
-import { persistMessinhoMyKiProposal } from './messinho-myki-bridge.js';
+import { persistMessinhoMyKiProposal, persistAndDispatchMessinhoMyKiProposal } from './messinho-myki-bridge.js';
 import { generateMessinhoEngineeringProposal, isMessinhoEngineeringRequest } from './messinho-myki-engineer.js';
 import { startMessinhoEngineeringReviewScheduler, runMessinhoScheduledEngineeringReview, getMessinhoEngineeringReviewSchedule, isMessinhoEngineeringAutoReviewEnabled, isMessinhoEngineeringStagingService, buildMessinhoSelfRepairGoal } from './messinho-engineering-scheduler.js';
 import { runMessinhoProjectAudit } from './messinho-project-audit.js';
@@ -28,6 +28,7 @@ import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './me
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
 import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 import { planMessinhoAutonomously } from './messinho-autonomy.js';
+import { planMessinhoGoalWithModel } from './messinho-goal-planner.js';
 import { classifyMessinhoProviderFailure, resolveMessinhoLiveQuestion, buildMessinhoKnowledgeApplicationFollowUp, buildMessinhoVo2maxApplicationQuery, isMessinhoVo2maxApplicationDataReply } from './messinho-conversation.js';
 import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
 import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
@@ -50,8 +51,8 @@ import { persistMessinhoDiagnosticTicket } from './messinho-diagnostic-ticket.js
 import { buildMessinhoForecastContext } from './messinho-forecast-context.js';
 import { isMessinhoAdminOnlyCommand } from './messinho-command-access.js';
 import { buildMessinhoLinguisticContext, buildMessinhoLinguisticResponseMetadata } from './messinho-linguistic-intelligence.js';
+import { buildMessinhoSemanticLanguageBridge } from './messinho-semantic-language-bridge.js';
 import { classifyMessinhoTurn, appendMessinhoLongTermMemories } from './messinho-conversational-intelligence.js';
-import { findMessinhoLanguageKnowledge, formatMessinhoLanguageKnowledge } from './messinho-language-knowledge.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -1664,7 +1665,7 @@ app.post('/api/admin/myki/tickets/:ticketId/sandbox',myKiTicketLimiter,async(req
     const {data:ticket,error}=await db.from('messinho_myki_tickets').select('*').eq('id',req.params.ticketId).maybeSingle();
     if(error||!ticket||ticket.status==='deleted')return res.status(404).json({error:'myKI-Ticket wurde nicht gefunden.'});
     if(['integrating','integrated'].includes(ticket.status))return res.status(409).json({error:'Dieses Ticket kann in seinem aktuellen Status nicht erneut getestet werden.'});
-    const match=String(ticket.baseline_id||'').match(/^feature\/messinho-unified-ai-integration@([a-f0-9]{40})$/i);
+    const match=String(ticket.baseline_id||'').match(new RegExp('^feature/messinho-autonomous-agent-semantic-planner@([a-f0-9]{40})$','i'));
     if(!match)return res.status(409).json({error:'Der Vorschlag ist nicht an einen zulässigen Feature-Branch-Commit gebunden.'});
     const proposal=normalizeMessinhoEngineeringProposal({
       id:ticket.candidate_id,title:ticket.title,rationale:ticket.rationale,patch:ticket.diff,
@@ -2167,7 +2168,7 @@ app.post('/api/agent/tasks/:taskId/resume',async(req,res)=>{
     const oldResults=Array.isArray(task.completed_results)?task.completed_results.map(compactMessinhoTaskResult):[];
     const cycle=await executeMessinhoAgentPlan({plan:resumePlan,input:task.context||{},role:actor.profile.role,
       onStep:checkpoint=>checkpointMessinhoAgentTask(task.id,actor.user.id,checkpoint.completed_results,checkpoint.pending_capabilities,oldResults),
-      onEngineeringProposal:proposal=>persistMessinhoMyKiProposal({db,proposal})});
+      onEngineeringProposal:proposal=>persistAndDispatchMessinhoMyKiProposal({db,proposal,role:actor.profile.role,requestedBy:actor.user.id})});
     const newRun=cycle.run;
     const byId=new Map([...oldResults,...(newRun.results||[]).map(compactMessinhoTaskResult)].map(item=>[item.capability_id,item]));
     const mergedResults=[...byId.values()];
@@ -2268,7 +2269,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const correction=correctMessinhoInput(message);
     const interpretedMessage=correction.corrected;
     const linguisticContext=buildMessinhoLinguisticContext(message,history);
-    let linguisticKnowledgeStatus='not_loaded';
+    // Join the existing language detector, mixed-language profiles and approved
+    // versioned vocabulary before intent classification and goal planning.
+    const semanticLanguageBridge=await buildMessinhoSemanticLanguageBridge({db,message,history,linguisticContext});
+    let linguisticKnowledgeStatus=semanticLanguageBridge.knowledge_status;
     const respond=async payload=>{
       const researchContext=payload.researchContext||((payload.sources?.length||payload.profile)?{
         player:payload.player||null,profile:payload.profile||null,sources:payload.sources||[],researched_at:payload.researched_at||null
@@ -2305,7 +2309,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       message,
       history,
       memory:agentMemory,
-      linguisticContext,
+      linguisticContext:semanticLanguageBridge.model_context,
       userRole:profile.role,
       apiKey:process.env.OPENAI_API_KEY,
       model:process.env.OPENAI_MODEL||'gpt-4.1-mini'
@@ -2545,7 +2549,16 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       if(error)return res.status(500).json({error:'Deine Kandidaten konnten nicht geladen werden.'});
       return respond({reply:(data||[]).length?'Ich habe deine zuletzt recherchierten Kandidaten geladen.':'In deinem persönlichen Kandidatenbereich sind noch keine Einträge vorhanden.',intent:'candidates',items:data||[]});
     }
-    const autonomousDecision=planMessinhoAutonomously(interpretedMessage,{role:profile.role,context:agentMemory});
+    const autonomousDecision=cognitive.intent==='scouting'
+      ? await planMessinhoGoalWithModel({goal:interpretedMessage,role:profile.role,context:agentMemory,
+          linguisticContext:semanticLanguageBridge.model_context,
+          apiKey:process.env.OPENAI_API_KEY,model:process.env.OPENAI_MODEL||'gpt-4.1-mini'})
+      : {status:'not_applicable',planner_status:'intent_not_scouting',planning_source:'not_applicable',plan:null};
+    if(autonomousDecision.planner_status==='model_clarification'){
+      return respond({reply:autonomousDecision.clarification_question||'Welches konkrete Ziel soll ich bearbeiten?',
+        intent:'agent_plan_clarification',items:[],pending:true,
+        agent_planning:{source:autonomousDecision.planning_source,confidence:autonomousDecision.confidence||null}});
+    }
     const automaticPlan=autonomousDecision.plan;
     if(automaticPlan){
       if(automaticPlan.denied)return respond({reply:formatMessinhoCapabilityResults({status:'denied'}),intent:'capability_access_denied',items:[]});
@@ -2587,12 +2600,18 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         _messinho_domain_knowledge:(domainKnowledge.items||[]).map(item=>({id:item.id,domain:item.domain,question:item.question,content:item.content,claims:item.claims,sources:item.sources,verified_at:item.verified_at,rights:item.rights,confidence:item.confidence,relevance:item.relevance}))};
       const taskRecord=await createMessinhoAgentTask(ownerId,interpretedMessage,automaticPlan,agentInput,profile.role);
       const agentCycle=await executeMessinhoAgentPlan({plan:automaticPlan,input:agentInput,goal:interpretedMessage,role:profile.role,
+        replan:async({goal,role,previous_results,failed_capabilities})=>{
+          const decision=await planMessinhoGoalWithModel({goal,role,context:agentMemory,
+            apiKey:process.env.OPENAI_API_KEY,model:process.env.OPENAI_MODEL||'gpt-4.1-mini',
+            previousResults:previous_results,failedCapabilities:failed_capabilities});
+          return decision.plan;
+        },
         onStep:checkpoint=>taskRecord?checkpointMessinhoAgentTask(taskRecord.id,ownerId,checkpoint.completed_results,checkpoint.pending_capabilities):undefined,
         shouldStop:async()=>{
           const {data:control,error}=await db.from('messinho_agent_control').select('mode,stop_requested').eq('id','global').maybeSingle();
           return Boolean(error||control?.stop_requested);
         },
-        onEngineeringProposal:proposal=>persistMessinhoMyKiProposal({db,proposal})});
+        onEngineeringProposal:proposal=>persistAndDispatchMessinhoMyKiProposal({db,proposal,role:actor.profile.role,requestedBy:actor.user.id})});
       const run=agentCycle.run;
       const predictionPersistence=forecastRelevant?await persistMessinhoForecastPredictions({player,actorId:ownerId,run,forecastContext}):{stored:0,skipped:'not_forecast_request'};
       const finalizedTask=taskRecord?await finalizeMessinhoAgentTask(taskRecord.id,ownerId,run):null;
@@ -2604,7 +2623,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       let reply=formatMessinhoCapabilityResults(run,player.name||player.player_name||null);
       const forecastDataStatus=forecastContext._messinho_forecast_data_status;
       if(forecastRelevant&&forecastDataStatus&&!forecastDataStatus.performance_points&&!forecastDataStatus.market_value_points&&!forecastDataStatus.transfer_signals&&!forecastDataStatus.verified_outcomes)reply+='\n\nFür diesen Spieler liegen derzeit keine ausreichend verifizierten Verlaufs- oder Vertragsdaten vor. Ich werde deshalb keine belastbare Zukunftsprognose erfinden.';
-      return respond({reply,intent:'automatic_capability_orchestration',items:players.map(p=>({id:p.player_id||p.id,name:p.name||p.player_name,club:p.club||p.current_club,positions:p.positions||[]})),orchestration:{label:run.label,status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,provider_independent:true,model_weights_changed:false,agent_core_version:run.agent_core_version,agent_phase:agentCycle.state.phase,validation:agentCycle.validation,observation:agentCycle.observation,goal_contract:agentCycle.contract,next_action:run.next_action,replan_recommended:run.replan_recommended,myki_dispatch:run.myki_dispatch||null,forecast_data_status:profile.role==='admin'?forecastDataStatus:undefined,prediction_records_saved:predictionPersistence.stored},memory:{persisted:memoryPersisted,active_player_ids:nextMemory.active_player_ids,preferences:nextMemory.user_preferences},task_checkpoint:taskRecord?{...taskRecord,...(finalizedTask||{}),pending_capabilities:run.deferred_capabilities||[]}:null,capability_results:profile.role==='admin'?run.results:undefined});
+      return respond({reply,intent:'automatic_capability_orchestration',items:players.map(p=>({id:p.player_id||p.id,name:p.name||p.player_name,club:p.club||p.current_club,positions:p.positions||[]})),orchestration:{label:run.label,status:run.status,completed_steps:run.completed_steps,total_steps:run.total_steps,provider_independent:true,model_weights_changed:false,planning_source:autonomousDecision.planning_source||'deterministic_fallback',planner_status:autonomousDecision.planner_status||autonomousDecision.status||null,planner_confidence:autonomousDecision.confidence||null,agent_core_version:run.agent_core_version,agent_phase:agentCycle.state.phase,validation:agentCycle.validation,observation:agentCycle.observation,tool_intelligence:profile.role==='admin'?run.tool_intelligence:undefined,goal_contract:agentCycle.contract,next_action:run.next_action,replan_recommended:run.replan_recommended,myki_dispatch:run.myki_dispatch||null,forecast_data_status:profile.role==='admin'?forecastDataStatus:undefined,prediction_records_saved:predictionPersistence.stored},memory:{persisted:memoryPersisted,active_player_ids:nextMemory.active_player_ids,preferences:nextMemory.user_preferences},task_checkpoint:taskRecord?{...taskRecord,...(finalizedTask||{}),pending_capabilities:run.deferred_capabilities||[]}:null,capability_results:profile.role==='admin'?run.results:undefined});
     }
     const searchTerm=extractMessinhoPlayerSearchTerm(interpretedMessage);
     if(searchTerm){
@@ -2705,9 +2724,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       return respond({reply:research.answer||research.message||'Ich kann diese Frage gerade nicht zuverlässig recherchieren. Bitte versuche es später erneut oder grenze die Frage etwas ein.',intent:'general_knowledge_research_limited',items:sourceItems,sources:research.sources||[],evidence:research.evidence||null,limitations:research.evidence?.limitations||[]});
     }
     const conversationalContext=history.map(item=>({role:item.role,content:item.text})).slice(-20);
-    const linguisticKnowledgeResult=await findMessinhoLanguageKnowledge(db,message,history);
-    linguisticKnowledgeStatus=linguisticKnowledgeResult.status;
-    const linguisticKnowledgeContext=formatMessinhoLanguageKnowledge(linguisticKnowledgeResult);
+    const linguisticKnowledgeContext=semanticLanguageBridge.formatted_knowledge;
     const activeKnowledgeContext=structuredKnowledgeContext.length?structuredKnowledgeContext.map(item=>({domain:item.domain,title:item.title,definition:item.knowledge,formula:item.formula,limitations:item.limitations,sources:item.sources,confidence:item.confidence})):[];
     const isProgrammingQuestion=/(programmier|programmiersprache|softwareentwicklung|javascript|typescript|python|\bsql\b|\bhtml\b|\bcss\b|\bjava\b|c\+\+|c#|\brust\b|\bgolang\b|\bbash\b|\bphp\b|debugging|code review|programmierfehler)/i.test(interpretedMessage);
     const programmingLearningContext=profile.role==='admin'&&isProgrammingQuestion?buildMessinhoProgrammingLearningContext():null;

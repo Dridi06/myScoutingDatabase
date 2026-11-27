@@ -5,6 +5,7 @@ on:
     branches:
       - feature/messinho-unified-ai-integration
       - feature/messinho-conversational-intelligence-2
+      - feature/messinho-autonomous-agent-semantic-planner
   pull_request:
     branches:
       - main

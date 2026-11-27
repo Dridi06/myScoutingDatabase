@@ -4,7 +4,7 @@ import { buildMessinhoProgrammingLearningContext } from './messinho-programming-
 import { buildMessinhoCodebaseIntelligence } from './messinho-code-intelligence.js';
 
 const REPOSITORY='Dridi06/myScoutingDatabase';
-const BRANCH='feature/messinho-unified-ai-integration';
+const BRANCH='feature/messinho-autonomous-agent-semantic-planner';
 const ALLOWED_FILES=[
   'backend/messinho-quality-control.js',
   'backend/messinho-input-correction.js',

@@ -19,13 +19,16 @@ test('MESSINHO system prompt does not force German when the user writes in anoth
 test('actual authenticated chat route loads and injects linguistic intelligence and approved language knowledge',async()=>{
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
   const contextCall=source.indexOf('const linguisticContext=buildMessinhoLinguisticContext(message,history)');
-  const knowledgeCall=source.indexOf('await findMessinhoLanguageKnowledge(db,message,history)');
+  const bridgeCall=source.indexOf('const semanticLanguageBridge=await buildMessinhoSemanticLanguageBridge');
+  const knowledgeContext=source.indexOf('const linguisticKnowledgeContext=semanticLanguageBridge.formatted_knowledge');
   const promptInjection=source.indexOf("Sprachdiagnose: '+JSON.stringify(linguisticContext)");
   const knowledgeInjection=source.indexOf("JSON.stringify(linguisticKnowledgeContext)");
   assert.ok(contextCall>0,'chat route must build linguistic context from the authenticated user message');
-  assert.ok(knowledgeCall>contextCall,'chat route must retrieve language knowledge after context detection');
-  assert.ok(promptInjection>knowledgeCall,'system prompt must receive the current linguistic context');
+  assert.ok(bridgeCall>contextCall,'chat route must connect language detection to the shared semantic language bridge');
+  assert.ok(knowledgeContext>bridgeCall,'chat route must reuse the approved language knowledge loaded by the bridge');
+  assert.ok(promptInjection>knowledgeContext,'system prompt must receive the current linguistic context');
   assert.ok(knowledgeInjection>promptInjection,'system prompt must receive approved versioned language knowledge');
+  assert.doesNotMatch(source,/await findMessinhoLanguageKnowledge\(db,message,history\)/,'server route must not load the same language knowledge twice');
   assert.match(source,/const linguisticIntelligence=buildMessinhoLinguisticResponseMetadata\(linguisticContext\)/);
   assert.match(source,/linguistic_intelligence:clientLinguisticIntelligence/);
   const intelligence=await readFile(new URL('../backend/messinho-linguistic-intelligence.js',import.meta.url),'utf8');

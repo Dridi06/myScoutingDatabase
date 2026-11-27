@@ -4,7 +4,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { runMessinhoCapabilityPlanAsync } from './messinho-orchestrator.js';
-import { evaluateMessinhoTaskResume, getMessinhoTaskRetryDelayMs, MESSINHO_TASK_MAX_ATTEMPTS } from './messinho-task-policy.js';
+import { evaluateMessinhoTaskResume, evaluateMessinhoTaskActor, getMessinhoUnfinishedCapabilities, getMessinhoTaskRetryDelayMs, MESSINHO_TASK_MAX_ATTEMPTS } from './messinho-task-policy.js';
 
 export const MESSINHO_BACKGROUND_READ_ONLY = Object.freeze([
   'holistic_player_analysis','position_analysis','strength_weakness_analysis',
@@ -66,6 +66,20 @@ export async function processMessinhoBackgroundTask({ db, task, workerId = makeW
     if (error) throw error;
     return data?.id === task.id;
   };
+  // Re-check the live account role/approval on every worker claim.
+  const {data:ownerProfile,error:profileError}=await db.from('profiles')
+    .select('id,role,approved,approval_status').eq('id',task.owner_id).maybeSingle();
+  if(profileError||!ownerProfile){
+    const ok=await ownedUpdate({status:'failed',lease_until:null,claimed_by:null,lease_token:null,
+      last_error:'Aufgabeninhaber konnte nicht erneut autorisiert werden.',updated_at:new Date().toISOString()});
+    return {ok,reason:'owner_profile_unavailable',rejected:true};
+  }
+  const actorGate=evaluateMessinhoTaskActor(task,ownerProfile);
+  if(!actorGate.allowed){
+    const ok=await ownedUpdate({status:'failed',lease_until:null,claimed_by:null,lease_token:null,
+      last_error:'Aufgabe wegen geänderter Kontoberechtigung gesperrt.',updated_at:new Date().toISOString()});
+    return {ok,reason:actorGate.reason,rejected:true};
+  }
   if (!gate.allowed) {
     const ok = await ownedUpdate({ status:'failed', lease_until:null, claimed_by:null, lease_token:null,
       last_error:`Hintergrundfortsetzung gesperrt: ${gate.reason}`, updated_at:new Date().toISOString() });
@@ -76,7 +90,14 @@ export async function processMessinhoBackgroundTask({ db, task, workerId = makeW
       last_error:'Hintergrundarbeit wurde durch den Admin-Betriebsmodus angehalten.',updated_at:new Date().toISOString()});
     return {ok,status:'partial',stopped:true,reason:controlAtStart.unavailable?'control_state_unavailable':'admin_mode_paused'};
   }
-  const pending = gate.capabilities;
+  const remaining = getMessinhoUnfinishedCapabilities(task);
+  const pending = remaining.capabilities.filter(id=>SAFE.has(id));
+  if(!pending.length){
+    const ok=await ownedUpdate({status:'completed',completed_results:task.completed_results||[],
+      pending_capabilities:[],lease_until:null,claimed_by:null,lease_token:null,next_retry_at:null,
+      last_error:null,updated_at:new Date().toISOString()});
+    return {ok,status:'completed',reason:'checkpoint_already_complete',skipped_completed:remaining.skipped_completed};
+  }
   const plan = { goal:task.goal, label:task.plan?.label || 'MESSINHO-Aufgabe',
     steps:pending, blocked_capabilities:[], deferred_capabilities:[] };
   try {

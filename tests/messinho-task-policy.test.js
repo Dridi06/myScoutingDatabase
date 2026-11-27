@@ -6,7 +6,9 @@ import {
   isMessinhoTaskLeaseExpired,
   isMessinhoTaskWriteConfirmed,
   getMessinhoTaskRetryDelayMs,
-  evaluateMessinhoTaskResume
+  evaluateMessinhoTaskResume,
+  evaluateMessinhoTaskActor,
+  getMessinhoUnfinishedCapabilities
 } from '../backend/messinho-task-policy.js';
 
 test('expired running task leases are detected', () => {
@@ -67,4 +69,22 @@ test('resume rejects running, expired, exhausted and backoff tasks', () => {
   assert.equal(evaluateMessinhoTaskResume(validTask({ expires_at: '2026-11-26T14:00:00.000Z' }), { now, capabilitySafety: safe }).reason, 'task_expired');
   assert.equal(evaluateMessinhoTaskResume(validTask({ attempt_count: 4 }), { now, capabilitySafety: safe }).reason, 'attempt_limit_reached');
   assert.equal(evaluateMessinhoTaskResume(validTask({ next_retry_at: '2026-11-26T15:01:00.000Z' }), { now, capabilitySafety: safe }).reason, 'retry_backoff_active');
+});
+
+
+test('task actor must still own the task and retain the exact approved role',()=>{
+  const base={owner_id:'owner-1',plan:{role:'admin'}};
+  const approved={id:'owner-1',role:'admin',approved:true,approval_status:'approved'};
+  assert.equal(evaluateMessinhoTaskActor(base,approved).allowed,true);
+  assert.equal(evaluateMessinhoTaskActor(base,{...approved,role:'scout'}).reason,'owner_role_changed');
+  assert.equal(evaluateMessinhoTaskActor(base,{...approved,approved:false}).reason,'owner_access_revoked');
+  assert.equal(evaluateMessinhoTaskActor(base,{...approved,id:'owner-2'}).reason,'owner_profile_mismatch');
+  assert.equal(evaluateMessinhoTaskActor(base,null).allowed,false);
+});
+
+test('resume filters duplicate pending IDs and capabilities already recorded successful',()=>{
+  const result=getMessinhoUnfinishedCapabilities({pending_capabilities:['overall_score','position_score','overall_score'],
+    completed_results:[{capability_id:'overall_score',status:'verified'}]});
+  assert.deepEqual(result.capabilities,['position_score']);
+  assert.deepEqual(result.skipped_completed,['overall_score']);
 });
