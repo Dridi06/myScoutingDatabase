@@ -207,7 +207,7 @@ const ACTION_PATTERNS = {
   translate: /(?<![\p{L}\p{N}])(?:übersetz(?:e|en)?|translate|tradu(?:is|ire|ce|zca)|ترجم(?:لي|ها)?|ترجملي|tarjem(?:li)?)(?![\p{L}\p{N}])/u,
   correct: /(?<![\p{L}\p{N}])(?:korrigier(?:e|en)?|verbesser(?:e|n)?|correct|corrig(?:e|ez)|corrige|صحح(?:لي)?|صلح(?:لي)?|salla7(?:li)?|sa77a7(?:li)?)(?![\p{L}\p{N}])/u,
   explain: /(?<![\p{L}\p{N}])(?:erklär(?:e|en)?|erläuter(?:e|n)?|explain|explique(?:r)?|explica(?:r)?|اشرح(?:لي)?|فسر(?:لي)?|فسرلي|fassar(?:li)?|fasser(?:li)?)(?![\p{L}\p{N}])/u,
-  rephrase: /(?<![\p{L}\p{N}])(?:formulier(?:e|en)? um|umformulier(?:e|en)?|rephrase|reformul(?:e|er)|reformula(?:r)?|أعد الصياغة|عاود الصياغة|3awed siyagha)(?![\p{L}\p{N}])/u
+  rephrase: /(?<![\p{L}\p{N}])(?:formulier(?:e|en)?(?:\s+[\p{L}\p{N}-]+){0,6}\s+um|umformulier(?:e|en)?|rephrase|reformul(?:e|er)|reformula(?:r)?|أعد الصياغة|عاود الصياغة|3awed siyagha)(?![\p{L}\p{N}])/u
 };
 const TARGET_LANGUAGE_PATTERNS = [
   {id:'de',pattern:/(?:auf|ins|in) deutsch(?:e|er|en)?|\bto german\b|\bin german\b|\ben allemand\b|\bal alemán\b|إلى الألمانية|بالألمانية/u},
