@@ -3,6 +3,7 @@
  * This is reusable source-controlled knowledge, not model-weight training.
  */
 import { buildMessinhoLanguageLearningContext, MESSINHO_PROGRAMMING_LANGUAGES_VERSION } from './messinho-programming-languages.js';
+import { buildMessinhoAutonomousEngineeringProtocol, buildMessinhoCodebaseIntelligence, MESSINHO_CODE_INTELLIGENCE_VERSION } from './messinho-code-intelligence.js';
 
 export const MESSINHO_PROGRAMMING_CURRICULUM_VERSION='1.2.0';
 export const MESSINHO_PROGRAMMING_CURRICULUM=Object.freeze([
@@ -58,6 +59,9 @@ export function buildMessinhoProgrammingLearningContext({maxTopics=24,includeExa
  }));
  return {
   curriculum_version:MESSINHO_PROGRAMMING_CURRICULUM_VERSION,
+  code_intelligence_version:MESSINHO_CODE_INTELLIGENCE_VERSION,
+  autonomous_engineering:buildMessinhoAutonomousEngineeringProtocol(),
+  codebase_intelligence:buildMessinhoCodebaseIntelligence(),
   language_curriculum_version:MESSINHO_PROGRAMMING_LANGUAGES_VERSION,
   learning_model:'progressive_prerequisites_and_verified_feedback',
   levels:lessons,
