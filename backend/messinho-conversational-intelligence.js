@@ -1,5 +1,12 @@
 export const MESSINHO_COGNITIVE_ROUTER_VERSION='1.0.0';
 
+const MESSINHO_GREETING_PATTERN=/^(?:hi|hallo|hey|heya|moin|servus|guten morgen|guten tag|guten abend|sal[aä]m|salam|as[- ]?sal[aä]mu alaikum|peace)\s*[!.?,]*$/iu;
+
+export function isMessinhoGreeting(message){
+  const normalized=String(message||'').trim().normalize('NFKC').replace(/\\s+/gu,' ');
+  return normalized.length>0&&normalized.length<=48&&MESSINHO_GREETING_PATTERN.test(normalized);
+}
+
 export const MESSINHO_INTENTS=Object.freeze([
   'conversation','clarify','memory_save','memory_recall','scouting','general_research','engineering'
 ]);
@@ -120,7 +127,13 @@ export async function classifyMessinhoTurn({message,history=[],memory={},linguis
         messages:buildMessinhoCognitiveRouterMessages({message,history,memory,linguisticContext,userRole})
       })
     });
-    if(!response.ok)return {status:'provider_error',decision:null,http_status:response.status};
+    if(!response.ok){
+      const providerPayload=await response.json().catch(()=>({}));
+      const providerError=providerPayload?.error||{};
+      const errorCode=typeof providerError.code==='string'?providerError.code:
+        (typeof providerError.type==='string'?providerError.type:'provider_rejected_request');
+      return {status:'provider_error',decision:null,http_status:response.status,error_code:errorCode};
+    }
     const payload=await response.json();
     const raw=payload.choices?.[0]?.message?.content;
     const parsed=typeof raw==='string'?JSON.parse(raw):null;
