@@ -55,6 +55,11 @@ export async function processMessinhoBackgroundTask({ db, task, workerId = makeW
   const gate = validateMessinhoBackgroundTask(task, now);
   const token = task.lease_token;
   const base = db.from('messinho_agent_tasks');
+  const readControl = async()=>{
+    const {data,error}=await db.from('messinho_agent_control').select('mode,stop_requested').eq('id','global').maybeSingle();
+    return {mode:data?.mode||'paused',stop_requested:!!data?.stop_requested,unavailable:!!error};
+  };
+  const controlAtStart=await readControl();
   const ownedUpdate = async patch => {
     const { data, error } = await base.update(patch).eq('id',task.id).eq('owner_id',task.owner_id)
       .eq('status','running').eq('claimed_by',task.claimed_by || workerId).eq('lease_token',token).select('id').maybeSingle();
@@ -66,14 +71,28 @@ export async function processMessinhoBackgroundTask({ db, task, workerId = makeW
       last_error:`Hintergrundfortsetzung gesperrt: ${gate.reason}`, updated_at:new Date().toISOString() });
     return { ok, reason:gate.reason, rejected:true };
   }
+  if(controlAtStart.unavailable||controlAtStart.mode!=='developing'||controlAtStart.stop_requested){
+    const ok=await ownedUpdate({status:'partial',lease_until:null,claimed_by:null,lease_token:null,next_retry_at:null,
+      last_error:'Hintergrundarbeit wurde durch den Admin-Betriebsmodus angehalten.',updated_at:new Date().toISOString()});
+    return {ok,status:'partial',stopped:true,reason:controlAtStart.unavailable?'control_state_unavailable':'admin_mode_paused'};
+  }
   const pending = gate.capabilities;
   const plan = { goal:task.goal, label:task.plan?.label || 'MESSINHO-Aufgabe',
     steps:pending, blocked_capabilities:[], deferred_capabilities:[] };
   try {
     const prior = Array.isArray(task.completed_results) ? task.completed_results : [];
     const input = { ...sanitizeContext(task.context), _previous_capability_results:prior.slice(-8) };
-    const run = await execute(plan,input,gate.role,{ budgetMs:6500 });
+    const run = await execute(plan,input,gate.role,{ budgetMs:6500,shouldStop:async()=>{
+      const control=await readControl();
+      return control.unavailable||control.mode!=='developing'||control.stop_requested;
+    }});
     const results = [...prior,...(run.results || [])].slice(-20);
+    if(run.stop_requested||run.status==='stopped'){
+      const ok=await ownedUpdate({status:'partial',completed_results:results,pending_capabilities:(run.deferred_capabilities||pending).filter(id=>SAFE.has(id)),
+        lease_until:null,claimed_by:null,lease_token:null,next_retry_at:null,last_error:'Hintergrundarbeit wurde am sicheren Haltepunkt durch den Admin gestoppt.',
+        updated_at:new Date().toISOString()});
+      return {ok,status:'partial',stopped:true};
+    }
     const missing = (run.deferred_capabilities || []).filter(id => SAFE.has(id));
     const hasError = (run.results || []).some(item => item.status === 'error');
     const hasMissingInputs = (run.missing_inputs || []).length > 0;
@@ -119,6 +138,8 @@ export function startMessinhoBackgroundWorker({ db, env = process.env, intervalM
     if (stopped || busy) return;
     busy = true;
     try {
+      const {data:control,error:controlError}=await db.from('messinho_agent_control').select('mode,stop_requested').eq('id','global').maybeSingle();
+      if(controlError||control?.mode!=='developing'||control?.stop_requested)return;
       const { data, error } = await db.rpc('claim_next_messinho_agent_task',{ p_worker_id:workerId });
       if (error) throw error;
       const task = Array.isArray(data) ? data[0] : data;
