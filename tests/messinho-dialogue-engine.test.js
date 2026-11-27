@@ -19,6 +19,8 @@ test('dialogue engine marks an unanswered assistant question without claiming to
     {role:'assistant',text:'Soll ich in Deutschland oder international suchen?'}
   ]});
   assert.equal(state.continuity.assistant_awaiting_answer,true);
+  assert.equal(state.continuity.reply_to_pending_question_likely,true);
+  assert.equal(state.continuity.follow_up_likely,true);
   assert.match(state.continuity.pending_assistant_question,/Deutschland oder international/);
   assert.equal(state.continuity.referent_resolution,'not_performed');
 });
