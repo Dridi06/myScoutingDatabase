@@ -60,7 +60,7 @@ function classifyQuestionKind(question, options) {
   const text = normalizeAnswer(question);
   if (/\b(?:welcher spieler|wen meinst|welchen spieler|which player|who do you mean|quel joueur|qué jugador|أي لاعب|شنوّة لاعب)\b/u.test(text)) return 'player_reference';
   if (/\b(?:bundesliga|regionalliga|liga|league|level|spielklasse|niveau|division|championship)\b/u.test(text)) return 'target_level';
-  if (/\b(?:wo|wohin|standort|region|land|country|location|where|which country|quel pays|dónde|فين|وين)\b/u.test(text)) return 'location';
+  if (/\b(?:wo|wohin|standort|region|land|country|location|where|which country|deutschland|international|quel pays|donde|فين|وين)\b/u.test(text)) return 'location';
   if (/\b(?:alt|alter|jahrgang|geburtsjahr|age|born|how old|quel age|que edad|عمر)\b/u.test(text)) return 'age';
   if (/\b(?:position|positions|rolle|role|poste|posición|مركز)\b/u.test(text)) return 'position';
   if (/\b(?:fuß|fuss|schussbein|preferred foot|left foot|right foot|pied|pie|القدم)\b/u.test(text)) return 'preferred_foot';
