@@ -38,7 +38,7 @@ test('authenticated chat applies semantic routing before scouting and external r
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
   const route=source.indexOf('const cognitiveResult=await classifyMessinhoTurn');
   const scoutingRoute=source.indexOf('const dialog=parseMessinhoScoutingRequest(interpretedMessage,history)',route);
-  const researchRoute=source.indexOf('if(isMessinhoGeneralResearchQuestion(interpretedMessage))',route);
+  const researchRoute=source.indexOf("if(cognitive.intent==='general_research'||isMessinhoGeneralResearchQuestion(interpretedMessage))",route);
   assert.ok(route>0&&route<scoutingRoute,'semantic intent must be resolved before scouting parser');
   assert.ok(route<researchRoute,'semantic intent must be resolved before external research');
   assert.match(source,/if\(cognitive\.intent==='memory_save'\)/);
