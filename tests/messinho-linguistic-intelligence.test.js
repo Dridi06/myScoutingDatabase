@@ -5,13 +5,14 @@ import {
   MESSINHO_LANGUAGE_PROFILES,
   analyzeMessinhoLanguage,
   buildMessinhoLinguisticContext,
+  buildMessinhoLinguisticResponseMetadata,
   getMessinhoLanguageProfile,
   normalizeMessinhoArabizi,
   normalizeMessinhoArabicForAnalysis
 } from '../backend/messinho-linguistic-intelligence.js';
 
 test('registers six separate language profiles including Tunisian Derja',()=>{
-  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.5');
+  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.6');
   assert.deepEqual(MESSINHO_LANGUAGE_PROFILES.map(item=>item.id),['de','en','fr','ar','ar-tn','es']);
   assert.equal(getMessinhoLanguageProfile('ar-tn').name,'تونسي / Derja');
   assert.equal(getMessinhoLanguageProfile('ar').name,'العربية الفصحى');
@@ -326,4 +327,21 @@ test('does not let a mixed-language aggregate score override the last clear user
   const result=buildMessinhoLinguisticContext(message,[]);
   assert.equal(result.response_language,'en');
   assert.equal(result.latest_segment_language,'en');
+});
+
+
+test('publishes the selected response language in stable chat metadata',()=>{
+  const context=buildMessinhoLinguisticContext('The player is not ready, mais le joueur est prêt.',[]);
+  const metadata=buildMessinhoLinguisticResponseMetadata(context);
+  assert.equal(metadata.version,'1.3.6');
+  assert.equal(metadata.primary_language,context.primary_language);
+  assert.equal(metadata.response_language,'fr');
+  assert.equal(metadata.latest_segment_language,'fr');
+  assert.equal(metadata.conversation_language_hint,'fr');
+  assert.equal(metadata.segments.length,context.segments.length);
+  assert.equal(metadata.segments.map(segment=>segment.text).join(' '),'The player is not ready, mais le joueur est prêt.');
+});
+
+test('response metadata safely handles an unavailable linguistic context',()=>{
+  assert.equal(buildMessinhoLinguisticResponseMetadata(null),null);
 });
