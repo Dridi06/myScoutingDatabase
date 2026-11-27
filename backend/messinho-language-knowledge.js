@@ -8,7 +8,16 @@ import { analyzeMessinhoLanguage, buildMessinhoLinguisticContext, MESSINHO_LANGU
 const VERSION = '1.2.0';
 const STOP = new Set('der die das ein eine und oder aber nicht bitte danke ich du er sie wir ihr ist sind the a an and or but not please thanks i you he she we they is are was have be le la les un une et ou mais pas ne merci je tu il elle nous vous el los las una y pero por favor gracias yo tú él ella من في على إلى عن هو هي نحن انت أنا و أو لكن لا نعم كيف ماذا لماذا متى أين'.split(' '));
 const norm = value => String(value ?? '').normalize('NFKC').toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
-const tokens = value => [...new Set(norm(value).split(' ').filter(token=>token.length>1 && !STOP.has(token)))];
+const expandToken = token => {
+  const variants=[token];
+  if(token.length>=6) {
+    for(const suffix of ['en','er','es','e','n','s']) {
+      if(token.endsWith(suffix)&&token.length-suffix.length>=4)variants.push(token.slice(0,-suffix.length));
+    }
+  }
+  return variants;
+};
+const tokens = value => [...new Set(norm(value).split(' ').filter(token=>token.length>1 && !STOP.has(token)).flatMap(expandToken))];
 
 function scoreEntry(queryTokens, row, languageIds) {
   const content = row.content && typeof row.content==='object' ? row.content : {};
@@ -62,6 +71,8 @@ export async function findMessinhoLanguageKnowledge(db, message, history=[]) {
     selected.push(...ranked.filter(item=>item.row.language_code==='shared').slice(0,2));
     for(const item of ranked) {
       if(selected.length>=8)break;
+      const languageCount=selected.filter(existing=>existing.row.language_code===item.row.language_code).length;
+      if(languageCount>=3)continue;
       if(!selected.some(existing=>existing.row.entry_key===item.row.entry_key))selected.push(item);
     }
     const candidates=selected
