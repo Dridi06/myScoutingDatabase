@@ -5,7 +5,7 @@
  */
 import { analyzeMessinhoLanguage, buildMessinhoLinguisticContext, MESSINHO_LANGUAGE_PROFILES, normalizeMessinhoArabicForAnalysis } from './messinho-linguistic-intelligence.js';
 
-const VERSION = '1.2.4';
+const VERSION = '1.2.5';
 const STOP = new Set('der die das ein eine und oder aber nicht bitte danke ich du er sie wir ihr ist sind the a an and or but not please thanks i you he she we they is are was have be le la les un une et ou mais pas ne merci je tu il elle nous vous el los las una y pero por favor gracias yo tú él ella من في على إلى عن هو هي نحن انت أنا و أو لكن لا نعم كيف ماذا لماذا متى أين'.split(' ').map(normalizeMessinhoArabicForAnalysis));
 const norm = value => normalizeMessinhoArabicForAnalysis(
   String(value ?? '').normalize('NFKC').toLocaleLowerCase().normalize('NFD')
@@ -40,24 +40,36 @@ function inferRequestedLanguageIds(message, action) {
 }
 
 
-function scoreEntry(queryTokens, row, languageIds) {
+function scoreEntry(queryTokens, row, languageIds, queryText='') {
   const content = row.content && typeof row.content==='object' ? row.content : {};
-  const corpus = [row.entry_key,row.topic,row.title,...(row.tags||[]),content.explanation||'',
+  const terms=Array.isArray(content.terms)?content.terms:[];
+  const examples=Array.isArray(content.examples)?content.examples:[];
+  const corpusParts = [row.entry_key,row.topic,row.title,...(row.tags||[]),content.explanation||'',
     ...(Array.isArray(content.aliases)?content.aliases:[]),
-    ...(Array.isArray(content.terms)?content.terms.flatMap(item=>[item.term,item.meaning_de,item.transliteration]):[]),
-    ...(Array.isArray(content.examples)?content.examples.flatMap(item=>[item.text,item.meaning,item.note,item.intent]):[]),
+    ...(Array.isArray(content.phrases)?content.phrases:[]),
+    ...(Array.isArray(content.patterns)?content.patterns:[]),
+    ...terms.flatMap(item=>[item.term,item.meaning_de,item.transliteration]),
+    ...examples.flatMap(item=>[item.text,item.meaning,item.note,item.intent]),
     ...(Array.isArray(content.common_errors)?content.common_errors:[]),
     ...(Array.isArray(content.learning_objectives)?content.learning_objectives:[]),
     ...(Array.isArray(content.review_questions)?content.review_questions:[]),
     ...(Array.isArray(content.grammar_notes)?content.grammar_notes:[]),
     ...(Array.isArray(content.usage_notes)?content.usage_notes:[])
-  ].join(' ');
-  const entryTokens = new Set(tokens(corpus));
+  ];
+  const entryTokens = new Set(tokens(corpusParts.join(' ')));
   const overlap = queryTokens.filter(token=>entryTokens.has(token)).length;
   const anchor = queryTokens.some(token=>norm(row.entry_key).split(' ').includes(token));
+  const phraseCandidates=[
+    ...(Array.isArray(content.aliases)?content.aliases:[]),
+    ...(Array.isArray(content.phrases)?content.phrases:[]),
+    ...terms.flatMap(item=>[item.term,item.transliteration]),
+    ...examples.map(item=>item.text)
+  ].map(norm).filter(phrase=>phrase.length>=7&&phrase.split(' ').filter(Boolean).length>=2);
+  const normalizedQuery=' '+norm(queryText)+' ';
+  const phraseMatch=phraseCandidates.some(phrase=>normalizedQuery.includes(' '+phrase+' '));
   const score = overlap / Math.max(1,Math.min(queryTokens.length,entryTokens.size));
   const languageMatch = languageIds.has(row.language_code) ? 1 : 0;
-  return {row,score:score+(anchor?0.3:0)+(languageMatch?0.08:0),overlap};
+  return {row,score:score+(anchor?0.3:0)+(languageMatch?0.08:0)+(phraseMatch?0.35:0),overlap,phrase_match:phraseMatch};
 }
 
 export async function findMessinhoLanguageKnowledge(db, message, history=[]) {
@@ -71,6 +83,16 @@ export async function findMessinhoLanguageKnowledge(db, message, history=[]) {
     ...requestedLanguageIds
   ]);
   const queryTokens = tokens([message,...(Array.isArray(history)?history.slice(-3).map(item=>item?.text||''):[])].join(' '));
+  const segmentTokensByLanguage=new Map();
+  const segmentTextByLanguage=new Map();
+  for(const segment of linguisticContext.segments||[]) {
+    const id=segment.language_analysis?.primary_language||segment.language_hint;
+    if(!id)continue;
+    const segmentTokens=tokens(segment.text);
+    if(segmentTokens.length<2)continue;
+    segmentTokensByLanguage.set(id,[...(segmentTokensByLanguage.get(id)||[]),...segmentTokens]);
+    segmentTextByLanguage.set(id,[...(segmentTextByLanguage.get(id)||[]),segment.text]);
+  }
   if (!db) return {status:'unavailable',version:VERSION,language_id:languageId,language_ids:[...languageIds],requested_language_ids:requestedLanguageIds,items:[]};
   try {
     const {data,error}=await db.from('messinho_language_knowledge')
@@ -82,8 +104,13 @@ export async function findMessinhoLanguageKnowledge(db, message, history=[]) {
       if(!latest.has(row.entry_key))latest.set(row.entry_key,row);
     }
     const ranked=[...latest.values()].filter(row=>row.language_code==='shared'||languageIds.has(row.language_code))
-      .map(row=>scoreEntry(queryTokens,row,languageIds))
-      .filter(item=>item.overlap>0)
+      .map(row=>{
+        const scopedTokens=row.language_code==='shared'?null:segmentTokensByLanguage.get(row.language_code);
+        const scopedText=row.language_code==='shared'?null:segmentTextByLanguage.get(row.language_code);
+        const useScoped=Array.isArray(scopedTokens)&&scopedTokens.length>=2;
+        return scoreEntry(useScoped?scopedTokens:queryTokens,row,languageIds,useScoped?scopedText.join(' '):message);
+      })
+      .filter(item=>item.overlap>0||item.phrase_match)
       .sort((a,b)=>b.score-a.score||b.overlap-a.overlap);
     let selected;
     if(languageIds.size<=1) {
