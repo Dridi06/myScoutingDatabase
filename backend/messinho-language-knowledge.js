@@ -5,7 +5,7 @@
  */
 import { analyzeMessinhoLanguage, buildMessinhoLinguisticContext, MESSINHO_LANGUAGE_PROFILES } from './messinho-linguistic-intelligence.js';
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const STOP = new Set('der die das ein eine und oder aber nicht bitte danke ich du er sie wir ihr ist sind the a an and or but not please thanks i you he she we they is are was have be le la les un une et ou mais pas ne merci je tu il elle nous vous el los las una y pero por favor gracias yo tú él ella من في على إلى عن هو هي نحن انت أنا و أو لكن لا نعم كيف ماذا لماذا متى أين'.split(' '));
 const norm = value => String(value ?? '').normalize('NFKC').toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ß/g,'ss').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 const tokens = value => [...new Set(norm(value).split(' ').filter(token=>token.length>1 && !STOP.has(token)))];
@@ -15,7 +15,12 @@ function scoreEntry(queryTokens, row, languageIds) {
   const corpus = [row.entry_key,row.topic,row.title,...(row.tags||[]),content.explanation||'',
     ...(Array.isArray(content.aliases)?content.aliases:[]),
     ...(Array.isArray(content.terms)?content.terms.flatMap(item=>[item.term,item.meaning_de,item.transliteration]):[]),
-    ...(Array.isArray(content.examples)?content.examples.flatMap(item=>[item.text,item.meaning,item.note]):[])
+    ...(Array.isArray(content.examples)?content.examples.flatMap(item=>[item.text,item.meaning,item.note,item.intent]):[]),
+    ...(Array.isArray(content.common_errors)?content.common_errors:[]),
+    ...(Array.isArray(content.learning_objectives)?content.learning_objectives:[]),
+    ...(Array.isArray(content.review_questions)?content.review_questions:[]),
+    ...(Array.isArray(content.grammar_notes)?content.grammar_notes:[]),
+    ...(Array.isArray(content.usage_notes)?content.usage_notes:[])
   ].join(' ');
   const entryTokens = new Set(tokens(corpus));
   const overlap = queryTokens.filter(token=>entryTokens.has(token)).length;
@@ -44,9 +49,22 @@ export async function findMessinhoLanguageKnowledge(db, message, history=[]) {
     for(const row of data||[]) {
       if(!latest.has(row.entry_key))latest.set(row.entry_key,row);
     }
-    const candidates=[...latest.values()].filter(row=>row.language_code==='shared'||languageIds.has(row.language_code))
+    const ranked=[...latest.values()].filter(row=>row.language_code==='shared'||languageIds.has(row.language_code))
       .map(row=>scoreEntry(queryTokens,row,languageIds))
       .filter(item=>item.overlap>0)
+      .sort((a,b)=>b.score-a.score||b.overlap-a.overlap);
+    // Keep retrieval balanced when the user switches language mid-message:
+    // up to three entries per detected language, then shared entries, then fill.
+    const selected=[];
+    for(const language of languageIds) {
+      selected.push(...ranked.filter(item=>item.row.language_code===language).slice(0,3));
+    }
+    selected.push(...ranked.filter(item=>item.row.language_code==='shared').slice(0,2));
+    for(const item of ranked) {
+      if(selected.length>=8)break;
+      if(!selected.some(existing=>existing.row.entry_key===item.row.entry_key))selected.push(item);
+    }
+    const candidates=selected
       .sort((a,b)=>b.score-a.score||b.overlap-a.overlap)
       .slice(0,8);
     const items=candidates.map(({row,score})=>({...row,relevance:Number(score.toFixed(3))}));
@@ -69,6 +87,11 @@ export function formatMessinhoLanguageKnowledge(context) {
     examples:item.content?.examples||[],
     terms:item.content?.terms||[],
     grammar_notes:item.content?.grammar_notes||[],
+    common_errors:item.content?.common_errors||[],
+    learning_objectives:item.content?.learning_objectives||[],
+    review_questions:item.content?.review_questions||[],
+    usage_notes:item.content?.usage_notes||[],
+    aliases:item.content?.aliases||[],
     level:item.level,
     version:item.version,
     provenance:item.provenance_type
