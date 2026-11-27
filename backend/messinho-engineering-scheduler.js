@@ -46,7 +46,7 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
     .select('mode,stop_requested').eq('id','global').maybeSingle();
   const afterSchedule=getMessinhoEngineeringReviewSchedule(getCurrentTime());
   if(!afterSchedule.due||afterSchedule.review_slot!==schedule.review_slot){
-    await finish('stopped',{source_sha:generated.source_sha||null,error_code:'WORK_WINDOW_ENDED'});
+    await finish('failed',{source_sha:generated.source_sha||null,error_code:'WORK_WINDOW_ENDED'});
     return {ok:true,status:'stopped',review_date:schedule.review_date,review_slot:schedule.review_slot};
   }
   if(afterGenerateError||afterGenerate?.mode!=='developing'||afterGenerate?.stop_requested){
