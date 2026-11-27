@@ -32,7 +32,7 @@ export async function findMessinhoLanguageKnowledge(db, message, history=[]) {
   if (!db) return {status:'unavailable',version:VERSION,language_id:languageId,items:[]};
   try {
     const {data,error}=await db.from('messinho_language_knowledge')
-      .select('entry_key,version,language_code,entry_type,topic,title,content,tags,level,knowledge_status,provenance_type,updated_at')
+      .select('entry_key,version,language_code,entry_type,topic,title,content,tags,level,knowledge_status,provenance_type,created_at')
       .eq('knowledge_status','active').order('version',{ascending:false}).limit(500);
     if(error)throw error;
     const latest=new Map();
