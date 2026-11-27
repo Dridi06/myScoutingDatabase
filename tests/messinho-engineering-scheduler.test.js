@@ -69,5 +69,6 @@ test('admin stop requested during generation prevents myKI ticket persistence',a
  });
  assert.equal(result.status,'stopped');
  assert.equal(persisted,false);
- assert.equal(db.state.update.status,'stopped');
+ assert.equal(db.state.update.status,'failed');
+ assert.equal(db.state.update.error_code,'ADMIN_STOP_REQUESTED');
 });
