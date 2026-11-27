@@ -5894,3 +5894,15 @@ Preserve meaning when a player description contains qualified evaluations, negat
 3. Review the exact latest CI run and fix all failures before marking Block 2 verified.
 4. Continue with Block 3 — robust multi-turn conversation state and clarification lifecycle — only after Block 2 passes exact-commit CI.
 5. The latest main-branch language-bridge commits are not copied into this feature branch; evaluate and integrate them separately without merging or changing production.
+
+
+### Block 2 CI verification — 2026-11-27
+- Final tested code commit: `c0d7ac126a4df4f2e326c7b3ea608aab6cd89943`.
+- GitHub Actions for that exact code commit:
+  - MESSINHO Node tests: **564/564 passed, 0 failed**.
+  - Backend JavaScript syntax: **success**.
+  - Full STAGING branch CI: **success** — regression suite, backend syntax and Vite production build completed; 1,640 modules transformed and build completed in 1.79 seconds.
+- The first CI attempt correctly exposed two issues: the accented Spanish pronoun `él` was not matched by JavaScript's ASCII-style word boundary, and an apostrophe in the single-quoted cognitive-router prompt caused a syntax error. Both were corrected; the test was not weakened and the prompt retains the original clarification contract.
+- The exact final code commit is verified. The subsequent PROJECTSCOUT documentation checkpoint is documentation-only.
+- PR #58 remains Draft, open and unmerged. No Render deployment, Supabase migration, database write, production/LIVE change or model-weight change was performed.
+- Next: begin Block 3 only after confirming the PR head and preserving this verified checkpoint.
