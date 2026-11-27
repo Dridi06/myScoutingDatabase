@@ -5829,3 +5829,13 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Exact-commit GitHub Actions: Node tests **544/544 passed**; backend syntax + test workflow passed; complete STAGING branch CI passed including Vite production build.
 - The later documentation-only commit does not change the tested code.
 - PR #58 remains draft and unmerged. No Render deployment or database changes were performed.
+
+### Response-integrity milestone — unverified action claims
+- Added `backend/messinho-conversation-response-guard.js` and `tests/messinho-conversation-response-guard.test.js`.
+- Ordinary `conversation` replies are checked for empty output and first-person claims that a system mutation (save/create/delete/update/deploy/fix/install/execute, etc.) has already been completed.
+- The guard recognizes German, English, French and Spanish action-claim forms and applies sentence-scoped negation checks so statements such as “not deployed yet” are not blocked.
+- A blocked reply is replaced with a plain-language response that does not expose internal guard diagnostics. This guard runs only for ordinary conversation replies; verified scouting/research and server-mediated memory/engineering flows retain their existing handling.
+- No tool is executed by the guard and no action is ever marked complete by it.
+- Final tested code commit: `49f41d614e1da2faac77ef47ef9dabb26fa55e65`.
+- Exact-commit CI: **550/550 Node tests passed**; backend syntax passed; full STAGING branch CI passed including Vite production build.
+- PR #58 remains draft and unmerged. No Render deployment, database migration, or production/LIVE change.
