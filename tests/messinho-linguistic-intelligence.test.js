@@ -377,7 +377,7 @@ test('captures qualified negation and evaluation cues across all six language pr
     ['de','Der Spieler ist noch nicht bereit, aber vielleicht morgen.',['not_yet'],['uncertainty'],['contrast']],
     ['en','The player is not necessarily ready; he is not bad, but not enough for this league.',['not_necessarily','not_bad','not_enough'],[],['contrast']],
     ['fr','Le joueur n’est pas encore prêt, peut-être demain, mais il peut progresser.',['not_yet'],['uncertainty'],['contrast']],
-    ['es','El jugador todavía no está listo, no necesariamente es malo, pero quizá necesita más tiempo.',['not_yet','not_necessarily','not_bad'],['uncertainty'],['contrast']],
+    ['es','El jugador todavía no está listo; no es malo, pero no necesariamente mejora, quizá necesita más tiempo.',['not_yet','not_necessarily','not_bad'],['uncertainty'],['contrast']],
     ['ar','هذا اللاعب ليس بالضرورة سيئا، ولم يصبح جاهزا بعد، لكن ربما يتحسن.',['not_necessarily','not_yet'],['uncertainty'],['contrast']],
     ['ar-tn','اللاعب هذا موش بالضرورة خايب، موش كافي توة، أما يمكن يتحسن.',['not_necessarily','not_bad','not_enough'],['uncertainty'],['contrast']]
   ];
