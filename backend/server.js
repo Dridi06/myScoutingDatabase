@@ -44,6 +44,7 @@ import { dispatchMessinhoSandboxJob, isMessinhoSandboxStagingAllowed } from './m
 import { persistMessinhoSandboxResult, normalizeMessinhoSandboxResult, hashMessinhoEngineeringPatch } from './messinho-engineering-memory.js';
 import { loadMessinhoApprovedEngineeringMemory } from './messinho-engineering-memory-context.js';
 import { verifyMessinhoGitHubActionsIdentity } from './messinho-github-oidc.js';
+import { buildMessinhoMaturityReport } from './messinho-maturity.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -481,6 +482,7 @@ app.get('/api/admin/myki/status',requireSupabaseAdmin,async(req,res)=>{
     const schedule=getMessinhoEngineeringReviewSchedule();
     return res.json({
       scheduler_enabled:isMessinhoEngineeringAutoReviewEnabled(process.env),
+      maturity:buildMessinhoMaturityReport(),
       run_state:data?.status==='running'?'running':'paused',
       schedule:{time_zone:'Europe/Berlin',daily_at:'20:00',review_date:schedule.review_date,due:schedule.due},
       last_run:data||null,
