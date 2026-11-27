@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { normalizeMessinhoEngineeringProposal } from './messinho-engineering-proposals.js';
 import { buildMessinhoProgrammingLearningContext } from './messinho-programming-learning.js';
+import { buildMessinhoCodebaseIntelligence } from './messinho-code-intelligence.js';
 
 const REPOSITORY='Dridi06/myScoutingDatabase';
 const BRANCH='feature/messinho-unified-ai-integration';
@@ -86,12 +87,13 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
       return {path,content};
     }));
     const learning=buildMessinhoProgrammingLearningContext();
+    const codebaseIntelligence=buildMessinhoCodebaseIntelligence({files});
     const completion=await fetchImpl('https://api.openai.com/v1/chat/completions',{
       method:'POST',signal:AbortSignal.timeout(25000),
       headers:{Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},
       body:JSON.stringify({model:env.OPENAI_MODEL||'gpt-4.1-mini',temperature:0.1,response_format:{type:'json_object'},max_tokens:4500,
         messages:[
-          {role:'system',content:SYSTEM_PROMPT+'\n\nPROGRAMMIER-LERNBASIS: '+JSON.stringify(learning)},
+          {role:'system',content:SYSTEM_PROMPT+'\n\nPROGRAMMIER-LERNBASIS: '+JSON.stringify(learning)+'\n\nSPRACHEN UND PRÜFPLAN DES TATSÄCHLICHEN QUELLCODE-AUSSCHNITTS: '+JSON.stringify(codebaseIntelligence)},
           {role:'user',content:JSON.stringify({goal:cleanGoal,repository:REPOSITORY,branch:BRANCH,source_commit:sourceSha,allowed_files:ALLOWED_FILES,source_files:files})}
         ]})
     });
