@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults, getMessinhoCapabilityDiscovery } from '../backend/messinho-orchestrator.js';
+import { planMessinhoCapabilities, runMessinhoCapabilityPlan, runMessinhoCapabilityPlanAsync, formatMessinhoCapabilityResults, getMessinhoCapabilityDiscovery } from '../backend/messinho-orchestrator.js';
 
 test('MESSINHO composes all matching analysis intents from a natural-language goal', () => {
   const plan = planMessinhoCapabilities('Bitte analysiere das Potenzial und die Entwicklung von Spieler X', 'scout');
@@ -214,4 +214,18 @@ test('scout feedback learning accepts only verified feedback and remains non-mut
   assert.equal(result.result.mean_rating, 82);
   assert.equal(result.result.training_performed, false);
   assert.equal(result.result.model_weights_changed, false);
+});
+
+
+test('cooperative stop preserves pending capabilities and never reports completion',async()=>{
+ const plan=planMessinhoCapabilities('Analysiere Spieler X und bewerte seine Entwicklung','scout');
+ let checks=0;
+ const run=await runMessinhoCapabilityPlanAsync(plan,{player:{name:'Spieler X'}},'scout',{
+  shouldStop:async()=>{checks++;return true;}
+ });
+ assert.equal(run.status,'stopped');
+ assert.equal(run.stop_requested,true);
+ assert.equal(run.results.length,0);
+ assert.equal(run.deferred_capabilities.length,plan.steps.length);
+ assert.ok(checks>=1);
 });
