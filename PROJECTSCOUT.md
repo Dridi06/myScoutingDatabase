@@ -4777,3 +4777,27 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 
 ### Nächster Schritt
 - Neuen CI-Lauf auf dem aktuellen Branch-HEAD prüfen, alle erkannten Fehlfälle beheben und danach eine unabhängige Sprachqualitätsprüfung vorbereiten.
+
+## 31. Sprachpaket 1.3.3 – Regression korrigiert und CI erfolgreich – 2026-11-27
+
+### Korrektur
+- Die neue Erkennung von `bil anglais` führte zunächst zu einem veralteten Test, der für denselben tunesischen Arabizi-Satz noch `target_language=null` erwartete.
+- Der Test wurde auf das korrekte neue Verhalten umgestellt: `target_language=en`, `requires_clarification=false`.
+- Es wurde keine Produktivfunktion zurückgenommen; die Zielsprachen-Erkennung bleibt aktiv.
+
+### Verifikation
+- Aktueller geprüfter Code-/Test-Commit: `c1b5009a9c8942d7081ac92729c4f881dc993c29`.
+- Node-Tests: **476 bestanden, 0 fehlgeschlagen**.
+- Vollständiger Staging-Branch-CI-Workflow einschließlich Vite-Build: erfolgreich.
+- Backend-Syntaxprüfung: erfolgreich.
+- Staging-Health-Smoke-Test: erfolgreich.
+- Isolierte Engineering-Sandbox: zum Checkpoint noch in Bearbeitung; Baseline-Validierung, kein Kandidaten-Patch-Dispatch.
+
+### Sicherheits- und Deploymentstatus
+- Alle Änderungen ausschließlich auf `feature/messinho-unified-ai-integration`.
+- Render-STAGING nicht deployed; Auto-Deploy bleibt deaktiviert.
+- Keine Supabase-Migration oder Wissensdatenbank-Schreiboperation.
+- `main`, Produktion und produktive Daten unverändert.
+
+### Nächster Schritt
+- Den isolierten Sandbox-Lauf auf dem aktuellen Code-/Teststand abschließen und danach die Sprachqualität weiter mit unabhängigen Referenzsätzen prüfen.
