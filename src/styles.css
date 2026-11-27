@@ -2944,3 +2944,10 @@ input,select,textarea{
 .myki-timeline{margin-top:20px;border-top:1px solid rgba(255,255,255,.09);padding-top:14px}.myki-timeline p{font-size:11px;color:#d4d9e1;margin:10px 0}.myki-timeline small{display:block;color:#9da8b7;margin-top:4px}
 @media(max-width:850px){.myki-layout{grid-template-columns:1fr}.myki-inbox{order:1}.myki-detail{order:2}}
 @media(max-width:560px){.myki-heading{align-items:flex-start;flex-direction:column}.myki-heading>button{width:100%}.myki-summary{grid-template-columns:1fr}.myki-summary article{padding:12px}.myki-summary strong{font-size:23px}.myki-actions{display:grid;grid-template-columns:1fr}.myki-actions button{width:100%}.myki-detail-head{flex-direction:column}}
+
+.myki-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 4px 4px;color:#aeb9c8;font-size:11px}
+.myki-pagination>div{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.myki-pagination button{min-width:34px;min-height:34px;padding:6px 10px;border:1px solid rgba(218,180,91,.2);border-radius:8px;background:rgba(255,255,255,.035);color:#dce2eb;font-size:11px}
+.myki-pagination button.active{background:linear-gradient(145deg,#e9d39b,#b58c48);border-color:#d8b76d;color:#1d222a;font-weight:800}
+.myki-pagination button:disabled{opacity:.38;cursor:not-allowed}
+@media(max-width:560px){.myki-pagination{align-items:flex-start;flex-direction:column}.myki-pagination>div{width:100%}.myki-pagination button{flex:1}}
