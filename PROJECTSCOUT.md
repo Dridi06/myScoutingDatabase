@@ -5931,7 +5931,8 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Latest Block 3 test commit: `23aa8453a549797390dae95615f8e025a8b80f07`.
 - Dialogue Engine implementation commits: `6dd68d35ea3433ed4a622ebd09fe96631d25f84b` and `e0d124dacd21e53fe73428e3b68f911b09df7999`.
 - Cognitive-router clarification policy commit: `713c33a50917f3b2d15ce50e7c24397cf4bf304b`.
-- **Block 3 CI has not yet been verified on the exact latest commit.** Block 2's 564/564 passing result applies only to its previously verified code commit and must not be attributed to Block 3.
+- **Block 3 initial CI on test commit `23aa8453a549797390dae95615f8e025a8b80f07`: 569/573 tests passed; 4 failed.** The backend syntax check itself passed, but the syntax workflow runs `npm test` afterwards and therefore concluded failure. The full STAGING CI run was cancelled after the test failures. Block 3 is saved but not verified/release-ready. Block 2's 564/564 passing result applies only to its previously verified code commit and must not be attributed to Block 3.
+- Four failures are documented for correction: a short acknowledgement (`genau`) was classified as a discourse connector rather than a short reply; offered-option question kind was classified as generic `choice` rather than `location`; an age question was classified as generic rather than `age`; and a long free-text clarification was accepted as a likely short answer rather than a candidate requiring semantic review.
 - No Render deployment, Supabase migration, database write, production/LIVE change or model-weight change.
 
 ### Next actions
