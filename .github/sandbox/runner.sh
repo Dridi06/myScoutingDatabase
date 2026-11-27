@@ -3,7 +3,8 @@ set -Eeuo pipefail
 PROJECT=/work/project
 mkdir -p "$PROJECT" /tmp/messinho-home
 tar --exclude=.git --exclude=node_modules --exclude='.env*' --exclude='**/.env*' --exclude='*.pem' --exclude='*.key' --exclude='secrets' --exclude='credentials' -C /src -cf - . | tar --no-same-owner --no-same-permissions --no-overwrite-dir -C "$PROJECT" -xf -
-ln -s /deps "$PROJECT/node_modules"
+mkdir -p "$PROJECT/node_modules"
+cp -a /deps/. "$PROJECT/node_modules/"
 cd "$PROJECT"
 git init -q
 git config user.email sandbox@messinho.invalid
