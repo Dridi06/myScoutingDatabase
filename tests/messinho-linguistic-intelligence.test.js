@@ -10,7 +10,7 @@ import {
 } from '../backend/messinho-linguistic-intelligence.js';
 
 test('registers six separate language profiles including Tunisian Derja',()=>{
-  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.1');
+  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.3.2');
   assert.deepEqual(MESSINHO_LANGUAGE_PROFILES.map(item=>item.id),['de','en','fr','ar','ar-tn','es']);
   assert.equal(getMessinhoLanguageProfile('ar-tn').name,'تونسي / Derja');
   assert.equal(getMessinhoLanguageProfile('ar').name,'العربية الفصحى');
@@ -187,4 +187,29 @@ test('splits Arabic and English code-switching inside one sentence',()=>{
   assert.equal(result.segments[0].language_analysis.primary_language,'ar');
   assert.equal(result.segments[1].language_analysis.primary_language,'en');
   assert.equal(result.segments.map(segment=>segment.text).join(' '),'اللاعب قوي but needs more time.');
+});
+
+
+test('recognizes additional Tunisian Derja spellings in Arabic and Latin scripts',()=>{
+ const arabic=analyzeMessinhoLanguage('شنيا رايك في اللاعب هذا؟ برشا باهي');
+ const arabizi=analyzeMessinhoLanguage('A3lech el joueur ma l3abch tawa?');
+ assert.equal(arabic.primary_language,'ar-tn');
+ assert.equal(arabizi.primary_language,'ar-tn');
+ assert.ok(arabic.scripts.includes('Arabic'));
+ assert.ok(arabizi.scripts.includes('Latin'));
+});
+
+test('recognizes Tunisian Arabic and Arabizi action requests with attached pronouns',()=>{
+ assert.equal(buildMessinhoLinguisticContext('Fasserli el mawdhou3.',[]).action.mode,'explain');
+ assert.equal(buildMessinhoLinguisticContext('Salla7li el phrase hedhi.',[]).action.mode,'correct');
+ assert.equal(buildMessinhoLinguisticContext('اشرحلي المعنى من فضلك',[]).action.mode,'explain');
+ assert.equal(buildMessinhoLinguisticContext('صححلي الجملة',[]).action.mode,'correct');
+ assert.equal(buildMessinhoLinguisticContext('ترجملي هذا',[]).action.mode,'translate');
+});
+
+test('recognizes colloquial Tunisian rephrasing requests without changing the source text',()=>{
+ const result=buildMessinhoLinguisticContext('3awed siyagha el message.',[]);
+ assert.equal(result.action.mode,'rephrase');
+ assert.equal(result.action.source_text,'3awed siyagha el message.');
+ assert.equal(result.action.preserve_original,true);
 });
