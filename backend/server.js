@@ -2325,8 +2325,9 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       memory:agentMemory,
       linguisticContext:{...linguisticContext,dialogue_state:dialogueState},
       userRole:profile.role,
-      apiKey:process.env.OPENAI_API_KEY,
-      model:process.env.OPENAI_MODEL||'gpt-4.1-mini'
+      apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
+      baseUrl:process.env.MESSINHO_MODEL_BASE_URL||process.env.OPENAI_BASE_URL||'https://api.openai.com/v1',
+      model:process.env.MESSINHO_MODEL_NAME||process.env.OPENAI_MODEL||'gpt-4.1-mini'
     });
     if(cognitiveResult.status!=='completed'||!cognitiveResult.decision){
       console.warn('MESSINHO cognitive router unavailable:',cognitiveResult.status,'http_status='+String(cognitiveResult.http_status||'n/a'),'error_code='+String(cognitiveResult.error_code||'unknown'));
