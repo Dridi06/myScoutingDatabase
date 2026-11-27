@@ -92,7 +92,7 @@ const SEMANTIC_CUE_PATTERNS = Object.freeze({
   not_enough: /(?:\bnot\s+enough\b|\bnicht\s+ausreichend\b|\bpas\s+suffisant\b|\bno\s+es\s+suficiente\b|لا\s+يكفي|موش\s+كافي)/u,
   not_only: /(?:\bnot\s+only\b|\bnicht\s+nur\b|\bpas\s+seulement\b|\bno\s+solo\b|ليس\s+فقط)/u,
   uncertainty: /(?:\bmaybe\b|\bperhaps\b|\bpossibly\b|\bvielleicht\b|\beventuell\b|\bpeut[- ]etre\b|\bquizas\b|\bquiza\b|\btalvez\b|ربما|يمكن|ممكن|\b(?:yemken|momken|mumkin)\b)/u,
-  contrast: /(?:\bbut\b|\bhowever\b|\balthough\b|\baber\b|\bjedoch\b|\bsondern\b|\bmais\b|\bpourtant\b|\ben\s+revanche\b|\bpero\b|\baunque\b|\bsin\s+embargo\b|\bwalakin\b|\bama\b|لكن|أما|مع ذلك)/u
+  contrast: /(?:\bbut\b|\bhowever\b|\balthough\b|\baber\b|\bjedoch\b|\bsondern\b|\bmais\b|\bpourtant\b|\ben\s+revanche\b|\bpero\b|\baunque\b|\bsin\s+embargo\b|\bwalakin\b|\bama\b|لكن|أما|اما|مع ذلك)/u
 });
 function collectMessinhoSemanticCues(input) {
   const normalized=normalizeMessinhoArabicForAnalysis(String(input??'').normalize('NFKC').toLocaleLowerCase())
@@ -134,7 +134,7 @@ function inferConversationSignals(text, tokens, languageId) {
   ) || hasPhrase('peut-être','peut etre','a lo mejor','tal vez') || /\b(?:yemken|momken|mumkin)\b/u.test(lower);
   const contrast = has(
     'aber','jedoch','doch','but','however','although','mais','pourtant','pero',
-    'aunque','لكن','أما','بل'
+    'aunque','لكن','أما','اما','بل'
   ) || hasPhrase('مع ذلك','sin embargo','en revanche') || /\b(?:ama|walakin)\b/u.test(lower);
   const semanticCues=collectMessinhoSemanticCues(text);
   const intent = questions ? 'question' :
