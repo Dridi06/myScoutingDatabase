@@ -22,12 +22,12 @@ const expandToken = token => {
 };
 const tokens = value => [...new Set(norm(value).split(' ').filter(token=>token.length>1 && !STOP.has(token)).flatMap(expandToken))];
 const LANGUAGE_MENTION_PATTERNS = [
-  {id:'ar-tn',pattern:/\\b(?:tunisian\\s+(?:derja|arabic|dialect)|derja|tounsi|bil derja|bil tounsi)\\b|(?:الدارجة التونسية|اللهجة التونسية|بالتونسي|تونسي|تونسية)/iu},
-  {id:'ar',pattern:/\\b(?:modern standard arabic|msa|fusha|classical arabic|arabic grammar|arabic language|in arabic|to arabic|arabisch|arabische grammatik)\\b|(?:العربية الفصحى|الفصحى)/iu},
-  {id:'de',pattern:/\\b(?:german language|german grammar|german word order|in german|to german|auf deutsch|deutsch)\\b/iu},
-  {id:'en',pattern:/\\b(?:english language|english grammar|english word order|in english|to english|auf englisch|englisch)\\b/iu},
-  {id:'fr',pattern:/\\b(?:french language|french grammar|in french|to french|en francais|francais|franzoesisch|franzosisch)\\b/iu},
-  {id:'es',pattern:/\\b(?:spanish language|spanish grammar|in spanish|to spanish|espanol|spanisch)\\b/iu}
+  {id:'ar-tn',pattern:/\b(?:tunisian\s+(?:derja|arabic|dialect)|derja|tounsi|bil derja|bil tounsi)\b|(?:الدارجة التونسية|اللهجة التونسية|بالتونسي|تونسي|تونسية)/iu},
+  {id:'ar',pattern:/\b(?:modern standard arabic|msa|fusha|classical arabic|arabic grammar|arabic language|in arabic|to arabic|arabisch|arabische grammatik)\b|(?:العربية الفصحى|الفصحى)/iu},
+  {id:'de',pattern:/\b(?:german language|german grammar|german word order|in german|to german|auf deutsch|deutsch)\b/iu},
+  {id:'en',pattern:/\b(?:english language|english grammar|english word order|in english|to english|auf englisch|englisch)\b/iu},
+  {id:'fr',pattern:/\b(?:french language|french grammar|in french|to french|en francais|francais|franzoesisch|franzosisch)\b/iu},
+  {id:'es',pattern:/\b(?:spanish language|spanish grammar|in spanish|to spanish|espanol|spanisch)\b/iu}
 ];
 function inferRequestedLanguageIds(message, action) {
   const requested = new Set();
