@@ -34,14 +34,14 @@ test('stores bounded private notes in existing owner-scoped user preferences and
   assert.equal(getMessinhoUserNotes(preferences).length,20);
 });
 
-test('authenticated chat handles remember and recall before scouting parser and player research',async()=>{
+test('authenticated chat applies semantic routing before scouting and external research',async()=>{
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
-  const saveRoute=source.indexOf('const rememberNote=detectExplicitMessinhoRememberRequest(interpretedMessage)');
-  const scoutingRoute=source.indexOf('const dialog=parseMessinhoScoutingRequest(interpretedMessage,history)');
-  const researchRoute=source.indexOf('researchMessinhoPlayerProfile(term)',saveRoute);
-  assert.ok(saveRoute>0&&saveRoute<scoutingRoute,'memory commands must be resolved before scouting intent');
-  assert.ok(saveRoute<researchRoute,'memory commands must be resolved before external player research');
-  assert.match(source,/saveMessinhoAgentMemory\(ownerId,\{\.\.\.agentMemory,user_preferences:nextPreferences\}\)/);
-  assert.match(source,/intent:'user_memory_recalled'/);
-  assert.match(source,/intent:'user_memory_saved'/);
+  const route=source.indexOf('const cognitiveResult=await classifyMessinhoTurn');
+  const scoutingRoute=source.indexOf('const dialog=parseMessinhoScoutingRequest(interpretedMessage,history)',route);
+  const researchRoute=source.indexOf('if(isMessinhoGeneralResearchQuestion(interpretedMessage))',route);
+  assert.ok(route>0&&route<scoutingRoute,'semantic intent must be resolved before scouting parser');
+  assert.ok(route<researchRoute,'semantic intent must be resolved before external research');
+  assert.match(source,/if\(cognitive\.intent==='memory_save'\)/);
+  assert.match(source,/if\(cognitive\.intent==='memory_recall'\)/);
+  assert.match(source,/appendMessinhoLongTermMemories/);
 });
