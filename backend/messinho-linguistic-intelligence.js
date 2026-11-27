@@ -77,10 +77,10 @@ function splitLanguageSegments(text) {
   }));
 }
 const ACTION_PATTERNS = {
-  translate: /\b(übersetz(?:e|en)?|translate|tradu(?:is|ire|ce|zca)|ترجم|tarjem|tarjemli)\b/u,
-  correct: /\b(korrigier(?:e|en)?|verbesser(?:e|n)?|correct|corrig(?:e|ez)|corrige|صحح|salla7|sa77a7)\b/u,
-  explain: /\b(erklär(?:e|en)?|erläuter(?:e|n)?|explain|explique(?:r)?|explica(?:r)?|اشرح|فسر|fassar|fasser)\b/u,
-  rephrase: /\b(formulier(?:e|en)? um|umformulier(?:e|en)?|rephrase|reformul(?:e|er)|reformula(?:r)?|أعد الصياغة)\b/u
+  translate: /(?<![\p{L}\p{N}])(?:übersetz(?:e|en)?|translate|tradu(?:is|ire|ce|zca)|ترجم|tarjem|tarjemli)(?![\p{L}\p{N}])/u,
+  correct: /(?<![\p{L}\p{N}])(?:korrigier(?:e|en)?|verbesser(?:e|n)?|correct|corrig(?:e|ez)|corrige|صحح|salla7|sa77a7)(?![\p{L}\p{N}])/u,
+  explain: /(?<![\p{L}\p{N}])(?:erklär(?:e|en)?|erläuter(?:e|n)?|explain|explique(?:r)?|explica(?:r)?|اشرح|فسر|fassar|fasser)(?![\p{L}\p{N}])/u,
+  rephrase: /(?<![\p{L}\p{N}])(?:formulier(?:e|en)? um|umformulier(?:e|en)?|rephrase|reformul(?:e|er)|reformula(?:r)?|أعد الصياغة)(?![\p{L}\p{N}])/u
 };
 const TARGET_LANGUAGE_PATTERNS = [
   {id:'de',pattern:/(?:auf|ins|in) deutsch|\bto german\b|\bin german\b/u},
