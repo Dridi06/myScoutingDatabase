@@ -16,7 +16,8 @@ import { normalizeMessinhoHypothesisCreate, normalizeMessinhoHypothesisTransitio
 import { normalizeMyKiTicketProposal, createMyKiTicketRecord, buildMyKiCopyPacket } from './messinho-myki-tickets.js';
 import { persistMessinhoMyKiProposal } from './messinho-myki-bridge.js';
 import { generateMessinhoEngineeringProposal, isMessinhoEngineeringRequest } from './messinho-myki-engineer.js';
-import { startMessinhoEngineeringReviewScheduler, runMessinhoScheduledEngineeringReview, getMessinhoEngineeringReviewSchedule, isMessinhoEngineeringAutoReviewEnabled, buildMessinhoSelfRepairGoal } from './messinho-engineering-scheduler.js';
+import { startMessinhoEngineeringReviewScheduler, runMessinhoScheduledEngineeringReview, getMessinhoEngineeringReviewSchedule, isMessinhoEngineeringAutoReviewEnabled, isMessinhoEngineeringStagingService, buildMessinhoSelfRepairGoal } from './messinho-engineering-scheduler.js';
+import { runMessinhoProjectAudit } from './messinho-project-audit.js';
 
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
@@ -523,6 +524,8 @@ async function executeMessinhoDiagnostics(actorProfileId){
     const ok=Number.isFinite(result.score)&&result.engine_version&&typeof buildMessinhoLearningProposal==='function';
     return {ok,detail:`Lokaler deterministischer Kern arbeitet ohne externe KI-Aufrufe; Engine ${result.engine_version}; Lernmodul ${typeof buildMessinhoLearningProposal}.`};
   });
+  const projectAudit=await runMessinhoProjectAudit();
+  checks.push(...projectAudit.checks);
   const critical=checks.some(x=>!x.ok&&x.severity==='critical');
   const warning=checks.some(x=>!x.ok&&x.severity==='warning');
   const status=critical?'critical':warning?'warning':'healthy';
@@ -534,6 +537,7 @@ async function executeMessinhoDiagnostics(actorProfileId){
 }
 
 let messinhoSelfRepairBusy=false;
+let messinhoDevelopmentBusy=false;
 async function runMessinhoSelfRepairCycle(actorProfileId){
  if(messinhoSelfRepairBusy)return {ok:true,skipped:'self_repair_already_running'};
  const schedule=getMessinhoEngineeringReviewSchedule();
@@ -561,7 +565,7 @@ async function runMessinhoSelfRepairCycle(actorProfileId){
    return {ok:true,status:'stopped',failed:failed.length};
   }
   const repair=buildMessinhoSelfRepairGoal(failed);
-  const review=await runMessinhoScheduledEngineeringReview({db,mode:'working',goal:repair.goal});
+  const review=await runMessinhoScheduledEngineeringReview({db,mode:'working',goal:repair.goal,force:true});
   if(review.status==='ticket_created'){
    const sandbox=review.sandbox_status==='queued'?'Die isolierte Reparaturprüfung wurde gestartet.':'Die Sandbox-Prüfung konnte nicht automatisch gestartet werden ('+review.sandbox_status+').';
    await updateStatus('Fehler gefunden ('+failed.length+'). Reparaturticket '+review.ticket_id+' erstellt. '+sandbox+' Der Vorschlag wird nicht ungeprüft in das laufende System übernommen.');
@@ -624,6 +628,7 @@ app.get('/api/admin/myki/status',myKiStatusLimiter,async(req,res)=>{
     return res.json({
       scheduler_enabled:isMessinhoEngineeringAutoReviewEnabled(process.env)&&mode==='developing'&&!control?.stop_requested,
       self_repair_enabled:mode==='working'&&!control?.stop_requested&&getMessinhoEngineeringReviewSchedule().due,
+      self_development_enabled:mode==='developing'&&!control?.stop_requested&&getMessinhoEngineeringReviewSchedule().due&&isMessinhoEngineeringStagingService(process.env),
       maturity:buildMessinhoMaturityReport(),autonomy_mode:mode,
       control:{mode,stop_requested:!!control?.stop_requested,current_task:control?.current_task||activeTask?.goal||null,
         status_message:control?.status_message||null,updated_at:control?.updated_at||null},
@@ -632,7 +637,7 @@ app.get('/api/admin/myki/status',myKiStatusLimiter,async(req,res)=>{
         mode==='working'&&control?.current_task?{goal:control.current_task,status:'running',pending_steps:0,updated_at:control.updated_at}:null,
       sandbox:{enabled:isMessinhoSandboxStagingAllowed(process.env),github_credential_configured:Boolean(process.env.MESSINHO_SANDBOX_GITHUB_TOKEN),
         state:!isMessinhoSandboxStagingAllowed(process.env)?'disabled':!process.env.MESSINHO_SANDBOX_GITHUB_TOKEN?'credential_missing':'configured_not_yet_end_to_end_verified'},
-      run_state:activeTask|| (mode==='working'&&control?.current_task)?'running':review?.status==='running'?'running':mode,
+      run_state:activeTask|| (['working','developing'].includes(mode)&&control?.current_task)?'running':review?.status==='running'?'running':mode,
       schedule:{time_zone:'Europe/Berlin',work_windows:[{key:'morning',from:'03:00',until:'08:00'},{key:'daytime',from:'10:00',until:'23:00'}],
         rest_windows:[{from:'08:00',until:'10:00'},{from:'23:00',until:'03:00'}],
         active_window:schedule.review_slot,phase:schedule.phase,review_date:schedule.review_date,due:schedule.due},
@@ -655,22 +660,43 @@ app.post('/api/admin/myki/control',myKiControlLimiter,async(req,res)=>{
     }
     if(action!=='set_mode'||!['paused','working','developing'].includes(mode))
       return res.status(400).json({error:'Ungültiger Betriebsmodus.'});
-    if(mode==='working'&&!getMessinhoEngineeringReviewSchedule().due)
-      return res.status(409).json({error:'Die autonome Systemprüfung ist nur zwischen 03:00–08:00 und 10:00–23:00 Uhr (Berlin) freigegeben.'});
+    if(['working','developing'].includes(mode)&&!getMessinhoEngineeringReviewSchedule().due)
+      return res.status(409).json({error:'Autonome Arbeit ist nur zwischen 03:00–08:00 und 10:00–23:00 Uhr (Berlin) freigegeben.'});
+    if(['working','developing'].includes(mode)&&!isMessinhoEngineeringStagingService(process.env))
+      return res.status(503).json({error:'Autonome Entwicklungsaufträge sind ausschließlich auf dem ausdrücklich gebundenen STAGING-Dienst freigegeben.'});
+    if(mode==='developing'&&messinhoDevelopmentBusy)
+      return res.status(409).json({error:'Eine autonome Entwicklungsprüfung läuft bereits.'});
     const {data,error}=await db.from('messinho_agent_control').update({
       mode,stop_requested:false,
       status_message:mode==='paused'?'MESSINHO ist pausiert und startet keine autonomen Entwicklungsaufträge. Laufende Chat-Aufträge dürfen regulär abgeschlossen werden.':
         mode==='working'?'MESSINHO startet jetzt die Systemfehlersuche und sichere Reparaturprüfung.':
         'MESSINHO darf freigegebene Entwicklungsprüfungen selbstständig ausführen.',
-      current_task:mode==='working'?'Systemdiagnose und sichere Fehlerbehebung':null,
+      current_task:mode==='working'?'Umfassende Projektprüfung und sichere Fehlerbehebung':mode==='developing'?'Autonome Entwicklungsprüfung des Projektbestands':null,
       updated_by:actor.user.id,updated_at:new Date().toISOString(),stopped_at:null
     }).eq('id','global').select('mode,stop_requested,status_message,updated_at').single();
     if(error||!data)return res.status(503).json({error:'Der Betriebsmodus konnte nicht dauerhaft gespeichert werden.'});
     if(mode==='working')void runMessinhoSelfRepairCycle(actor.user.id);
-    if(mode==='developing'&&isMessinhoEngineeringAutoReviewEnabled(process.env)){
-      void runMessinhoScheduledEngineeringReview({db,force:true})
-        .then(result=>{if(!result.ok)console.warn('MESSINHO admin-triggered development run did not complete:',result.code);})
-        .catch(error=>console.warn('MESSINHO admin-triggered development run failed:',error.message));
+    if(mode==='developing'){
+      messinhoDevelopmentBusy=true;
+      void runMessinhoScheduledEngineeringReview({db,mode:'developing',force:true})
+        .then(async result=>{
+          let message;
+          if(result.status==='ticket_created')message='Entwicklungsprüfung abgeschlossen. Verbesserungsticket '+result.ticket_id+' erstellt. Sandbox-Status: '+(result.sandbox_status||'nicht gestartet')+'. Keine automatische Übernahme.';
+          else if(result.status==='no_improvement')message='Entwicklungsprüfung abgeschlossen. Es wurde keine ausreichend belegte und sichere Verbesserung gefunden.';
+          else if(result.status==='duplicate'||result.skipped==='already_claimed')message='Der Vorschlag ist bereits vorhanden; es wurde kein doppeltes Ticket erstellt.';
+          else if(result.status==='stopped'||result.skipped==='admin_mode_not_active')message='Die Entwicklungsprüfung wurde kontrolliert gestoppt.';
+          else message='Die Entwicklungsprüfung konnte nicht abgeschlossen werden ('+(result.code||result.skipped||'unbekannter Fehler')+'). Bitte Status und Logs prüfen.';
+          const {error:statusError}=await db.from('messinho_agent_control').update({status_message:message,current_task:null,updated_at:new Date().toISOString()})
+            .eq('id','global').eq('mode','developing').eq('stop_requested',false);
+          if(statusError)console.warn('MESSINHO development status could not be persisted:',statusError.message);
+          if(!result.ok)console.warn('MESSINHO admin-triggered development run did not complete:',result.code||result.skipped);
+        })
+        .catch(async error=>{
+          console.warn('MESSINHO admin-triggered development run failed:',error.message);
+          await db.from('messinho_agent_control').update({status_message:'Die Entwicklungsprüfung ist mit einem unerwarteten Fehler abgebrochen. Bitte Status und Logs prüfen.',current_task:null,updated_at:new Date().toISOString()})
+            .eq('id','global').eq('mode','developing').eq('stop_requested',false);
+        })
+        .finally(()=>{messinhoDevelopmentBusy=false;});
     }
     return res.json({ok:true,control:data,message:mode==='working'?'MESSINHO startet die Systemfehlersuche und sichere Reparaturprüfung.':mode==='developing'?'MESSINHO startet eine autonome Entwicklungsprüfung.':'Der MESSINHO-Betriebsmodus wurde gespeichert.'});
   }catch(error){console.error('myKI control update failed:',error.message);return res.status(500).json({error:'Die MESSINHO-Steuerung ist vorübergehend nicht verfügbar.'});}
