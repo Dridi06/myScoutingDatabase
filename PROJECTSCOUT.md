@@ -4461,3 +4461,27 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - **Datenbank:** keine Änderung in diesem Auftragsschritt.
 - **Deployment:** keines ausgelöst.
 - **Nächster konkreter Schritt:** exakten Branch-HEAD, aktuellen Render-STAGING-Commit und die Sprachwissensmigrationen erneut abgleichen; danach zuerst alle Chat-Antwortpfade kartieren und die Sprachpipeline so integrieren, dass alle relevanten Antworten dieselbe Sprachrichtlinie verwenden.
+
+## 21. Mehrsprachige Sprachaktionen und Segmentierung — erste integrierte Ausbaustufe 2026-11-27
+
+### Implementiert auf Feature-Branch (noch nicht deployed)
+- Linguistic Intelligence auf Version 1.1.0 erweitert.
+- Nachrichten werden in bis zu 12 Satz-/Abschnittssegmente zerlegt; Originaltext und erkannte Schriftsysteme je Segment bleiben erhalten.
+- Explizite Sprachaktionen werden für Übersetzen, Korrigieren, Erklären und Umformulieren erkannt; normale Nachrichten bleiben im Antwortmodus.
+- Zielsprachen-Erkennung ergänzt für Deutsch, Englisch, Französisch, Hocharabisch, tunesische Derja und Spanisch, soweit sie eindeutig benannt sind.
+- Häufige Arabizi-Ziffern erhalten eine separate Normalisierungsfunktion; Originaltext wird nicht überschrieben.
+- Aktions- und Segmentdiagnose wird in der bestehenden Chatantwort als Metadatum zurückgegeben und steht dem bestehenden System-Prompt über den Sprachkontext zur Verfügung.
+- Regressionstests für Segmentierung, Sprachaktionen, Zielsprachen, Arabizi und Standard-Antwortmodus ergänzt.
+
+### Grenzen
+- Regelbasierte Erkennung ist Routing-Hilfe, kein vollständiges semantisches Verständnis und keine Garantie für korrekte Übersetzung.
+- Unklare Zielsprachen bleiben null; bei Bedarf muss MESSINHO nachfragen.
+- Arabizi-Normalisierung ersetzt niemals den Originaltext.
+- Keine muttersprachliche Evaluation, kein umfassendes Lexikon und keine vollständige Grammatik-/Morphologieabdeckung.
+- Keine Datenbankmigration und keine Änderung am Wissensbestand.
+- CI, Backend-Syntax, STAGING-Deployment und authentifizierter E2E-Test sind noch nicht bestätigt.
+
+### Nächster Schritt
+- Tests und Backend-Syntax für den exakten Commit ausführen und CI prüfen.
+- Erst nach erfolgreicher Prüfung STAGING-Deployment vorbereiten; Auto-Deploy bleibt deaktiviert. Production bleibt unangetastet.
+
