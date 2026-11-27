@@ -5,7 +5,7 @@
  */
 import { analyzeMessinhoLanguage, buildMessinhoLinguisticContext, MESSINHO_LANGUAGE_PROFILES, normalizeMessinhoArabicForAnalysis } from './messinho-linguistic-intelligence.js';
 
-const VERSION = '1.2.3';
+const VERSION = '1.2.4';
 const STOP = new Set('der die das ein eine und oder aber nicht bitte danke ich du er sie wir ihr ist sind the a an and or but not please thanks i you he she we they is are was have be le la les un une et ou mais pas ne merci je tu il elle nous vous el los las una y pero por favor gracias yo tú él ella من في على إلى عن هو هي نحن انت أنا و أو لكن لا نعم كيف ماذا لماذا متى أين'.split(' ').map(normalizeMessinhoArabicForAnalysis));
 const norm = value => normalizeMessinhoArabicForAnalysis(
   String(value ?? '').normalize('NFKC').toLocaleLowerCase().normalize('NFD')
@@ -31,7 +31,7 @@ const LANGUAGE_MENTION_PATTERNS = [
 ];
 function inferRequestedLanguageIds(message, action) {
   const requested = new Set();
-  if (action?.mode === 'translate' && action.target_language) requested.add(action.target_language);
+  if (action?.explicit && action.target_language) requested.add(action.target_language);
   const normalized = norm(message);
   for (const item of LANGUAGE_MENTION_PATTERNS) {
     if (item.pattern.test(normalized)) requested.add(item.id);
