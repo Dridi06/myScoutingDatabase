@@ -5540,3 +5540,14 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Next: rerun the complete suite and build after this normalization-alignment fix.
 - No database write/migration or production change occurred.
 
+
+
+### Second 1.3.9 build feedback and Arabic normalization correction — 2026-11-27
+- Second build attempt dep-dc4o4hgu01pc73ep8220 ran 508 tests: 506 passed, 2 failed.
+- Remaining findings were caused by the same Arabic normalization boundary:
+  - The contrast particle أما is normalized to اما before semantic cue matching; the current branch now recognizes both forms in cue and boolean detection.
+  - The Arabic phrase ليس سيئا is normalized to ليس سييا because hamza-on-ya is folded for analysis. The not_bad pattern now matches the normalized form and optional بالضرورة qualifier.
+- Source correction commit: 31b62106df927a72dae08d45f568f4505d75acd6.
+- The stable metadata cue-order test passed after switching to order-independent comparison.
+- Next: rerun the full STAGING build gate. Do not deploy 1.3.9 until all 508 tests and the production frontend build pass.
+
