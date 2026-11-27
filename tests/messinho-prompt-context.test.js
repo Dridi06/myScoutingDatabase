@@ -26,7 +26,8 @@ test('actual authenticated chat route loads and injects linguistic intelligence 
   assert.ok(knowledgeCall>contextCall,'chat route must retrieve language knowledge after context detection');
   assert.ok(promptInjection>knowledgeCall,'system prompt must receive the current linguistic context');
   assert.ok(knowledgeInjection>promptInjection,'system prompt must receive approved versioned language knowledge');
-  assert.match(source,/linguistic_intelligence:buildMessinhoLinguisticResponseMetadata\(linguisticContext\)/);
+  assert.match(source,/const linguisticIntelligence=buildMessinhoLinguisticResponseMetadata\(linguisticContext\)/);
+  assert.match(source,/linguistic_intelligence:clientLinguisticIntelligence/);
   const intelligence=await readFile(new URL('../backend/messinho-linguistic-intelligence.js',import.meta.url),'utf8');
   assert.match(intelligence,/response_language:context\.response_language/);
   assert.match(intelligence,/latest_segment_language:context\.latest_segment_language/);
@@ -56,4 +57,19 @@ test('system prompt preserves negation scope, qualified evaluation, uncertainty 
   assert.match(source,/signals\.contrast_cues/);
   assert.match(source,/nicht schlecht/);
   assert.match(source,/nicht unbedingt/);
+});
+
+
+test('MESSINHO chat UI consumes response-language metadata and limits semantic cues to Admin',async()=>{
+  const ui=await readFile(new URL('../src/asi/MessinhoWorkspace.jsx',import.meta.url),'utf8');
+  const server=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+  assert.match(ui,/linguisticIntelligence:payload\.linguistic_intelligence\|\|null/);
+  assert.match(ui,/linguisticIntelligence:item\.linguisticIntelligence\|\|null/);
+  assert.match(ui,/dir=\{message\.linguisticIntelligence\?\.response_language\?\.startsWith\('ar'\)\?'rtl':'auto'\}/);
+  assert.match(ui,/profile\?\.role==='admin'&&getMessinhoSemanticCueLabels/);
+  assert.match(ui,/negation_scope_cues/);
+  assert.match(ui,/qualified_evaluation_cues/);
+  assert.match(server,/linguisticIntelligence:persistedLinguisticIntelligence/);
+  assert.match(server,/profile\.role==='admin'\?linguisticIntelligence/);
+  assert.match(server,/profile\.role==='admin'\?\(row\.metadata\?\.linguisticIntelligence\|\|null\)/);
 });

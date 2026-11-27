@@ -2219,7 +2219,7 @@ app.get('/api/agent/conversation',async(req,res)=>{
       .eq('owner_id',authData.user.id).eq('conversation_id',conversation.id).order('created_at',{ascending:false}).limit(40);
     if(messagesError)return res.status(503).json({error:'Die Nachrichten konnten nicht geladen werden.'});
     return res.json({conversation_id:conversation.id,messages:(rows||[]).reverse().map(row=>({
-      id:row.id,role:row.role,text:row.content,intent:row.metadata?.intent||null,researchContext:row.metadata?.researchContext||null,created_at:row.created_at
+      id:row.id,role:row.role,text:row.content,intent:row.metadata?.intent||null,researchContext:row.metadata?.researchContext||null,linguisticIntelligence:profile.role==='admin'?(row.metadata?.linguisticIntelligence||null):(row.metadata?.linguisticIntelligence?{response_language:row.metadata.linguisticIntelligence.response_language||null,primary_language_name:row.metadata.linguisticIntelligence.primary_language_name||null}:null),created_at:row.created_at
     }))});
   }catch(error){console.error('MESSINHO conversation restore failed:',error.message);return res.status(500).json({error:'Der Gesprächsverlauf konnte nicht wiederhergestellt werden.'});}
 });
@@ -2274,14 +2274,20 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       }:null);
       const assistantText=String(payload.reply||'Ich habe die Anfrage verarbeitet.').slice(0,12000);
       const safeAssistant=sanitizeMessinhoHistory([{role:'assistant',text:assistantText,researchContext}])[0];
+      const linguisticIntelligence=buildMessinhoLinguisticResponseMetadata(linguisticContext);
+      const persistedLinguisticIntelligence=linguisticIntelligence?{...linguisticIntelligence,segments:[]}:null;
+      const clientLinguisticIntelligence=profile.role==='admin'?linguisticIntelligence:(linguisticIntelligence?{
+        response_language:linguisticIntelligence.response_language||null,
+        primary_language_name:linguisticIntelligence.primary_language_name||null
+      }:null);
       const {error:assistantSaveError}=await db.from('messinho_conversation_messages').insert({
         conversation_id:conversationId,owner_id:ownerId,role:'assistant',content:safeAssistant.text,
-        metadata:{intent:String(payload.intent||'conversation').slice(0,80),researchContext:safeAssistant.researchContext||null}
+        metadata:{intent:String(payload.intent||'conversation').slice(0,80),researchContext:safeAssistant.researchContext||null,linguisticIntelligence:persistedLinguisticIntelligence}
       });
       if(assistantSaveError)console.warn('MESSINHO assistant message persistence unavailable:',assistantSaveError.code||'unknown');
       const {error:touchError}=await db.from('messinho_conversations').update({updated_at:new Date().toISOString()}).eq('id',conversationId).eq('owner_id',ownerId);
       if(touchError)console.warn('MESSINHO conversation timestamp update unavailable:',touchError.code||'unknown');
-      return res.json({...payload,conversation_id:conversationId,linguistic_intelligence:buildMessinhoLinguisticResponseMetadata(linguisticContext),linguistic_knowledge:{status:linguisticKnowledgeStatus},input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
+      return res.json({...payload,conversation_id:conversationId,linguistic_intelligence:clientLinguisticIntelligence,linguistic_knowledge:{status:linguisticKnowledgeStatus},input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
     };
     // Scouts may use MESSINHO for scouting and conversation, but cannot issue
     // commands that alter MESSINHO, its knowledge governance, operating mode,
