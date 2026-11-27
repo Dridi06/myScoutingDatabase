@@ -58,6 +58,8 @@ test('router prompt prioritizes meaning, context and natural language over fixed
   });
   assert.match(messages[0].content,/spelling mistakes, speech-to-text errors, autocorrect/i);
   assert.match(messages[0].content,/meaning, not exact keywords/i);
+  assert.match(messages[0].content,/thoughtful, natural conversation partner/i);
+  assert.match(messages[0].content,/does not need to contain a question or command/i);
   assert.match(messages[1].content,/Wir testen gerade/);
   assert.match(messages[1].content,/myScoutingDatabase/);
 });
@@ -113,7 +115,7 @@ test('semantic router parses structured model decisions and fails closed on malf
   assert.equal(result.status,'completed');
   assert.equal(result.decision.intent,'clarify');
   const malformed=await classifyMessinhoTurn({message:'x',apiKey:'test',fetchImpl:async()=>({ok:true,json:async()=>({choices:[{message:{content:'not json'}}]})})});
-  assert.equal(malformed.status,'error');
+  assert.equal(malformed.status,'invalid_output');
   assert.equal(malformed.decision,null);
 });
 
@@ -151,4 +153,6 @@ test('server applies semantic cognitive routing before fixed scouting and extern
   assert.match(source,/appendMessinhoLongTermMemories/);
   assert.match(source,/cognitive\.confidence<0\.72/);
   assert.match(source,/action_blocked:true/);
+  assert.doesNotMatch(source,/isMessinhoGreeting|conversation_greeting/,'greetings must use the same conversational model path');
+  assert.match(source,/MESSINHO_MODEL_BASE_URL/,'model provider endpoint must be configurable');
 });
