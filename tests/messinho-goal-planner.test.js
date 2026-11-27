@@ -89,3 +89,19 @@ test('semantic replanning receives bounded execution feedback',async()=>{
  assert.equal(result.status,'planned');
  assert.ok(result.plan.steps.includes('source_cross_check'));
 });
+
+
+test('semantic goal planner uses the existing language profiles and approved vocabulary',async()=>{
+ const linguisticContext={response_language:'de',active_language_profiles:[{id:'ar-tn',name:'Tunisian Derja'}],
+  approved_vocabulary_and_rules:[{language:'ar-tn',terms:['joueur','mrigel'],aliases:['la3eb']}]};
+ const result=await planMessinhoGoalWithModel({goal:'chnowa joueur hedha?',role:'scout',apiKey:'test',
+  linguisticContext,
+  fetchImpl:async(_url,options)=>{
+   const body=JSON.parse(options.body);
+   const payload=JSON.parse(body.messages[1].content);
+   assert.deepEqual(payload.linguistic_context.approved_vocabulary_and_rules[0].terms,['joueur','mrigel']);
+   assert.match(body.messages[0].content,/approved vocabulary\/aliases/i);
+   return fakeResponse({capability_ids:['player_profile_synthesis'],confidence:0.9,needs_clarification:false,clarification_question:'',rationale:'Use the resolved request.'});
+  }});
+ assert.equal(result.planning_source,'semantic_model');
+});
