@@ -5594,9 +5594,11 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - Chat responses persist assistant messages and bounded research context; user messages are persisted before processing.
 - The workspace restores the latest conversation after authentication and sends the returned conversation ID on subsequent turns.
 - Added STAGING migration `20261127030000_messinho_conversational_memory.sql` and applied it successfully to Supabase project `myScoutingDatabase-staging` (`nwqwnrhupbyhshsprxjt`).
+- Added and applied `20261127031000_messinho_conversation_message_fk_index.sql` to cover the message-to-conversation foreign key.
 - Tables: `messinho_conversations`, `messinho_conversation_messages`; RLS enabled, direct anon/authenticated grants revoked, service-role access only, owner-scoped backend queries.
 - Confirmed both tables exist in the STAGING schema after migration.
-- Added regression coverage for safe research-context sanitization and preserved the existing 508-test suite baseline. Full CI/build verification for this branch is still pending.
+- Added regression coverage for safe research-context sanitization. GitHub Actions passed: 509/509 Node tests, backend syntax checks, and the full Vite production build (`MESSINHO staging branch CI`).
 - CI workflows were extended to run for this work branch and for pull requests targeting the STAGING integration branch.
+- Supabase post-migration advisors: no health findings; the new conversation FK is indexed. The new tables' indexes are currently reported as unused because the tables are still empty. Existing project-wide security warnings remain outside this change; the two new tables each have owner-scoped SELECT policies, RLS enabled, and no direct anon/authenticated grants.
 - Not yet complete: end-to-end authenticated Admin/Scout verification, streaming responses, conversation list/new-thread UX, and full runtime confirmation of the connected provider on Render STAGING.
-- Next: run branch CI, review security/performance advisors, verify provider configuration and authenticated conversation restore on STAGING, then open a draft PR to `feature/messinho-unified-ai-integration`. Do not merge or deploy until all checks pass.
+- Next: complete authenticated Admin/Scout and provider runtime verification on STAGING. PR #48 is open against `feature/messinho-unified-ai-integration`; do not deploy to LIVE.
