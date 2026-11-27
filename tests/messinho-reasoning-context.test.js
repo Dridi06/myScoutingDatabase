@@ -21,3 +21,13 @@ test('reasoning context bounds evidence and rejects unrecognized continuity valu
  assert.equal(context.follow_up_signal,'none');
  assert.equal(context.evidence_policy,'attributed_not_verified');
 });
+
+test('reasoning context preserves only allowlisted structured player metrics',()=>{
+ const context=buildMessinhoReasoningContext({history:[{role:'assistant',text:'Research result',researchContext:{
+  player:{id:42,name:'Player A',metrics:{top_speed_kmh:32.4,market_value_eur:1200000,sprint_30m_seconds:'4.1'}}
+ }}]});
+ const metrics=context.evidence[0].research_entities[0].metrics;
+ assert.deepEqual(metrics.map(item=>item.key),['top_speed_kmh','sprint_30m_seconds']);
+ assert.equal(metrics[0].value,32.4);
+ assert.equal(metrics[1].value,4.1);
+});
