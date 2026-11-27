@@ -2056,6 +2056,20 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const actor={user:authData.user,profile};
     const agentMemory=await loadMessinhoAgentMemory(ownerId);
     const normalized=interpretedMessage.toLocaleLowerCase('de-DE').normalize('NFKC');
+    if(profile.role==='admin'&&/\\b(woran arbeitest du|was arbeitest du gerade|was machst du gerade|aktueller arbeitsstand|was ist dein status|arbeitest du gerade)\\b/i.test(normalized)){
+      const [{data:control},{data:task},{data:review}]=await Promise.all([
+        db.from('messinho_agent_control').select('mode,stop_requested,current_task,status_message,updated_at').eq('id','global').maybeSingle(),
+        db.from('messinho_agent_tasks').select('goal,status,updated_at,pending_capabilities').eq('owner_id',ownerId).eq('status','running').order('updated_at',{ascending:false}).limit(1).maybeSingle(),
+        db.from('messinho_engineering_review_runs').select('status,started_at,finished_at,ticket_id,error_code').order('review_date',{ascending:false}).limit(1).maybeSingle()
+      ]);
+      const mode=control?.mode||'paused';
+      const active=task|| (review?.status==='running'?{goal:'Autonome technische Selbstprüfung und Suche nach einer sicheren Projektverbesserung',status:'running',updated_at:review.started_at}:null);
+      const modeLabel=mode==='paused'?'pausiert':mode==='working'?'arbeitet auf konkrete Admin-Aufträge':'entwickelt sich autonom weiter';
+      const reply=active
+        ? 'Ich bin gerade aktiv. Mein Auftrag: '+String(active.goal||control?.current_task||'Aufgabe wird ermittelt')+'. Status: '+(active.status||'läuft')+'. '+(Array.isArray(active.pending_capabilities)?active.pending_capabilities.length+' Arbeitsschritte stehen noch aus. ':'')+'Letzte Statusänderung: '+(active.updated_at?new Date(active.updated_at).toLocaleString('de-DE'):'unbekannt')+'.'
+        : 'Ich bin derzeit '+modeLabel+'. '+(control?.status_message||'Es ist aktuell kein laufender Auftrag gespeichert.')+(review?.finished_at?' Letzte technische Prüfung: '+new Date(review.finished_at).toLocaleString('de-DE')+' ('+review.status+').':'');
+      return respond({reply,intent:'myki_live_work_status',items:[],myki_status:{mode,stop_requested:!!control?.stop_requested,current_task:active?.goal||null,review_status:review?.status||null}});
+    }
     if(isMessinhoEngineeringRequest(interpretedMessage)){
       if(profile.role!=='admin'||!profile.approved||profile.approval_status!=='approved')
         return respond({reply:'Die technische Selbstprüfung und Entwicklung von myKI-Tickets ist ausschließlich freigeschalteten Administratoren vorbehalten.',intent:'myki_engineering_access_denied',items:[]});
