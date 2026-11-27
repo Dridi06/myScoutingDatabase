@@ -22,7 +22,7 @@ export function getMessinhoEngineeringReviewSchedule(now=new Date()){
   phase,due:Boolean(window)};
 }
 
-/** Claim is a unique date row: concurrent Render instances cannot run the same daily review twice. */
+/** Claim is unique per Berlin date and work window; concurrent Render instances cannot duplicate a window. */
 export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),generate=generateMessinhoEngineeringProposal,persist=persistMessinhoMyKiProposal}={}){
  if(!db)return {ok:false,code:'DATABASE_UNAVAILABLE'};
  const schedule=getMessinhoEngineeringReviewSchedule(now);
@@ -44,6 +44,11 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
   const generated=await generate({goal:'Führe die technische Selbstprüfung von MESSINHO durch. Finde höchstens eine konkrete, belegbare und sichere Verbesserung. Erzeuge keinen Vorschlag, wenn der Nutzen nicht nachweisbar ist.'});
   const {data:afterGenerate,error:afterGenerateError}=await db.from('messinho_agent_control')
     .select('mode,stop_requested').eq('id','global').maybeSingle();
+  const afterSchedule=getMessinhoEngineeringReviewSchedule(getCurrentTime());
+  if(!afterSchedule.due||afterSchedule.review_slot!==schedule.review_slot){
+    await finish('stopped',{source_sha:generated.source_sha||null,error_code:'WORK_WINDOW_ENDED'});
+    return {ok:true,status:'stopped',review_date:schedule.review_date,review_slot:schedule.review_slot};
+  }
   if(afterGenerateError||afterGenerate?.mode!=='developing'||afterGenerate?.stop_requested){
     await finish('failed',{source_sha:generated.source_sha||null,error_code:'ADMIN_STOP_REQUESTED'});
     return {ok:true,status:'stopped',review_date:schedule.review_date,review_slot:schedule.review_slot};
