@@ -4106,3 +4106,40 @@ Die folgenden Punkte sind im bisherigen Journal mit konkreten Implementierungs-,
 7. Erst nach erfolgreicher STAGING-Abnahme und ausdrücklicher Eigentümerfreigabe über einen Produktionsstart sprechen.
 
 **Aktueller Betriebszustand der Datenbanksteuerung:** \`paused\`, \`stop_requested=true\`. MESSINHO startet dadurch keine autonome Entwicklungsprüfung, bis ein Administrator in myKI bewusst einen anderen Modus auswählt.
+
+
+## 14. Verbindlicher Entwicklungs- und Ruheplan — 2026-11-27
+
+Dieser Abschnitt ersetzt für die autonome Engineering-Planung die ältere Angabe „täglich 20:00 Uhr“ aus Abschnitt 13. Alle Zeiten sind lokale Zeit in `Europe/Berlin`, einschließlich Sommer-/Winterzeit.
+
+### 14.1 Zeitfenster
+- **03:00–08:00 — morgendliches Entwicklungsfenster:** MESSINHO darf bei Admin-Modus `developing` seine geplante technische Selbstprüfung und Verbesserung durchführen.
+- **08:00–10:00 — Pause:** keine autonome Engineering-Arbeit.
+- **10:00–23:00 — Tages-/Abendfenster:** autonome Engineering-Arbeit ist bei Admin-Modus `developing` wieder zulässig.
+- **23:00–03:00 — Nachtruhe:** keine autonome Engineering-Arbeit.
+- Die Fenster werden serverseitig im Scheduler geprüft; die Oberfläche allein ist keine Sicherheitsgrenze.
+- Pro Fenster wird aktuell höchstens ein idempotenter Engineering-Review gestartet (maximal zwei Reviews am Kalendertag). Das ist ein geplanter Review-/Verbesserungslauf je Fenster, noch kein nachgewiesener ununterbrochener fünfstündiger Entwicklungsprozess.
+
+### 14.2 Chat bleibt jederzeit verfügbar
+- Die Ruhe- und Pausenzeiten sperren ausschließlich autonome Engineering-Arbeit.
+- Scouts und Administratoren dürfen MESSINHO weiterhin rund um die Uhr über den normalen Chat ansprechen.
+- Normale Fragen, Spieleranalysen und zulässige Benutzeraufträge werden nicht wegen des Entwicklungszeitplans abgeschaltet.
+- Reifegrad, interne Steuerung und Engineering-Status bleiben ausschließlich im geschützten Admin-myKI-Bereich sichtbar.
+
+### 14.3 Technische Umsetzung
+- Zeitfenster und Berlin-Zeitberechnung: `backend/messinho-engineering-scheduler.js`.
+- Idempotenz: je Datum und Fenster (`morning` / `daytime`); Migration `supabase/migrations/20261127200000_messinho_engineering_work_windows.sql` erweitert die Review-Tabelle um `review_slot` und setzt Datum+Fenster als Eindeutigkeit.
+- Ein Review, das über das Ende seines Zeitfensters hinausläuft, wird kontrolliert beendet; ein danach erzeugter Vorschlag wird nicht als myKI-Ticket gespeichert.
+- Admin-Statusroute liefert Fenster, Ruhezeiten und aktuelle Phase aus.
+- Admin-myKI zeigt beide Entwicklungsfenster, beide Ruhezeiten und den Hinweis auf die 24/7-Chat-Erreichbarkeit.
+- Der bestehende Admin-Modus und der Stop-Schalter bleiben zusätzliche Bedingungen: außerhalb der Zeitfenster keine autonome Arbeit; innerhalb der Zeitfenster nur bei `developing` und ohne Stop-Anforderung.
+
+### 14.4 Noch offen / nicht als erledigt ausgeben
+1. Die neue Supabase-Migration muss vor Aktivierung auf **STAGING** geprüft und angewendet werden; sie wurde nicht auf Produktion angewendet.
+2. CI und Scheduler-Tests auf dem neuen Commit ausführen; insbesondere Berlin-Zeit, Sommer-/Winterzeit, beide Fenster, Pausen, Nachtruhe, doppelte Scheduler-Instanzen und Zeitfensterende prüfen.
+3. Render-STAGING-Deploy mit genau diesem Commit verifizieren.
+4. Im Browser als Admin beide Zeitfenster und den Status testen; als Scout und nicht freigeschalteter Admin bestätigen, dass keine Admin-Steuerung oder Reifegradanzeige sichtbar ist.
+5. Den normalen Scout-/Admin-Chat während Pause und Nachtruhe praktisch testen.
+6. Derzeit sind maximal zwei geplante Reviews pro Tag vorgesehen. Ein längerer, fortlaufender Entwicklungsprozess mit wiederholten Compiler-/Test-/Verbesserungszyklen über das gesamte Zeitfenster bleibt ein eigener offener Entwicklungsschritt und darf nicht durch die bloße Scheduler-Zeitfensterprüfung als umgesetzt gelten.
+
+**Produktionsschutz:** ausschließlich Feature-Branch und STAGING. Keine Produktionsmigration, kein Produktionsdeploy und keine automatische Integration.
