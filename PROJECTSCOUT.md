@@ -6033,3 +6033,30 @@ Read this file from the current feature branch and inspect its latest HEAD and P
 
 - Re-verified the real chat history loader: it loads the latest 60 messages scoped by both `owner_id` and `conversation_id`, then sanitizes them before the router and continuity bridge receive them.
 - Added a regression assertion against that exact history-loader block rather than a different conversation endpoint.
+
+
+### Block 4 — End-to-End Clarification Continuity: implementation checkpoint (2026-11-27)
+
+#### End-to-end path verified
+- The real chat endpoint loads the latest 60 messages from `messinho_conversation_messages`, scoped by both `owner_id` and `conversation_id`, then sanitizes the history before routing.
+- `buildMessinhoDialogueState` classifies the current reply against the pending assistant question.
+- `buildMessinhoClarificationContinuity` receives the actual interpreted message, scoped conversation history and dialogue state.
+- The resulting continuity object is attached to `dialogueState.continuity.clarification_continuity`, which is passed to `classifyMessinhoTurn` as part of `linguistic_context.dialogue_state`.
+- On a confirmed clarification reply, the real deterministic scouting parser receives the original task goal plus accumulated answers and only task-scoped user history.
+- On a new topic, the parser receives the new message and an empty prior-history context; previous scouting filters are not carried forward.
+- Ambiguous or unlisted replies remain action-blocked. The continuity module does not authorize actions or persist untrusted dialogue data as durable memory.
+
+#### Automated regression coverage
+- Added unit and composition tests for unique option matching, multiple assistant questions, accumulated filters, unrelated-topic boundaries, negated questions, Arabic/Tunisian Derja, comma/slash option lists, and owner/conversation-scoped history.
+- Added a composed end-to-end test that runs the actual dialogue engine → continuity bridge → cognitive-router message builder → scouting parser path.
+- Added a new-topic end-to-end test confirming that old scouting country and league filters do not leak into a general question.
+- GitHub Actions on exact tested code head `057df8c6e28faee66bf30ca77d4f451340933453`:
+  - MESSINHO Node tests: **591/591 passed**, 0 failed.
+  - Backend syntax workflow: passed; `server.js`, agent core and orchestrator syntax checks succeeded, including full `npm test`.
+  - STAGING branch CI: passed; regression suite, backend syntax and Vite production build succeeded.
+- An earlier CI run exposed stale test assumptions about the parser call signature and a missing pending-option handoff for multiple assistant questions. Those issues were fixed; the exact tested head above is green.
+
+#### Remaining release gate
+- Block 4's code-level end-to-end path and automated regression suite are green.
+- A STAGING runtime smoke test against the deployed authenticated chat endpoint and its real conversation storage remains the final operational verification before declaring Block 4 fully complete.
+- No deployment was triggered by this work. LIVE/Production remains untouched. PR #58 remains Draft and unmerged; no merge or deployment without explicit owner approval.
