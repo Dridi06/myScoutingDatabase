@@ -16,7 +16,7 @@ git config user.name MESSINHO-Sandbox
 git add -A
 git -c commit.gpgsign=false commit -qm baseline
 echo "MESSINHO_SANDBOX_SOURCE_SHA=$MESSINHO_SOURCE_SHA"
-echo "MESSINHO_SANDBOX_TOOLCHAIN=node24-python3-java17-go-rust-c-cpp-php-dotnet8-postgresql"
+echo "MESSINHO_SANDBOX_TOOLCHAIN=node24-python3-java17-go-rust-c-cpp-php-dotnet10-postgresql"
 echo "=== BASELINE: npm run build ==="
 set +e
 timeout 8m npm run build 2>&1
@@ -68,9 +68,9 @@ if [[ -n "${MESSINHO_PATCH_PATH:-}" ]]; then
 fi
 echo "=== TOOLCHAIN SMOKE CHECKS ==="
 node --version; python3 --version; javac -version; go version; rustc --version
-gcc --version | head -n 1; clang --version | head -n 1; php --version | head -n 1
-dotnet --version; tsc --version; mvn --version | head -n 1; phpunit --version; html-validate --version; stylelint --version
-shellcheck --version | head -n 1; psql --version
+gcc --version; clang --version; php --version
+dotnet --version; tsc --version; mvn --version; phpunit --version; html-validate --version; stylelint --version
+shellcheck --version; psql --version
 echo "=== Disposable PostgreSQL and engineering-memory contract ==="
 PG_BIN="$(dirname "$(find /usr/lib/postgresql -name initdb -type f -print -quit)")"
 mkdir -p /tmp/pgdata /tmp/pgsocket
