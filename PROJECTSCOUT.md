@@ -4482,7 +4482,7 @@ Planungsannahme: ca. 4–8 Wochen bis zu einer belastbar geprüften Vollversion,
 - Keine Datenbankmigration und keine Änderung am Wissensbestand.
 - Die erste Build-Prüfung fand einen Unicode-Wortgrenzenfehler bei deutschen Umlaut-Verben (1 Regressionstest rot). Die Erkennung wurde auf Unicode-Zeichenklassen umgestellt.
 - Korrigierter STAGING-Build: **436 Tests bestanden, 0 fehlgeschlagen**; anschließend Backend-Syntaxprüfung und Vite-Produktionsbuild erfolgreich (Render Build erfolgreich).
-- STAGING-Deployment **live**: `dep-dc4e61tg1s2s73e51b9g`, deployter Commit `ad68fe5cc5119896172bf88ee4b0ad81e3b1b0de` (Branch `feature/messinho-unified-ai-integration`). Backend-Start und Supabase Data API HTTP 200 in Runtime-Logs bestätigt.
+- STAGING-Deployment **live** nach der finalen Prompt-Integration: `dep-dc4e6mk9v7es73em6spg`, deployter Commit `c767f8fc538dd5dfe02a5a1065678bd6ab32e690` (Branch `feature/messinho-unified-ai-integration`). Für diesen Commit erneut **436 Tests bestanden, 0 fehlgeschlagen**, Vite-Build erfolgreich; Backend-Start, Render-Meldung „Your service is live“ und Supabase Data API HTTP 200 in Runtime-Logs bestätigt.
 - Kein DB-Schema und kein Sprachwissensbestand wurde verändert. Ein authentifizierter Admin-/Scout-Chat-E2E-Test ist noch offen; daher ist die tatsächliche Antwortqualität in allen sechs Sprachen noch nicht abgenommen.
 
 ### Nächster Schritt
