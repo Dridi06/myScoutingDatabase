@@ -5740,3 +5740,14 @@ Preserve meaning when a player description contains qualified evaluations, negat
   - MESSINHO backend syntax: success.
   - MESSINHO staging branch CI: success — regression suite, backend syntax and Vite production build completed successfully.
 - The PR remains open and unmerged. Render STAGING has not been redeployed; the current live deployment is unchanged.
+
+
+### Post-merge STAGING integration checkpoint — 2026-11-27
+- PR #56 was squash-merged into `feature/messinho-unified-ai-integration` after CI passed.
+- STAGING integration merge commit: `644270a84b7419007c9a7fe6f98e3a6c967246d5`.
+- Verified code commit before the documentation-only checkpoint: `a53ec1992301018d4954556c88f01495eff37759`.
+- CI for that exact code commit: 531/531 Node tests passed; backend syntax passed; full STAGING branch CI and Vite production build passed.
+- Render STAGING service remains on its prior deployment: `dep-dc4t378u01pc73f9stjg`, commit `a18563f7bf1a89d2702f55850fe58ef8abc84971`, status `live`.
+- No new Render deployment was triggered. Auto-Deploy remains disabled. The grammar engine is merged to the STAGING source branch but is not yet running in the STAGING web service.
+- Production `main`, production Render service and production Supabase remain untouched.
+- Next: obtain explicit owner approval for a STAGING-only Render deployment, deploy the exact merged integration commit, then verify health and authenticated Admin/Scout chat behavior. Continue expanding language-specific grammar coverage after runtime verification.
