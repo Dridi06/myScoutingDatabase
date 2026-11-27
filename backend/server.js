@@ -39,6 +39,9 @@ import { calculateMessinhoMathQuestion } from './messinho-math.js';
 import { learnMessinhoApprovedFoundationConcept, shouldBlockMessinhoFoundationResearchFallback } from './messinho-approved-knowledge-learning.js';
 import { startMessinhoBackgroundWorker, MESSINHO_BACKGROUND_READ_ONLY } from './messinho-background-worker.js';
 import { buildMessinhoProgrammingLearningContext } from './messinho-programming-learning.js';
+import { normalizeMessinhoEngineeringProposal } from './messinho-engineering-proposals.js';
+import { dispatchMessinhoSandboxJob } from './messinho-sandbox-dispatch.js';
+import { persistMessinhoSandboxResult, normalizeMessinhoSandboxResult, hashMessinhoEngineeringPatch } from './messinho-engineering-memory.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -1427,6 +1430,54 @@ app.get('/api/admin/myki/tickets/:ticketId/copy',myKiTicketLimiter,async(req,res
     return res.json({ok:true,text:packet.text});
   }catch(error){console.error('myKI copy packet failed:',error.message);return res.status(500).json({error:'Kopierbericht konnte nicht erstellt werden.'});}
 });
+app.get('/api/admin/myki/tickets/:ticketId/sandbox',myKiTicketLimiter,async(req,res)=>{
+  try{
+    const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
+    if(!await requireMyKiTable(res))return;
+    const {data:ticket,error:ticketError}=await db.from('messinho_myki_tickets').select('id').eq('id',req.params.ticketId).maybeSingle();
+    if(ticketError||!ticket)return res.status(404).json({error:'myKI-Ticket wurde nicht gefunden.'});
+    const {data:jobs,error:jobsError}=await db.from('messinho_engineering_jobs').select('id,status,source_sha,patch_sha256,github_run_id,github_run_attempt,created_at,finished_at,result').eq('ticket_id',ticket.id).order('created_at',{ascending:false}).limit(10);
+    if(jobsError)return res.status(jobsError.code==='42P01'?503:500).json({error:'Sandbox-Prüfungen konnten nicht geladen werden.'});
+    const {data:memory,error:memoryError}=await db.from('messinho_engineering_memory').select('job_id,outcome,summary,evidence,toolchain,evidence_verified,review_state,created_at').eq('ticket_id',ticket.id).order('created_at',{ascending:false}).limit(10);
+    if(memoryError)return res.status(memoryError.code==='42P01'?503:500).json({error:'Programmiergedächtnis konnte nicht geladen werden.'});
+    return res.json({ok:true,jobs:jobs||[],memory:memory||[]});
+  }catch(error){console.error('myKI sandbox history failed:',error.message);return res.status(500).json({error:'Sandbox-Historie konnte nicht geladen werden.'});}
+});
+app.post('/api/admin/myki/tickets/:ticketId/sandbox',myKiTicketLimiter,async(req,res)=>{
+  try{
+    const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
+    if(!await requireMyKiTable(res))return;
+    if(process.env.MESSINHO_SANDBOX_ENABLED!=='true')return res.status(503).json({error:'Die isolierte Programmierumgebung ist noch nicht freigeschaltet.'});
+    const {data:ticket,error}=await db.from('messinho_myki_tickets').select('*').eq('id',req.params.ticketId).maybeSingle();
+    if(error||!ticket||ticket.status==='deleted')return res.status(404).json({error:'myKI-Ticket wurde nicht gefunden.'});
+    if(['integrating','integrated'].includes(ticket.status))return res.status(409).json({error:'Dieses Ticket kann in seinem aktuellen Status nicht erneut getestet werden.'});
+    const match=String(ticket.baseline_id||'').match(/^feature\/messinho-unified-ai-integration@([a-f0-9]{40})$/i);
+    if(!match)return res.status(409).json({error:'Der Vorschlag ist nicht an einen zulässigen Feature-Branch-Commit gebunden.'});
+    const proposal=normalizeMessinhoEngineeringProposal({
+      id:ticket.candidate_id,title:ticket.title,rationale:ticket.rationale,patch:ticket.diff,
+      test_plan:(Array.isArray(ticket.tests)?ticket.tests:[]).map(item=>item.name||'').filter(Boolean),
+      benchmark_id:ticket.baseline_id,rollback_plan:ticket.rollback
+    });
+    if(!proposal.ok)return res.status(409).json({error:'Der Änderungsvorschlag hat die aktuelle Sicherheitsprüfung nicht bestanden.'});
+    const jobId=randomUUID(),patchSha=hashMessinhoEngineeringPatch(ticket.diff);
+    const job={job_id:jobId,ticket_id:ticket.id,source_sha:match[1],patch_sha256:patchSha,patch:ticket.diff};
+    const {error:insertError}=await db.from('messinho_engineering_jobs').insert({
+      id:jobId,ticket_id:ticket.id,requested_by:actor.user.id,source_sha:match[1],patch_sha256:patchSha,status:'queued'
+    });
+    if(insertError)return res.status(insertError.code==='23505'?409:insertError.code==='42P01'?503:500).json({error:insertError.code==='23505'?'Für dieses Ticket läuft bereits eine Sandbox-Prüfung.':'Sandbox-Auftrag konnte nicht gespeichert werden.'});
+    const dispatched=await dispatchMessinhoSandboxJob({job});
+    if(!dispatched.ok){
+      await db.from('messinho_engineering_jobs').update({status:'failed',error_code:dispatched.code,finished_at:new Date().toISOString()}).eq('id',jobId);
+      return res.status(dispatched.code==='SANDBOX_GITHUB_CREDENTIAL_MISSING'?503:409).json({error:'Sandbox-Auftrag konnte nicht gestartet werden.',code:dispatched.code});
+    }
+    await db.from('messinho_myki_ticket_events').insert({
+      ticket_id:ticket.id,actor_id:actor.user.id,actor_type:'admin',action:'sandbox_dispatched',
+      from_status:ticket.status,to_status:ticket.status,safe_message:'Administrator hat den Änderungsvorschlag zur isolierten Prüfung freigegeben.',
+      metadata:{job_id:jobId,source_sha:match[1],patch_sha256:patchSha}
+    });
+    return res.status(202).json({ok:true,job_id:jobId,status:'queued',source_sha:match[1],message:'Der Vorschlag wird isoliert geprüft. Das eigentliche Projekt bleibt unverändert.'});
+  }catch(error){console.error('myKI sandbox dispatch failed:',error.message);return res.status(500).json({error:'Sandbox-Auftrag konnte nicht gestartet werden.'});}
+});
 app.post('/api/admin/myki/tickets/:ticketId/integrate',myKiTicketLimiter,async(req,res)=>{
   try{
     const actor=await requireApprovedMessinhoAdmin(req,res);if(!actor)return;
@@ -1443,6 +1494,19 @@ app.delete('/api/admin/myki/tickets/:ticketId',myKiTicketLimiter,async(req,res)=
     if(!deleted)return res.status(404).json({error:'myKI-Ticket wurde nicht gefunden.'});
     return res.json({ok:true,message:'Ticket wurde aus dem aktiven Eingang entfernt.'});
   }catch(error){console.error('myKI ticket delete failed:',error.message);return res.status(500).json({error:'Ticket konnte nicht gelöscht werden.'});}
+});
+app.post('/api/internal/messinho/engineering-results',async(req,res)=>{
+  try{
+    const expected=String(process.env.MESSINHO_SANDBOX_CALLBACK_SECRET||'');
+    const supplied=String(req.headers['x-messinho-sandbox-secret']||'');
+    if(!expected||supplied.length!==expected.length||!timingSafeEqual(Buffer.from(supplied),Buffer.from(expected)))return res.status(403).json({error:'Sandbox-Ergebnis nicht autorisiert.'});
+    if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
+    const normalized=normalizeMessinhoSandboxResult(req.body||{});
+    if(!normalized.ok)return res.status(400).json({error:'Sandbox-Ergebnis ist ungültig.'});
+    const saved=await persistMessinhoSandboxResult({db,result:normalized.value});
+    if(!saved.ok)return res.status(500).json({error:'Sandbox-Ergebnis konnte nicht revisionssicher gespeichert werden.',code:saved.code});
+    return res.json({ok:true,...saved.result});
+  }catch(error){console.error('MESSINHO sandbox callback failed:',error.message);return res.status(500).json({error:'Sandbox-Ergebnis konnte nicht gespeichert werden.'});}
 });
 // Trusted MESSINHO submission endpoint. It is intentionally not wired into the live agent yet.
 app.post('/api/internal/messinho/myki-tickets',myKiTicketLimiter,async(req,res)=>{
