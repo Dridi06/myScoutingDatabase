@@ -34,14 +34,15 @@ function isSchemaModeUnsupported(result){
 
 export async function requestMessinhoModelCompletion({
   messages,model,apiKey,baseUrl='https://api.openai.com/v1',fetchImpl=fetch,timeoutMs=18000,
-  temperature=0.2,responseFormat=null,maxTokens=64
+  temperature=0.2,responseFormat=null,maxTokens=null
 }={}){
   const endpoint=endpointFor(baseUrl);
   if(!endpoint||typeof fetchImpl!=='function')return {status:'unavailable',content:null,error_code:'model_endpoint_unavailable'};
   if(!apiKey&& !/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/|$)/iu.test(String(baseUrl||''))){
     return {status:'unavailable',content:null,error_code:'model_api_key_missing'};
   }
-  const baseBody={model:String(model||'').trim(),messages,temperature,max_tokens:Math.max(1,Math.min(128,Math.floor(Number(maxTokens)||64)))};
+  const tokenLimit=maxTokens===null||maxTokens===undefined?null:Math.max(1,Math.min(128,Math.floor(Number(maxTokens)||64)));
+  const baseBody={model:String(model||'').trim(),messages,temperature,...(tokenLimit===null?{}:{max_tokens:tokenLimit})};
   if(!baseBody.model)return {status:'unavailable',content:null,error_code:'model_name_missing'};
   const perform=async(format)=>{
     try{
