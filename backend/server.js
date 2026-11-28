@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { createClient } from '@supabase/supabase-js';
 import { parseMessinhoScoutingRequest, matchesPosition, matchesPreferredFoot, matchesNationality, sourceSupportsRegion } from './messinho-validation.js';
-import { correctMessinhoInput } from './messinho-input-correction.js';
+import { correctMessinhoInput, inferMessinhoCorrectionLanguage } from './messinho-input-correction.js';
 import { rankMessinhoPlayers, sanitizeMessinhoHistory, resolveMessinhoPlayerFollowUp, extractMessinhoPlayerSearchTerm, MESSINHO_DEFAULT_WEIGHTS, scoreMessinhoPlayer } from './messinho-engine.js';
 import { buildMessinhoLearningProposal, extractMessinhoDimensionScores } from './messinho-learning.js';
 import { normalizeMessinhoFeedback, normalizeMessinhoFeedbackReview } from './messinho-feedback.js';
@@ -2277,7 +2277,8 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(userMessageError)return res.status(503).json({error:'Deine Nachricht konnte nicht dauerhaft gespeichert werden. Bitte versuche es erneut.'});
     const baseLinguisticContext=buildMessinhoLinguisticContext(message,history);
     const hasNonGermanSegment=baseLinguisticContext.segments.some(segment=>segment.language_analysis?.primary_language&&segment.language_analysis.primary_language!=='de');
-    const correctionLanguage=hasNonGermanSegment?'mixed':baseLinguisticContext.primary_language;
+    const detectedCorrectionLanguage=baseLinguisticContext.primary_language||baseLinguisticContext.conversation_language_hint;
+    const correctionLanguage=hasNonGermanSegment?'mixed':inferMessinhoCorrectionLanguage(message,detectedCorrectionLanguage);
     const correction=correctMessinhoInput(message,{language:correctionLanguage});
     const correctionApplied=correction.changed&&correction.confidence==='high'&&correction.language==='de';
     const interpretedMessage=correctionApplied?correction.corrected:message;
