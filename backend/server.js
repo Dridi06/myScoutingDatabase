@@ -2276,7 +2276,9 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     });
     if(userMessageError)return res.status(503).json({error:'Deine Nachricht konnte nicht dauerhaft gespeichert werden. Bitte versuche es erneut.'});
     const baseLinguisticContext=buildMessinhoLinguisticContext(message,history);
-    const correction=correctMessinhoInput(message,{language:baseLinguisticContext.primary_language});
+    const hasNonGermanSegment=baseLinguisticContext.segments.some(segment=>segment.language_analysis?.primary_language&&segment.language_analysis.primary_language!=='de');
+    const correctionLanguage=hasNonGermanSegment?'mixed':baseLinguisticContext.primary_language;
+    const correction=correctMessinhoInput(message,{language:correctionLanguage});
     const correctionApplied=correction.changed&&correction.confidence==='high'&&correction.language==='de';
     const interpretedMessage=correctionApplied?correction.corrected:message;
     const inputInterpretation={
