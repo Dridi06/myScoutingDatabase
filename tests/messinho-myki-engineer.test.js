@@ -130,3 +130,33 @@ test('accepts only an anchored hunk matching the exact source context',()=>{
  assert.equal(result.ok,true);
  assert.equal(result.sections,1);
 });
+
+
+test('retries transient GitHub and provider failures before giving up',async()=>{
+ const waits=[];let githubCalls=0,providerCalls=0;
+ const fetchImpl=async url=>{
+  if(url.includes('/commits/')){githubCalls++;return githubCalls===1?{ok:false,status:503}:response({sha});}
+  if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=>sourceFor(url)};
+  if(url.includes('api.openai.com')){providerCalls++;return providerCalls===1?{ok:false,status:429}:response({choices:[{message:{content:JSON.stringify({proposal:null})}}]});}
+  throw new Error('unexpected_url');
+ };
+ const result=await generateMessinhoEngineeringProposal({goal:'Prüfe MESSINHO auf konkrete sichere Verbesserungen',env:{OPENAI_API_KEY:'test-key'},fetchImpl});
+ assert.equal(result.ok,true);
+ assert.equal(result.proposal,null);
+ assert.equal(githubCalls,2);
+ assert.equal(providerCalls,2);
+});
+
+test('does not retry provider quota exhaustion as a transient rate limit',async()=>{
+ let providerCalls=0;
+ const fetchImpl=async url=>{
+  if(url.includes('/commits/'))return response({sha});
+  if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=>sourceFor(url)};
+  if(url.includes('api.openai.com')){providerCalls++;return {ok:false,status:429,json:async()=>({error:{code:'insufficient_quota'}})};}
+  throw new Error('unexpected_url');
+ };
+ const result=await generateMessinhoEngineeringProposal({goal:'Prüfe MESSINHO auf konkrete sichere Verbesserungen',env:{OPENAI_API_KEY:'test-key'},fetchImpl});
+ assert.equal(result.ok,false);
+ assert.equal(result.failure_reason,'provider_quota_exceeded');
+ assert.equal(providerCalls,1);
+});
