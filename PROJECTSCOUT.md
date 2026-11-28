@@ -6946,3 +6946,31 @@ Vorhandene Antwortkomposition, Reasoning-Validierung, Conversation-Response-Guar
 - Documentation follow-up is separate from the deployed runtime commit and does not change application code.
 - No DB/schema migration, persistent user/player/scout/learning data mutation, model training, model-weight change or permission change. Production remains untouched.
 - Authenticated Admin/Scout real-dialogue acceptance remains outstanding; automated tests and service startup do not establish human-level conversation quality.
+
+
+## 39. Block 17 — Response Intelligence: Semantic Answer Planning — 2026-11-28
+
+### Ziel und Abgrenzung
+MESSINHO soll nicht nur Gesprächsabsicht und Kontext erkennen, sondern die Antwort passend planen: direkte Antwort, nachvollziehbare Begründung, ehrliche Unsicherheitsmarkierung und höchstens eine notwendige Rückfrage. Die Planung ist keine starre Vorlage und erzeugt weder Fakten noch Berechtigungen.
+
+### Implementierung
+- Neu: `backend/messinho-response-intelligence.js`, Version `1.0.0`.
+- Neu: `tests/messinho-response-intelligence.test.js`.
+- Antwortziele: direkte Antwort mit Begründung, Korrektur/Einwand neu bewerten, Standpunkt aufnehmen, relevante Unterhaltung fortsetzen, gezielt klären oder natürlich auf einen Gesprächsbeitrag reagieren.
+- Evidenzbasis unterscheidet strukturierte Recherchebezüge, bloßen Gesprächskontext und fehlenden bereitgestellten Kontext.
+- Unsicherheitsvertrag trennt strukturierte Evidenz, Nutzeraussagen, frühere Assistentenaussagen sowie Schlussfolgerungen/Hypothesen.
+- Rückfragenpolitik: maximal eine gezielte Frage und nur, wenn die fehlende Information die Antwort oder den sicheren nächsten Schritt wesentlich verändert.
+- Bei Korrekturen muss die vorherige Begründung neu geprüft werden; bei Mehrdeutigkeit wird nicht geraten.
+- Keine autonome Recherche, Toolausführung, Berechtigungsänderung, Datenpersistenz oder Trainingsänderung durch dieses Modul.
+
+### Integration
+- `backend/server.js` erstellt den Response-Plan im selben Chat-Turn aus Antwortkomposition, Kontextintelligenz, Reasoning-Evidenz, Klärungsstatus und Sprachkontext.
+- `backend/messinho-conversational-intelligence.js` übergibt den Plan bereits an den semantischen Router, damit Routing und Antwortziel zusammenpassen; Version auf `1.4.0` erhöht.
+- `backend/messinho-natural-conversation.js` erhält denselben Plan für die eigentliche natürlichsprachliche Antwort; Version auf `1.1.0` erhöht.
+- Bestehende Reasoning-Validierung und Conversation-Response-Guard bleiben aktiv und werden nicht ersetzt.
+
+### Verifikation und Grenzen
+- Neue Tests prüfen Antwortreihenfolge, Korrekturbehandlung, Mehrdeutigkeit, Evidenzklassifikation, Themenwechsel, Begrenzung sowie die Übergabe an beide Modellaufrufe.
+- Abschließende Node-Tests, Syntaxprüfung, Vite-Build und Render-STAGING-Deployment werden im Verifikationsnachtrag dokumentiert.
+- Ein erfolgreicher Testlauf belegt nicht automatisch natürliche Gesprächsqualität in echten Admin-/Scout-Sitzungen; diese Abnahme bleibt erforderlich.
+- STAGING-only; Produktion bleibt unangetastet.
