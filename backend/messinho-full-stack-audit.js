@@ -180,9 +180,9 @@ async function runSandboxAudit(root,env){
   unprivileged_user:/USER\s+10001:10001/.test(docker),
   no_lifecycle_scripts:/npm install[^\n]*--ignore-scripts/.test(workflow),
   baseline_before_candidate:/BASELINE: npm run build/.test(runner)&&/CANDIDATE: npm run build/.test(runner),
-  cgroup_memory_metrics:/memory\\.current/.test(runner)&&/memory\\.max/.test(runner),
-  cgroup_cpu_metrics:/cpu\\.stat/.test(runner)&&/usage_usec/.test(runner),
-  cgroup_process_metrics:/pids\\.current/.test(runner)&&/pids\\.max/.test(runner)
+  cgroup_memory_metrics:/memory\.current/.test(runner)&&/memory\\.max/.test(runner),
+  cgroup_cpu_metrics:/cpu\.stat/.test(runner)&&/usage_usec/.test(runner),
+  cgroup_process_metrics:/pids\.current/.test(runner)&&/pids\\.max/.test(runner)
  };
  const safeEnv={MESSINHO_SANDBOX_ENABLED:'true',RENDER:'true',RENDER_SERVICE_ID:'staging-service',MESSINHO_STAGING_RENDER_SERVICE_ID:'staging-service'};
  const productionEnv={...safeEnv,RENDER_SERVICE_ID:'production-service'};
