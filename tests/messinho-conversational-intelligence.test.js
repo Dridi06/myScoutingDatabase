@@ -204,3 +204,46 @@ test('cognitive router forwards linguistic knowledge, conversation memory and re
  });
  assert.equal(result.status,'completed');
 });
+
+test('cognitive router receives intent evidence as advisory context, not a permission',()=>{
+  const intentEvidenceContext={
+    version:'1.0.0',status:'candidate_detected',suggested_intent:'scouting',
+    candidates:[{intent:'scouting',strength:'explicit',evidence:'explicit_lexical_action_cue'}],
+    domains:['football'],policy:'Candidate evidence only. Never authorizes or executes an action.'
+  };
+  const messages=buildMessinhoCognitiveRouterMessages({
+    message:'Suche einen schnellen linken Flügelspieler.',
+    intentEvidenceContext,userRole:'scout'
+  });
+  const payload=JSON.parse(messages[1].content);
+  assert.equal(payload.intent_evidence_context.suggested_intent,'scouting');
+  assert.equal(payload.intent_evidence_context.domains[0],'football');
+  assert.match(messages[0].content,/suggested intent is not a decision/i);
+  assert.equal(Object.hasOwn(payload.intent_evidence_context,'permission'),false);
+});
+
+test('classifier forwards intent evidence to the live cognitive model request',async()=>{
+  const result=await classifyMessinhoTurn({
+    message:'Suche einen schnellen linken Flügelspieler.',
+    intentEvidenceContext:{status:'candidate_detected',suggested_intent:'scouting',domains:['football']},
+    apiKey:'test',
+    fetchImpl:async(_url,options)=>{
+      const payload=JSON.parse(JSON.parse(options.body).messages[1].content);
+      assert.equal(payload.intent_evidence_context.suggested_intent,'scouting');
+      return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({
+        intent:'scouting',confidence:0.94,reply:'Ich suche passende Spieler.',
+        clarification_question:'',memory_items:[]
+      })}}]})};
+    }
+  });
+  assert.equal(result.status,'completed');
+  assert.equal(result.decision.intent,'scouting');
+});
+
+test('authenticated chat builds intent evidence before semantic routing',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+  assert.ok(source.includes("import { buildMessinhoIntentEvidence } from './messinho-intent-intelligence.js';"));
+  assert.ok(source.includes('buildMessinhoIntentEvidence({message:interpretedMessage,userRole:profile.role,dialogueState,clarificationContinuity})'));
+  assert.ok(source.includes('intentEvidenceContext,\n      conversationContinuityContext,'));
+});
