@@ -66,8 +66,8 @@ test('diagnostic checks, runs, tickets and ticket audit events have authoritativ
  assert.match(server,/created_at:row\.created_at/);
  assert.match(diagnostics,/dateTime\(check\.checkedAt\)/);
  assert.match(diagnostics,/dateTime\(run\.finished_at\)/);
- assert.match(diagnostics,/timeZone:'Europe\\/Berlin'/);
- assert.match(activity,/timeZone:'Europe\\/Berlin'/);
+ assert.match(diagnostics,/timeZone:'Europe\/Berlin'/);
+ assert.match(activity,/timeZone:'Europe\/Berlin'/);
  assert.match(migration,/created_at timestamptz not null default now\(\)/);
  assert.match(tickets,/created_at/);
 });
