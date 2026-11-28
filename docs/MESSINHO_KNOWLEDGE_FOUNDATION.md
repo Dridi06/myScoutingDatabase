@@ -11,7 +11,7 @@ Environment: dedicated STAGING only
 - Preserve knowledge permanently and retrieve it automatically across relevant MESSINHO capabilities.
 - Store compact, independently worded knowledge only. Do not archive complete books, PDFs, full-text dumps or unnecessary media.
 - Use sources only where the exact work's rights permit automated processing, AI/TDM, adaptation and commercial use. Free-to-read is not proof of reuse permission.
-- Keep risk management, banking and financial markets as first-class domains alongside mathematics, statistics, physics, biology, medicine, sports science, football and computer science.
+- Keep chemistry, ethics, risk management, banking and financial markets as first-class domains alongside mathematics, statistics, physics, biology, medicine, sports science, football and computer science.
 - Detect gaps, research, compare, connect and improve knowledge autonomously, but never silently overwrite conflicting facts or alter active scoring/model weights without governance.
 
 ## Domain map and learning progression
@@ -67,7 +67,7 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 - The source register contains 18 entries/resources and 2 approved works. OpenIntro and Grinstead/Snell remain quarantined; OpenStax is excluded pending written AI permission; NIST and other sources remain quarantined.
 - STAGING canonical domain knowledge and answer-memory tables currently contain 0 rows; no source PDF/full text or knowledge concept was imported.
 - The VO2max foundation adapter can create a compact candidate only after both approved works are retrieved and independently corroborate the same claim. The general learner can create a candidate from one rights-cleared work when supported by retrieved excerpts, but all candidates remain inactive. Activation requires two independent rights-cleared source domains, corroborated claims, active prerequisites and administrator review.
-- Next legal research task: work-level review for mathematics, physics, biology, statistics, football/sports science, medicine, risk management, banking and financial markets, with Germany-based commercial use considered. If rights remain unclear, retain quarantine.
+- Next legal research task: work-level review for mathematics, physics, chemistry, biology, ethics, statistics, football/sports science, medicine, risk management, banking and financial markets, with Germany-based commercial use considered. If rights remain unclear, retain quarantine.
 
 ## Implemented in this milestone
 
@@ -124,3 +124,10 @@ All three graph tables are RLS-enabled and not exposed to browser roles. No anon
 - `backend/messinho-knowledge-learning.js` provides the general foundation-query learning path for other future approved sources; it verifies official excerpts before storing compact claims.
 - Both learning paths call the same canonical graph store, preserve exact source/licence/attribution/retrieval metadata, and leave the record inactive until the administrator review workflow approves it.
 - The VO2max knowledge is not a player-specific prediction. The PLOS validation paper reports that existing prediction models have only moderate accuracy in its endurance-athlete cohort; direct CPET measurement remains the reference method. MESSINHO must retain these limitations in any scouting explanation.
+
+
+## Cross-domain taxonomy addendum — 2026-11-28
+
+- Added `chemistry` and `ethics` to the canonical domain taxonomy and German/English classification rules.
+- The staging database migration `20261128042845_messinho_chemistry_ethics_domains` was applied to `myScoutingDatabase-staging` and verified by querying both domain check constraints.
+- No concepts were inserted, activated, rewritten or deleted. Rights review, evidence requirements, RLS and service-role-only access remain unchanged.
