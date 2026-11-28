@@ -40,7 +40,7 @@ test('does not apply the German correction dictionary to other language profiles
 test('high-confidence German corrections are marked separately from fuzzy suggestions', () => {
   const exact = correctMessinhoInput('Suhce 5 spiler aus Deutchland', { language: 'de' });
   assert.equal(exact.confidence, 'high');
-  const fuzzy = correctMessinhoInput('Suche einen spielr aus Deutchland', { language: 'de' });
+  const fuzzy = correctMessinhoInput('Suche einen Spieler mit schnelligkeitt', { language: 'de' });
   assert.equal(fuzzy.confidence, 'medium');
   assert.equal(fuzzy.changed, true);
 });
