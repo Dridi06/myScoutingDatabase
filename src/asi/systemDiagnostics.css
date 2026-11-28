@@ -37,3 +37,6 @@
 .sd-dependency-edges code,.sd-dependency-cycles code{font-size:10px;white-space:normal;overflow-wrap:anywhere;color:#cbd3df}
 .sd-dependency-cycles code{color:#f0b5a5}
 .sd-dependency-graph>small,.sd-dependency-edges small{font-size:9px;color:#9da8b8;overflow-wrap:anywhere}
+
+.sd-llm-probe{display:flex;align-items:flex-start;gap:8px;margin-top:10px;color:#b9c0cc;font-size:11px;line-height:1.45;max-width:620px}
+.sd-llm-probe input{accent-color:#c9a45b;flex:0 0 auto;margin:2px 0 0}
