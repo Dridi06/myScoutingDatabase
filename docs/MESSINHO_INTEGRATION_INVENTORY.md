@@ -212,3 +212,40 @@ Diese Änderung entkoppelt nur die freie Unterhaltung vom direkten OpenAI-Aufruf
 5. CI auf aktuellem HEAD abschließend verifizieren, danach kontrollierter Staging-Deploy und authentifizierter Smoke-/Smalltalk-Test. Production bleibt unangetastet.
 
 **Gate 0 bleibt OFFEN.** Keine Datenbankmigration und kein Staging-Deployment in diesem Schritt.
+
+
+## 11. Providerentkopplung — weitere Fachpfade und Qualitätsprüfung (28.11.2026)
+
+### Neu hinter providerneutrale Sprachlaufzeit migriert
+- backend/messinho-quality-control.js: unabhängige Kritikerprüfung und Quality Loop.
+- backend/messinho-general-research.js: freie Wissenssynthese mit Quellenbelegen; Tavily bleibt nur Recherchequelle.
+- backend/messinho-research.js: Marktwertrecherche und Spielerprofil-Synthese.
+- backend/server.js: ASI-Spielersuche/Discovery, Spieleranalyse, Spieler-Folgefragen und freie Gesprächsantworten verwenden requestMessinhoModelCompletion().
+- Health-/Diagnoseanzeige erkennt jetzt die providerneutrale MESSINHO-Sprachkonfiguration statt ausschließlich OPENAI_API_KEY.
+- Konfigurationspriorität: MESSINHO_MODEL_BASE_URL / MESSINHO_MODEL_API_KEY / MESSINHO_MODEL_NAME; OPENAI_* bleibt temporärer Kompatibilitäts-Fallback.
+- Quellenrecherche über Tavily bleibt technisch und semantisch vom Sprachmodell getrennt.
+
+### Verifizierter Stand
+- Branch-HEAD zum Test: 1a401c2a70d125a7db973cf522b78bb29d8d5936.
+- GitHub Actions Node-Tests: 812 bestanden / 0 fehlgeschlagen (Run 46156710436).
+- Backend-Syntax: success (Run 46156709592).
+- Staging-Branch-CI: success (Run 46156709594).
+- Repositoryweite Providerinventur: 6 Runtime-Dateien mit Providerreferenzen; 64 Runtime-Referenzen insgesamt; 28 OpenAI-Referenzen; 0 direkte OpenAI-HTTP-Aufrufstellen; 1 über Hilfsfunktion ausgeführte HTTP-URL-Aufrufstelle; 20 Tavily-Referenzen.
+- OpenAI-Referenzen verbleiben nur noch in backend/messinho-engineering-scheduler.js, backend/messinho-model-runtime.js, backend/messinho-myki-engineer.js und backend/server.js. Die Serverreferenzen sind überwiegend Kompatibilitäts-Fallbacks/Statuskonfiguration, keine direkten HTTP-Aufrufe.
+- MyKi-Engineering nutzt weiterhin eine eigene Retry-/Proposal-Pipeline und ist noch nicht auf die providerneutrale Laufzeit umgestellt.
+
+### Supabase-Sicherheits- und Performance-Advisors — nur lesend
+- 13 Tabellen haben RLS aktiviert, aber keine Policies. Für alle 13 wurden fehlende SELECT-/INSERT-Rechte für anon und authenticated bestätigt. Das ist ein bewusstes service-role-only / deny-by-default Muster; keine pauschalen Policies hinzufügen.
+- WARN: public.admin_set_scout_approval(uuid, boolean) ist SECURITY DEFINER und für authenticated ausführbar. Der Funktionskörper prüft auth.uid() und private.is_admin(), dennoch ist dies ein Least-Privilege-Restbefund. Vor einer Änderung muss ausgeschlossen werden, dass ein Client diesen RPC benötigt; danach gegebenenfalls EXECUTE auf service_role beschränken.
+- WARN: Supabase Auth Leaked Password Protection ist deaktiviert. Aktivierung ist eine Auth-Konfiguration und muss separat auf STAGING geprüft werden.
+- Vier unindizierte Fremdschlüssel: messinho_agent_control.updated_by, messinho_engineering_jobs.requested_by, messinho_engineering_memory.reviewed_by und messinho_engineering_memory.ticket_id.
+- 42 ungenutzte Indizes werden vom Advisor gemeldet. Auf einem jungen, schwach genutzten Staging-System ist dies kein Löschgrund; keine Indizes entfernen, bevor reale Query-Last und Produktionsnutzung bekannt sind.
+- Keine RLS-Policy, Grants, Funktion, Indexe oder Auth-Einstellungen wurden verändert.
+
+### STAGING-Deployment
+- Render-Service myscoutingdatabase-messinho-staging, Branch feature/messinho-conversation-engine, autoDeploy deaktiviert.
+- Live-Deployment bleibt dep-dc5e1agu01pc738e0dr0 auf älterem Commit 46ddebed678b495d7575e8548ecf0c0369c3967a.
+- Der neue Code ist CI-geprüft, aber noch nicht live auf STAGING deployed. Ein kontrollierter STAGING-Deploy und authentifizierter Smoke-Test stehen aus.
+- Staging-Logs meldeten zuvor OpenAI HTTP 429 / credit_balance_exhausted; die Codeänderung behebt kein Providerguthaben. Die Anwendung muss diese Störung sauber anzeigen, bis ein erreichbarer Modellanbieter konfiguriert ist.
+
+**Status:** Providerneutrale Chat-, Recherche-, Qualitäts- und Spieleranalysepfade sind integriert und CI-geprüft. Gate 0 bleibt OFFEN, da MyKi-Providerrest, Route-/Job-/Capability-Matrix, Migrationsinhaltsvergleich, Supabase-WARN-Befunde und Staging-Live-Smoke-Test noch ausstehen.
