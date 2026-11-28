@@ -2,7 +2,9 @@ import React,{useEffect,useRef,useState} from 'react';
 import {Activity,BrainCircuit,LoaderCircle,PauseCircle,Send,ShieldCheck,Sparkles,TrendingUp} from 'lucide-react';
 import './myki-chat.css';
 
-const welcome={id:'welcome',role:'assistant',text:'Hallo! Hier bin ich direkt in myKI. Du kannst mit mir über meine Entwicklung, meine Lernfortschritte, Verbesserungsvorschläge und die KI-Tickets sprechen. Ich erkläre dir meine Arbeit verständlich und sage offen, wenn ich etwas nicht sicher weiß.'};
+const timestampNow=()=>new Date().toISOString();
+const formatTimestamp=value=>new Intl.DateTimeFormat('de-DE',{dateStyle:'short',timeStyle:'medium',timeZone:'Europe/Berlin'}).format(new Date(value));
+const welcome={id:'welcome',role:'assistant',timestamp:timestampNow(),text:'Hallo! Hier bin ich direkt in myKI. Du kannst mit mir über meine Entwicklung, meine Lernfortschritte, Verbesserungsvorschläge und die KI-Tickets sprechen. Ich erkläre dir meine Arbeit verständlich und sage offen, wenn ich etwas nicht sicher weiß.'};
 
 export default function MyKiChat({supabase}){
  const [messages,setMessages]=useState([welcome]);
@@ -66,7 +68,7 @@ export default function MyKiChat({supabase}){
    const total=payload.summary?.total??checks.length;
    const details=failed.slice(0,5).map((item,index)=>(index+1)+'. '+(item.name||'Prüfung')+': '+(item.detail||'Keine Detailbeschreibung verfügbar.')).join('\n');
    const summary='Diagnose abgeschlossen und gespeichert.\nErgebnis: '+(payload.status||'unbekannt').toUpperCase()+' · '+passed+'/'+total+' Prüfungen bestanden · '+failed.length+' Auffälligkeiten.'+(details?'\n\nGefundene Auffälligkeiten:\n'+details:failed.length>5?'\n\nWeitere Auffälligkeiten stehen im Diagnose-Center.':'\n\nKeine Fehler gefunden.');
-   setMessages(prev=>[...prev,{id:'diag-'+(payload.id||Date.now()),role:'assistant',text:summary}]);
+   setMessages(prev=>[...prev,{id:'diag-'+(payload.id||Date.now()),role:'assistant',timestamp:timestampNow(),text:summary}]);
   }catch(err){setError(err.message||'Die MESSINHO-Diagnose ist fehlgeschlagen.');}
   finally{setDiagnosticBusy(false);}
  }
@@ -79,7 +81,7 @@ export default function MyKiChat({supabase}){
   const alreadyBusy=busy;
   setDraft('');setError('');
   const history=messages.slice(-20).map(item=>({role:item.role,text:item.text}));
-  setMessages(prev=>[...prev,{id:'u-'+Date.now(),role:'user',text:value}]);
+  setMessages(prev=>[...prev,{id:'u-'+Date.now(),role:'user',timestamp:timestampNow(),text:value}]);
   if(!alreadyBusy)setBusy(true);
   try{
    const {data:{session}}=await supabase.auth.getSession();
@@ -87,7 +89,7 @@ export default function MyKiChat({supabase}){
    const response=await fetch('/api/agent/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({message:value,history})});
    const payload=await response.json().catch(()=>({}));
    if(!response.ok)throw new Error(payload.error||'MESSINHO konnte nicht antworten.');
-   setMessages(prev=>[...prev,{id:'a-'+Date.now(),role:'assistant',text:payload.reply||'Ich habe deine Nachricht verarbeitet.'}]);
+   setMessages(prev=>[...prev,{id:'a-'+Date.now(),role:'assistant',timestamp:timestampNow(),text:payload.reply||'Ich habe deine Nachricht verarbeitet.'}]);
   }catch(err){setError(err.message||'Die Verbindung zu MESSINHO ist fehlgeschlagen.');setDraft(value);}
   finally{if(!alreadyBusy)setBusy(false);}
  }
@@ -151,7 +153,7 @@ export default function MyKiChat({supabase}){
    <div className="myki-maturity-next"><b>Nächste Entwicklungsschritte</b><ol>{status.maturity.next_milestones?.slice(0,3).map((item,index)=><li key={index}>{item}</li>)}</ol></div>
   </section>}
   <div className="myki-chat-messages" ref={messagesRef} aria-live="polite">
-   {messages.map(item=><article key={item.id} className={'myki-chat-message '+item.role}><div className="myki-chat-avatar">{item.role==='assistant'?<BrainCircuit size={16}/>:<span>DU</span>}</div><div className="myki-chat-bubble"><small>{item.role==='assistant'?'MESSINHO':'DU'}</small><p>{item.text}</p></div></article>)}
+   {messages.map(item=><article key={item.id} className={'myki-chat-message '+item.role}><div className="myki-chat-avatar">{item.role==='assistant'?<BrainCircuit size={16}/>:<span>DU</span>}</div><div className="myki-chat-bubble"><small>{item.role==='assistant'?'MESSINHO':'DU'}</small><p>{item.text}</p><time className="myki-chat-timestamp" dateTime={item.timestamp||undefined}>{item.timestamp?formatTimestamp(item.timestamp):formatTimestamp(timestampNow())}</time></div></article>)}
    {busy&&<div className="myki-chat-thinking"><LoaderCircle className="myki-chat-spin" size={16}/> MESSINHO denkt nach und prüft deine Anfrage …</div>}
   </div>
   {error&&<p className="myki-chat-error" role="alert">{error}</p>}
