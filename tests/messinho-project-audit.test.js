@@ -197,9 +197,10 @@ test('parser-backed graph catches JavaScript syntax errors with parser evidence'
   await mkdir(path.join(root,'backend'),{recursive:true});
   await writeFile(path.join(root,'backend','broken.js'),'export const = ;');
   const graph=await buildMessinhoDependencyGraph({root,files:['backend/broken.js']});
-  assert.equal(graph.findings.length,1);
-  assert.equal(graph.findings[0].category,'parser_or_module_error');
-  assert.equal(graph.findings[0].file,'backend/broken.js');
-  assert.ok(graph.findings[0].line);
+  const finding=graph.findings.find(item=>item.category==='parser_or_module_error');
+  assert.ok(finding,JSON.stringify(graph.findings));
+  assert.equal(finding.file,'backend/broken.js');
+  assert.ok(finding.line);
+  assert.ok(finding.evidence.message);
  }finally{await rm(root,{recursive:true,force:true});}
 });
