@@ -3024,3 +3024,199 @@ input,select,textarea{
 @keyframes myki-spin{to{transform:rotate(360deg)}}
 @media(max-width:900px){.myki-monitor-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.myki-monitor-columns{grid-template-columns:1fr}}
 @media(max-width:560px){.myki-monitor{padding:12px}.myki-monitor-head{flex-direction:column}.myki-monitor-refresh{width:100%}.myki-monitor-state{align-items:flex-start;flex-wrap:wrap}.myki-monitor-live{margin-left:53px}.myki-monitor-time-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.myki-monitor-plan article{grid-template-columns:25px minmax(0,1fr)}.myki-monitor-plan article>small{grid-column:2}.myki-monitor-footer{flex-direction:column}}
+
+
+/* myKI dashboard — unified black / anthracite / gold visual system */
+.myki-dashboard{
+  --myki-gold:#d8b76d;
+  --myki-gold-bright:#f0d99c;
+  --myki-gold-line:rgba(216,183,109,.26);
+  --myki-muted:#9ba8b9;
+  width:100%;
+  min-width:0;
+  padding:4px 0 34px;
+  overflow-anchor:none;
+  scroll-behavior:auto;
+}
+.myki-dashboard *{overflow-anchor:none}
+.myki-dashboard .myki-heading{
+  align-items:center;
+  margin:16px 0 14px;
+  padding:18px 20px;
+  border:1px solid var(--myki-gold-line);
+  border-radius:15px;
+  background:linear-gradient(145deg,rgba(24,28,35,.98),rgba(9,13,19,.98));
+}
+.myki-dashboard .myki-heading h1{
+  margin:4px 0 0;
+  color:#f3f0e8;
+  font-size:clamp(28px,3vw,38px);
+}
+.myki-dashboard .myki-heading h1:after{
+  width:54px;
+  height:2px;
+  margin-top:9px;
+  background:linear-gradient(90deg,#9d7a3d,#f0d99c,transparent);
+  box-shadow:0 0 12px rgba(216,183,109,.18);
+}
+.myki-dashboard .myki-heading p{max-width:760px;color:#aab3c0;font-size:12px}
+.myki-dashboard .myki-heading-refresh{
+  flex:0 0 auto;
+  min-width:112px;
+  min-height:40px;
+  background:rgba(216,183,109,.08)!important;
+  border:1px solid var(--myki-gold-line)!important;
+  color:var(--myki-gold-bright)!important;
+  box-shadow:none!important;
+}
+.myki-dashboard .myki-summary{
+  gap:10px;
+  margin:0 0 14px;
+}
+.myki-dashboard .myki-summary article{
+  min-height:104px;
+  padding:13px 16px;
+  border-color:var(--myki-gold-line);
+  background:linear-gradient(145deg,rgba(27,30,36,.98),rgba(11,14,19,.98));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 10px 24px rgba(0,0,0,.12);
+}
+.myki-dashboard .myki-summary small{color:#aab2be}
+.myki-dashboard .myki-summary strong{margin:5px 0 2px;color:var(--myki-gold-bright);font-size:28px;line-height:1.1}
+.myki-dashboard .myki-summary article>span{display:block;color:#8793a3;font-size:9px;line-height:1.4}
+.myki-dashboard .myki-chat{
+  margin:0 0 14px;
+  border-color:var(--myki-gold-line);
+  background:linear-gradient(145deg,rgba(20,25,32,.99),rgba(8,12,18,.99));
+  box-shadow:0 14px 32px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.035);
+  overflow-anchor:none;
+}
+.myki-dashboard .myki-chat-title h2,
+.myki-dashboard .myki-control-heading,
+.myki-dashboard .myki-maturity-header h3{color:var(--myki-gold-bright)}
+.myki-dashboard .myki-control-panel,
+.myki-dashboard .myki-maturity,
+.myki-dashboard .myki-monitor{
+  border-color:var(--myki-gold-line);
+  background:linear-gradient(145deg,rgba(19,23,29,.97),rgba(8,12,17,.97));
+}
+.myki-dashboard .myki-control-action-group{
+  border-color:rgba(216,183,109,.2);
+  background:rgba(216,183,109,.045);
+}
+.myki-dashboard .myki-control-action-copy strong,
+.myki-dashboard .myki-maturity-score,
+.myki-dashboard .myki-maturity-pillar strong{color:var(--myki-gold-bright)}
+.myki-dashboard .myki-control-diagnostic,
+.myki-dashboard .myki-chat-composer button{
+  background:linear-gradient(145deg,#e9d39b,#b58c48)!important;
+  border:1px solid #d8b76d!important;
+  color:#171a20!important;
+  box-shadow:0 5px 15px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.42)!important;
+}
+.myki-dashboard .myki-control-actions button,
+.myki-dashboard .myki-monitor-refresh,
+.myki-dashboard .myki-heading-refresh,
+.myki-dashboard .myki-actions button:not(.danger),
+.myki-dashboard .myki-pagination button,
+.myki-dashboard .myki-ticket-row{
+  background:rgba(216,183,109,.055)!important;
+  border-color:rgba(216,183,109,.25)!important;
+  color:#e7d8b4!important;
+  box-shadow:none!important;
+}
+.myki-dashboard .myki-control-actions button.selected,
+.myki-dashboard .myki-pagination button.active{
+  background:linear-gradient(145deg,#e9d39b,#b58c48)!important;
+  border-color:#d8b76d!important;
+  color:#171a20!important;
+}
+.myki-dashboard .myki-control-actions button.stop,
+.myki-dashboard .myki-actions button.danger{
+  background:rgba(125,43,47,.22)!important;
+  border-color:rgba(213,91,91,.42)!important;
+  color:#ffb4b4!important;
+}
+.myki-dashboard .myki-chat-composer{
+  border-color:var(--myki-gold-line);
+  background:rgba(0,0,0,.24);
+}
+.myki-dashboard .myki-chat-composer textarea{min-height:44px;resize:vertical}
+.myki-dashboard .myki-agent-details{
+  margin:10px 0 12px;
+  border:1px solid rgba(216,183,109,.14);
+  border-radius:10px;
+  background:rgba(0,0,0,.15);
+}
+.myki-dashboard .myki-agent-details>summary,
+.myki-dashboard .myki-monitor-schedule-details>summary{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:38px;
+  padding:9px 12px;
+  color:#d8bd80;
+  font-size:10px;
+  font-weight:750;
+  cursor:pointer;
+  list-style:none;
+}
+.myki-dashboard .myki-agent-details>summary::-webkit-details-marker,
+.myki-dashboard .myki-monitor-schedule-details>summary::-webkit-details-marker{display:none}
+.myki-dashboard .myki-agent-details[open]>summary,
+.myki-dashboard .myki-monitor-schedule-details[open]>summary{border-bottom:1px solid rgba(216,183,109,.13)}
+.myki-dashboard .myki-agent-meta{margin:0;padding:12px;border-radius:0 0 10px 10px}
+.myki-dashboard .myki-maturity{margin:12px 0}
+.myki-dashboard .myki-monitor{
+  margin:0 0 14px;
+  overflow-anchor:none;
+}
+.myki-dashboard .myki-monitor-state,
+.myki-dashboard .myki-monitor-panel,
+.myki-dashboard .myki-monitor-schedule{
+  border-color:rgba(216,183,109,.16);
+}
+.myki-dashboard .myki-monitor-state-icon,
+.myki-dashboard .myki-monitor-metrics article>span svg,
+.myki-dashboard .myki-monitor-section-title h3 svg{color:var(--myki-gold)}
+.myki-dashboard .myki-monitor-metrics strong,
+.myki-dashboard .myki-monitor-last-run strong,
+.myki-dashboard .myki-monitor-plan article>small{color:var(--myki-gold-bright)}
+.myki-dashboard .myki-monitor-schedule-details{margin-top:12px;border:1px solid rgba(216,183,109,.15);border-radius:10px;background:rgba(0,0,0,.12)}
+.myki-dashboard .myki-monitor-schedule{margin:0;border:0;border-radius:0 0 10px 10px}
+.myki-dashboard .myki-layout{gap:12px}
+.myki-dashboard .myki-inbox,
+.myki-dashboard .myki-detail{border-color:var(--myki-gold-line);background:linear-gradient(145deg,rgba(20,24,30,.98),rgba(9,12,17,.98))}
+.myki-dashboard .myki-section-title h2,
+.myki-dashboard .myki-detail-head h2{color:#eee5d2}
+.myki-dashboard .myki-ticket-row{
+  min-height:116px;
+  text-align:left;
+  transition:border-color .16s ease,background-color .16s ease,filter .16s ease!important;
+}
+.myki-dashboard .myki-ticket-row.selected{border-color:rgba(216,183,109,.7)!important;background:rgba(216,183,109,.09)!important}
+.myki-dashboard button,
+.myki-dashboard button:hover,
+.myki-dashboard button:active{
+  transform:none!important;
+  margin-top:initial;
+}
+.myki-dashboard button:not(:disabled){transition:filter .16s ease,border-color .16s ease,background-color .16s ease!important}
+.myki-dashboard button:focus-visible,
+.myki-dashboard summary:focus-visible{
+  outline:2px solid #d8b76d!important;
+  outline-offset:3px;
+}
+.myki-dashboard button:disabled{filter:saturate(.55);cursor:wait}
+@media(max-width:850px){
+  .myki-dashboard .myki-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:560px){
+  .myki-dashboard{padding-top:0}
+  .myki-dashboard .myki-heading{align-items:stretch;flex-direction:column;padding:15px;margin-top:10px}
+  .myki-dashboard .myki-heading-refresh{width:100%}
+  .myki-dashboard .myki-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .myki-dashboard .myki-summary article{min-height:92px;padding:10px 8px}
+  .myki-dashboard .myki-summary small{font-size:8px;letter-spacing:.07em;line-height:1.35}
+  .myki-dashboard .myki-summary strong{font-size:23px}
+  .myki-dashboard .myki-summary article>span{font-size:8px}
+}
