@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 
 const read=path=>readFile(new URL('../'+path,import.meta.url),'utf8');
 
-test('myKI dashboard places key information before detailed sections',async()=>{
+test('myKI dashboard follows the owner reference order without extra dashboard sections',async()=>{
  const source=await read('src/main.jsx');
  const start=source.indexOf(`{page==='myki'&&admin&&<div className="myki-dashboard">`);
  assert.notEqual(start,-1,'myKI dashboard wrapper must exist');
@@ -12,15 +12,14 @@ test('myKI dashboard places key information before detailed sections',async()=>{
  const page=source.slice(start,end);
  const positions=[
   page.indexOf('className="myki-heading"'),
-  page.indexOf('className="myki-summary"'),
   page.indexOf('<MyKiMaturity supabase={sb}/>'),
   page.indexOf('<MyKiChat supabase={sb}/>'),
   page.indexOf('<MyKiOperations supabase={sb}/>'),
-  page.indexOf('<MyKiActivityMonitor supabase={sb}/>'),
   page.indexOf('<MyKiTicketBoards')
  ];
- assert.ok(positions.every(index=>index>=0),'all dashboard sections must be present');
- assert.deepEqual(positions,[...positions].sort((a,b)=>a-b),'order must be heading, summary, maturity, chat, diagnosis/development controls, activity monitor, split ticket boards');
+ assert.ok(positions.every(index=>index>=0),'heading, total development status, chat, operations and ticket boards must exist');
+ assert.deepEqual(positions,[...positions].sort((a,b)=>a-b),'order must match the owner sketch');
+ assert.doesNotMatch(page,/myki-summary|MyKiActivityMonitor/,'no KPI strip or separate activity monitor may interrupt the specified layout');
 });
 
 test('secondary operational metadata and schedule are collapsed by default',async()=>{
@@ -64,4 +63,16 @@ test('myKI dashboard exposes diagnosis and development controls with truthful un
  assert.match(ops,/Entwicklung beenden/);
  assert.match(ops,/Unterbrechung wird serverseitig noch nicht unterstützt/);
  assert.match(main,/<MyKiMaturity supabase=\{sb\}\/>/);
+});
+
+test('myKI diagnosis and developer panels are stacked and show the requested information line',async()=>{
+ const ops=await read('src/asi/MyKiOperations.jsx');
+ const css=await read('src/asi/myki-chat.css');
+ assert.match(ops,/myki-ops-diagnosis/);
+ assert.match(ops,/myki-ops-development/);
+ assert.match(ops,/Aktueller Betriebszustand/);
+ assert.match(ops,/Status/);
+ assert.match(ops,/Was gerade diagnostiziert wird|Gesamtprojekt:/);
+ assert.match(css,/\.myki-dashboard \.myki-operations\{display:flex;flex-direction:column/);
+ assert.match(css,/\.myki-dashboard \.myki-ticket-boards\{display:grid;grid-template-columns:repeat\(2/);
 });
