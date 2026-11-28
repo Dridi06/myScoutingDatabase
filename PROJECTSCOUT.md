@@ -7568,3 +7568,100 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Isolierter Engineering-Sandboxlauf für diesen Commit war bei der Dokumentation noch in Ausführung; daher wird kein Sandbox-Runtime-Erfolg behauptet.
 - Noch NICHT umgesetzt: OpenAI-Aufrufe in zentralem Router, natürlicher Antwortgenerierung, Recherche-/Analysepfaden und Engineering-Review vollständig entfernen. Ebenso noch kein lokaler Modellserver bereitgestellt. Kein localhost-Endpunkt wird als in Render erreichbar vorausgesetzt.
 - STAGING-only; Production und Production-Datenbank unverändert. Nächster Schritt: providerneutrale Runtime-Inventur und Adapter-Migration, danach lokal/self-hosted Modellbereitstellung und Benchmarkabnahme.
+
+
+---
+
+## Verbindlicher Gesamtentwicklungsweg MESSINHO — STRIKTER ABSCHLUSSPLAN (28.11.2026)
+
+### Verbindliche Projektentscheidung
+Dieser Entwicklungsweg ist ab sofort die maßgebliche und verbindliche Roadmap für MESSINHO. Er wird vollständig und in der festgelegten Reihenfolge umgesetzt, bis sämtliche Abschlusskriterien nachweislich erfüllt sind. Einzelne erfolgreiche Module, Funktionszahlen, Dashboard-Anzeigen oder bestandene Teil-Diagnosen gelten ausdrücklich NICHT als Projektabschluss.
+
+**Ziel:** MESSINHO wird zu einer eigenständigen, breit einsetzbaren KI, die natürliche Gespräche führen, Wissen aus unterschiedlichen Fachgebieten verarbeiten, logisch denken, rechnen, lernen, sich erinnern und bei ausdrücklichem Bedarf Werkzeuge und Agenten einsetzen kann. Er darf nicht auf Fußballscouting oder Smalltalk beschränkt sein. Scouting bleibt ein wichtiges Spezialgebiet innerhalb einer allgemeinen Intelligenz.
+
+### Unveränderliche Leitplanken
+1. **Vollständigkeit vor neuen Einzelfunktionen:** Bestehende Module zuerst inventarisieren, testen und verbinden. Keine parallelen Insellösungen und keine bloßen Antwortvorlagen als Ersatz für Verständnis.
+2. **Keine OpenAI-Zwangsabhängigkeit:** OpenAI ist nicht die Zielarchitektur. Sämtliche zentralen Modellaufrufe und Spezialpfade werden inventarisiert und hinter eine providerneutrale Schnittstelle migriert. Ziel ist eine tatsächlich erreichbare, selbst gehostete/offene Inferenzlaufzeit. Keine Behauptung der Unabhängigkeit, solange Laufzeit und Tests sie nicht belegen.
+3. **Allgemeine Intelligenz vor Spezialisierungszwang:** MESSINHO muss normale Gespräche, Erklärungen, Fragen, Meinungen, Humor, Korrekturen und Themenwechsel ebenso beherrschen wie Fachaufgaben. Recherche, Scouting oder Agentenaktionen dürfen nicht ungefragt ausgelöst werden.
+4. **Vorhandene Arbeit bewahren:** Linguistik, Grammatik, Semantik, Dialog, Gedächtnis, Wissen, Reasoning, Mathematik, Agenten, Sicherheit, Lernen und Qualitätssicherung werden nicht verworfen. Ihre tatsächliche Reife und Integration werden geprüft.
+5. **Nachweis statt Behauptung:** Jede Phase erhält Implementierung, automatisierte Tests, Integrations-/Regressionstests, Diagnose und dokumentierte Abnahme. Nicht implementierte oder nicht getestete Fähigkeiten bleiben als offen markiert.
+6. **Kontrolliertes Lernen:** Keine unkontrollierte Selbständerung. Wissens- und Modelländerungen werden versioniert, evaluiert, freigegeben und rückrollbar gemacht. Kein behauptetes Training von Modellgewichten ohne realen Trainingslauf und Messnachweis.
+7. **STAGING-ONLY:** Alle Codeänderungen, Migrationen und Deployments ausschließlich auf dem vereinbarten Entwicklungsbranch und STAGING. Production, Production-Daten und Production-Konfiguration bleiben unangetastet.
+8. **Kein stiller Scope-Wechsel:** Diese Roadmap darf nicht durch neue Ideen, kosmetische Dashboard-Arbeiten oder zusätzliche Einzelmodule verdrängt werden. Abweichungen nur nach ausdrücklicher Entscheidung des Benutzers.
+9. **Fortschrittsbuchführung:** Nach jedem abgeschlossenen Block PROJECTSCOUT.md aktualisieren: Commit, geänderte Module, Tests, CI, Sandbox-/Deploymentstatus, offene Risiken, nächste konkrete Aufgabe und Production-Unberührtheit. Unbestätigte Zustände klar als offen kennzeichnen.
+
+### Verbindliche Phasen und Abschluss-Gates
+
+#### Phase 0 — Bestandsaufnahme und Integrationslandkarte
+- Alle MESSINHO-Module, Importbeziehungen, Server-Routen, Datenbanktabellen, Modell-/Provideraufrufe, externen Dienste und Hintergrundjobs erfassen.
+- Jedes Modul nach Status klassifizieren: vorhanden, getestet, integriert, produktiv auf STAGING erreichbar, fachlich validiert.
+- Doppelte, isolierte, ungenutzte oder nur scheinbar ausführbare Komponenten identifizieren.
+- Abhängigkeiten und Integrationslücken in einer nachvollziehbaren Architekturkarte dokumentieren.
+- **Gate 0:** Vollständiges Inventar mit Datei-/Funktionsbelegen, Abhängigkeitsgraph, Providerinventar und priorisiertem Integrationsbacklog.
+
+#### Phase 1 — Zentrale MESSINHO-Intelligenz und Orchestrierung
+- Einen durchgängigen kognitiven Ablauf herstellen: Eingabe → Sprachverständnis → Kontext/Gedächtnis → Absicht/Plan → Wissen/Reasoning → Antwort oder autorisierte Aktion → Verifikation → Protokollierung.
+- Vorhandene Module über klar definierte Verträge verbinden; keine unkontrollierte gegenseitige Aufrufschleife.
+- Dialogantwort und Handlungsentscheidung trennen. Jede Aktion benötigt klare Absicht, Berechtigung, validierte Eingaben und Audit.
+- Deterministische Fähigkeiten (z. B. Mathematik, Zeit/Datum, sichere Regeln) ohne unnötige Modellabhängigkeit ausführbar halten.
+- **Gate 1:** Ende-zu-Ende-Tests belegen, dass die zentralen Module tatsächlich in einem Gesprächsablauf zusammenarbeiten; sichere Fallbacks und Fehlerzustände sind getestet.
+
+#### Phase 2 — Allgemeine Sprach-, Gesprächs- und Antwortintelligenz
+- Natürliche, offene Gespräche ohne starre Vorlagen oder Menüzwang.
+- Sprachverständnis für Grammatik, Semantik, Pragmatik, Mehrdeutigkeit, Tipp-/Diktatfehler, Umgangssprache, Humor, Meinungen, Korrekturen und Themenwechsel.
+- Mehrsprachigkeit und sprachabhängige Antwortqualität systematisch evaluieren.
+- Gesprächsverlauf, Referenzen, offene Fragen und Kontext über mehrere Gesprächsrunden korrekt fortführen.
+- Antwortgenerierung muss zusammenhängend, situationsgerecht, wahrheitsorientiert und nicht repetitiv sein.
+- Smalltalk ist ein normaler Gesprächsmodus, nicht eine Sammlung einzelner Begrüßungsantworten. MESSINHO darf den Benutzer nicht ständig in Scouting/Recherche/Arbeit lenken.
+- **Gate 2:** Versionierter Dialogbenchmark mit Begrüßung, Smalltalk, längeren freien Gesprächen, Themenwechsel, Rückfragen, Humor, Widerspruch, Korrekturen, Mehrdeutigkeit und mehrsprachigen Fällen; definierte Mindestwerte müssen erreicht sein.
+
+#### Phase 3 — Eigenständige Inferenz- und Modelllaufzeit
+- Sämtliche direkten OpenAI-Aufrufe, OpenAI-Defaults, SDK-Abhängigkeiten und versteckten Fallbacks vollständig erfassen und aus der Zielarchitektur entfernen.
+- Providerneutrale Schnittstelle mit expliziter Konfiguration, Timeouts, Abbruch, Ressourcenlimits, sicherer Diagnose und Adaptertests.
+- Offenes/lokal oder selbst gehostetes Sprachmodell und passende Hardware-/Hosting-Architektur auswählen, bereitstellen und absichern. Render darf nicht fälschlich über localhost auf einen nicht vorhandenen Modellprozess zugreifen.
+- Qualität, Latenz, Durchsatz, Stabilität, Kosten und deutsche Gesprächsleistung messen. Modellversionen reproduzierbar festhalten.
+- **Gate 3:** STAGING-Gesprächs- und Routingtests bestehen mit OpenAI-Zugangsdaten vollständig entfernt/deaktiviert. Netzwerk-/Codeaudit bestätigt keine versteckte OpenAI-Laufzeitabhängigkeit. Selbst gehosteter Inferenzendpunkt ist nachweislich erreichbar und überwacht.
+
+#### Phase 4 — Breite Wissensarchitektur
+- Grundlagenwissen und Fachwissen systematisch strukturieren: Mathematik, Physik, Chemie, Biologie, Informatik, Medizin/Gesundheitswissenschaften, Ethik, Wirtschaft/Finanzen, Sprachen, Geschichte, Sportwissenschaft/Sportmedizin sowie weitere relevante Domänen.
+- Wissensgraph, Begriffsbeziehungen, Einheiten/Formeln, Gültigkeitszeiträume, Provenienz, Quellenqualität, Widerspruchserkennung und Wissenslücken integrieren.
+- Zwischen intern gespeichertem Wissen, Nutzerangaben, Hypothesen und extern belegten Fakten klar unterscheiden.
+- Rechtlich zulässige Quellen und Nutzungsrechte dokumentieren; sensible Fachgebiete mit angemessenen Sicherheitsgrenzen behandeln.
+- **Gate 4:** Fachbereichsübergreifender Wissensbenchmark mit Faktenprüfung, Quellenherkunft, Widerspruchs- und Unsicherheitstests; kein unbelegtes Wissen als gesicherte Tatsache.
+
+#### Phase 5 — Reasoning, Mathematik und Problemlösung
+- Mehrstufiges Schlussfolgern, Zerlegung komplexer Aufgaben, Hypothesenvergleich, Gegenprüfung, Einheiten-/Dimensionsanalyse und Fehlerkorrektur.
+- Rechenwerkzeuge für Arithmetik, Algebra, Statistik, Wahrscheinlichkeit, Physik und weitere formal lösbare Aufgaben verbinden.
+- Prognosen als probabilistische Schätzungen mit Annahmen, Datenqualität und Unsicherheit ausgeben; keine Scheingenauigkeit.
+- **Gate 5:** Reproduzierbarer Testkatalog aus Mathematik, Naturwissenschaften, Logik, Datenanalyse und Prognosen; korrekte Ergebnisse, nachvollziehbare Herleitung und angemessene Unsicherheitsangaben.
+
+#### Phase 6 — Gedächtnis und Personalisierung
+- Kurzzeit-, Gesprächs-, Langzeit- und Fachgedächtnis klar trennen.
+- Faktenherkunft, Zeitbezug, Konflikte, Aktualisierung, Lösch-/Korrekturanfragen, Mandantentrennung und Datenschutz berücksichtigen.
+- Kontext nur dann übertragen, wenn er tatsächlich relevant ist; neue Themen nicht mit alten Aufgabenfiltern belasten.
+- **Gate 6:** Mehrsitzungs- und Regressionstests belegen korrekte Erinnerung, Referenzauflösung, Korrektur, Datenschutz und Isolation.
+
+#### Phase 7 — Lernen und kontrollierte Selbstverbesserung
+- Feedback, Fehlerfälle und geprüfte Quellen in einen versionierten Lern-/Evaluationsprozess überführen.
+- Änderungen zunächst offline evaluieren; Regressionen, Datenkontamination und Qualitätsverlust erkennen.
+- Freigabe, Rollback, Audit und nachvollziehbare Modell-/Wissensversionierung verpflichtend.
+- **Gate 7:** Nachweisbarer Vorher-/Nachher-Benchmarkgewinn ohne Regression der freigegebenen Kernfähigkeiten. Keine unkontrollierte Selbstmodifikation.
+
+#### Phase 8 — Autonome Agenten und Werkzeuge
+- Ziele in überprüfbare Teilaufgaben zerlegen, planen, priorisieren, ausführen, Ergebnisse kontrollieren und bei Unklarheit nachfragen.
+- Capability-Registry, Rollen-/Mandantenrechte, Ressourcenbudgets, Abbruch, Idempotenz, Wiederaufnahme und Audit vollständig verbinden.
+- Externe Recherche und Aktionen nur bei erkennbarem Bedarf bzw. ausdrücklichem Auftrag; vor riskanten oder irreversiblen Aktionen Freigabe einholen.
+- **Gate 8:** Ende-zu-Ende-Agententests für erfolgreiche Ausführung, Fehler, Unterbrechung, Wiederaufnahme, Rechteverletzung und sichere Verweigerung.
+
+#### Phase 9 — Gesamtintegration, Belastbarkeit und Abschlussabnahme
+- Alle Phasen gemeinsam unter realistischen STAGING-Bedingungen testen: freie Gespräche, Fachfragen, Berechnungen, Gedächtnis, Wissen, Agenten, parallele Anfragen, Provider-/Netzausfälle und Datenbankfehler.
+- Sicherheits-, Datenschutz-, Rollen-, Mandanten-, Performance-, Verfügbarkeits- und Regressionstests durchführen.
+- Dokumentation, Betriebsanleitung, Architekturdiagramme, Wiederherstellung, Monitoring und bekannte Grenzen vervollständigen.
+- **Gate 9 / Projektabschluss:** Alle Gates 0–8 nachweislich bestanden; keine kritischen oder hohen offenen Fehler; unabhängige Abschlussdiagnose und Benutzerabnahme auf STAGING. Erst dann darf MESSINHO als gemäß diesem Ziel fertig bezeichnet werden. Production bleibt bis zu einer gesonderten ausdrücklichen Freigabe unangetastet.
+
+### Arbeitsregel für jede weitere Sitzung
+- Vor jedem neuen Entwicklungsblock zuerst den letzten Stand dieses Abschnitts und die referenzierten Commits/Tests prüfen.
+- Immer am offenen Gate weiterarbeiten; bereits bestandene Gates nicht ohne konkreten Regressionshinweis wiederholen.
+- Nach jedem Block die Änderungen testen, committen und diesen Projektstand aktualisieren.
+- Bei fehlenden Ressourcen, Zugangsdaten, Hardware oder Benutzerentscheidungen den konkreten Engpass dokumentieren; keine Konfiguration erfinden und nicht stillschweigend auf einen externen Anbieter zurückfallen.
+- Keine Fertigmeldung aufgrund einer Teilfunktion. Der Weg endet ausschließlich mit Gate 9.
