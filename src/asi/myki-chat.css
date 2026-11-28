@@ -62,6 +62,14 @@
 .myki-control-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#e9d6a8;font-size:12px}
 .myki-control-heading span{color:#8190a3;font-size:9px}
 .myki-control-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.myki-control-action-group{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:10px;padding:11px 12px;border:1px solid rgba(204,171,93,.2);border-radius:10px;background:rgba(204,171,93,.055)}
+.myki-control-action-copy{display:grid;gap:4px;min-width:0}
+.myki-control-action-copy strong{color:#f0d99f;font-size:11px}
+.myki-control-action-copy small{color:#aab5c5;font-size:10px;line-height:1.5}
+.myki-control-diagnostic{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;flex:none;padding:8px 13px;border:1px solid rgba(231,195,112,.65);border-radius:9px;background:linear-gradient(145deg,rgba(218,184,105,.24),rgba(166,127,58,.15));color:#f5d994;font:inherit;font-size:11px;font-weight:700;cursor:pointer}
+.myki-control-diagnostic:disabled{opacity:.55;cursor:wait}
+.myki-control-divider{height:1px;margin:13px 0;border-top:1px solid rgba(255,255,255,.08)}
+.myki-control-actions button{white-space:normal;text-align:center;line-height:1.35}
 .myki-control-actions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:7px 12px;border:1px solid rgba(205,185,140,.22);border-radius:9px;background:rgba(255,255,255,.045);color:#d9e0e9;font:inherit;font-size:11px;cursor:pointer}
 .myki-control-actions button.selected{border-color:rgba(222,190,120,.72);background:rgba(194,157,83,.18);color:#f4d998}
 .myki-control-actions button.stop{margin-left:auto;border-color:rgba(213,91,91,.38);color:#ffb4b4}
@@ -70,4 +78,4 @@
 .myki-current-work{display:grid;gap:4px;margin-top:10px;padding:9px 10px;border-radius:9px;background:rgba(255,255,255,.04);color:#e2e8f0;font-size:10px;overflow-wrap:anywhere}
 .myki-current-work span{color:#c7d0dc;line-height:1.5}
 .myki-current-work small{color:#8e9bae;font-size:9px}
-@media(max-width:650px){.myki-control-actions{display:grid;grid-template-columns:1fr 1fr}.myki-control-actions button{min-width:0}.myki-control-actions button.stop{margin-left:0}}
+@media(max-width:650px){.myki-control-action-group{align-items:stretch;flex-direction:column}.myki-control-diagnostic{width:100%}.myki-control-actions{display:grid;grid-template-columns:1fr 1fr}.myki-control-actions button{min-width:0}.myki-control-actions button.stop{margin-left:0}}
