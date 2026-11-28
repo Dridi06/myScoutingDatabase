@@ -150,6 +150,7 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
   'Geprüfte Quelldateien: '+sourceFiles.length+'; nicht auflösbare relative Importe: '+unresolved.length+
   (unresolved.length?'; '+unresolved.slice(0,30).map(item=>item.file+':'+item.line+':'+item.column+' → '+item.dependency).join(' | '):''),
   'critical','Importpfade, Dateinamen und Build-Auflösung im betroffenen Modul korrigieren.');
+ checks[checks.length-1].findings=findings.filter(item=>item.category==='dependency_resolution');
  const backendJs=allFiles.filter(file=>file.startsWith('backend/')&&/\.(?:js|mjs|cjs)$/.test(file));
  const tests=inventory.tests||[];
  const testFiles=tests.filter(file=>/\.test\.(?:js|mjs|cjs|jsx|ts|tsx)$/.test(file));
