@@ -163,29 +163,6 @@ function parseModuleRecord(source,file){
  });
  return {file,imports,exports,reexports};
 }
-function loadPathAliases(root){
- const aliases=[];
- try{
-  const config=JSON.parse(requireText(path.join(root,'tsconfig.json')));
-  const base=config.compilerOptions?.baseUrl||'.';
-  for(const [pattern,targets] of Object.entries(config.compilerOptions?.paths||{})){
-   for(const target of targets||[])aliases.push({find:pattern.replace(/\\*$/,''),replacement:path.resolve(root,base,target.replace(/\\*$/,''))});
-  }
- }catch{}
- try{
-  const vite=requireText(path.join(root,'vite.config.js'));
-  for(const match of vite.matchAll(/['"]([^'"]+)['"]\\s*:\\s*['"]([^'"]+)['"]/g)){
-   const find=match[1],replacement=match[2];
-   if(find.length<=12&&(replacement.startsWith('./')||replacement.startsWith('/')))aliases.push({find,replacement:path.resolve(root,replacement)});
-  }
- }catch{}
- return aliases;
-}
-function requireText(file){
- // Synchronous file reads are intentionally avoided; alias parsing is supplied
- // by the already loaded source inventory in the caller.
- return '';
-}
 function resolveGraphImport(from,specifier,known,aliases,root){
  let candidate=String(specifier||'');
  if(candidate.startsWith('.'))return resolveRelativeImport(from,candidate,known);
