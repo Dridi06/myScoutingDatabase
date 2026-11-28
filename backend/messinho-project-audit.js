@@ -135,7 +135,16 @@ function parseModuleRecord(source,file){
  const ast=babelParse(source,{sourceType:'unambiguous',allowAwaitOutsideFunction:true,allowReturnOutsideFunction:true,
   plugins:['jsx','typescript','decorators-legacy','importAttributes','topLevelAwait']});
  const imports=[],exports=new Set(),reexports=[];
+ const symbols={functions:[],classes:[],methods:[]};
+ const symbolName=node=>node?.name||node?.value||null;
  visitAst(ast,node=>{
+  if(node.type==='FunctionDeclaration'&&node.id?.name)symbols.functions.push({name:node.id.name,line:node.loc?.start.line||null});
+  else if(node.type==='ClassDeclaration'&&node.id?.name)symbols.classes.push({name:node.id.name,line:node.loc?.start.line||null});
+  else if(['ClassMethod','ClassPrivateMethod','ObjectMethod','TSDeclareMethod'].includes(node.type)){
+   const name=symbolName(node.key);if(name)symbols.methods.push({name,line:node.loc?.start.line||null,kind:node.kind||node.type});
+  }else if(node.type==='VariableDeclarator'&&node.id?.type==='Identifier'&&['ArrowFunctionExpression','FunctionExpression'].includes(node.init?.type)){
+   symbols.functions.push({name:node.id.name,line:node.loc?.start.line||null});
+  }
   if(node.type==='ImportDeclaration'){
    imports.push({specifier:node.source.value,kind:'static',line:node.loc?.start.line||null,column:node.loc?.start.column==null?null:node.loc.start.column+1,
     names:(node.specifiers||[]).map(item=>({imported:item.type==='ImportDefaultSpecifier'?'default':item.type==='ImportNamespaceSpecifier'?'*':item.imported?.name||item.imported?.value||'default',local:item.local?.name||null}))});
@@ -161,7 +170,7 @@ function parseModuleRecord(source,file){
    imports.push({specifier:node.arguments[0].value,kind:'commonjs',line:node.loc?.start.line||null,column:node.loc?.start.column==null?null:node.loc.start.column+1,names:[]});
   }
  });
- return {file,imports,exports,reexports};
+ return {file,imports,exports,reexports,symbols};
 }
 function resolveGraphImport(from,specifier,known,aliases,root){
  let candidate=String(specifier||'');
@@ -335,7 +344,7 @@ export async function buildMessinhoDependencyGraph({root=PROJECT_ROOT,files=[]}=
  const incoming=new Map([...records.keys()].map(node=>[node,0]));
  for(const targets of edges.values())for(const target of targets)incoming.set(target,(incoming.get(target)||0)+1);
  const graphEdges=edgeList.sort((a,b)=>a.from.localeCompare(b.from)||a.to.localeCompare(b.to));
- return {ok:findings.length===0,checked_at:checkedAt,parser:'@babel/parser',nodes:[...records.keys()].sort(),exported_symbols:Object.fromEntries([...records].map(([file,record])=>[file,[...record.exports].sort()])),edges:graphEdges,
+ return {ok:findings.length===0,checked_at:checkedAt,parser:'@babel/parser',nodes:[...records.keys()].sort(),exported_symbols:Object.fromEntries([...records].map(([file,record])=>[file,[...record.exports].sort()])),symbols_by_module:Object.fromEntries([...records].map(([file,record])=>[file,record.symbols])),edges:graphEdges,
   cycles,external_dependencies:[...externalDependencies].sort(),findings,
   coverage:{modules:modules.length,parsed:records.size,excluded:files.length-modules.length,
    external_dependencies:externalDependencies.size,internal_edges:graphEdges.length},
