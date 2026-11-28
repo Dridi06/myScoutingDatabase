@@ -337,6 +337,6 @@ test('repository-wide provider inventory reports runtime dependencies without se
  assert.ok(inventory.scanned_runtime_files>0);
  assert.ok(inventory.openai.reference_count>0);
  assert.ok(inventory.openai.files.includes('backend/server.js'));
- assert.ok(inventory.openai.http_url_call_sites>0);
+ assert.equal(inventory.openai.http_url_call_sites,0,'all model requests must use the provider-neutral runtime');
  assert.ok(inventory.provider_neutral_model_config_files.includes('backend/messinho-model-runtime.js'));
 });
