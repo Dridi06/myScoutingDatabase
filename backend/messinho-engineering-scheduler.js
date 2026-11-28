@@ -75,7 +75,11 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
     await finish('failed',{source_sha:generated.source_sha||null,error_code:'ADMIN_STOP_REQUESTED'});
     return {ok:true,status:'stopped',review_date:schedule.review_date,review_slot:schedule.review_slot};
   }
-  if(!generated.ok){await finish('failed',{error_code:generated.code||'REVIEW_FAILED'});return {ok:false,code:generated.code||'REVIEW_FAILED'};}
+  if(!generated.ok){
+    const code=generated.code||'REVIEW_FAILED',failureReason=String(generated.failure_reason||'').slice(0,100);
+    await finish('failed',{error_code:failureReason?code+':'+failureReason:code});
+    return {ok:false,code,failure_reason:failureReason||null,failure_stage:generated.failure_stage||null};
+   }
   if(!generated.proposal){await finish('no_improvement',{source_sha:generated.source_sha||null});return {ok:true,status:'no_improvement',review_date:schedule.review_date,review_slot:schedule.review_slot};}
   const saved=await persist({db,proposal:generated.proposal});
   if(!saved.ok){await finish('failed',{source_sha:generated.source_sha||null,error_code:saved.code||'TICKET_PERSIST_FAILED'});return {ok:false,code:saved.code||'TICKET_PERSIST_FAILED'};}
