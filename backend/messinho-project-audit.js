@@ -87,6 +87,13 @@ export function extractModuleSpecifiers(source){
 }
 
 function normalizeModulePath(value){return String(value||'').replace(/\\/g,'/').replace(/^\.\//,'');}
+function projectRelativeModulePath(value,root){
+ const raw=String(value||'').split('?')[0];
+ if(!raw||raw.startsWith('\\0'))return null;
+ const absolute=path.isAbsolute(raw)?raw:path.resolve(root,raw);
+ const relative=normalizeModulePath(path.relative(root,absolute));
+ return relative&&!relative.startsWith('../')&&!path.isAbsolute(relative)?relative:null;
+}
 function stronglyConnectedComponents(nodes,edges){
  let index=0;const stack=[],onStack=new Set(),indices=new Map(),low=new Map(),components=[];
  function visit(node){
@@ -115,20 +122,20 @@ export async function buildMessinhoDependencyGraph({root=PROJECT_ROOT,files=[]}=
  const collector={name:'messinho-dependency-graph-collector',buildEnd(_error){
   for(const id of this.getModuleIds()){
    const info=this.getModuleInfo(id);if(!info||info.isExternal)continue;
-   const relative=normalizeModulePath(path.relative(root,id));
-   if(!relative||relative.startsWith('../')||path.isAbsolute(relative))continue;
+   const relative=projectRelativeModulePath(id,root);
+   if(!relative)continue;
    nodes.add(relative);if(!edges.has(relative))edges.set(relative,new Set());
   }
   for(const id of this.getModuleIds()){
    const info=this.getModuleInfo(id);if(!info||info.isExternal)continue;
-   const from=normalizeModulePath(path.relative(root,id));
-   if(!nodes.has(from))continue;
+   const from=projectRelativeModulePath(id,root);
+   if(!from||!nodes.has(from))continue;
    const imports=[...(info.importedIds||[]).map(value=>({value,kind:'static'})),...(info.dynamicallyImportedIds||[]).map(value=>({value,kind:'dynamic'}))];
    for(const item of imports){
     const targetId=item.value;
-    if(this.getModuleInfo(targetId)?.isExternal||!path.isAbsolute(targetId)){externalDependencies.add(targetId);continue;}
-    const target=normalizeModulePath(path.relative(root,targetId));
-    if(!nodes.has(target))continue;
+    if(this.getModuleInfo(targetId)?.isExternal){externalDependencies.add(targetId);continue;}
+    const target=projectRelativeModulePath(targetId,root);
+    if(!target||!nodes.has(target))continue;
     edges.get(from).add(target);
     const ref=(sourceRefs.get(from)||[]).find(candidate=>candidate.specifier===targetId||candidate.specifier===item.value);
     edgeList.push({from,to:target,kind:item.kind,line:ref?.line||null,column:ref?.column||null});
