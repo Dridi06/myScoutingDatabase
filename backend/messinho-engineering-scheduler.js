@@ -3,6 +3,7 @@ import { generateMessinhoEngineeringProposal } from './messinho-myki-engineer.js
 import { persistMessinhoMyKiProposal } from './messinho-myki-bridge.js';
 import { dispatchMessinhoSandboxJob, isMessinhoSandboxStagingAllowed } from './messinho-sandbox-dispatch.js';
 import { hashMessinhoEngineeringPatch } from './messinho-engineering-memory.js';
+import { resolveMessinhoModelConfig } from './messinho-model-runtime.js';
 
 export const MESSINHO_ENGINEERING_REVIEW_TIME_ZONE='Europe/Berlin';
 export const MESSINHO_ENGINEERING_WORK_WINDOWS=Object.freeze([{key:'morning',start:3,end:8},{key:'daytime',start:10,end:23}]);
@@ -12,10 +13,13 @@ export function isMessinhoEngineeringStagingService(env=process.env){
  return env.RENDER==='true'&&Boolean(env.RENDER_SERVICE_ID)&&env.RENDER_SERVICE_ID===env.MESSINHO_STAGING_RENDER_SERVICE_ID;
 }
 export function isMessinhoEngineeringAutoReviewEnabled(env=process.env){
+ const model=resolveMessinhoModelConfig(env);
+ const modelReady=Boolean(model.model)&&(!model.requiresApiKey||Boolean(model.apiKey));
  return env.MESSINHO_ENGINEERING_AUTOREVIEW_ENABLED==='true'&&env.RENDER==='true'&&
   Boolean(env.RENDER_SERVICE_ID)&&env.RENDER_SERVICE_ID===env.MESSINHO_STAGING_RENDER_SERVICE_ID&&
-  Boolean(env.OPENAI_API_KEY)&&Boolean(env.SUPABASE_URL)&&Boolean(env.SUPABASE_SECRET_KEY||env.SUPABASE_SERVICE_ROLE_KEY);
+  modelReady&&Boolean(env.SUPABASE_URL)&&Boolean(env.SUPABASE_SECRET_KEY||env.SUPABASE_SERVICE_ROLE_KEY);
 }
+
 export function getMessinhoEngineeringReviewSchedule(now=new Date()){
  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:MESSINHO_ENGINEERING_REVIEW_TIME_ZONE,
   year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(now);
@@ -75,7 +79,11 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
     await finish('failed',{source_sha:generated.source_sha||null,error_code:'ADMIN_STOP_REQUESTED'});
     return {ok:true,status:'stopped',review_date:schedule.review_date,review_slot:schedule.review_slot};
   }
-  if(!generated.ok){await finish('failed',{error_code:generated.code||'REVIEW_FAILED'});return {ok:false,code:generated.code||'REVIEW_FAILED'};}
+  if(!generated.ok){
+    const code=generated.code||'REVIEW_FAILED',failureReason=String(generated.failure_reason||'').slice(0,100);
+    await finish('failed',{error_code:failureReason?code+':'+failureReason:code});
+    return {ok:false,code,failure_reason:failureReason||null,failure_stage:generated.failure_stage||null};
+   }
   if(!generated.proposal){await finish('no_improvement',{source_sha:generated.source_sha||null});return {ok:true,status:'no_improvement',review_date:schedule.review_date,review_slot:schedule.review_slot};}
   const saved=await persist({db,proposal:generated.proposal});
   if(!saved.ok){await finish('failed',{source_sha:generated.source_sha||null,error_code:saved.code||'TICKET_PERSIST_FAILED'});return {ok:false,code:saved.code||'TICKET_PERSIST_FAILED'};}
@@ -89,7 +97,7 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
      sandboxAllowed(env)&&env.MESSINHO_SANDBOX_GITHUB_TOKEN&&postPersistControl.updated_by){
     const {data:ticket,error:ticketError}=await db.from('messinho_myki_tickets').select('id,diff,baseline_id')
       .eq('ticket_id',saved.ticket_id).maybeSingle();
-    const match=String(ticket?.baseline_id||'').match(/^feature\/messinho-unified-ai-integration@([a-f0-9]{40})$/i);
+    const match=String(ticket?.baseline_id||'').match(/^feature\/messinho-conversation-engine@([a-f0-9]{40})$/i);
     if(!ticketError&&ticket?.id&&typeof ticket.diff==='string'&&match){
       sandboxJobId=makeJobId();
       const patchSha=hashPatch(ticket.diff);

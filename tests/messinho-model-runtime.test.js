@@ -1,0 +1,115 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { requestMessinhoModelCompletion, resolveMessinhoModelConfig } from '../backend/messinho-model-runtime.js';
+
+test('model runtime sends a bounded completion token budget and preserves JSON response format',async()=>{
+ let captured=null;
+ const result=await requestMessinhoModelCompletion({
+  model:'audit-model',apiKey:'test-secret',baseUrl:'https://provider.invalid/v1',timeoutMs:1000,
+  maxTokens:64,responseFormat:{type:'json_object'},
+  messages:[{role:'user',content:'Return JSON only.'}],
+  fetchImpl:async(_url,options)=>{
+   captured=JSON.parse(options.body);
+   return {ok:true,status:200,json:async()=>({model:'audit-model',choices:[{message:{content:'{"status":"VERSTANDEN","minutes":42}'}}],usage:{prompt_tokens:12,completion_tokens:8,total_tokens:20}})};
+  }
+ });
+ assert.equal(captured.max_tokens,64);
+ assert.deepEqual(captured.response_format,{type:'json_object'});
+ assert.equal(result.status,'completed');
+ assert.equal(JSON.parse(result.content).minutes,42);
+ assert.equal(result.usage.total_tokens,20);
+});
+
+test('model runtime clamps completion token budget and never exposes provider credentials',async()=>{
+ let captured=null;
+ const result=await requestMessinhoModelCompletion({
+  model:'audit-model',apiKey:'never-return-this',baseUrl:'https://provider.invalid/v1',
+  maxTokens:9999,messages:[{role:'user',content:'test'}],
+  fetchImpl:async(_url,options)=>{
+   captured=JSON.parse(options.body);
+   return {ok:false,status:401,json:async()=>({error:{code:'unauthorized',message:'invalid credentials'}})};
+  }
+ });
+ assert.equal(captured.max_tokens,128);
+ assert.equal(JSON.stringify(result).includes('never-return-this'),false);
+});
+
+test('local model endpoints do not require a hosted API key',()=>{
+ const config=resolveMessinhoModelConfig({MESSINHO_MODEL_BASE_URL:'http://127.0.0.1:8080/v1',MESSINHO_MODEL_NAME:'local'});
+ assert.equal(config.requiresApiKey,false);
+ assert.equal(config.model,'local');
+});
+
+
+test('ordinary model requests are not globally capped by the diagnostic token budget',async()=>{
+ let captured=null;
+ await requestMessinhoModelCompletion({
+  model:'normal-chat-model',apiKey:'test-secret',baseUrl:'https://provider.invalid/v1',
+  messages:[{role:'user',content:'ordinary conversation'}],
+  fetchImpl:async(_url,options)=>{
+   captured=JSON.parse(options.body);
+   return {ok:true,status:200,json:async()=>({choices:[{message:{content:'ok'}}]})};
+  }
+ });
+ assert.equal(Object.prototype.hasOwnProperty.call(captured,'max_tokens'),false);
+});
+
+
+test('provider-neutral model configuration prefers MESSINHO settings over legacy OpenAI compatibility settings',()=>{
+ const config=resolveMessinhoModelConfig({
+  MESSINHO_MODEL_BASE_URL:'https://self-hosted.example/v1',
+  MESSINHO_MODEL_API_KEY:'messinho-key',
+  MESSINHO_MODEL_NAME:'self-hosted-chat',
+  OPENAI_BASE_URL:'https://api.openai.com/v1',
+  OPENAI_API_KEY:'legacy-key',
+  OPENAI_MODEL:'gpt-4.1-mini'
+ });
+ assert.equal(config.baseUrl,'https://self-hosted.example/v1');
+ assert.equal(config.apiKey,'messinho-key');
+ assert.equal(config.model,'self-hosted-chat');
+ assert.equal(config.requiresApiKey,true);
+ assert.equal(JSON.stringify(config).includes('legacy-key'),false);
+});
+
+test('legacy OpenAI configuration remains a temporary compatibility fallback',()=>{
+ const config=resolveMessinhoModelConfig({
+  OPENAI_API_KEY:'temporary-key',
+  OPENAI_MODEL:'gpt-4.1-mini'
+ });
+ assert.equal(config.baseUrl,'https://api.openai.com/v1');
+ assert.equal(config.apiKey,'temporary-key');
+ assert.equal(config.model,'gpt-4.1-mini');
+});
+
+test('provider-neutral chat runtime reports exhausted provider quota without exposing credentials',async()=>{
+ const result=await requestMessinhoModelCompletion({
+  model:'temporary-model',apiKey:'private-token',baseUrl:'https://provider.invalid/v1',
+  messages:[{role:'user',content:'Hallo'}],
+  fetchImpl:async()=>({ok:false,status:429,json:async()=>({error:{code:'insufficient_quota',message:'No credits remaining'}})})
+ });
+ assert.equal(result.status,'provider_error');
+ assert.equal(result.http_status,429);
+ assert.equal(result.error_code,'insufficient_quota');
+ assert.equal(JSON.stringify(result).includes('private-token'),false);
+});
+
+
+test('model runtime supports an explicitly raised token budget for engineering review without changing the default cap',async()=>{
+ let captured=null;
+ await requestMessinhoModelCompletion({
+  model:'engineering-model',apiKey:'test-secret',baseUrl:'https://provider.invalid/v1',
+  maxTokens:4500,maxTokensLimit:4500,messages:[{role:'user',content:'review'}],
+  fetchImpl:async(_url,options)=>{captured=JSON.parse(options.body);return {ok:true,status:200,json:async()=>({choices:[{message:{content:'ok'}}]})};}
+ });
+ assert.equal(captured.max_tokens,4500);
+});
+
+test('model runtime preserves a bounded Retry-After hint for safe transient retries',async()=>{
+ const result=await requestMessinhoModelCompletion({
+  model:'engineering-model',apiKey:'test-secret',baseUrl:'https://provider.invalid/v1',
+  messages:[{role:'user',content:'review'}],
+  fetchImpl:async()=>({ok:false,status:503,headers:{get:name=>name==='retry-after'?'1.5':null},json:async()=>({error:{code:'temporarily_unavailable'}})})
+ });
+ assert.equal(result.status,'provider_error');
+ assert.equal(result.retry_after_ms,1500);
+});

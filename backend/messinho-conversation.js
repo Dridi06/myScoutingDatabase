@@ -59,6 +59,11 @@ const SOCIAL_POOLS = {
     (hour, weekday) => weekday >= 4 ? 'Spieltag-Stimmung! Hast du ein Spiel besonders im Blick?' : 'Ein guter Zeitpunkt, um die Spiele vom Wochenende auszuwerten. Hast du etwas Interessantes gesehen?',
     () => 'Fußball bietet immer Gesprächsstoff. Welches Spiel hast du verfolgt?'
   ],
+  open_question: [
+    () => 'Wir können gemeinsam Spieler recherchieren und bewerten, Scouting-Berichte prüfen, Talente vergleichen oder die Plattform weiterentwickeln. Was möchtest du als Erstes angehen?',
+    () => 'Es gibt einiges: Wir können eine Spieleranalyse starten, Daten auswerten, eine Recherche durchführen oder an myScoutingDatabase weiterarbeiten. Womit sollen wir beginnen?',
+    () => 'Wir können direkt ins Scouting einsteigen, eine konkrete Frage klären oder gemeinsam einen Entwicklungsschritt planen. Was ist dir gerade am wichtigsten?'
+  ],
   bot_identity: [
     () => 'Ich bin MESSINHO – dein digitaler Scouting- und Analysepartner. Ich bin eine KI, die dich bei Recherche, Bewertung und Transferentscheidungen unterstützt.',
     () => 'Ich bin MESSINHO, eine KI für professionelles Fußballscouting. Ich verbinde deine Gesprächsziele mit den Daten und Analysefunktionen der Plattform.'
@@ -66,6 +71,7 @@ const SOCIAL_POOLS = {
 };
 
 const INTENT_PATTERNS = [
+  ['open_question', /\b(was koennen wir machen|was koennen wir tun|womit koennen wir anfangen|was machen wir jetzt)\b/],
   ['bot_identity', /\b(wer bist du|wie heisst du|bist du ein mensch|bist du eine ki)\b/],
   ['goodbye', /\b(tschuess|tschuss|ciao|bis dann|bis spaeter|schoenen abend|schoenes wochenende|feierabend|mach es gut|machs gut|haut rein)\b/],
   ['apology', /\b(sorry|entschuldigung|tut mir leid|mein fehler|ups)\b/],
@@ -82,6 +88,40 @@ function detectSocialIntent(text) {
   // Do not intercept requests that contain a clear work/scouting action.
   if (/\b(suche|such|scoute|recherchiere|analysiere|vergleiche|bewerte|erstelle|berechne|finde|spieler|talent|kandidat|transfer|marktwert|shortlist|datenbank|position|jahrgang|u\s?\d{1,2})\b/.test(normalized)) return null;
   for (const [intent, pattern] of INTENT_PATTERNS) if (pattern.test(normalized)) return intent;
+  return null;
+}
+
+
+/**
+ * Resolve a clear acceptance of an option offered in the immediately preceding
+ * assistant turn. This is a bounded clarification only: it never runs research
+ * or dispatches a capability without the missing subject and explicit task.
+ */
+export function resolveMessinhoDeterministicFollowUp(message, history = []) {
+  const current = normalizeSocialText(message);
+  if (!current || current.length > 180) return null;
+  const previous = [...(Array.isArray(history) ? history : [])]
+    .reverse().find(item => item?.role === 'assistant' && typeof item.text === 'string')?.text || '';
+  const offered = normalizeSocialText(previous);
+  if (!offered || !/\b(recherche|recherchieren|spieleranalyse|daten auswerten|weiterentwickeln)\b/.test(offered)) return null;
+
+  const acceptedResearch = /\b(recherche hoert sich gut an|recherche klingt gut|gerne recherche|lass uns recherchieren|ich moechte recherchieren|recherchieren wir|recherche waehlen)\b/.test(current);
+  const acceptedAnalysis = /\b(spieleranalyse hoert sich gut an|analyse klingt gut|gerne analyse|spieler analysieren)\b/.test(current);
+  const acceptedData = /\b(daten auswerten hoert sich gut an|datenauswertung klingt gut|daten auswerten)\b/.test(current);
+  const acceptedDevelopment = /\b(weiterentwicklung hoert sich gut an|plattform weiterentwickeln|system weiterentwickeln)\b/.test(current);
+
+  if (acceptedResearch && /\brecherche\b/.test(offered)) {
+    return { intent: 'clarify_research_subject', reply: 'Gerne. Was möchtest du recherchieren – einen Spieler, einen Verein, eine Liga oder ein anderes Thema?' };
+  }
+  if (acceptedAnalysis && /\bspieleranalyse\b/.test(offered)) {
+    return { intent: 'clarify_player_analysis', reply: 'Gerne. Welchen Spieler sollen wir analysieren? Nenne mir bitte seinen Namen und – wenn möglich – seinen aktuellen Verein.' };
+  }
+  if (acceptedData && /\bdaten auswerten\b/.test(offered)) {
+    return { intent: 'clarify_data_analysis', reply: 'Gerne. Welche Daten möchtest du auswerten – Spielerdaten, Leistungswerte, Scouting-Berichte oder etwas anderes?' };
+  }
+  if (acceptedDevelopment && /\bweiterentwickeln\b/.test(offered)) {
+    return { intent: 'clarify_development_goal', reply: 'Gerne. Welchen Bereich von myScoutingDatabase sollen wir als Nächstes verbessern?' };
+  }
   return null;
 }
 

@@ -37,7 +37,8 @@ test('stores bounded private notes in existing owner-scoped user preferences and
 test('authenticated chat applies semantic routing before scouting and external research',async()=>{
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
   const route=source.indexOf('const cognitiveResult=await classifyMessinhoTurn');
-  const scoutingRoute=source.indexOf('const dialog=parseMessinhoScoutingRequest(interpretedMessage,history)',route);
+  const scoutingRoute=source.indexOf('const dialog=parseMessinhoScoutingRequest(',route);
+  assert.ok(source.includes('clarificationContinuity.effective_message'));
   const researchRoute=source.indexOf("if(cognitive.intent==='general_research'||isMessinhoGeneralResearchQuestion(interpretedMessage))",route);
   assert.ok(route>0&&route<scoutingRoute,'semantic intent must be resolved before scouting parser');
   assert.ok(route<researchRoute,'semantic intent must be resolved before external research');

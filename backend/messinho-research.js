@@ -1,3 +1,4 @@
+import { resolveMessinhoModelConfig, requestMessinhoModelCompletion } from './messinho-model-runtime.js';
 import { runMessinhoQualityLoop, MESSINHO_SCOUT_SYSTEM_PROMPT } from './messinho-quality-control.js';
 /**
  * MESSINHO external research: evidence-first market-value assessment.
@@ -49,7 +50,8 @@ export function assessMarketValueOutput(output={},sources=[]){
 }
 export async function researchMessinhoMarketValue(input,env=process.env,fetchImpl=fetch){
  const player=validateResearchInput(input);
- if(!env.TAVILY_API_KEY||!env.OPENAI_API_KEY)return {status:'provider_not_configured',player,sources:[],market_value:null,message:'TAVILY_API_KEY und OPENAI_API_KEY müssen serverseitig konfiguriert sein.'};
+ const modelConfig=resolveMessinhoModelConfig(env);
+ if(!env.TAVILY_API_KEY||!modelConfig.baseUrl||(!modelConfig.apiKey&&modelConfig.requiresApiKey))return {status:'provider_not_configured',player,sources:[],market_value:null,message:'TAVILY_API_KEY und ein erreichbarer MESSINHO-Sprachdienst müssen serverseitig konfiguriert sein.'};
  const query=[player.name,player.club,player.league,player.position,player.birthYear].filter(Boolean).join(' ')+' football player transfer fee market value comparable players statistics';
  const searchResponse=await fetchImpl('https://api.tavily.com/search',{method:'POST',signal:AbortSignal.timeout(25000),headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:env.TAVILY_API_KEY,query,search_depth:'advanced',max_results:12,include_answer:false,include_raw_content:false,topic:'general'})});
  if(!searchResponse.ok)throw new Error('Externe Quellensuche ist derzeit nicht verfügbar.');
@@ -65,13 +67,15 @@ export async function researchMessinhoMarketValue(input,env=process.env,fetchImp
   'Do not use or cite fussball.de. Distinguish verified facts from interpretation.',
   'Return JSON only with keys official_market_value, estimated_value_low_eur, estimated_value_high_eur, comparables, confidence, rationale, missing_data.'
  ]};
- const aiResponse=await fetchImpl('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(35000),headers:{Authorization:'Bearer '+env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:env.OPENAI_MODEL||'gpt-4.1-mini',temperature:0,response_format:{type:'json_object'},messages:[{role:'system',content:'You are MESSINHO research analyst. Evidence only. Never fabricate. Output valid JSON.'},{role:'user',content:JSON.stringify(prompt)}]})});
- if(!aiResponse.ok)throw new Error('OpenAI-Analyse ist derzeit nicht verfügbar.');
- const ai=await aiResponse.json();
- const content=ai.choices?.[0]?.message?.content;
- let parsed;try{parsed=JSON.parse(content||'{}');}catch{throw new Error('Die Recherche lieferte kein gültiges Analyseformat.');}
+ const completion=await requestMessinhoModelCompletion({
+  baseUrl:modelConfig.baseUrl,apiKey:modelConfig.apiKey,model:modelConfig.model,fetchImpl,timeoutMs:35000,
+  temperature:0,responseFormat:{type:'json_object'},
+  messages:[{role:'system',content:'You are MESSINHO research analyst. Evidence only. Never fabricate. Output valid JSON.'},{role:'user',content:JSON.stringify(prompt)}]
+ });
+ if(completion.status!=='completed')throw new Error('Die Sprachmodell-Analyse ist derzeit nicht verfügbar.');
+ let parsed;try{parsed=JSON.parse(completion.content||'{}');}catch{throw new Error('Die Recherche lieferte kein gültiges Analyseformat.');}
  const marketValue=assessMarketValueOutput(parsed,sources);
- return {status:'completed',player,market_value:marketValue,sources,provider:{search:'Tavily',analysis:env.OPENAI_MODEL||'gpt-4.1-mini'},researched_at:new Date().toISOString()};
+ return {status:'completed',player,market_value:marketValue,sources,provider:{search:'Tavily',analysis:modelConfig.model},researched_at:new Date().toISOString()};
 }
 
 export async function researchMessinhoPlayerProfile(name,env=process.env,fetchImpl=fetch){
@@ -82,7 +86,8 @@ export async function researchMessinhoPlayerProfile(name,env=process.env,fetchIm
  if(!response.ok)throw new Error('Spielerrecherche ist derzeit nicht verfügbar.');
  const payload=await response.json(),sources=normalizeResearchSources(payload.results||[]);
  if(!sources.length)return {status:'insufficient_sources',player:{name:query},sources:[],profile:null,message:'Ich habe keine ausreichend geeigneten öffentlichen Quellen gefunden.'};
- if(!env.OPENAI_API_KEY)return {status:'needs_review',player:{name:query},profile:null,sources,quality_control:{passed:false,iterations:0,score:0,feedback:'OpenAI-Qualitätsprüfung ist nicht konfiguriert.'},message:'Die Quellen wurden gefunden, aber das Spielerprofil konnte nicht unabhängig geprüft werden.'};
+ const modelConfig=resolveMessinhoModelConfig(env);
+ if(!modelConfig.baseUrl||(!modelConfig.apiKey&&modelConfig.requiresApiKey))return {status:'needs_review',player:{name:query},profile:null,sources,quality_control:{passed:false,iterations:0,score:0,feedback:'Providerneutrale Sprachlaufzeit ist nicht konfiguriert.'},message:'Die Quellen wurden gefunden, aber das Spielerprofil konnte nicht unabhängig geprüft werden.'};
  const quality=await runMessinhoQualityLoop({
   question:query,sources,
   draftFactory:async({feedback})=>{
@@ -94,12 +99,16 @@ export async function researchMessinhoPlayerProfile(name,env=process.env,fetchIm
     'Mention source dates and distinguish current from historical information.',
     'Return JSON with keys identity_status, corrected_name, summary, facts, career, recent_performance, missing_data. Each facts item must contain text and source_urls.'
    ]};
-   const response=await fetchImpl('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(35000),headers:{Authorization:'Bearer '+env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:env.OPENAI_MODEL||'gpt-4.1-mini',temperature:0,response_format:{type:'json_object'},messages:[
-    {role:'system',content:MESSINHO_SCOUT_SYSTEM_PROMPT+' Du gibst strukturierte JSON-Daten aus. Nutze ausschließlich die gelieferten Quellen.'},
-    {role:'user',content:JSON.stringify(prompt)}
-   ]})});
-   if(!response.ok)throw new Error('player_profile_synthesis_failed');
-   const data=await response.json(),profile=JSON.parse(data.choices?.[0]?.message?.content||'{}');
+   const completion=await requestMessinhoModelCompletion({
+    baseUrl:modelConfig.baseUrl,apiKey:modelConfig.apiKey,model:modelConfig.model,fetchImpl,timeoutMs:35000,
+    temperature:0,responseFormat:{type:'json_object'},
+    messages:[
+     {role:'system',content:MESSINHO_SCOUT_SYSTEM_PROMPT+' Du gibst strukturierte JSON-Daten aus. Nutze ausschließlich die gelieferten Quellen.'},
+     {role:'user',content:JSON.stringify(prompt)}
+    ]
+   });
+   if(completion.status!=='completed')throw new Error('player_profile_synthesis_failed');
+   const profile=JSON.parse(completion.content||'{}');
    const allowed=new Set(sources.map(source=>source.url));
    const claims=(Array.isArray(profile.facts)?profile.facts:[]).map(fact=>({
     text:clean(typeof fact==='string'?fact:(fact?.text||fact?.claim||''),700),
@@ -114,7 +123,7 @@ export async function researchMessinhoPlayerProfile(name,env=process.env,fetchIm
  }).catch(()=>({passed:false,answer:'',claims:[],profile:null,iterations:0,history:[],review:{score:0,feedback:'Spielerprofil konnte nicht unabhängig geprüft werden.'}}));
  const profile=quality.passed?quality.profile:null;
  return {status:quality.passed?'completed':'needs_review',player:{name:query},profile,sources,
-  provider:{search:'Tavily',analysis:quality.passed?(env.OPENAI_MODEL||'gpt-4.1-mini'):'source_only'},
+  provider:{search:'Tavily',analysis:quality.passed?modelConfig.model:'source_only'},
   quality_control:{passed:quality.passed,iterations:quality.iterations,score:quality.review?.score||0,history:quality.history||[],feedback:quality.review?.feedback||null},
   researched_at:new Date().toISOString()};
 }

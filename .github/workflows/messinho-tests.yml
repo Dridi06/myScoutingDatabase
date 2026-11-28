@@ -6,6 +6,7 @@ on:
       - fix/messinho-runtime-coverage
       - feature/messinho-unified-ai-integration
       - feature/messinho-conversational-intelligence-2
+      - feature/messinho-conversation-engine
   pull_request:
     branches:
       - main
@@ -23,6 +24,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Verify diagnostic parser dependency
+        run: npm ls @babel/parser --depth=0
       - name: Run automated tests
         run: npm test
       - name: Check backend JavaScript syntax

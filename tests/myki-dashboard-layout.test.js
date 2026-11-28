@@ -1,0 +1,81 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+
+const read=path=>readFile(new URL('../'+path,import.meta.url),'utf8');
+
+test('myKI dashboard follows the owner reference order without extra dashboard sections',async()=>{
+ const source=await read('src/main.jsx');
+ const start=source.indexOf(`{page==='myki'&&admin&&<div className="myki-dashboard">`);
+ assert.notEqual(start,-1,'myKI dashboard wrapper must exist');
+ const end=source.indexOf(`{page==='ticket-support'&&admin`,start);
+ const page=source.slice(start,end);
+ const positions=[
+  page.indexOf('className="myki-heading"'),
+  page.indexOf('<MyKiMaturity supabase={sb}/>'),
+  page.indexOf('<MyKiChat supabase={sb}/>'),
+  page.indexOf('<MyKiOperations supabase={sb}/>'),
+  page.indexOf('<MyKiTicketBoards')
+ ];
+ assert.ok(positions.every(index=>index>=0),'heading, total development status, chat, operations and ticket boards must exist');
+ assert.deepEqual(positions,[...positions].sort((a,b)=>a-b),'order must match the owner sketch');
+ assert.doesNotMatch(page,/myki-summary|MyKiActivityMonitor/,'no KPI strip or separate activity monitor may interrupt the specified layout');
+});
+
+test('secondary operational metadata and schedule are collapsed by default',async()=>{
+ const [chat,monitor]=await Promise.all([read('src/asi/MyKiChat.jsx'),read('src/asi/MyKiActivityMonitor.jsx')]);
+ assert.match(chat,/setInterval\(refresh,30000\)/);
+ assert.match(monitor,/<details className="myki-monitor-schedule-details">/);
+});
+
+test('myKI dashboard uses stationary gold-accented controls',async()=>{
+ const css=await read('src/styles.css');
+ assert.match(css,/\.myki-dashboard\s*\{/);
+ assert.match(css,/\.myki-dashboard button,\s*\.myki-dashboard button:hover,\s*\.myki-dashboard button:active\s*\{\s*transform:none!important/s);
+ assert.match(css,/outline:2px solid #d8b76d!important/);
+ assert.doesNotMatch(css,/\.myki-dashboard button:hover[^}]*margin-top\s*:/s,'hover must not change button margins');
+ assert.match(css,/linear-gradient\(145deg,#e9d39b,#b58c48\)/);
+});
+
+test('every MESSINHO chat entry receives and displays a Berlin-local timestamp',async()=>{
+ const chat=await read('src/asi/MyKiChat.jsx');
+ assert.match(chat,/const timestampNow=\(\)=>new Date\(\)\.toISOString\(\)/);
+ assert.match(chat,/timeZone:'Europe\/Berlin'/);
+ assert.match(chat,/timestamp:clientSubmittedAt,clientSubmittedAt,persisted:false,text:cleanMyKiMessageText\(value\)/);
+ assert.match(chat,/input_persisted_at/);
+ assert.match(chat,/output_persisted_at/);
+ assert.match(chat,/serverReceivedAt/);
+ assert.match(chat,/generatedAt/);
+ assert.match(chat,/<time className="myki-chat-timestamp" dateTime=\{item\.timestamp\|\|undefined\}>/);
+});
+
+test('myKI dashboard separates diagnostic and development tickets with independent five-item pagination',async()=>{
+ const boards=await read('src/asi/MyKiTicketBoards.jsx');
+ assert.match(boards,/error_code==='diagnostic_finding'/);
+ assert.match(boards,/baseline_id==='diagnostic-only'/);
+ assert.match(boards,/const PAGE_SIZE=5/);
+ assert.match(boards,/Math\.ceil\(items\.length\/PAGE_SIZE\)/);
+ assert.match(boards,/myki-ticket-boards/);
+});
+test('myKI dashboard exposes diagnosis and development controls with truthful unsupported interrupt states',async()=>{
+ const [ops,main]=await Promise.all([read('src/asi/MyKiOperations.jsx'),read('src/main.jsx')]);
+ assert.match(ops,/api\/admin\/messinho-diagnostics\/run/);
+ assert.match(ops,/api\/admin\/myki\/control/);
+ assert.match(ops,/Entwicklung starten/);
+ assert.match(ops,/Entwicklung pausieren/);
+ assert.match(ops,/Entwicklung beenden/);
+ assert.match(ops,/Unterbrechung wird serverseitig noch nicht unterstützt/);
+ assert.match(main,/<MyKiMaturity supabase=\{sb\}\/>/);
+});
+
+test('myKI diagnosis and developer panels are stacked and show the requested information line',async()=>{
+ const ops=await read('src/asi/MyKiOperations.jsx');
+ const css=await read('src/asi/myki-chat.css');
+ assert.match(ops,/myki-ops-diagnosis/);
+ assert.match(ops,/myki-ops-development/);
+ assert.match(ops,/Aktueller Betriebszustand/);
+ assert.match(ops,/Status/);
+ assert.match(ops,/Was gerade diagnostiziert wird|Gesamtprojekt:/);
+ assert.match(css,/\.myki-dashboard \.myki-operations\{display:flex;flex-direction:column/);
+ assert.match(css,/\.myki-dashboard \.myki-ticket-boards\{display:grid;grid-template-columns:repeat\(2/);
+});

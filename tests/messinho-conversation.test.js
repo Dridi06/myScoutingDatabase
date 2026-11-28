@@ -1,9 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyMessinhoProviderFailure, classifyMessinhoSocialIntent, getMessinhoSocialReply } from '../backend/messinho-conversation.js';
+import {readFile} from 'node:fs/promises';
+import {cleanMyKiMessageText} from '../src/asi/myki-chat-utils.js';
+import { classifyMessinhoProviderFailure, classifyMessinhoSocialIntent, getMessinhoSocialReply, resolveMessinhoDeterministicFollowUp } from '../backend/messinho-conversation.js';
 
 const fixedMorning = new Date('2026-11-26T08:00:00');
 const history = [];
+
+
+test('chat display removes an orphan closing brace but preserves code with balanced braces',()=>{
+ assert.equal(cleanMyKiMessageText('Hallo\n}'),'Hallo');
+ assert.equal(cleanMyKiMessageText('Antwort\n  }  '),'Antwort');
+ assert.equal(cleanMyKiMessageText('const value = { ok: true };'),'const value = { ok: true };');
+ assert.equal(cleanMyKiMessageText('```js\nif (ok) {\n  run();\n}\n```'),'```js\nif (ok) {\n  run();\n}\n```');
+});
+
+test('server routes simple greetings through deterministic conversation before provider calls',async()=>{
+ const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+ assert.ok(source.includes('getMessinhoSocialReply(interpretedMessage,history,new Date())'));
+ assert.ok(source.indexOf('const socialReply=getMessinhoSocialReply')<source.indexOf('const cognitiveResult=await classifyMessinhoTurn'));
+});
 
 test('MESSINHO recognizes greetings and answers naturally without an AI provider', () => {
   assert.equal(classifyMessinhoSocialIntent('Hallo'), 'greeting');
@@ -191,4 +207,29 @@ test('VO2max continuation preserves the original canonical question for knowledg
     'Wie ist das Wetter morgen?',
     'Für eine konkrete Einordnung eines Spielers brauche ich die folgenden Angaben.'
   ), null);
+});
+
+
+test('answers open-ended what-can-we-do questions without an external language provider',()=>{
+ const reply=getMessinhoSocialReply('Was können wir machen?',[],new Date('2026-11-28T14:00:00'));
+ assert.equal(typeof reply,'string');
+ assert.match(reply,/Spieler|Scouting|Recherche|Plattform/);
+ assert.equal(getMessinhoSocialReply('Was können wir machen, um einen U19-Stürmer zu finden?'),null);
+});
+
+
+test('MESSINHO resolves accepted research suggestions from conversation context without a provider', async () => {
+  const prior = [{role:'assistant',text:'Wir können gemeinsam eine Spieleranalyse starten, Daten auswerten, eine Recherche durchführen oder die Plattform weiterentwickeln. Womit sollen wir beginnen?'}];
+  const result = resolveMessinhoDeterministicFollowUp('Recherche hört sich gut an', prior);
+  assert.equal(result.intent, 'clarify_research_subject');
+  assert.match(result.reply, /Was möchtest du recherchieren/);
+  assert.match(result.reply, /Spieler.*Verein.*Liga/);
+  assert.equal(resolveMessinhoDeterministicFollowUp('Recherche hört sich gut an', []), null);
+  assert.equal(resolveMessinhoDeterministicFollowUp('Ich finde Recherche nicht gut', prior), null);
+});
+
+test('MESSINHO asks a focused follow-up for other explicitly accepted suggestions', () => {
+  const prior = [{role:'assistant',text:'Wir können eine Spieleranalyse starten oder Daten auswerten.'}];
+  assert.equal(resolveMessinhoDeterministicFollowUp('Spieleranalyse hört sich gut an', prior).intent, 'clarify_player_analysis');
+  assert.equal(resolveMessinhoDeterministicFollowUp('Daten auswerten', prior).intent, 'clarify_data_analysis');
 });

@@ -201,3 +201,41 @@ test('rejects a two-week-old source for live league standings',()=>{
  assert.equal(evidence.can_answer,false);
  assert.equal(evidence.freshness.max_age_days,7);
 });
+
+
+test('general knowledge synthesis and critic use provider-neutral MESSINHO model settings',async()=>{
+ const searchSources=[
+  {url:'https://a.example/sky',title:'Atmospheric scattering',content:'Blue light is scattered more strongly by atmospheric molecules because it has a shorter wavelength. This explains why the daytime sky appears blue. '.repeat(2)},
+  {url:'https://b.example/sky',title:'Rayleigh scattering',content:'Atmospheric molecules scatter blue light more strongly than red light because blue light has a shorter wavelength. This physical process explains the blue sky. '.repeat(2)}
+ ];
+ const claim='Blue light is scattered more strongly by atmospheric molecules because it has a shorter wavelength.';
+ let providerCalls=0,searchCalls=0;
+ const fakeFetch=async(url,options)=>{
+  if(url==='https://api.tavily.com/search'){
+   searchCalls++;
+   return {ok:true,status:200,json:async()=>({results:searchSources})};
+  }
+  providerCalls++;
+  const body=JSON.parse(options.body);
+  assert.equal(url,'https://neutral.example/v1/chat/completions');
+  assert.equal(body.model,'neutral-knowledge-model');
+  const content=providerCalls===1
+   ?JSON.stringify({answer:claim,claims:[{text:claim,source_urls:['https://a.example/sky','https://b.example/sky']}]})
+   :JSON.stringify({passed:true,score:9,feedback:'Belege und Antwort sind nachvollziehbar.'});
+  return {ok:true,status:200,json:async()=>({choices:[{message:{content}}]})};
+ };
+ const result=await researchMessinhoGeneralQuestion('Warum ist der Himmel blau?',{
+  TAVILY_API_KEY:'search-key',
+  MESSINHO_MODEL_BASE_URL:'https://neutral.example/v1',
+  MESSINHO_MODEL_API_KEY:'neutral-key',
+  MESSINHO_MODEL_NAME:'neutral-knowledge-model',
+  OPENAI_API_KEY:'legacy-key'
+ },fakeFetch);
+ assert.equal(searchCalls,1);
+ assert.equal(providerCalls,2);
+ assert.equal(result.status,'completed');
+ assert.equal(result.answer_mode,'evidence_synthesized');
+ assert.equal(result.quality_control.passed,true);
+ assert.equal(result.provider.synthesis,'neutral-knowledge-model');
+ assert.equal(JSON.stringify(result).includes('neutral-key'),false);
+});

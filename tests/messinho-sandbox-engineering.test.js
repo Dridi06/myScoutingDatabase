@@ -28,7 +28,7 @@ test('sandbox dispatch pins the exact feature branch commit and sends a bounded 
  assert.equal(calls.length,2);
  assert.match(calls[1].url,/messinho-isolated-engineering\.yml\/dispatches$/);
  const body=JSON.parse(calls[1].options.body);
- assert.equal(body.ref,'feature/messinho-unified-ai-integration');
+ assert.equal(body.ref,'feature/messinho-conversation-engine');
  assert.ok(body.inputs.job_payload_b64.length<60000);
 });
 

@@ -4,7 +4,7 @@ import {Activity,Clock3,ShieldCheck,Code2,RefreshCw,CalendarClock,BrainCircuit,A
 const MODE_LABELS={paused:'Pausiert',working:'Systemfehlersuche & Reparaturprüfung',developing:'Autonome Entwicklung freigegeben'};
 const RUN_LABELS={paused:'Keine autonome Entwicklung',working:'Systemprüfung wird gestartet',developing:'Entwicklungsmodus freigegeben',running:'Aktiver Arbeitsschritt'};
 const SANDBOX_LABELS={disabled:'Nicht freigegeben',credential_missing:'Zugangsdaten fehlen',configured_not_yet_end_to_end_verified:'Konfiguriert – Praxistest offen'};
-const formatDate=value=>value?new Date(value).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'short'}):'Noch kein Zeitstempel';
+const formatDate=value=>value?new Date(value).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'medium',timeZone:'Europe/Berlin'}):'Noch kein Zeitstempel';
 const explainRun=run=>({running:'Ein gespeicherter Arbeitsschritt ist aktuell als laufend markiert.',paused:'Die autonome Entwicklung ist pausiert. Der Chat kann davon unabhängig erreichbar bleiben.',working:'MESSINHO führt die Systemdiagnose aus, sucht nach belegten Fehlern und erstellt bei Bedarf ein Reparaturticket.',developing:'Der Entwicklungsmodus ist freigegeben. Ob gerade tatsächlich ein Prüflauf läuft, zeigen die gespeicherten Laufdaten.'}[run]||'Der Betriebszustand konnte nicht eindeutig zugeordnet werden.');
 
 function buildPlan(status){
@@ -96,11 +96,11 @@ export default function MyKiActivityMonitor({supabase}){
      <div className="myki-monitor-plan">{plan.map((item,index)=><article key={item.title}><span className={'myki-monitor-plan-number '+item.state}>{index+1}</span><div><strong>{item.title}</strong><p>{item.why}</p></div><small>{({blocked:'Gesperrt',pending:'Ausstehend',scheduled:'Vorgesehen',attention:'Prüfen',complete:'Erledigt'})[item.state]}</small></article>)}</div>
     </section>
    </div>
-   <section className="myki-monitor-schedule">
+   <details className="myki-monitor-schedule-details"><summary><Clock3 size={15}/> Arbeitsrhythmus und Ruhezeiten anzeigen</summary><section className="myki-monitor-schedule">
     <div className="myki-monitor-section-title"><h3><Clock3 size={16}/> Verbindlicher Arbeitsrhythmus</h3><span>EUROPE/BERLIN</span></div>
     <div className="myki-monitor-time-grid"><article><b>03:00–08:00</b><strong>Selbstentwicklung</strong><small>Geplante Entwicklungszeit</small></article><article><b>08:00–10:00</b><strong>Pause</strong><small>Keine Entwicklungsarbeit</small></article><article><b>10:00–23:00</b><strong>Arbeitszeit</strong><small>Geplante Tagesphase</small></article><article><b>23:00–03:00</b><strong>Nachtruhe</strong><small>Keine Entwicklungsarbeit</small></article></div>
     <p className="myki-monitor-footnote">Der Chat für Administratoren und Scouts bleibt unabhängig davon erreichbar. Dieser Zeitplan betrifft die autonome Weiterentwicklung, nicht die Erreichbarkeit des Gesprächsbereichs.</p>
-   </section>
+   </section></details>
    <div className="myki-monitor-footer"><span>Letzte erfolgreiche Statusabfrage: {formatDate(updatedAt)}</span><span>Automatische Aktualisierung alle 30 Sekunden</span></div>
   </>}
  </section>;

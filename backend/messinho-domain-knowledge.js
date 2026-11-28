@@ -10,14 +10,16 @@ const clean=(v,max=1200)=>String(v??'').replace(/[\u0000-\u001f\u007f]/g,' ').re
 const normalize=v=>clean(v,1800).normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 const tokens=v=>[...new Set(normalize(v).split(' ').filter(x=>x.length>2))];
 const STOP=new Set(['aber','auch','auf','aus','bei','das','dass','dem','den','der','des','die','ein','eine','einem','einen','einer','eines','für','im','in','ist','mit','oder','und','von','warum','weshalb','wieso','wie','was','welche','welcher','welches','the','and','for','with','from','that','this']);
-export const MESSINHO_KNOWLEDGE_DOMAINS=Object.freeze(['mathematics','physics','biology','medicine','risk_management','banking','financial_markets','statistics','sports_science','football','computer_science','general']);
+export const MESSINHO_KNOWLEDGE_DOMAINS=Object.freeze(['mathematics','physics','chemistry','biology','medicine','ethics','risk_management','banking','financial_markets','statistics','sports_science','football','computer_science','general']);
 export function classifyMessinhoKnowledgeDomain(text=''){
  const q=normalize(text);
  const rules=[
   ['mathematics',/\b(mathematik|mathematisch|gleichung|algebra|geometrie|integral|ableitung|prozentrechnung|wahrscheinlichkeit)\b/],
   ['physics',/\b(physik|physikal|kraft|energie|bewegung|geschwindigkeit|beschleunigung|druck|welle|newton)\b/],
+  ['chemistry',/\b(chemie|chemisch|chemistry|chemical|atom(?:e|s|ar|ic)?|molek[uü]l(?:e|ar)?|molecule(?:s)?|molecular|periodensystem|periodic table|elemente?|elements?|verbindung(?:en)?|compounds?|reaktion(?:en)?|reactions?|stoichiometr(?:ie|y)|stöchiometrie|s[aä]ure(?:n)?|acids?|basen?|oxidation|reduktion|reduction|redox|ph[- ]?wert|pka|molare masse|molar mass|bonding|chemical equilibrium)\b/],
   ['biology',/\b(biologie|biologisch|zelle|genetik|stoffwechsel|photosynthese|organismus|evolution)\b/],
   ['medicine',/\b(medizin|medizinisch|orthopädie|verletzung|anatomie|sportmedizin|rehabilitation|diagnose)\b/],
+  ['ethics',/\b(ethik|ethisch|ethics|ethical|moralphilosophie|moralisch|deontologie|deontology|utilitarismus|utilitarianism|tugendethik|virtue ethics|menschenw[uü]rde|gerechtigkeitstheorie|forschungsethik|ki[- ]?ethik|ai ethics)\b/],
   ['risk_management',/\b(risikomanagement|risikoanalyse|stresstest|value at risk|expected shortfall|risikoappetit)\b/],
   ['banking',/\b(bank|banken|kredit|einlage|liquidität|eigenkapital|zentralbank|bonität)\b/],
   ['financial_markets',/\b(börse|börse|aktie|aktien|anleihe|etf|orderbuch|volatilität|derivat|börse|finanzmarkt|börse)\b/],

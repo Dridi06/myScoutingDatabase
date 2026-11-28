@@ -9,7 +9,7 @@
 - **Production branch:** `main`
 - **Production URL:** https://myscoutingdatabase.onrender.com
 - **Document owner:** Project owner / user
-- **Last updated:** 2026-11-27
+- **Last updated:** 2026-11-28
 - **Document status:** Active — authoritative project record
 
 ---
@@ -5785,3 +5785,2060 @@ Preserve meaning when a player description contains qualified evaluations, negat
 - PR #57 merged by squash as commit `22842c9cafd47dbd1f7492e2d98f57e87ba7b1dc` into the STAGING integration branch.
 - Render auto-deploy remains disabled. This change is merged to the STAGING source branch but has **not** yet been manually deployed to the STAGING service. Production/LIVE remains untouched.
 - Next: deploy this exact integration-branch commit to Render STAGING after deployment authorization, then run authenticated Admin/Scout end-to-end checks for all six profiles, code-switching, negation scope, follow-up clarification, and response-language continuity. Continue by improving clause-level scope and reference resolution only after the current behavior is measured.
+
+## 2026-11-27 — MESSINHO Dialogue Engine 1.0.0 — STAGING feature branch
+
+### Goal
+- Strengthen the existing Conversational Intelligence 3.0 without creating a parallel chatbot, second memory store, or replacement for the existing authenticated chat route.
+- Preserve the existing semantic cognitive router, owner-scoped conversation history, approved memory store, language intelligence, and Admin/Scout permission enforcement.
+
+### Implementation
+- New module: `backend/messinho-dialogue-engine.js`.
+- New tests: `tests/messinho-dialogue-engine.test.js`.
+- The bounded extractive state builder packages:
+  - likely follow-up signals in the current message;
+  - whether the last assistant turn appears to contain an unanswered question;
+  - a short-answer-to-pending-question signal;
+  - the previous user message and previous assistant message;
+  - the latest substantive user-goal candidate;
+  - up to four recent user-focus messages;
+  - the current response-language hint.
+- Integrated into `POST /api/agent/chat` by attaching `dialogue_state` to the already-existing linguistic context passed to `classifyMessinhoTurn`.
+- Updated the cognitive-router prompt to use these fields only as bounded continuity evidence. It must not treat a candidate referent as a fact; ambiguous references should trigger one focused clarification.
+- No new database table, migration, persistent memory behavior, provider call, permission, external action, or model-weight change.
+
+### Safety and limitations
+- History remains loaded using the existing authenticated `owner_id` and `conversation_id` filters.
+- Only sanitized user/assistant text from the bounded recent history is included; no research-context payload is copied into the dialogue snapshot.
+- Dialogue state is transient and extractive. It does not independently resolve pronouns, infer player identity, or authorize actions.
+- Admin/Scout authorization remains authoritative; Scout engineering restrictions are unchanged.
+- Work branch: `feature/messinho-conversation-engine`.
+- PR #58: https://github.com/Dridi06/myScoutingDatabase/pull/58 (draft, targets `feature/messinho-unified-ai-integration`).
+- No database changes, Render deployment, production branch changes, LIVE changes, or production Supabase access.
+- CI is being rerun after correcting the regression fixture for a new-topic request following an assistant question. Record final results for the exact final PR head before merge.
+
+### Extended-context milestone — long conversations
+- Extended the authenticated chat's bounded history window from 20 to 60 messages (up to 30 user/assistant exchanges) while preserving the existing owner/conversation filters.
+- Updated `sanitizeMessinhoHistory` with an optional bounded limit (default remains 20 for all existing callers); the chat route explicitly requests 60.
+- The Dialogue Engine now keeps the latest 12 turns as recent context and creates a small extractive older-context bundle from the preceding window:
+  - up to three older user-goal candidates;
+  - up to two historical assistant questions, explicitly labelled historical rather than pending.
+- Obvious sensitive older excerpts are excluded from this additional summary. No older messages are promoted to facts or durable memory.
+- Added regression coverage for long-history continuity, privacy filtering, bounds and server query integration.
+- Final tested code commit: `369996bd901571b7d0e3568dad38f8c973941132`.
+- Exact-commit GitHub Actions: Node tests **544/544 passed**; backend syntax + test workflow passed; complete STAGING branch CI passed including Vite production build.
+- The later documentation-only commit does not change the tested code.
+- PR #58 remains draft and unmerged. No Render deployment or database changes were performed.
+
+### Response-integrity milestone — unverified action claims
+- Added `backend/messinho-conversation-response-guard.js` and `tests/messinho-conversation-response-guard.test.js`.
+- Ordinary `conversation` replies are checked for empty output and first-person claims that a system mutation (save/create/delete/update/deploy/fix/install/execute, etc.) has already been completed.
+- The guard recognizes German, English, French and Spanish action-claim forms and applies sentence-scoped negation checks so statements such as “not deployed yet” are not blocked.
+- A blocked reply is replaced with a plain-language response that does not expose internal guard diagnostics. This guard runs only for ordinary conversation replies; verified scouting/research and server-mediated memory/engineering flows retain their existing handling.
+- No tool is executed by the guard and no action is ever marked complete by it.
+- Final tested code commit: `49f41d614e1da2faac77ef47ef9dabb26fa55e65`.
+- Exact-commit CI: **550/550 Node tests passed**; backend syntax passed; full STAGING branch CI passed including Vite production build.
+- PR #58 remains draft and unmerged. No Render deployment, database migration, or production/LIVE change.
+
+
+## 2026-11-27 — MESSINHO Dialogue Engine 1.1.0 — follow-up precision
+
+- Extended `backend/messinho-dialogue-engine.js` with an explicit, bounded `follow_up_signal`: `none`, `discourse_connector`, `referential_question`, `short_reply`, or `pending_question_reply`.
+- Reduced false-positive follow-up classification: a generic new question such as “Wie funktioniert das Steuersystem?” is not considered a follow-up merely because it begins with an interrogative or contains a German article.
+- Added explicit continuation cues for Spanish inverted question punctuation and Tunisian Derja/Arabizi examples; short acknowledgements are prioritized over overlapping connector cues.
+- Added regression tests for new-topic questions, referential follow-ups, short replies, Spanish transitions, and Arabizi cues.
+- The signal remains contextual evidence only. It does not resolve a player identity, assert a fact, persist memory, or authorize an action.
+- No database changes, migrations, permission changes, external actions, Render deployment, or production changes.
+- Final tested code commit: `1ddfde7c59b2bd916c6fe28cf36be95034f74071`; checkpoint commit: `b32492fb2c2044c807e664877479652f783d0ed2` (documentation-only after the tested code).
+- GitHub Actions for the checkpoint commit: **553/553 Node tests passed, 0 failed**; backend syntax workflow passed; full STAGING branch CI passed, including the Vite production build (1,640 modules transformed).
+- PR #58 remains Draft and unmerged. No Render deployment or database migration was performed.
+
+
+## 2026-11-27 — MESSINHO Conversation Engine — Block 2: evidence-bounded entity reference resolution
+
+### Scope and implementation
+- Added `backend/messinho-entity-resolution.js` (version 1.0.0) as a deterministic, transient resolver connected to the existing Dialogue Engine and cognitive router.
+- The resolver distinguishes `player`, `club`, and `team` references and returns explicit `resolved`, `ambiguous`, `unresolved`, or `not_applicable` outcomes with bounded candidates, confidence, evidence labels, and reason codes.
+- Candidate sources are restricted to structured research metadata already stored in the authenticated conversation history and the current owner's `active_entities` memory. It does not search arbitrary users, organizations, or global player records.
+- Player-to-club/team relations are used only when the relationship is present in structured player metadata.
+- Supports bounded reference cues in German, English, French, Spanish, Modern Standard Arabic and Tunisian Derja.
+- Ambiguous references such as multiple players or an unclear “der andere” trigger a focused clarification. A contrast can resolve only when exactly one active player and exactly one alternative are grounded.
+- Explicitly named multiple players are not treated as an unresolved pronoun. When a pronoun appears alongside another explicit player name, the resolver asks for clarification rather than assuming which player was intended.
+- Added safe structured entity metadata to `sanitizeMessinhoHistory`; only allowlisted IDs, names, current club/team relations and entity types are retained. Arbitrary metadata fields are discarded.
+- Updated the authenticated chat response context to persist the allowlisted structured entities when present, then attach the transient resolution result to the existing `dialogue_state`.
+- Updated the cognitive-router prompt to treat entity resolution as evidence only, never as a verified fact, permission, or action authorization.
+- Added a deterministic routing guard: unresolved/ambiguous scouting references cannot silently start a player search.
+- Existing owner and conversation filters remain unchanged. The resolver is not a new memory store and does not persist its own output.
+
+### Files changed
+- `backend/messinho-entity-resolution.js` — new resolver.
+- `tests/messinho-entity-resolution.test.js` — regression tests for unique/multiple/unresolved references, player-to-club relations, explicit names, contrast, five language examples, bounds, sanitizer and owner scope.
+- `backend/messinho-engine.js` — allowlisted structured entity metadata in sanitized history.
+- `backend/messinho-conversational-intelligence.js` — safe interpretation policy for entity-resolution evidence.
+- `backend/server.js` — authenticated chat integration and clarification guard.
+- `.github/workflows/messinho-tests.yml` and `.github/workflows/messinho-staging-ci.yml` — include the conversation-engine branch in push CI triggers.
+
+### Checkpoint and verification
+- Work branch: `feature/messinho-conversation-engine`.
+- PR #58 remains Draft and unmerged; target remains `feature/messinho-unified-ai-integration`.
+- Latest resolver logic commit: `01d918d125a0ed5af950f117288ebf17fda6ba2a`.
+- Latest regression-test commit: `406c861891de59a169daf5e7314462048318bc80`.
+- CI trigger updates: `05596bc37b653c32dc9922fb4efbcf62f37e15e4` and `e6840339a02d099d47e68ef4a10c1c71fe53812f`.
+- Earlier Dialogue Engine baseline remains 553/553 tests on commit `b32492fb2c2044c807e664877479652f783d0ed2`; that result does not verify this new block.
+- **Current Block 2 CI status: not yet verified.** The GitHub workflow/status lookup has not returned a run for the new head. Do not describe the new tests as passed until a run for the exact final commit is available.
+- No Render deployment, no Supabase migration, no database writes, no user/player/scout data changes, no model-weight changes, and no production/LIVE changes.
+
+### Known limitations and next actions
+1. The resolver only resolves entities already represented in structured conversation metadata or active owner memory; it does not yet extract arbitrary named entities from free text or independently query the player database.
+2. Club/team follow-ups are resolved as references, but a complete club/team research workflow is a separate capability integration.
+3. Review the exact latest CI run and fix all failures before marking Block 2 verified.
+4. Continue with Block 3 — robust multi-turn conversation state and clarification lifecycle — only after Block 2 passes exact-commit CI.
+5. The latest main-branch language-bridge commits are not copied into this feature branch; evaluate and integrate them separately without merging or changing production.
+
+
+### Block 2 CI verification — 2026-11-27
+- Final tested code commit: `c0d7ac126a4df4f2e326c7b3ea608aab6cd89943`.
+- GitHub Actions for that exact code commit:
+  - MESSINHO Node tests: **564/564 passed, 0 failed**.
+  - Backend JavaScript syntax: **success**.
+  - Full STAGING branch CI: **success** — regression suite, backend syntax and Vite production build completed; 1,640 modules transformed and build completed in 1.79 seconds.
+- The first CI attempt correctly exposed two issues: the accented Spanish pronoun `él` was not matched by JavaScript's ASCII-style word boundary, and an apostrophe in the single-quoted cognitive-router prompt caused a syntax error. Both were corrected; the test was not weakened and the prompt retains the original clarification contract.
+- The exact final code commit is verified. The subsequent PROJECTSCOUT documentation checkpoint is documentation-only.
+- PR #58 remains Draft, open and unmerged. No Render deployment, Supabase migration, database write, production/LIVE change or model-weight change was performed.
+- Next: begin Block 3 only after confirming the PR head and preserving this verified checkpoint.
+
+
+## 2026-11-27 — Block 3 checkpoint: multi-turn clarification lifecycle
+
+### Implemented on the feature branch
+- Extended `backend/messinho-dialogue-engine.js` to version 1.2.0.
+- Added bounded pending-question extraction: question text, question kind, and up to four offered options.
+- Added `classifyMessinhoClarificationReply` with explicit states: `none`, `likely_answer`, `ambiguous`, `candidate_answer`, and `new_topic`.
+- Recognizes exact offered-option answers, numeric answers for suitable question types, short confirmations, short free-text answers and new questions that should not be forced into the previous task.
+- Question kinds include player reference, target level, location, age, position, preferred foot, quantity, club/team, choice, yes/no and generic.
+- Option matching is intended to support German, English, French, Spanish and Arabic examples; Tunisian Derja remains covered by the broader language cues and needs additional dedicated lifecycle tests.
+- Cognitive-router prompt now instructs MESSINHO to preserve the previous goal/filters for likely answers, ask one focused question for ambiguous replies, and avoid forcing new topics into pending tasks. A clarification signal alone never authorizes an action.
+- Added regression tests for exact options, age numbers, unlisted options, topic changes, confirmations, multilingual option choices, free text and router policy.
+
+### Files changed
+- `backend/messinho-dialogue-engine.js`
+- `backend/messinho-conversational-intelligence.js`
+- `tests/messinho-dialogue-engine.test.js`
+
+### Save and verification status
+- Work branch: `feature/messinho-conversation-engine`.
+- PR #58 remains Draft and unmerged.
+- Latest Block 3 test commit: `23aa8453a549797390dae95615f8e025a8b80f07`.
+- Dialogue Engine implementation commits: `6dd68d35ea3433ed4a622ebd09fe96631d25f84b` and `e0d124dacd21e53fe73428e3b68f911b09df7999`.
+- Cognitive-router clarification policy commit: `713c33a50917f3b2d15ce50e7c24397cf4bf304b`.
+- **Block 3 initial CI on test commit `23aa8453a549797390dae95615f8e025a8b80f07`: 569/573 tests passed; 4 failed.** The backend syntax check itself passed, but the syntax workflow runs `npm test` afterwards and therefore concluded failure. The full STAGING CI run was cancelled after the test failures. Block 3 is saved but not verified/release-ready. Block 2's 564/564 passing result applies only to its previously verified code commit and must not be attributed to Block 3.
+- Four failures are documented for correction: a short acknowledgement (`genau`) was classified as a discourse connector rather than a short reply; offered-option question kind was classified as generic `choice` rather than `location`; an age question was classified as generic rather than `age`; and a long free-text clarification was accepted as a likely short answer rather than a candidate requiring semantic review.
+- No Render deployment, Supabase migration, database write, production/LIVE change or model-weight change.
+
+### Next actions
+1. Run and inspect CI on the exact current branch head; fix any failures without weakening the tests.
+2. Review pending-question extraction for multi-question assistant messages, negated questions and Arabic/Derja option segmentation.
+3. Ensure the clarification result is passed through the existing authenticated chat pipeline and used to preserve the actual prior scouting filters; do not silently infer filters that are absent.
+4. Add a dedicated Derja clarification-answer test matrix.
+5. Update PR #58 and this checkpoint with the exact verified code commit before declaring Block 3 complete.
+
+
+---
+
+## 16. MESSINHO conversation engine — Block 3 verified checkpoint (2026-11-27)
+
+This entry supersedes the earlier Block 3 status that recorded four failing clarification-lifecycle tests. The four regressions have been corrected and the final branch head has passed the repository CI workflows.
+
+### Block 3 — Multi-turn Clarification Lifecycle 1.2.0
+
+- **Branch:** `feature/messinho-conversation-engine`
+- **PR:** #58 — https://github.com/Dridi06/myScoutingDatabase/pull/58
+- **PR state:** Open, Draft, unmerged; target branch `feature/messinho-unified-ai-integration`.
+- **Final tested code/test commit:** `c7e8fdacdfd74e4a0b8da1d690eb8c8ee479a3b2` (runtime code changes are included in this tested PR head).
+- **Final runtime code fix:** `d7c83b75d389ef74b7a97b9e55846624f66a42db`
+- **Dialogue-engine code baseline before the final Derja precedence fix:** `b64c7036e0b0ed27d35402291b3efb6a544fddec`
+- **Final regression-test commit:** `c7e8fdacdfd74e4a0b8da1d690eb8c8ee479a3b2`
+- **Current feature-branch HEAD after documentation-only checkpoint:** `8e28486bcc75ede7c40df85511ffb5f287a76d47`.
+
+### Corrections completed
+
+1. **Short acknowledgements:** exact acknowledgements such as `Genau.` and Tunisian Derja `باهي`, `إي`, and `لا` are classified as `short_reply`, not intercepted by the discourse-connector pattern.
+2. **Location questions:** semantic location cues and country choices (including Arabic country names) are classified as `location` before the generic multi-option `choice` fallback.
+3. **Age questions:** age-related wording is recognized as `age`, allowing numeric answers such as `21 Jahre` or `20` to be treated as candidate answers to the pending age question.
+4. **Long free-text answers:** natural-language answers longer than eight words are held as `candidate_answer` / `free_text` for semantic review rather than being prematurely reduced to `short_value`.
+5. **Regression coverage:** added tests for the four original failure modes and Tunisian Derja acknowledgements, location answers and age clarification.
+
+### Final CI verification
+
+All checks below ran against the final PR branch head `c7e8fdacdfd74e4a0b8da1d690eb8c8ee479a3b2`:
+
+- **MESSINHO Node tests:** 578 passed, 0 failed.
+- **Backend syntax workflow:** successful; all configured syntax checks and its Node test run passed.
+- **Full MESSINHO staging branch CI:** successful.
+- **Full regression suite in staging CI:** 578 passed, 0 failed.
+- **Vite production build:** successful; 1,640 modules transformed; build completed in 1.80 seconds.
+
+### Safety and release boundary
+
+- No database migration or persistent-data modification.
+- No Render deployment or staging/live runtime activation.
+- No production branch, production Supabase, or LIVE service changes.
+- PR #58 remains Draft and unmerged. Do not merge or deploy without the owner's explicit approval.
+
+### Next development step — Block 4
+
+Continue with end-to-end clarification continuity in the existing authenticated chat pipeline:
+1. Trace `dialogueState.continuity.clarification_reply` through the real chat route into the cognitive router and task/scouting parser.
+2. Verify that a confirmed clarification answer preserves the previous scouting goal and its already established filters, without inventing missing filters.
+3. Verify that ambiguous answers ask one focused question and new-topic messages are not forced into the previous task.
+4. Add end-to-end tests for multiple assistant questions, negated questions, option segmentation, Arabic/Derja variants, and owner/conversation isolation.
+5. Keep all work on the feature branch; do not merge or deploy without explicit approval.
+
+### New-chat handover
+
+Read this file from the current feature branch and inspect its latest HEAD and PR #58 state before making further changes. Block 3 is verified complete; resume at **Block 4 — end-to-end clarification continuity**.
+
+
+## 2026-11-27 — Block 4 implementation checkpoint: End-to-End Clarification Continuity
+
+### Verified baseline and findings
+- PR #58 is Open, Draft and unmerged; head branch `feature/messinho-conversation-engine`, base `feature/messinho-unified-ai-integration`.
+- Exact PR head before Block 4: `b7a49d8684d7d5b4ab82ed2b36b54f56b925ac40`; PR #58 is 74 commits ahead of its integration base and 0 behind.
+- Block 3 exact-head CI: Node tests, backend syntax and full STAGING CI all completed successfully.
+- The authenticated chat route already attached `dialogue_state` to the cognitive router, but the resulting clarification status was not consumed by the deterministic scouting parser. The parser relied on broad recent user history and a text heuristic for a pending question; it could therefore lose a goal/filter or combine unrelated turns.
+- The previous parser call did not have an explicit, typed continuation object, and the router had no auditable task-goal/filter bundle.
+
+### Block 4 implementation added
+- Added `backend/messinho-clarification-continuity.js`, a transient, bounded bridge from dialogue-state classification to the existing scouting parser.
+- Carries the exact previous scouting goal plus the user's subsequent clarification answers; it does not invent filters.
+- Accumulates multiple turns (e.g. original player/position/age goal → country → league) and supplies only the task-scoped user messages to the parser.
+- Detects new topics and explicitly supplies no previous parser history, preventing old search filters from leaking into a new task.
+- Ambiguous/unlisted answers and long free-text candidate answers are action-blocked until clarified or semantically resolved; negated yes/no questions are conservatively clarified rather than inverted.
+- Supports matching Arabic/Tunisian Derja option text from the actual pending question and bounded option segmentation.
+- Attaches the continuity result to the existing dialogue state passed to the cognitive router and uses the effective goal/answer context in the real `parseMessinhoScoutingRequest` call.
+- Added tests for multiple assistant questions, multi-turn filter retention, new-topic isolation, negated questions, option segmentation, Arabic/Derja, and unrelated task separation.
+- No new table, migration, persistent memory, external provider, permission grant, or model-weight change.
+
+### Verification status
+- Implementation has been committed to the feature branch only.
+- CI results for the new exact commit must be recorded before Block 4 is called complete.
+- No Render deployment has been triggered. No LIVE/Production branch, service or database was changed.
+- PR #58 remains Draft and unmerged; no merge or deployment without the owner's explicit approval.
+
+
+### Block 4 — follow-up hardening (2026-11-27)
+- Fixed a context-isolation edge case: a newer explicit non-scouting topic (e.g. a tax question) now terminates the search-goal scan instead of allowing an older scouting goal to be reused.
+- Corrected the comma/slash option test to exercise the actual pending question and its offered options.
+- PR head and feature branch are being reconciled after the latest file commits; do not mark the block complete until the exact current head has green CI and runtime integration tests.
+
+- Re-verified the real chat history loader: it loads the latest 60 messages scoped by both `owner_id` and `conversation_id`, then sanitizes them before the router and continuity bridge receive them.
+- Added a regression assertion against that exact history-loader block rather than a different conversation endpoint.
+
+
+### Block 4 — End-to-End Clarification Continuity: implementation checkpoint (2026-11-27)
+
+#### End-to-end path verified
+- The real chat endpoint loads the latest 60 messages from `messinho_conversation_messages`, scoped by both `owner_id` and `conversation_id`, then sanitizes the history before routing.
+- `buildMessinhoDialogueState` classifies the current reply against the pending assistant question.
+- `buildMessinhoClarificationContinuity` receives the actual interpreted message, scoped conversation history and dialogue state.
+- The resulting continuity object is attached to `dialogueState.continuity.clarification_continuity`, which is passed to `classifyMessinhoTurn` as part of `linguistic_context.dialogue_state`.
+- On a confirmed clarification reply, the real deterministic scouting parser receives the original task goal plus accumulated answers and only task-scoped user history.
+- On a new topic, the parser receives the new message and an empty prior-history context; previous scouting filters are not carried forward.
+- Ambiguous or unlisted replies remain action-blocked. The continuity module does not authorize actions or persist untrusted dialogue data as durable memory.
+
+#### Automated regression coverage
+- Added unit and composition tests for unique option matching, multiple assistant questions, accumulated filters, unrelated-topic boundaries, negated questions, Arabic/Tunisian Derja, comma/slash option lists, and owner/conversation-scoped history.
+- Added a composed end-to-end test that runs the actual dialogue engine → continuity bridge → cognitive-router message builder → scouting parser path.
+- Added a new-topic end-to-end test confirming that old scouting country and league filters do not leak into a general question.
+- GitHub Actions on exact tested code head `057df8c6e28faee66bf30ca77d4f451340933453`:
+  - MESSINHO Node tests: **591/591 passed**, 0 failed.
+  - Backend syntax workflow: passed; `server.js`, agent core and orchestrator syntax checks succeeded, including full `npm test`.
+  - STAGING branch CI: passed; regression suite, backend syntax and Vite production build succeeded.
+- An earlier CI run exposed stale test assumptions about the parser call signature and a missing pending-option handoff for multiple assistant questions. Those issues were fixed; the exact tested head above is green.
+
+#### Remaining release gate
+- Block 4's code-level end-to-end path and automated regression suite are green.
+- A STAGING runtime smoke test against the deployed authenticated chat endpoint and its real conversation storage remains the final operational verification before declaring Block 4 fully complete.
+- No deployment was triggered by this work. LIVE/Production remains untouched. PR #58 remains Draft and unmerged; no merge or deployment without explicit owner approval.
+
+
+## 21. Owner-approved direction — Universal Conversational Intelligence — 2026-11-27
+
+### Product decision
+- **Owner goal:** MESSINHO must feel like a natural two-person conversation. The user should be able to write or ask freely, including statements, follow-ups, disagreement, jokes, ordinary questions, incomplete phrases, typos, and topic changes. The system must not behave primarily like a fixed command parser or form.
+- **Accepted architecture direction:** Build a central conversational intelligence core first; connect memory, linguistic intelligence, knowledge retrieval, reasoning, research, scouting capabilities, and autonomous agent execution behind it.
+- **Training decision:** Do not block useful conversational capability on training a model from scratch. Use a replaceable capable model provider initially; develop MESSINHO's own memory, knowledge, orchestration, evaluation, and provider abstraction now. Build a controlled training pipeline over time from approved, privacy-safe examples and verified outcomes. Training must be versioned, evaluated against holdout tests, and never auto-promote model weights.
+- **Provider independence:** Hosted OpenAI-compatible and self-hosted OpenAI-compatible model endpoints should be configurable. The provider is a language/reasoning motor, not the owner of MESSINHO's permissions, data, evidence, memory policy, or agent actions.
+- **Existing work preserved:** Linguistic intelligence, grammar, language knowledge, dialogue state, clarification continuity, entity resolution, memory, capability runtime, research/evidence, and agent orchestration remain components of the target system; they are not replaced by a greeting dictionary or another isolated chat.
+
+### Diagnostic finding
+- The 2026-11-27 STAGING chat test reached the API and persisted the message, but the semantic model call returned `provider_error`.
+- Render startup logs confirmed `OPENAI_API_KEY` was configured and model name `gpt-4.1-mini` was selected; this does not prove that the key, model entitlement, request format, or provider request was accepted.
+- The previous log omitted HTTP status and provider error code, so the exact cause was not observable. The new runtime returns bounded provider status/error codes and server logs record HTTP status plus error code without logging secrets.
+- The deterministic greeting shortcut was removed: greetings and all other ordinary messages now use the same conversational model path. A hard-coded greeting response is not considered conversational intelligence.
+
+### Implementation started on `feature/messinho-conversation-engine`
+1. Added `backend/messinho-model-runtime.js`:
+   - Provider-neutral OpenAI-compatible chat-completions adapter.
+   - Configurable `MESSINHO_MODEL_BASE_URL`, `MESSINHO_MODEL_API_KEY`, and `MESSINHO_MODEL_NAME`, with backward-compatible `OPENAI_*` defaults.
+   - Supports hosted or self-hosted endpoints using the OpenAI-compatible protocol.
+   - Retries with JSON-object response mode only when a provider rejects JSON Schema response format.
+   - Bounded failure diagnostics; never returns or logs credentials.
+2. Updated `backend/messinho-conversational-intelligence.js`:
+   - Uses the provider-neutral runtime instead of a hard-coded OpenAI URL.
+   - Natural conversation is explicitly prioritized over command parsing; ordinary statements, opinions, disagreement, jokes, emotion, follow-ups, and topic changes must receive natural responses.
+   - Invalid JSON/model output is distinguished from network/provider failures.
+3. Updated `backend/server.js`:
+   - Reads the new provider configuration variables while preserving existing OpenAI configuration.
+   - Removed the special hard-coded greeting bypass; every greeting now reaches the same conversation intelligence path.
+   - Provider failure diagnostics include HTTP status and error code, not secret values.
+4. Updated `tests/messinho-conversational-intelligence.test.js`:
+   - Provider endpoint configuration, local endpoint support, JSON Schema compatibility fallback, safe provider error diagnostics, natural-conversation prompt behavior, and shared greeting path.
+   - Existing malformed model-output expectation updated to the explicit `invalid_output` status.
+
+### Roadmap / release gates
+1. Complete provider runtime and conversational core tests; verify GitHub CI.
+2. Deploy only the tested feature branch to STAGING; verify the exact deployed commit.
+3. Diagnose the actual provider rejection from the newly exposed HTTP status/error code; fix the provider configuration or compatibility issue based on evidence, not guesses.
+4. Run authenticated conversation smoke tests covering greetings, ordinary statements, follow-up questions, disagreement, topic changes, typos, German/English/French/Arabic/Derja, and general factual questions.
+5. Connect grounded knowledge retrieval and permitted research as optional tools selected by the conversational core; keep source provenance and uncertainty visible.
+6. Strengthen conversation memory with owner/conversation isolation, bounded context, durable summaries, and explicit privacy controls.
+7. Add reasoning/tool orchestration with action permissions, confirmation gates, budgets, timeouts, audit logs, and safe retries.
+8. Build the controlled training/evaluation pipeline: approved conversation examples, data cleaning and privacy review, train/validation/holdout splits, baseline comparisons, regression/safety tests, versioned candidate models, and administrator approval before activation.
+9. Only later evaluate self-hosted inference and a custom-trained model against quality, latency, operating cost, privacy, and hardware requirements.
+
+### Current status at checkpoint
+- Implementation commit: `fc9ef66e573cc502aa6d61ed4b0401de24eef5a3`.
+- GitHub Actions on that code commit: MESSINHO Node tests — success (594/594); backend syntax — success; full STAGING branch CI including regression suite and Vite build — success.
+- Render STAGING service `myscoutingdatabase-messinho-staging`, service ID `srv-dc3chlqjnfac73acd6ig`, deployment `dep-dc50khm1egvs73a4qcpg`: status `live`, commit `fc9ef66e573cc502aa6d61ed4b0401de24eef5a3`, completed `2026-11-27T22:55:48Z`.
+- Runtime start logs confirm `node backend/server.js`, API listening on port 10000, OpenAI model configuration detected, and Supabase Data API HTTP 200.
+- **Not yet verified:** an authenticated live chat response through the new provider runtime. The previous test produced `provider_error`; use the newly added HTTP status and provider error code after the owner sends a test message to identify the exact provider-side cause.
+- No merge, no production deployment, no Supabase schema migration, no player/user data mutation, and no model training/weight changes were performed by this work.
+- Pull Request #58 remains open, Draft, and unmerged.
+- No merge, no production deployment, no Supabase schema migration, no player/user data mutation, and no model training/weight changes were performed by this work.
+- Pull Request #58 remains open and unmerged.
+
+
+## 22. Block 2 — Linguistic knowledge integrated into the cognitive turn — 2026-11-27
+
+### Objective
+Make the existing approved grammar, vocabulary, pragmatics and conversation knowledge available to the same semantic turn that understands the user's message, rather than loading it only in a legacy response path.
+
+### Implementation
+- `backend/messinho-conversational-intelligence.js`
+  - `buildMessinhoCognitiveRouterMessages` now accepts `linguisticKnowledgeContext`.
+  - Adds a bounded list of up to 8 approved language entries to the cognitive input.
+  - Explicitly instructs the model to use entries only when relevant, match each entry to its own language segment, and never transfer grammar or vocabulary between languages.
+  - Treats examples as illustrative, not fixed response templates.
+- `backend/server.js`
+  - Loads language knowledge through the existing first-party, active-entry-only lookup before semantic cognitive routing.
+  - Passes the formatted entries into `classifyMessinhoTurn`.
+  - Reuses the same lookup result for response metadata; avoids querying the language knowledge base twice in one turn.
+- `tests/messinho-conversational-intelligence.test.js`
+  - Verifies German and Tunisian Derja entries both reach the same cognitive turn while preserving their language identifiers.
+  - Verifies the prompt explicitly prevents cross-language grammar/word transfer.
+  - Verifies server ordering: language knowledge is loaded before semantic routing and passed into the cognitive turn.
+
+### CI and code verification
+- Tested implementation commit: `3437646ebf0d19524801ad8d7d2df0119c65f36a`.
+- MESSINHO Node tests: success.
+- Backend syntax: success.
+- Full STAGING branch CI including regression suite and Vite production build: success.
+- An intermediate test commit `56d27faf` correctly failed because the new regression assertion caught that the language lookup had not yet been moved before routing. The lookup was moved to the correct location; commit `3437646e` passed all three workflows.
+
+### Deployment gate
+- Render STAGING deployment `dep-dc50mnt6e07s738vi2ag` is **live** on branch `feature/messinho-conversation-engine`, commit `f078eb7652e6b177b92b4598dcb0dac8328d9f52` (documentation-only commit containing the tested code from `3437646e`). Build succeeded; startup logs confirm API listening, model configuration present, and Supabase Data API HTTP 200.
+- No Production deployment, merge, database schema mutation, or model training performed.
+
+
+## 23. Block 3 — Conversation Evaluation Engine — 2026-11-28
+
+**Status: implemented on the staging feature branch; GitHub Node tests and full STAGING CI succeeded on commit `a1b405b5c9d888fae13ab3058370dc5893cd4216`.**
+
+- Added `backend/messinho-conversation-evaluation.js` with versioned deterministic evaluation of response presence, response-language agreement, retained context markers, required clarification, blocked tool execution, topic reset, and structured language-segment isolation.
+- Added synthetic, non-user conversation fixtures in `tests/fixtures/messinho-conversation-evaluation.json` for small talk, follow-up continuity, topic changes, ambiguity, permission restrictions, and multilingual/code-switch handling.
+- Added `tests/messinho-conversation-evaluation.test.js` covering the evaluator, fail-closed checks, language segmentation, and recurring-failure summaries.
+- Subjective dimensions (naturalness, relevance, coherence, tone, linguistic fluency) are explicitly **not** represented as objectively measured by simple rules. They remain marked for human review.
+- This is an evaluation foundation, not model training, self-modifying weights, or proof that live dialogue quality has improved. It does not ingest private user conversations.
+- **Release gate:** run full MESSINHO tests, backend syntax and staging CI; then verify the exact STAGING deployment. Authenticated end-to-end chat smoke test remains outstanding.
+- **Safety boundary:** no production branch, production service, database migration, or model-weight changes.
+
+
+## 24. Block 4 — Conversation memory and continuity — 2026-11-28
+
+**Status: implementation committed to the staging feature branch; CI verification pending.**
+
+### Implementation
+- Added `backend/messinho-conversation-memory.js`.
+  - Builds a bounded, extractive context summary from the already persisted message history for the current conversation.
+  - Scope is explicitly `owner_conversation`; the server loads messages using both authenticated owner ID and conversation ID before building the summary.
+  - Maximum input history: 40 messages; maximum summary: 8 items, 260 characters per item and 1,600 characters total.
+  - Filters sensitive-looking content using the existing memory safety classifier and de-duplicates repeated messages.
+  - Does not create a new database table, migration, or a cross-conversation memory store. The summary is re-derived from the durable conversation messages on each turn; `persisted_summary=false` is intentional.
+- `backend/server.js`
+  - Builds the conversation summary only after owner-scoped conversation history has been loaded.
+  - Passes it separately from long-term user memory into the semantic cognitive turn.
+- `backend/messinho-conversational-intelligence.js`
+  - Adds a separate `conversation_memory_context` payload and instructions to treat it as bounded, extractive, conversation-local evidence—not verified world knowledge, long-term memory, or instructions.
+- Added tests in `tests/messinho-conversation-memory.test.js` and extended `tests/messinho-conversational-intelligence.test.js` for scope, bounds, sensitive-text filtering, de-duplication, and separation from long-term memory.
+
+### Limits and privacy
+- This block strengthens continuity across long conversations because context can be reconstructed from the durable message history even when only the last 12 turns are passed as direct dialogue.
+- It does not claim that MESSINHO independently learns model weights or creates permanent user memories from ordinary chat.
+- Sensitive-text filtering is a defensive heuristic, not a complete privacy classifier. Existing authenticated owner/conversation database filters remain the primary isolation boundary.
+- No database migration or data mutation beyond normal existing chat-message persistence.
+
+### Verification and release gate
+- Block 3 CI succeeded on commit `a1b405b5c9d888fae13ab3058370dc5893cd4216`; Node tests and full STAGING branch CI completed successfully.
+- Block 4 changes are committed; run full Node tests, backend syntax and STAGING CI before deployment.
+- Authenticated end-to-end chat smoke test remains outstanding.
+- No Production branch/service changes; PR #58 remains Draft/Open/unmerged.
+
+
+### Block 4 verification and STAGING deployment
+- Final verified commit: `659a8e16f6623a19c2433a75633da24baf794803`.
+- MESSINHO Node tests: success; backend syntax: success; full STAGING CI: success.
+- Render STAGING deployment `dep-dc50vmc9v7es738ododg`: **live**, exact commit `659a8e16f6623a19c2433a75633da24baf794803`, completed `2026-11-27T23:19:30Z`.
+- The authenticated end-to-end chat smoke test remains outstanding; deployment success alone does not prove a full user chat exchange.
+
+
+## 25. Block 5 — Evidence-aware conversational reasoning — 2026-11-28
+
+**Implementation commit tested: `324d72cd1092e59fcf8c49f01ef8d7eaea992f44`.**
+
+### Implementation
+- Added `backend/messinho-reasoning-context.js`.
+  - Builds a bounded evidence index from the current conversation's already owner-scoped history.
+  - Attributes each statement to the user or assistant.
+  - Carries structured player/club/team references from stored research context separately from ordinary statements.
+  - Includes bounded follow-up signals, pending question, prior user goal and entity-resolution status.
+  - Explicitly labels evidence policy `attributed_not_verified`; it does not certify claims or infer new facts.
+- Updated `backend/server.js` to construct the reasoning context from the current owner-scoped history, dialogue state and grounded entity-resolution result.
+- Updated `backend/messinho-conversational-intelligence.js`.
+  - Critical integration fix: forwards approved language knowledge, conversation-local memory and reasoning context through `classifyMessinhoTurn` into the actual model request. Previously, server arguments for language/memory context were accepted by the server call but omitted from the classifier signature/forwarding path.
+  - Adds explicit reasoning discipline: distinguish user assertions, assistant suggestions, structured research evidence and hypotheses; explain conditional conclusions and assumptions; do not invent player measurements or scouting observations.
+  - Tactical examples such as pace vs. recovery runs are framed as hypotheses dependent on role, positioning, anticipation and team structure.
+- Added `tests/messinho-reasoning-context.test.js` and an integration test verifying that all three context types reach the same model request.
+
+### Verification
+- First regression run exposed a text-normalization regex defect in the new evidence index (it altered names). Fixed before release; the corrected implementation passed Node tests, backend syntax and full STAGING CI.
+- Verified test workflows on commit `324d72cd1092e59fcf8c49f01ef8d7eaea992f44`: Node tests success; full STAGING branch CI success.
+- Render STAGING deployment `dep-dc511pec6qcc73fal28g` was triggered against the exact tested commit; build succeeded. Deployment rollout was still progressing at checkpoint.
+- Authenticated end-to-end chat smoke test remains outstanding. Do not equate unit/CI success with proof of live natural dialogue quality.
+- No production branch/service changes, no database migration, no automatic model training or weight modification. PR #58 remains Draft/Open/unmerged.
+
+
+## 26. Block 6 — Reasoning Validation — 2026-11-28
+
+**Implementation commit tested: `03ecaefd92df74444e23d4352294375b45f80716`.**
+
+### Objective
+Add a deterministic validation gate to MESSINHO's actual cognitive model reply path. The gate must prevent unsupported player measurements, reduce overconfident tactical conclusions, and avoid silently resolving ambiguous player references while preserving natural conversation.
+
+### Implementation
+- Added `backend/messinho-reasoning-validation.js`:
+  - Validates model-generated replies immediately after the structured cognitive decision is parsed and before the decision returns to the authenticated chat route.
+  - Rejects sprint-speed and related measurement claims unless the same numeric value and compatible unit exist in structured research evidence.
+  - Rejects mismatched numeric values and units.
+  - Converts ambiguous/unresolved player references into one focused clarification rather than allowing a guessed player assignment.
+  - Requires tactical consequences of a qualitative pace description to be framed as conditional possibilities; unsupported certainty is replaced with a natural, qualified explanation.
+  - When a reply is guarded, candidate memory items from that same model decision are discarded.
+- Updated `backend/messinho-reasoning-context.js`:
+  - Preserves only an allowlist of structured player speed/sprint metrics from existing owner-scoped research context.
+  - Reads structured metric fields and profile facts/recent-performance values; free-text conversation statements and arbitrary numeric fields are not treated as metric evidence.
+  - Keeps the existing `attributed_not_verified` evidence policy.
+- Updated `backend/messinho-conversational-intelligence.js`:
+  - Integrates the deterministic validator into `classifyMessinhoTurn`, the existing cognitive model path. No second chatbot or alternate conversation route was created.
+
+### Tests and exact-commit CI
+- Added `tests/messinho-reasoning-validation.test.js`.
+- Extended `tests/messinho-reasoning-context.test.js`.
+- Test cases cover qualitative pace statements, fabricated 32.4 km/h values, exact structured metric matches, mismatched values/units, ambiguous player identity, conditional tactical hypotheses, overconfident tactical assertions, and the actual cognitive classifier integration.
+- Exact code commit `03ecaefd92df74444e23d4352294375b45f80716`:
+  - MESSINHO Node tests run `46083654075`: **616/616 passed**.
+  - MESSINHO backend syntax run `46083654028`: **success**; backend syntax checks and full test suite passed.
+  - MESSINHO staging branch CI run `46083654025`: **success**; regression suite, backend syntax checks and Vite production build passed (1,640 modules transformed).
+- A Node.js `punycode` deprecation warning and the Vite empty `supabase-vendor` chunk warning were non-fatal; build completed successfully.
+
+### Safety and release status
+- Changes are committed only to `feature/messinho-conversation-engine`.
+- No database migration, persistent data mutation, provider secret change, model-weight training, automatic learning promotion, or production deployment.
+- PR #58 remains Draft, open and unmerged.
+- Render STAGING remains on the previously verified code commit `324d72cd1092e59fcf8c49f01ef8d7eaea992f44`; Block 6 has **not** yet been deployed.
+- Authenticated live chat acceptance testing remains outstanding. CI validates deterministic behavior and integration, but does not prove end-user conversation quality or authenticated runtime behavior.
+
+### Known limits
+- This is a deterministic guard for targeted player metrics, ambiguous identity and pace-related tactical hypotheses, not a universal fact checker for every possible football statement.
+- A metric is treated as available evidence only when it is present in the allowlisted structured research profile; ordinary conversation text is never sufficient.
+- Further metric types should be added only with explicit schema mappings, source/provenance semantics and regression tests.
+
+### Next release gate
+1. Confirm the Render workspace selection before using workspace-scoped logs/deploy actions.
+2. Reconfirm PR #58 head and the exact tested code commit.
+3. Deploy only the tested commit to the named Render STAGING service.
+4. Verify deployment ID/status, deployed SHA, startup logs and staging health.
+5. Run authenticated chat acceptance tests for the five core cases; record results separately from CI.
+6. Keep PR #58 Draft and unmerged. Production remains untouched.
+
+
+## 27. Block 7 — Pragmatic Conversational Context — 2026-11-28
+
+**Status: implementation committed to the STAGING feature branch; exact-head CI and runtime acceptance are pending.**
+
+### Objective
+Improve the natural two-person conversation experience by giving the existing cognitive router bounded cues for how a message is phrased — for example, a correction, disagreement, opinion, direct question, greeting, thanks, acknowledgement, explicit self-reported feeling, or request. This is a supporting context layer, not a second intent router or chatbot.
+
+### Implementation
+- Added `backend/messinho-pragmatic-context.js`:
+  - Extracts at most two explicit, bounded conversational cues from the current message.
+  - Supports selected German, English, French, Spanish, Arabic and Tunisian Derja surface expressions.
+  - Labels cue strength separately from semantic intent confidence.
+  - Uses explicit self-report wording before marking an emotion cue; it does not infer hidden emotional states.
+  - Returns only fixed cue labels and guidance, not user text as executable instructions.
+  - States that cues are weak hints and never facts, permissions, or action authorization.
+- Updated `backend/messinho-conversational-intelligence.js`:
+  - Passes `pragmatic_context` into the same structured model turn as dialogue, approved language knowledge, conversation memory and reasoning context.
+  - Instructs the model to reconsider an answer when the user corrects or disagrees, rather than automatically defending the previous response.
+  - Keeps the user's actual message, semantic decision and safety rules authoritative.
+- Updated `backend/server.js`:
+  - Builds the pragmatic context from the current interpreted message.
+  - Passes it through the existing authenticated `POST /api/agent/chat` route.
+- Added `tests/messinho-pragmatic-context.test.js`:
+  - Covers correction, disagreement, opinions, explicit self-reported feelings, greeting, gratitude, acknowledgement, multilingual question cues, bounded output and integration into the real cognitive model request.
+  - Includes a server-wiring regression check for the authenticated chat path.
+
+### Safety and scope
+- No new chatbot, conversation endpoint, database table, migration, persistent memory store, external action, permission change, model-weight change or training job.
+- Pragmatic cues are transient and are not saved as user facts.
+- Pattern matching is intentionally conservative and incomplete; the model must still interpret the full message and dialogue context.
+- Subjective response quality still requires human review and authenticated conversation testing.
+
+### Checkpoint
+- Work branch: `feature/messinho-conversation-engine`.
+- PR #58 remains open, Draft and unmerged.
+- Implementation commits are on the feature branch; latest code commit before this documentation update: `ec408c12ba0f7acb35f2d3abe535222a81114079`.
+- **Exact-head CI status: pending verification.** The available workflow lookup does not expose push-triggered run IDs; do not mark the new tests as passed until a successful run for the exact current head is verified.
+- Render STAGING remains on the previously verified Block 6 deployment commit `f5817aa38fc8f53a3e40fef47524e7eba8c78a7f`. Block 7 has not been deployed.
+- Authenticated Admin/Scout end-to-end conversation testing remains outstanding.
+- Production branch, production Render service and production database remain untouched.
+
+### Next actions
+1. Verify the exact feature-branch head and obtain successful Node tests, backend syntax and full STAGING CI for that head.
+2. Deploy only the verified commit to `myscoutingdatabase-messinho-staging` and confirm the exact deployed SHA and startup health.
+3. Run authenticated dialogue acceptance tests for correction, disagreement, ordinary statements, new-topic changes, follow-up continuity, explicit emotion, and multilingual/code-switch input.
+4. Review false positives and false negatives before expanding cue coverage.
+5. Keep PR #58 Draft and unmerged until the owner explicitly authorizes otherwise.
+
+
+## 28. Block 8 — Conversational Response Intelligence — 2026-11-28
+
+**Status: implementation committed to the STAGING feature branch; exact-head CI and runtime acceptance are pending.**
+
+### Objective
+Turn dialogue and pragmatic cues into a useful response structure, so MESSINHO answers the user's actual contribution in context rather than merely classifying the message. The response must remain natural and adaptive, not a rigid template.
+
+### Implementation
+- Added `backend/messinho-response-composition.js`:
+  - Builds a bounded response-shaping contract for the existing cognitive turn.
+  - Distinguishes correction, disagreement, direct questions, opinions, explicit self-reported feelings, pending acknowledgements, follow-up questions, ambiguous clarification and topic changes.
+  - For corrections/disagreement: acknowledge, reconsider evidence and reasoning, then correct or explain.
+  - For direct questions: answer first, then explain; when it is also a follow-up, preserve references and constraints from the recent exchange.
+  - For opinions: engage fairly and separate evidence from interpretation.
+  - For explicit feelings: acknowledge only what the user directly stated, without diagnosis or assumptions.
+  - For ambiguous clarification: ask one focused question and do not start the dependent task.
+  - For new topics: do not carry old task filters forward.
+  - Explicitly avoids unnecessary follow-up questions and forced response templates.
+- Updated `backend/messinho-conversational-intelligence.js`:
+  - Includes `response_composition_context` in the same model request as the actual message, dialogue state, language knowledge, conversation memory, reasoning evidence and pragmatic cues.
+  - Adds instructions to treat the response plan as guidance only, never expose it to users, and keep evidence and application safety authoritative.
+- Updated `backend/server.js`:
+  - Builds the response composition context from the current interpreted message, existing dialogue state, clarification lifecycle and pragmatic context.
+  - Passes it through the existing authenticated `POST /api/agent/chat` route.
+- Added `tests/messinho-response-composition.test.js`:
+  - Covers corrections, disagreement, questions, follow-up questions, opinions, explicit emotion, ambiguous clarification and new-topic boundaries.
+  - Verifies that the plan reaches the cognitive model request and that the authenticated chat route constructs and forwards it.
+
+### Safety and scope
+- This is response planning guidance, not an independent chatbot or a deterministic answer generator.
+- It does not create facts, user memories, permissions, tool calls, or actions.
+- The model remains responsible for composing the actual natural-language reply; evidence validation and application role checks remain in force.
+- No database migration, persistent data mutation, provider secret change, model-weight training or production deployment.
+
+### Checkpoint (historical snapshot — superseded by Sections 29 and 30)
+- The original Block 8 checkpoint preceded the subsequent CI verification and STAGING deployments.
+- Current verified implementation, CI and deployment records are maintained in Sections 29 and 30 below.
+- PR #58 remains open, Draft and unmerged.
+- Authenticated Admin/Scout end-to-end conversation testing remains outstanding.
+- Production branch, production Render service and production database remain untouched.
+
+
+## 29. Block 7/8 verification and pragmatic cue-strength correction — 2026-11-28
+
+### Review finding and correction
+- Post-deployment review found a field-name mismatch in `backend/messinho-pragmatic-context.js`: cue construction read `entry.confidence`, while the pattern definitions provide `entry.signal_strength`.
+- Corrected the mapping to `signal_strength: entry.signal_strength`; the statement fallback retains an explicit bounded strength of `0.55`.
+- Added regression assertions in `tests/messinho-pragmatic-context.test.js` for correction (`0.94`), disagreement (`0.90`), opinion (`0.87`) and explicit emotion (`0.86`).
+- Runtime correction commit: `7bbf084871fa5264916d2ed777f2f48739be7c9a`.
+- Regression-test commit / exact feature-branch head at verification: `08dd035d2edabebdcf7b8c51a6bfc5527871da98`.
+
+### Exact-head CI
+All three workflows completed successfully on exact head `08dd035d2edabebdcf7b8c51a6bfc5527871da98`:
+- MESSINHO Node tests: run `46086151986` — success.
+- Backend syntax: run `46086152006` — success.
+- MESSINHO STAGING branch CI: run `46086151981` — success.
+- These results establish automated test/build success for this exact commit; they do not establish authenticated end-to-end dialogue quality.
+
+### STAGING release gate
+- Render service verified: `myscoutingdatabase-messinho-staging`, service ID `srv-dc3chlqjnfac73acd6ig`.
+- Service branch: `feature/messinho-conversation-engine`; automatic deployment is disabled (`autoDeploy=no`), so deployment must be manually triggered after checks.
+- Workspace: `tea-dboagk9srm7s73bdor10`.
+- Deployed to STAGING: Render deployment `dep-dc51onmc6qcc73fd44sg`, status **live**, finished `2026-11-28T00:12:59.518506Z`; deployed branch head `c6fbaa3b5cd8c0eafa1c3dcad096d64e80f41a76` (documentation-only commit on top of CI-verified runtime code/test commit `08dd035d2edabebdcf7b8c51a6bfc5527871da98`).
+- Authenticated Admin/Scout end-to-end tests remain outstanding, including multi-turn continuity, correction, disagreement, follow-up constraints, ambiguous references, explicit emotion and topic changes.
+- PR #58 remains open, Draft and unmerged. Production branch, service and database remain untouched.
+
+### Next actions
+1. Trigger the verified feature-branch commit on the named STAGING service only.
+2. Confirm deployment is live and reports the expected commit SHA; inspect startup logs and staging health.
+3. Run authenticated dialogue acceptance tests and record observed responses separately from automated CI.
+4. Continue with the next conversational-engine block only after the staging acceptance baseline is recorded.
+
+
+### Deployment verification addendum
+- Render STAGING deployment `dep-dc51onmc6qcc73fd44sg` completed with status **live** at `2026-11-28T00:12:59.518506Z`.
+- Deployed commit: `c6fbaa3b5cd8c0eafa1c3dcad096d64e80f41a76` (documentation-only checkpoint commit); runtime code and tests are the already CI-verified commit `08dd035d2edabebdcf7b8c51a6bfc5527871da98`.
+- Render build log: all 630 Node tests passed, 0 failed; Vite production build transformed 1,640 modules and completed successfully.
+- Runtime startup log: `npm start` launched `node backend/server.js`; API reported listening on port 10000; Supabase Data API check returned HTTP 200.
+- This verifies build, deployment and startup connectivity. It does not replace authenticated Admin/Scout end-to-end conversational acceptance tests.
+
+
+## 30. Block 9 — Natural Dialogue Intelligence — 2026-11-28
+
+### Objective
+Separate semantic intent routing from natural-language response composition. The prior cognitive router returned both the intent decision and the user-facing reply in one constrained JSON-schema completion. Block 9 adds a dedicated free-form response-generation turn for ordinary conversation, so the reply is no longer forced through the router's structured-output format.
+
+### Implementation
+- New module: `backend/messinho-natural-conversation.js`.
+- New tests: `tests/messinho-natural-conversation.test.js`.
+- `backend/server.js` invokes the composer only after the cognitive router has selected `conversation`; scouting, research, memory and engineering routing remain separate.
+- The composer uses the existing provider-neutral model runtime and current configured provider/model.
+- Natural reply generation uses a plain-text completion at temperature `0.55`, rather than the router's JSON-schema response format.
+- The response turn receives the current user message, up to 12 recent speaker-labelled turns, bounded conversation-memory context, detected language segments, approved language knowledge, bounded reasoning evidence, pragmatic cues and response-composition guidance.
+- Replies preserve paragraph breaks and multiline formatting.
+- If the second completion is unavailable or invalid, the server falls back to the router's already-generated reply. The existing conversation response guard remains the final check before the reply is returned.
+- The composer cannot call tools, initiate research, persist memory, alter settings, grant permissions or claim that a system action has been completed.
+- The composer prompt explicitly prioritizes natural turn-taking, answering the actual point, following topic changes, considering corrections, avoiding automatic follow-up questions and preserving the user's language/dialect.
+
+### Automated verification
+Exact feature-branch head: `d39e8e3a0cb0cf4863ddc7082b0a391693c432ed`.
+- MESSINHO Node tests: run `46087356010` — success; **638 tests passed, 0 failed**.
+- Backend syntax: run `46087356003` — success.
+- Full STAGING branch CI (tests, backend syntax and Vite production build): run `46087355979` — success.
+- The dedicated tests cover speaker-labelled history, history bounds, invalid role removal, language-specific knowledge, plain-text completion, provider fallback, JSON-shaped output rejection and paragraph preservation.
+
+### STAGING deployment
+- Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`).
+- Deployment: `dep-dc51sv56e07s7393msng`.
+- Status: **live**; finished at `2026-11-28T00:22:00.653231Z`.
+- Deployed exact code/test commit: `d39e8e3a0cb0cf4863ddc7082b0a391693c432ed`.
+- Render build completed successfully; Vite transformed 1,640 modules.
+- Runtime started with `node backend/server.js`; API listened on port 10000 and Supabase Data API returned HTTP 200.
+- STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
+
+### Limitations and acceptance gate
+- This is a separate natural-language generation step, not a new foundation model or model-weight training.
+- Ordinary conversation now uses two model completions (semantic routing plus natural response composition). The resulting latency and provider cost must be measured during authenticated testing.
+- CI and successful startup do not prove that the live model consistently sounds natural. Authenticated Admin/Scout dialogue tests remain outstanding.
+- Required dialogue acceptance: multi-turn follow-up, pronoun/reference continuity, user correction, disagreement, incomplete colloquial sentence, language switch (German/English/French/Arabic/Derja), topic change, direct factual question and provider-failure fallback.
+- PR #58 remains open, Draft and unmerged. Production branch, production Render service and production database remain untouched.
+
+### Next action
+Test the deployed STAGING conversation with an authenticated Admin or Scout account. Record actual replies and response times before starting Block 10.
+
+
+## 31. Block 10 — Conversation Continuity and Referent Hints — 2026-11-28
+
+### Objective
+Improve natural multi-turn dialogue so short follow-ups, pronouns, corrections and topic changes are interpreted against the correct recent exchange. Avoid solving continuity by blindly replaying old task constraints or treating prior assistant suggestions as user-confirmed facts.
+
+### Implementation on the feature branch
+- Added `backend/messinho-conversation-continuity.js`:
+  - Builds a bounded extractive context from at most 16 recent speaker-labelled turns.
+  - Classifies the current turn as `follow_up`, `correction`, `new_topic` or `standalone`.
+  - Detects selected referential expressions and discourse connectors without treating ordinary German articles such as “der/die/den/dem” as pronoun references.
+  - Supplies the immediately preceding user topic and assistant contribution as separate candidates with explicit source/authority labels.
+  - Filters sensitive historical text and caps candidate counts and text lengths.
+  - Explicitly treats assistant content as a hypothesis/question, not proof; corrections invalidate contradicted interpretations; new topics drop prior task constraints.
+  - Context is a hint only: it does not resolve player identity, authorize actions, persist memory, or establish facts.
+- Updated `backend/server.js` to build this context inside the existing authenticated chat route and pass it to both cognitive routing and natural response composition.
+- Updated `backend/messinho-conversational-intelligence.js` and `backend/messinho-natural-conversation.js` to consume the same continuity context.
+- Corrected `backend/messinho-conversation-memory.js`: the bounded eight-item conversation context now prioritizes the newest distinct messages while preserving chronological order. Previously the first eight unique items in the 40-message window could crowd out the latest exchange.
+- Added `tests/messinho-conversation-continuity.test.js`; extended the conversation-memory and natural-composer tests for recency, topic changes, correction handling, false-positive control and authenticated-route wiring.
+
+### Safety and scope
+- No new chatbot or chat endpoint; the existing authenticated chat remains the only user-facing interface.
+- No database migration or schema change; no direct persistent data mutation, model training, model-weight update, permission change, or external action.
+- Sensitive-text filtering is a defensive heuristic only; owner/conversation-scoped history loading remains the primary isolation boundary.
+- The context is extractive and bounded. It does not claim semantic certainty or replace the existing player entity-resolution and clarification systems.
+
+### Verification and deployment status
+- Implementation commits (feature branch):
+  - `380c4f13249ddb19d4e1558ead224c78ec754620` — continuity module.
+  - `43fdbf933f3ef9ad6c6d53127161a2789b51a93c` — initial continuity tests.
+  - `33fb8c433e9ccbde1be621922c6a9102851ca802` — recent-first conversation memory.
+  - `c4983b78f8c0bf0d05bf566c04b51d13212895e0` — cognitive-router integration.
+  - `f6cde5983dda7b0d30caf444b67ddf5d491f3444` — natural composer integration.
+  - `f07931beb441edfd7709dbe1d18ba3ec89dbf437` — authenticated chat wiring.
+  - `8d29f685e68d05c79fa70ddd6761113c183e59f7` — conversation-memory recency regression test.
+  - `27c64320aef4ea7fffd151f7e580f267aa689e5d` — cognitive/server integration tests.
+  - `b7d4aa093e59339720ff274107f774a6031c2cd2` — natural composer continuity test.
+  - `09374a681c9d064e9e29ee32da27b989dad9562f` — avoid article/pronoun false positives.
+  - `bbae88cf7a50f007244a44c4212c3a57c6e267b8` — regression test for false-positive control.
+- Exact-head CI for the final implementation commit has **not yet been verified**; the workflow lookup returned no runs/statuses for that commit. Do not mark the tests as passed until a successful exact-head CI run is obtained.
+- Render STAGING remains on the previously verified live deployment `dep-dc51sv56e07s7393msng`, runtime commit `d39e8e3a0cb0cf4863ddc7082b0a391693c432ed`. Block 10 has **not** been deployed.
+- Authenticated Admin/Scout multi-turn acceptance testing remains outstanding.
+- PR #58 remains Draft and unmerged. Production branch, Render service and database remain untouched.
+
+### Next actions
+1. Obtain successful Node tests, backend syntax and full STAGING CI for the exact Block 10 feature-branch head.
+2. Review any test failures and fix them before deployment.
+3. Deploy only the exact CI-verified head to the named STAGING service; confirm deployment SHA, live status and startup health.
+4. Test natural multi-turn dialogue with authenticated Admin/Scout accounts, including follow-up references, corrections, topic changes, ambiguous pronouns and preserved/cleared task filters.
+5. Measure the additional context and response latency; keep PR #58 Draft and unmerged.
+
+
+### Block 10 verification addendum — 2026-11-28
+- The first exact-head CI exposed three regressions:
+  1. The transient continuity filter did not yet recognize the German spelling `Passwort`; the sensitive-text pattern now covers both `Passwort` and `password`.
+  2. Existing pragmatic-context and response-composition integration tests asserted the old server argument adjacency; both were updated to verify the additional continuity context argument.
+- The corrected implementation is at code/test commit `805a9131b841c922c509962fc8b16c8ef8a8e1d1`.
+- Exact-commit GitHub Actions results:
+  - MESSINHO Node tests run `46089011829`: **success; 648 passed, 0 failed**.
+  - Backend syntax run `46089011768`: **success**.
+  - Full STAGING branch CI run `46089011717`: **success**, including regression suite, backend syntax checks and Vite production build.
+  - The push-triggered full STAGING CI run `46089007059` also completed successfully on the same code commit.
+- These results verify automated tests and build only; authenticated Admin/Scout live dialogue acceptance is still outstanding.
+- Render STAGING has not yet been updated. The existing deployment `dep-dc51sv56e07s7393msng` remains the last verified live deployment on runtime commit `d39e8e3a0cb0cf4863ddc7082b0a391693c432ed`.
+- The first failing CI runs were `46088875566` (Node tests) and `46088875565` (full STAGING CI); all three identified regressions were corrected before the successful exact-commit runs above.
+- No database/schema or user/player data changes. PR #58 remains open, Draft and unmerged; production remains untouched.
+
+
+### Block 10 STAGING deployment verification — 2026-11-28
+- Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`); configured branch `feature/messinho-conversation-engine`; automatic deployment remains disabled.
+- Exact deployed commit: `7b09843d13a0d2ef2e0bf68643750b98ffd01b88`.
+- Render deployment: `dep-dc5262mi0phs73c3vdvg` — status **live**, finished `2026-11-28T00:41:30.058102Z`.
+- Render build event: `build_ended / succeeded` at `2026-11-28T00:41:12.482445Z`.
+- Render build command ran `npm install --no-audit --no-fund && npm run build`; the build script executes `npm test`, backend `node --check` and Vite production build. The deployment build completed successfully.
+- Runtime logs confirmed `node backend/server.js`, API listening on port 10000, and Supabase Data API HTTP 200.
+- STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- No production branch/service/database changes; no schema migration or user/player data changes.
+- Authenticated Admin/Scout conversation acceptance and latency measurements are still outstanding. Deployment/startup success does not prove subjective dialogue quality.
+- PR #58 remains open, Draft and unmerged.
+
+
+## 32. Block 11 — Long-Horizon Conversation Memory and Active Frame — 2026-11-28
+
+### Ziel
+MESSINHO soll den Gesprächsfaden über längere Dialoge halten, ohne alte Aufgaben blind weiterzuführen, Assistentenvorschläge als Nutzerentscheidungen zu speichern oder ungeprüfte Annahmen zu Tatsachen zu machen.
+
+### Implementierung auf dem Feature-Branch
+- backend/messinho-conversation-memory.js wurde auf Version 1.1.0 erweitert.
+- Das bestehende begrenzte Gesprächsgedächtnis (maximal acht unterschiedliche Nachrichten, maximal 1.600 Zeichen) bleibt erhalten.
+- Neu wird pro Chat-Anfrage ein strukturierter, extraktiver active_frame abgeleitet:
+  - aktueller Themen-/Zielkandidat mit Quelle und Autorität;
+  - expliziter Themenwechsel als Kontextgrenze;
+  - Korrektur als vorrangiger Nutzerhinweis, der die widersprochene Interpretation ersetzt;
+  - offene Rückfrage mit Status awaiting_user_reply, answer_candidate_received oder needs_clarification;
+  - mögliche Referenten getrennt nach Nutzer- und Assistentenquelle;
+  - keine automatische Übernahme von Nutzerrestriktionen aus Assistentenvorschlägen.
+- Der Frame wird aus dem owner-geprüften Gesprächsverlauf abgeleitet und an den aktuellen Modellturn übergeben. Er wird nicht als neue dauerhafte Datenbank-Memory gespeichert.
+- backend/server.js übergibt die aktuelle interpretierte Nachricht, den Dialogzustand und die Kontinuitätshinweise an den bestehenden Memory Builder.
+- Die Formatierung gibt den Active Frame zusammen mit den begrenzten jüngsten Nachrichten an Cognitive Routing und Natural Response Composition weiter.
+
+### Sicherheits- und Datenregeln
+- Kein Datenbankschema, keine Migration und keine Änderung persistierter Nutzer-, Spieler-, Scout- oder Lerndaten.
+- Kein neues globales oder organisationsübergreifendes Gedächtnis; der bestehende owner-/conversation-gefilterte Verlauf bleibt die Quelle.
+- Sensible Texte werden vor Aufnahme in den Active Frame gefiltert; die Filterung ist eine defensive Heuristik und kein Ersatz für Zugriffskontrolle.
+- Der Active Frame ist pro Anfrage abgeleitet, begrenzt und nicht persistent.
+- Bestätigte Nutzerrestriktionen bleiben bis zu einer semantischen Prüfung leer; Vorschläge des Assistenten werden nicht zu Nutzerentscheidungen hochgestuft.
+- Ein mehrdeutiger Referent wird nicht durch Memory entschieden. Bei konkurrierenden Kandidaten muss die bestehende Gesprächs-/Entity-Auflösung klären.
+
+### Tests und Verifikation
+- Neue Regressionstests decken 20+ Turns, Priorisierung des aktuellen Nutzerziels, Themenwechsel, Korrekturen, offene/mehrdeutige Rückfragen, sensible Inhalte und die Nicht-Persistenz des Active Frames ab.
+- Die Änderung ist auf dem Feature-Branch vorbereitet. CI, Backend-Syntax, Build und STAGING-Deployment werden erst nach Ausführung der entsprechenden Prüfungen als bestanden bzw. live dokumentiert.
+- Authentifizierte Admin-/Scout-Dialogtests bleiben erforderlich; reine Unit-Tests beweisen nicht die subjektive Natürlichkeit des Gesprächs.
+
+### Nächste Schritte
+1. Exakte Feature-Branch-CI für Memory-Tests, vollständige Node-Suite, Backend-Syntax und STAGING-Build ausführen.
+2. Fehler beheben und CI erneut auf dem exakten Branch-HEAD prüfen.
+3. Nur den CI-geprüften Feature-Branch auf den vereinbarten STAGING-Service deployen und Commit/Status/Health verifizieren.
+4. Mit Admin und Scout jeweils längere Dialoge testen: 20+ Turns, Themenwechsel, Korrektur, Rückfrage/Antwort, mehrdeutiges Pronomen.
+5. Antwortqualität und Latenz messen; PR #58 Draft/unmerged halten, Produktion unangetastet lassen.
+
+
+### Block 11 verification addendum — 2026-11-28
+- Code/test commit: 4bcd6e759524c602942796158f188958a6667286.
+- MESSINHO Node tests: workflow run 46101535357 — success, **653 passed, 0 failed**.
+- Backend syntax: workflow run 46101535443 — success.
+- Full STAGING branch CI/build: workflow run 46101535355 — success; regression suite, backend syntax and Vite production build completed.
+- The initial test iterations exposed an invalid test-file line break and incorrect expectations for formatter output/correction semantics. These were fixed before the successful exact-head checks above.
+- No database migration, schema change, user/player/scout data write, persistent memory write, model training, model-weight change or permission change was performed.
+- Render STAGING has not yet been updated for Block 11. The previously verified live deployment remains deployment dep-dc5262mi0phs73c3vdvg on runtime commit 7b09843d13a0d2ef2e0bf68643750b98ffd01b88.
+- Authenticated Admin/Scout dialogue acceptance and response-latency measurement remain outstanding.
+- PR #58 remains open, Draft and unmerged. Production branch, Render production service and production database remain untouched.
+
+
+### Block 11 STAGING deployment verification — 2026-11-28
+- Render STAGING service: myscoutingdatabase-messinho-staging (srv-dc3chlqjnfac73acd6ig); configured branch feature/messinho-conversation-engine; automatic deployment remains disabled.
+- Deployed commit: ff6b4e5ab3c0b73a5df0ce53727db3dbd2304e6c.
+- Render deployment: dep-dc54csu1egvs73ahn340 — status live, finished 2026-11-28T03:12:26.035054Z.
+- Build event: build_ended / succeeded at 2026-11-28T03:12:08.45643Z. The Render build executed npm install --no-audit --no-fund && npm run build; the regression suite and Vite production build completed.
+- Runtime logs confirmed npm start, node backend/server.js, API listening on port 10000, Supabase Data API HTTP 200, and Render reported “Your service is live”.
+- STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- No database/schema migration or persistent user/player/scout/learning data changes. No model training, model-weight changes, permission changes or external side effects.
+- Authenticated Admin/Scout conversation acceptance and latency measurements remain outstanding; successful startup does not prove natural dialogue quality.
+- PR #58 remains open, Draft and unmerged. Production branch, Render production service and production database remain untouched.
+
+
+## 33. Block 12 — Natural Language Understanding and Ambiguity: Phase A — 2026-11-28
+
+### Ziel
+Eingaben sollen auch bei Tippfehlern, unvollständigen Formulierungen und mehrsprachigen Nachrichten korrekt verarbeitet werden. Die Normalisierung darf jedoch keine falsche Bedeutung oder einen falschen Spielernamen erzeugen.
+
+### Implementierung
+- backend/messinho-input-correction.js akzeptiert nun ein explizites Sprachprofil.
+- Das deutsche Korrekturlexikon wird nur auf eindeutig als Deutsch erkannte Nachrichten angewendet.
+- Bei gemischten Sprachsegmenten wird die deutsche automatische Korrektur vollständig ausgesetzt; Originaltext und Sprachsegmente bleiben erhalten.
+- Nur Korrekturen mit hoher Sicherheit (bekannte Tippfehler und feste Phrase-Korrekturen) werden auf die Nachricht angewendet, die Dialogzustand, semantisches Routing und Parsing erhalten.
+- Mittlere Sicherheit wird als Vorschlag gekennzeichnet und verändert den tatsächlich verarbeiteten Originaltext nicht.
+- backend/server.js baut zuerst die Sprachdiagnose aus dem unveränderten Nutzereingang. Danach erstellt es input_interpretation mit Originaltext, tatsächlich verwendetem Text, Korrekturstatus, Konfidenz und begrenzten Vorschlägen.
+- Der Cognitive Router erhält den sicher normalisierten Text sowie input_interpretation im linguistischen Kontext. Die natürliche Antwortkomposition erhält denselben Kontext.
+- Die Router-Regeln untersagen, unsichere Korrekturvorschläge als Tatsachen zu behandeln oder Namen, Zahlen, Zitate und unbekannte Wörter zu erraten.
+- Die Dialogzustands-Integration verwendet dieselbe sicher normalisierte Nachricht. Die ursprüngliche Nachricht bleibt als Originalquelle erhalten.
+
+### Regressionstests und Verifikation
+- Andere Sprachprofile (Englisch, Französisch, Spanisch, Hocharabisch, tunesische Derja und gemischte Sprache) werden vom deutschen Korrekturlexikon ausgeschlossen.
+- Hohe und mittlere Korrektursicherheit werden getrennt geprüft.
+- Spielernamen und unbekannte Wörter bleiben erhalten.
+- Integrationstests prüfen die Weitergabe von input_interpretation an den Cognitive Router und die tatsächliche Chat-Route.
+- Node-Testlauf auf Code-Commit 5fc0cbd50647f4222871723d50b52136a99028d5: **658 bestanden, 0 fehlgeschlagen**.
+- Backend-Syntax-/Testworkflow: erfolgreich.
+- Vollständiger STAGING-Branch-CI-Lauf einschließlich Vite-Build: erfolgreich.
+
+### Grenzen — Phase A ist kein vollständiger Sprachversteher
+- Es wurde kein vollständiges Speech-to-Text-Korrekturmodell entwickelt.
+- Es wurden keine neuen Wörterbücher für Englisch, Französisch, Spanisch, Hocharabisch oder tunesische Derja hinzugefügt.
+- Grammatik- und Sprachprofile bleiben die bestehende Analysegrundlage; die Korrekturlogik ist weiterhin konservativ.
+- Semantische Mehrdeutigkeit und Pronomenauflösung werden weiterhin durch Dialogzustand, Entity Resolution und Modellinterpretation behandelt, nicht durch automatische Rechtschreibkorrektur.
+- Noch erforderlich: mehrsprachiger Benchmark mit Umgangssprache, fragmentierten Sätzen, Diktatfehlern, Code-Switching, Namen und konkurrierenden Referenten.
+
+### Sicherheit und Daten
+- Keine Datenbankmigration und keine Änderung persistierter Nutzer-, Spieler-, Scout- oder Lerndaten.
+- Keine Modellgewichte, kein Training, keine Berechtigungen und keine Produktionsressourcen verändert.
+- Änderungen bleiben auf feature/messinho-conversation-engine und STAGING beschränkt.
+- PR #58 bleibt Draft und ungemergt.
+
+
+### Block 12 Phase A STAGING verification — 2026-11-28
+- Tested code commit: 5fc0cbd50647f4222871723d50b52136a99028d5 — 658/658 Node tests passed; backend syntax and full STAGING branch CI/Vite build succeeded.
+- Deployed commit: 18d81a93adb66f2b55e07984259f12c8f3d775b2.
+- Render deployment: dep-dc54ftk9v7es7395f26g — status live, finished 2026-11-28T03:18:53.999979Z.
+- Build event succeeded at 2026-11-28T03:18:36.380358Z.
+- Runtime confirmed API listening on port 10000, Supabase Data API HTTP 200 and Render “Your service is live”.
+- STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- Render automatic deploy remains disabled; only the explicitly verified STAGING service was updated.
+- PR #58 remains open, Draft and unmerged. Production remains untouched.
+
+
+### Block 12 Phase A.1 — conservative language inference for heavily misspelled German
+- The correction language is now selected from the current language diagnosis or the recent conversation language hint.
+- If the current language is ambiguous, German is inferred only when at least two strong German correction signals (known typo aliases or fixed German phrase corrections) are present.
+- One isolated typo is not enough to infer German. A detected non-German or mixed-language segment always blocks the German dictionary.
+- Added regression coverage for multiple strong typo signals, a single typo, Derja text and an explicit non-German language.
+- Code commit 12d82f5cb94736ee6f0f4673fbbecdf8c1a86a02: Node tests, backend syntax and full STAGING CI/Vite build succeeded.
+- This remains a conservative fallback, not general multilingual spell correction.
+
+
+### Block 12 Phase A.1 STAGING deployment verification — 2026-11-28
+- Code commit: 12d82f5cb94736ee6f0f4673fbbecdf8c1a86a02; full Node test, backend syntax and STAGING branch CI/build workflows succeeded.
+- Deployed commit: 7a265d57cccee2cbffed48a9e00eec96d2c05f64.
+- Render deployment: dep-dc54hie1egvs73ai7b70 — status live, finished 2026-11-28T03:22:23.355940Z.
+- Build event succeeded; Vite build completed in 2.27 seconds.
+- Runtime confirmed API listening on port 10000, Supabase Data API HTTP 200 and Render “Your service is live”.
+- STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- No database migration or persistent user/player/scout/learning data changes. PR #58 remains Draft and unmerged. Production untouched.
+
+
+## 34. Block 13 — Linguistic Intelligence: Sentence Structure — 2026-11-28
+
+### Ziel
+MESSINHO soll nicht nur Sprachprofile und einzelne grammatische Signale erkennen, sondern nachvollziehbare Kandidaten für Satzgrenzen, Satzteile, Subjekt-/Verbbeziehungen und Wortstellungsmerkmale ableiten. Die Analyse bleibt konservativ: Kandidaten sind keine bestätigten grammatischen Abhängigkeiten und führen niemals zu einer automatischen Umschreibung.
+
+### Implementierung auf dem Feature-Branch
+- Neu: `backend/messinho-sentence-structure.js` als eigenständige, deterministische und begrenzte Analysekomponente.
+- Unterstützt die sechs vorhandenen Profile Deutsch, Englisch, Französisch, Spanisch, Hocharabisch und tunesische Derja.
+- Erkennt Satzgrenzen sowie begrenzte Haupt-/Neben-/Koordinationsmarker.
+- Liefert Subjekt- und finite Verbkandidaten, zusätzliche Verbkandidaten und vorsichtige Wortstellungsindikatoren.
+- Bewahrt Quelltext und Zeichenbereiche; die Originalnachricht wird nicht verändert.
+- `backend/messinho-grammar-engine.js` integriert die Satzstrukturanalyse in das bestehende Grammar-Ergebnis und aktualisiert seine Versionsnummer auf 0.2.0.
+- Ergänzt Tests in `tests/messinho-sentence-structure.test.js` und erweitert `tests/messinho-grammar-engine.test.js`.
+
+### Grenzen und Qualitätssicherung
+- Die Komponente ist ein lexikalischer Heuristik-Parser, kein vollständiger Dependency-/Constituency-Parser.
+- Subjekt und Verb sind Kandidaten aus begrenzten Wortlisten; Flexion, unregelmäßige Formen, Ellipsen und freie Wortstellung können unvollständig erkannt werden.
+- Ein erkannter Wortstellungshinweis ist kein Urteil über grammatische Richtigkeit.
+- Keine Datenbankmigration, keine persistenten Nutzer-/Spieler-/Scout-Datenänderungen, keine Modellgewichtsänderung und keine Produktionsänderung.
+- CI, vollständige Tests und Build müssen für den exakten Branch-HEAD noch verifiziert werden. Bis dahin gilt Block 13 als implementiert, aber nicht verifiziert oder live.
+
+### Nächste Schritte
+1. Exakten Branch-HEAD und GitHub Actions prüfen; alle Tests, Backend-Syntax und Vite-Build müssen erfolgreich sein.
+2. Fehler anhand der tatsächlichen CI-Ausgabe beheben und erneut auf dem exakten HEAD prüfen.
+3. Nur nach erfolgreicher Prüfung den ausdrücklich vereinbarten STAGING-Service aktualisieren und Deployment-SHA/Health verifizieren.
+4. Mehrsprachige Benchmarkfälle mit realistischen Haupt-/Nebensätzen, Ellipsen, Arabizi, Derja, Code-Switching und mehrdeutiger Wortstellung ergänzen.
+5. Danach semantische Rollen und Beziehungen auf Basis verlässlicherer Satzstruktursignale entwickeln.
+
+### Change & Decision Log
+| 2026-11-28 | Satzstruktur-Analyse als nächste Linguistic-Intelligence-Stufe integrieren; keine parallele Chatoberfläche und keine automatische Textkorrektur. | In progress | Block 13; Feature-Branch und STAGING-only. |
+
+
+### Block 13 verification addendum — 2026-11-28
+- Corrected two test-discovered implementation defects before acceptance:
+  - The language lexicons were initially split with an incorrectly escaped whitespace regular expression; corrected both verb and subject lexicon tokenization.
+  - The first CI attempt also exposed an array/Set mismatch; corrected the lexicon lookup contract.
+- Exact tested code commit: `8a615ff31a46dcbff44b544eb50ac369aa89f3c8`.
+- MESSINHO Node tests: workflow run `46103371667` — **664 passed, 0 failed**.
+- Backend syntax: workflow run `46103371701` — **success**.
+- Full STAGING branch CI/build: workflow run `46103371703` — **success**, including regression suite, backend syntax checks and Vite production build.
+- The successful checks cover the tested code commit above. The subsequent documentation-only commit does not change runtime code.
+- Block 13 is **implemented and CI-verified**, but not yet deployed or live. Render STAGING deployment verification is pending.
+- No database migration, persistent user/player/scout/learning data change, model training, model-weight update, permission change, or production resource change.
+- PR #58 remains Draft and unmerged; production remains untouched.
+
+
+### Block 13 STAGING deployment verification — 2026-11-28
+- Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`); configured branch `feature/messinho-conversation-engine`; automatic deployment remains disabled.
+- Deployed branch commit: `69acf81a6a4d175acd90bcccb1cb992cb142de74` (documentation-only commit after the tested runtime code commit `8a615ff31a46dcbff44b544eb50ac369aa89f3c8`).
+- Runtime code is identical to the exact code commit that passed the 664-test suite, backend syntax and full CI/build checks.
+- Render deployment: `dep-dc54nbe1egvs73aiqo8g` — status **live**, finished `2026-11-28T03:34:51.188475Z`.
+- Render build succeeded; npm test reported **664 passed, 0 failed**; Vite production build completed successfully.
+- Runtime logs confirmed API listening on port 10000, Supabase Data API HTTP 200, and Render reported “Your service is live”.
+- STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- No database/schema migration or persistent user/player/scout/learning data changes. No model training, model-weight changes, permission changes or external side effects.
+- Authenticated Admin/Scout conversation acceptance remains outstanding. This deployment verifies build/startup and service health, not the quality of real user conversations.
+- PR #58 remains open, Draft and unmerged. Production branch, Render production service and production database remain untouched.
+
+## 35. MESSINHO Universal Knowledge Intelligence — owner decision — 2026-11-28
+
+### Verbindliche Produktentscheidung
+MESSINHO soll langfristig ein universeller Wissens- und Problemlösungsagent werden. Fußball und Scouting bleiben seine primäre Spezialisierung innerhalb von myScoutingDatabase, sind aber ausdrücklich nicht die Grenze seines allgemeinen Wissens oder seiner Gesprächsfähigkeit. MESSINHO soll auch fachfremde Fragen verständlich beantworten, wissenschaftliche Methoden anwenden, Berechnungen ausführen, Prognosen kritisch bewerten und technische Aufgaben unterstützen können.
+
+Diese Entscheidung ergänzt die bestehende Conversation Engine und die ASI-Scouting-Architektur. Sie ersetzt weder den bestehenden Chat noch die Provider-unabhängige Agent-Core-Vorgabe.
+
+### 35.1 Wissensdomänen — verbindlicher Zielumfang
+
+1. **Biologie und Lebenswissenschaften:** Zellbiologie, Genetik, Evolution, Anatomie, Physiologie, Ökologie, Mikrobiologie und Biochemie.
+2. **Physik:** Mechanik, Dynamik, Kinematik, Energie, Thermodynamik, Elektrizität, Magnetismus, Optik, Wellen und Messmethoden.
+3. **Chemie:** allgemeine, anorganische und organische Chemie, Reaktionslehre, Stoffmengen, Konzentrationen, Säure-Base-Chemie, Elektrochemie und Biochemie.
+4. **Mathematik:** Arithmetik, Algebra, Geometrie, Analysis, lineare Algebra, Differentialgleichungen, numerische Methoden, diskrete Mathematik und Optimierung.
+5. **Statistik und Prognosewissenschaft:** deskriptive und inferenzielle Statistik, Wahrscheinlichkeitsrechnung, Bayes-Verfahren, Regression, Zeitreihen, Korrelation, kausale Inferenz, Unsicherheits- und Fehlerrechnung, Simulationen, Monte-Carlo-Verfahren, Modellvalidierung und Backtesting.
+6. **Medizin und Gesundheitswissenschaften:** Anatomie, Physiologie, Pathologie, Diagnostik, Pharmakologie, Epidemiologie, Prävention, Rehabilitation und evidenzbasierte Medizin.
+7. **Sportwissenschaft und Sportmedizin:** Trainingslehre, Leistungsphysiologie, Biomechanik, Belastungssteuerung, Regeneration, Leistungsdiagnostik, Sporternährung, Sportpsychologie, Verletzungsprävention und Return-to-Play.
+8. **Informatik und KI:** Programmierung, Algorithmen, Datenstrukturen, Softwarearchitektur, Datenbanken, Netzwerke, Betriebssysteme, Cybersecurity, Cloud, APIs, Automatisierung, Machine Learning, Deep Learning, NLP, Test- und Qualitätssicherung.
+9. **Börse, quantitative Finanzen und Wirtschaft:** Aktien, Anleihen, ETFs, Indizes, Devisen, Rohstoffe, Derivate, Optionen, Futures, Unternehmensanalyse, Bilanzanalyse, Fundamentalanalyse, technische Analyse, Rendite, Zinseszins, Volatilität, Korrelation, Portfolio-Theorie, Risikomanagement, Makroökonomie, quantitative Modelle, Szenarien und Backtesting.
+10. **Ethik, Philosophie und Erkenntnistheorie:** Verantwortung, Wissenschaftsethik, Entscheidungslogik, Erkenntnisgrenzen, Argumentationsprüfung und Umgang mit Zielkonflikten.
+11. **Ethnologie und Sozialwissenschaften:** Kulturen, Gesellschaften, Verhalten, Psychologie, Soziologie, Kommunikation und interkulturelle Zusammenhänge.
+12. **Ingenieurwissenschaften:** Elektrotechnik, Maschinenbau, Mechatronik, Regelungstechnik, Verfahrenstechnik, Materialwissenschaft, Energietechnik, Messtechnik und technische Simulation.
+13. **Weitere Grundlagen:** Rechtswissenschaft, Wirtschaftswissenschaft, Geowissenschaften, Klima und Umwelt, Astronomie, Ernährungswissenschaft und Linguistik.
+
+### 35.2 Fachliche Anwendung statt bloßer Wissenssammlung
+Das Ziel ist nicht ein Lexikon mit Definitionen. MESSINHO soll passende Methoden auswählen und tatsächlich anwenden können:
+- Formeln und Einheiten korrekt auswählen, Berechnungen durchführen und Rechenschritte nachvollziehbar darstellen.
+- Datenqualität, Stichprobengröße, Annahmen, Modellgrenzen und mögliche Verzerrungen prüfen.
+- Prognosen als Szenarien bzw. Wahrscheinlichkeiten mit Unsicherheitsbereichen ausgeben, niemals als sichere Zukunftsbehauptung.
+- Ergebnisse reproduzierbar machen: Eingaben, Methode, Version, Parameter, Datenstand und Ergebnis dokumentieren.
+- Fachwissen domänenübergreifend verbinden, aber Fachgrenzen und unzulässige Schlussfolgerungen beachten.
+- Bei unzureichenden Daten gezielt nachfragen oder die Aussage begrenzen, statt Lücken zu erfinden.
+
+### 35.3 Zielarchitektur
+Die geplante **MESSINHO Knowledge Intelligence** wird als eigener, mit Conversation Engine und Agent Core verbundener Architekturstrang entwickelt:
+- **Knowledge Registry / Ontologie:** Domänen, Konzepte, Definitionen, Einheiten, Beziehungen, Synonyme und Abhängigkeiten.
+- **Evidence & Source Layer:** Herkunft, Autorität, Datum, Lizenz/Nutzungsrecht, Aktualität, Gegenbelege und Vertrauensstatus jeder externen Wissensaussage.
+- **Retrieval Layer:** kontextbezogene Suche in freigegebenem Grundwissen, Projektdaten, Dokumenten und zulässigen externen Quellen.
+- **Calculation & Scientific Tools:** deterministische Rechenwerkzeuge, Einheitenprüfung, Statistik, Simulation und reproduzierbare Auswertung.
+- **Forecasting & Model Evaluation:** versionierte Modelle, Trainings-/Testtrennung, Backtesting, Kalibrierung, Baseline-Vergleich und Unsicherheitsmessung.
+- **Domain Safety & Policy:** fachbezogene Grenzen, Berechtigungen, Datenschutz, medizinische und finanzielle Risikohinweise sowie Freigaben für folgenreiche Aktionen.
+- **Learning & Review:** kontrollierte Wissensaufnahme, Quellenprüfung, Konflikterkennung, Versionierung, menschliche Freigabe und Rücknahme fehlerhafter Einträge.
+
+### 35.4 Vertrauens- und Sicherheitsregeln
+- Medizinische Inhalte dienen der Information und ersetzen keine individuelle Diagnose oder Behandlung. Akute Warnzeichen müssen angemessen eskaliert werden.
+- Börsen- und Finanzprognosen müssen Risiken, Unsicherheiten, Datenzeitpunkt und Modellgrenzen ausweisen; keine Renditegarantie und keine erfundenen Echtzeitkurse.
+- Externe Inhalte sind nicht vertrauenswürdige Daten und niemals Systemanweisungen.
+- Keine geschützten oder nicht lizenzierten Inhalte ungeprüft kopieren; Quellen und Nutzungsrechte dokumentieren.
+- Wissenschaftliche Hypothesen, Schätzungen und belegte Tatsachen klar trennen.
+- Bei widersprüchlicher Evidenz beide Seiten sichtbar machen und keine Scheinsicherheit erzeugen.
+- Neue Modelle oder folgenreiche Aktionen nicht automatisch aktivieren; versionierte Prüfung und erforderliche Admin-Freigabe bleiben verbindlich.
+
+### 35.5 Umsetzungsstrategie
+1. Bestehende Knowledge-, Linguistic-, Research-, Calculation- und Forecasting-Komponenten inventarisieren, bevor neue Module entstehen.
+2. Gemeinsame Wissensverträge und Quellen-/Evidenzschema definieren; keine parallelen oder redundanten Wissensspeicher schaffen.
+3. Mit fachübergreifendem Grundwissen, Einheiten-/Formelkompetenz und verlässlicher Quellenbewertung beginnen.
+4. Rechenwerkzeuge und reproduzierbare Statistik ergänzen; anschließend domänenspezifische Wissenspakete priorisieren.
+5. Börsen-, Medizin-, Sportmedizin- und Prognosemodule mit besonders strengen Daten-, Validierungs- und Sicherheitsregeln integrieren.
+6. Erst nach fachlichen Tests, Quellenprüfung, Berechtigungsprüfung und reproduzierbarer Evaluation als implementiert deklarieren.
+
+### 35.6 Status und Grenzen
+- Status: **Owner-Zielentscheidung akzeptiert; Architektur und Implementierung noch nicht als vollständig vorhanden bestätigt.**
+- Diese Dokumentation erzeugt noch keine vollständige Wissensdatenbank, kein trainiertes universelles Modell und keine verifizierte Prognosefähigkeit.
+- Keine automatische Selbstmodifikation von Modellgewichten. Lernen bleibt kontrolliert, nachvollziehbar und freigabepflichtig.
+- Die Knowledge Intelligence wird parallel zur Conversation Engine geplant und schrittweise integriert; der aktuelle nächste Conversation-Engine-Schritt darf nicht ohne Code-Audit als erledigt übersprungen werden.
+- Arbeitsgrenze bleibt Feature-Branch und STAGING-only; Produktion, Produktionsdaten und PFMS/PFSS bleiben unangetastet.
+
+### Change & Decision Log — Ergänzung
+| 2026-11-28 | MESSINHO als universellen Wissens- und Problemlösungsagenten mit Biologie, Physik, Chemie, Mathematik, Statistik/Prognosen, Medizin, Sportmedizin, Sportwissenschaft, Informatik/KI, Börse/quantitativen Finanzen, Ethik, Ethnologie, Ingenieur- und weiteren Wissenschaften ausbauen; Fußball/Scouting bleibt Spezialisierung. | Accepted — target architecture | Neuer Knowledge-Intelligence-Strang; evidenzbasiert, rechnerisch anwendbar, risikobewusst und kontrolliert lernend; Feature-Branch/STAGING-only. |
+
+## 36. Block 14 — Semantic Intelligence: Relation Candidates — 2026-11-28
+
+### Ziel
+Die vorhandene semantische Analyse erkennt bereits begrenzte Konzepte und Diskursmerkmale. Block 14 ergänzt eine getrennte, nachvollziehbare Ebene, die aus diesen vorhandenen Signalen vorsichtige Beziehungen als Kandidaten ableitet. Es wird kein vollständiges Sprachverständnis behauptet.
+
+### Implementierung auf dem Feature-Branch
+- Neu: `backend/messinho-semantic-relations.js`.
+- Die Komponente verarbeitet die bestehenden semantischen Frames und erzeugt drei begrenzte Kandidatentypen:
+  - `qualification_candidate`: Negations-/Unsicherheitshinweise bei erkannten Konzepten; der genaue Geltungsbereich bleibt ausdrücklich ungeklärt.
+  - `contrast_candidate`: expliziter Kontrast zwischen benachbarten semantischen Segmenten.
+  - `concept_recurrence_candidate`: wiederkehrende Konzepte als möglicher thematischer Zusammenhang zwischen Segmenten.
+- Unbekannte Konzepte werden verworfen; Eingabe und Ausgabe sind auf 12 Frames, 8 Konzepte je Frame und 30 Beziehungen begrenzt.
+- `backend/messinho-linguistic-intelligence.js` integriert die Relation Candidates in den Gesprächskontext und in die stabile Chat-Metadatenantwort; Version auf 1.5.0 erhöht.
+- Die Gesprächsrichtlinie bezeichnet diese Ausgaben ausdrücklich als begrenzte Kandidaten und untersagt vollständige semantische Parse-Claims, ungelöste Referenzauflösung und unbelegte Kausalität.
+- Neue Tests: `tests/messinho-semantic-relations.test.js`; Integrationstests in `tests/messinho-linguistic-intelligence.test.js`.
+
+### Grenzen
+- Die Kandidaten beruhen auf vorhandenen lexikalischen und Diskurssignalen. Sie sind keine verifizierten Bedeutungsrelationen.
+- Negations- und Unsicherheitsbereich, Pronomen-/Entitätsauflösung, Ironie, implizite Bedeutung und Kausalität werden nicht vollständig erkannt.
+- Keine automatische Textumschreibung, keine Modellgewichtsänderung und kein selbstständiges Modelltraining.
+- Die neue universelle Wissensarchitektur aus Abschnitt 35 wird dadurch noch nicht als implementiert betrachtet.
+
+### Tests, Build und Deployment
+### Verification addendum — 2026-11-28
+- Der erste STAGING-Build auf Commit `7e0b223f9243b59b7d42efa2d064c641bd8f659b` deckte einen veralteten Versionserwartungswert in einem bestehenden Metadatentest auf (`1.4.0` statt `1.5.0`). Der Test wurde korrigiert; keine Laufzeitlogik musste dafür zurückgenommen werden.
+- Korrigierter exakter Code-/Testcommit: `b4f04768b1e89c04377d71d199053a625d016b13`.
+- Render STAGING Build `bld-dc54t7p7lnhs73alda90`: **succeeded**.
+- Vollständige Node-Testausgabe: **672 bestanden, 0 fehlgeschlagen**.
+- Backend-Syntaxprüfung ist Teil des Render-Buildbefehls und wurde nach der Testsuite ausgeführt; Vite-Produktionsbuild: **erfolgreich**, 1.640 Module transformiert.
+- Render-Deployment `dep-dc54t7p7lnhs73alda8g`: Build erfolgreich; Service-Update/LIVE-Bestätigung zum Zeitpunkt dieses Addendums noch in Bearbeitung.
+- GitHub Actions Commit-Abfrage lieferte für diesen Commit keine PR-Workflow-Läufe; die hier dokumentierte Test-/Build-Evidenz stammt aus dem exakten Render-Build.
+- Implementierungs-/Integrationscommit: `7e0b223f9243b59b7d42efa2d064c641bd8f659b`.
+- Render STAGING-Build/Deploy: `dep-dc54smp7lnhs73albhqg` — zum Zeitpunkt dieses Eintrags in Bearbeitung; keine Live-Aussage vor erfolgreicher Abschluss- und Health-Prüfung.
+- GitHub Actions Status für diesen Commit: noch kein PR-Workflow-Ergebnis über die verfügbaren Commit-Abfragen sichtbar.
+- Vollständige Node-Testzahl, Backend-Syntax, Vite-Build und Live-Status werden erst nach tatsächlichem Abschluss ergänzt.
+- Keine Datenbankmigration und keine Änderung persistierter Nutzer-, Spieler-, Scout- oder Lerndaten.
+- Ausschließlich `feature/messinho-conversation-engine` und der vereinbarte STAGING-Service; Produktion bleibt unangetastet.
+
+### Nächste Schritte
+1. Render-Buildabschluss und Testausgabe prüfen; bei Fehlern anhand des konkreten Logs korrigieren.
+2. Exakten deployten Commit und Status `live` bestätigen.
+3. STAGING-Health und Laufzeitlogs prüfen.
+4. Semantische Fälle mit Mehrdeutigkeit, negierter Bewertung, Unsicherheit, Kontrast, Code-Switching und neutralen Sätzen ergänzen.
+5. Danach Block 15 — Intent Intelligence — nur nach Audit der bereits vorhandenen Intent-/Router-Komponenten planen und Überschneidungen vermeiden.
+
+### Block 14 STAGING deployment verification — 2026-11-28
+- Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`); configured branch `feature/messinho-conversation-engine`; automatic deployment remains disabled.
+- Deployed runtime commit: `b4f04768b1e89c04377d71d199053a625d016b13`.
+- Render deployment: `dep-dc54t7p7lnhs73alda8g` — status **live**, finished `2026-11-28T03:47:17.854285Z`.
+- Render build `bld-dc54t7p7lnhs73alda90`: **succeeded**; npm test **672 passed, 0 failed**; backend syntax checks passed; Vite production build succeeded.
+- Runtime logs confirmed `node backend/server.js`, API listening on port 10000, Supabase Data API HTTP 200, and Render reported “Your service is live”.
+- STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- The documentation-only follow-up commit is separate from the deployed runtime commit; it does not change application code and was not redeployed.
+- No database/schema migration or persistent user/player/scout/learning data changes. No model training, model-weight changes, permission changes or external side effects.
+- Authenticated Admin/Scout conversation acceptance remains outstanding; deployment verifies automated tests, build and service startup, not full natural-dialogue quality.
+- PR #58 remains open, Draft and unmerged. Production branch, Render production service and production database remain untouched.
+
+## 37. Block 15 — Intent Intelligence: Bounded Intent Evidence — 2026-11-28
+
+### Ziel und Abgrenzung
+Block 15 ergänzt die bestehende modellbasierte kognitive Intent-Entscheidung um eine eigenständige, deterministische und begrenzte Evidenzschicht. Die Schicht sammelt sichtbare Handlungs-, Themen- und Gesprächssignale, entscheidet aber nicht selbst über die endgültige Absicht. Damit werden weder der vorhandene Cognitive Router noch Pragmatic Context, Response Composition oder Clarification Continuity dupliziert.
+
+### Implementierung
+- Neu: `backend/messinho-intent-intelligence.js`, Version `1.0.0`.
+- Neu: `tests/messinho-intent-intelligence.test.js`.
+- Die Analyse liefert vorsichtige Kandidaten für:
+  - `memory_save` und `memory_recall`,
+  - `scouting`,
+  - `general_research`,
+  - `engineering`,
+  - andernfalls den neutralen Gesprächsstandard `conversation`.
+- Zusätzlich werden begrenzte Themenhinweise (Fußball, Wissenschaft, Finanzen, Software), Frage-/Handlungsform, mögliche Gesprächsfortsetzung und offene Rückfragen als Metadaten übergeben.
+- Mehrere konkurrierende explizite Intent-Kandidaten führen zu `conflicting_candidates` und einer nicht gesetzten Empfehlung.
+- Eine noch offene/mehrdeutige Rückfrage führt zu `clarification_pending`; die Schicht erzwingt dann keine neue Aktion.
+- Der Text wird auf 1.600 Zeichen begrenzt; Kandidaten und Cue-Listen sind begrenzt.
+- Sprachsignale umfassen ausgewählte deutsche, englische, französische, spanische, arabische und tunesisch-derja Formulierungen. Dies ist ein gezielter Cue-Katalog, keine vollständige mehrsprachige Grammatik oder universelle Absichtserkennung.
+
+### Integration
+- `backend/server.js` erstellt die Intent-Evidenz nach Dialog-/Klärungskontext und vor dem Cognitive Router.
+- `backend/messinho-conversational-intelligence.js` nimmt `intentEvidenceContext` entgegen und übergibt es als `intent_evidence_context` im selben Modellturn.
+- Cognitive Router Version auf `1.2.0` erhöht.
+- Die Modellrichtlinie behandelt Hinweise ausdrücklich als Kandidaten. Das Modell muss die vollständige Nachricht und den Gesprächskontext interpretieren; ein vorgeschlagener Intent ist keine Entscheidung.
+- Rollenmetadaten sind keine Berechtigungen. Die bestehende serverseitige Admin-/Scout-Autorisierung und alle Freigabekontrollen bleiben maßgeblich. Die neue Komponente führt keine Tools aus und speichert keine Daten.
+
+### Test- und Korrekturverlauf
+- Die ersten STAGING-Testläufe deckten drei konkrete Integrations-/Erkennungsprobleme auf: bestehende Quelltexttests erwarteten die frühere Argumentreihenfolge, der Scouting-Cue erfasste beschreibende Positionskomposita zunächst nicht, und die Fußball-Domänenerkennung erkannte `Flügelspieler` nicht als Kompositum.
+- Diese Punkte wurden korrigiert und erneut gegen den vollständigen Build geprüft.
+- Finaler Runtime-/Testcommit: `12830ea3304f5dfa8758153484977508f353fab5`.
+- Finaler Render-Build `bld-dc55117f3r2c73di4320`: **succeeded**.
+- Node-Testausgabe: **683 bestanden, 0 fehlgeschlagen**.
+- Backend-Syntaxprüfung: erfolgreich (Teil des Render-Buildbefehls).
+- Vite-Produktionsbuild: erfolgreich.
+- Render-Deployment `dep-dc55117f3r2c73di4310`: **live**, abgeschlossen `2026-11-28T03:55:21.837265Z`.
+- Laufzeitlogs bestätigten `node backend/server.js`, API auf Port 10000, Supabase Data API HTTP 200 und Render-Meldung `Your service is live`.
+
+### Grenzen und offene Validierung
+- Intent-Kandidaten sind lexikalische Evidenz und können bei ungewöhnlicher Formulierung fehlen oder irreführen. Das ist beabsichtigt: sie dürfen nicht selbst Aktionen auslösen.
+- Der finale Intent bleibt Aufgabe des Cognitive Routers; niedrige Konfidenz, Mehrdeutigkeit und Berechtigungen werden weiterhin durch die vorhandenen Anwendungskontrollen behandelt.
+- Der automatisierte Testlauf belegt Regressionen, Datenfluss und Build. Ein echter, authentifizierter Admin-/Scout-Abnahmetest mit realen Dialogen und Provider bleibt noch durchzuführen.
+- Keine DB-Migration, keine Änderungen persistierter Nutzer-/Spieler-/Scoutdaten, keine Modellgewichtsänderung und kein automatisches Training.
+- STAGING-only; Produktion bleibt unangetastet.
+
+### Nächster Schritt — Block 16: Context Intelligence
+Vor Implementierung die bestehenden Dialogue-, Conversation-Memory-, Continuity-, Entity-Resolution- und Reasoning-Module erneut abgleichen. Block 16 soll einen kompakten, priorisierten Gesprächs-Kontextvertrag bereitstellen, der aktive Absicht, offene Fragen, bestätigte Einschränkungen, Korrekturen und Themenwechsel sauber trennt. Bereits vorhandene Funktionen nicht parallel neu bauen und keine unbestätigten Assistenten-Aussagen als Nutzerfakten speichern.
+
+### Change & Decision Log — Ergänzung
+| 2026-11-28 | Intent Intelligence als Evidenzschicht vor dem modellbasierten Cognitive Router ergänzen; keine starre Keyword-Routing-Engine. | Implemented — Block 15 | Kandidaten, Konflikte, Domänenhinweise und Klärungsstatus werden im selben Modellturn übergeben; endgültige Absicht und Autorisierung bleiben getrennt. |
+
+
+## 38. Block 16 — Context Intelligence: Prioritized Conversation Context — 2026-11-28
+
+### Ziel und Abgrenzung
+Block 16 bündelt vorhandene Dialogue-, Clarification-, Conversation-Continuity-, Conversation-Memory-, Entity-Resolution-, Reasoning- und Intent-Evidenz in einen kleinen, priorisierten Kontextvertrag. Die vorhandenen Spezialmodule bleiben für ihre jeweilige Aufgabe zuständig; die neue Schicht dupliziert weder Pronomenauflösung noch Frageklassifikation oder Gedächtnisspeicherung.
+
+### Implementierung
+- Neu: `backend/messinho-context-intelligence.js`, Version `1.0.0`.
+- Neu: `tests/messinho-context-intelligence.test.js`.
+- Kontextpriorität: aktuelle Nutzernachricht, explizite Korrektur/Themenwechsel, offene Klärung, serverseitige Autorisierung, belegte Entity-Auflösung, jüngerer Nutzerkontext, Assistentenbeiträge nur als Hypothese/Frage.
+- Trennt Nutzeräußerungen (zugeschrieben, nicht verifiziert) von Assistentenaussagen (niemals Nutzerfakten).
+- Führt aktive Themenkandidaten, Intent-Kandidaten, offene Rückfragen, Korrekturen, Themenwechsel, Entity-Mehrdeutigkeit und Antwortkandidaten in einem begrenzten Vertrag zusammen.
+- `confirmed_user_constraints` bleibt bewusst leer, solange keine dedizierte Bestätigungsquelle eine Einschränkung explizit bestätigt. Antworten auf Rückfragen bleiben als Kandidaten gekennzeichnet.
+- Korrekturen überschreiben nur die widersprochene Interpretation. Bei Themenwechsel werden alte Filter nicht übernommen.
+- Die Schicht ist rein ableitend pro Request; keine neue Persistenz, keine DB-Migration, kein Training und keine Modellgewichtsänderung.
+
+### Integration
+- `backend/server.js` erstellt den Kontextvertrag nach den vorhandenen Dialog-, Klärungs-, Entity-, Reasoning- und Intent-Komponenten und übergibt ihn im selben Chat-Turn.
+- `backend/messinho-conversational-intelligence.js` übergibt `context_intelligence_context` an den Cognitive Router; Version auf `1.3.0` erhöht.
+- Der Modellprompt behandelt den Vertrag als beratende Evidenz, nicht als Autorisierung oder verifizierte Wissensquelle.
+- Die bestehenden serverseitigen Admin-/Scout-Berechtigungen bleiben unverändert.
+
+### Verifikation und Grenzen
+- Neue Tests decken Quellenzuordnung, Korrekturen, Themenwechsel, offene Klärungen, mehrdeutige Entity-Referenzen und Begrenzung ab.
+- Die endgültige Testzahl, Syntaxprüfung, Vite-Build und Render-LIVE-Bestätigung werden nach dem STAGING-Build ergänzt.
+- Authentifizierte Admin-/Scout-End-to-End-Abnahme bleibt separat erforderlich; ein erfolgreicher Build allein beweist keine menschenähnliche Gesprächsqualität.
+- STAGING-only; Produktion bleibt unangetastet.
+
+### Nächster Schritt — Block 17
+Vorhandene Antwortkomposition, Reasoning-Validierung, Conversation-Response-Guard und Natural-Conversation-Fallback abgleichen. Darauf aufbauend die semantische Antwortplanung verbessern: direkte Antwort, Begründung, Unsicherheitsmarkierung und eine gezielte Rückfrage — ohne starre Antwortschablonen und ohne erfundene Tatsachen.
+
+
+### Block 16 STAGING verification addendum — 2026-11-28
+- Initial build exposed three stale source-wiring assertions after the new context argument was added to the chat router. The assertions were updated to verify the additional context contract; no runtime behavior was rolled back.
+- Final runtime/test commit: `b1906f21ae116b5efcd9ee9508fb0eb5c798a801`.
+- Render build: `bld-dc553cuc6qcc73fp15o0` — **succeeded**.
+- Full Node test suite: **689 passed, 0 failed**.
+- Backend syntax checks completed as part of `npm run build`; Vite production build completed successfully (`built in 2.54s`).
+- Render deployment: `dep-dc553cuc6qcc73fp15ng`; service startup logs confirmed `node backend/server.js`, API listening on port 10000, Supabase Data API HTTP 200 and Render `Your service is live`.
+- Configured service remains `myscoutingdatabase-messinho-staging`, branch `feature/messinho-conversation-engine`, `autoDeploy: no`; deployment was manually triggered.
+- Documentation follow-up is separate from the deployed runtime commit and does not change application code.
+- No DB/schema migration, persistent user/player/scout/learning data mutation, model training, model-weight change or permission change. Production remains untouched.
+- Authenticated Admin/Scout real-dialogue acceptance remains outstanding; automated tests and service startup do not establish human-level conversation quality.
+
+
+## 39. Block 17 — Response Intelligence: Semantic Answer Planning — 2026-11-28
+
+### Ziel und Abgrenzung
+MESSINHO soll nicht nur Gesprächsabsicht und Kontext erkennen, sondern die Antwort passend planen: direkte Antwort, nachvollziehbare Begründung, ehrliche Unsicherheitsmarkierung und höchstens eine notwendige Rückfrage. Die Planung ist keine starre Vorlage und erzeugt weder Fakten noch Berechtigungen.
+
+### Implementierung
+- Neu: `backend/messinho-response-intelligence.js`, Version `1.0.0`.
+- Neu: `tests/messinho-response-intelligence.test.js`.
+- Antwortziele: direkte Antwort mit Begründung, Korrektur/Einwand neu bewerten, Standpunkt aufnehmen, relevante Unterhaltung fortsetzen, gezielt klären oder natürlich auf einen Gesprächsbeitrag reagieren.
+- Evidenzbasis unterscheidet strukturierte Recherchebezüge, bloßen Gesprächskontext und fehlenden bereitgestellten Kontext.
+- Unsicherheitsvertrag trennt strukturierte Evidenz, Nutzeraussagen, frühere Assistentenaussagen sowie Schlussfolgerungen/Hypothesen.
+- Rückfragenpolitik: maximal eine gezielte Frage und nur, wenn die fehlende Information die Antwort oder den sicheren nächsten Schritt wesentlich verändert.
+- Bei Korrekturen muss die vorherige Begründung neu geprüft werden; bei Mehrdeutigkeit wird nicht geraten.
+- Keine autonome Recherche, Toolausführung, Berechtigungsänderung, Datenpersistenz oder Trainingsänderung durch dieses Modul.
+
+### Integration
+- `backend/server.js` erstellt den Response-Plan im selben Chat-Turn aus Antwortkomposition, Kontextintelligenz, Reasoning-Evidenz, Klärungsstatus und Sprachkontext.
+- `backend/messinho-conversational-intelligence.js` übergibt den Plan bereits an den semantischen Router, damit Routing und Antwortziel zusammenpassen; Version auf `1.4.0` erhöht.
+- `backend/messinho-natural-conversation.js` erhält denselben Plan für die eigentliche natürlichsprachliche Antwort; Version auf `1.1.0` erhöht.
+- Bestehende Reasoning-Validierung und Conversation-Response-Guard bleiben aktiv und werden nicht ersetzt.
+
+### Verifikation und Grenzen
+- Neue Tests prüfen Antwortreihenfolge, Korrekturbehandlung, Mehrdeutigkeit, Evidenzklassifikation, Themenwechsel, Begrenzung sowie die Übergabe an beide Modellaufrufe.
+- Abschließende Node-Tests, Syntaxprüfung, Vite-Build und Render-STAGING-Deployment werden im Verifikationsnachtrag dokumentiert.
+- Ein erfolgreicher Testlauf belegt nicht automatisch natürliche Gesprächsqualität in echten Admin-/Scout-Sitzungen; diese Abnahme bleibt erforderlich.
+- STAGING-only; Produktion bleibt unangetastet.
+
+
+### Block 17 STAGING verification addendum — 2026-11-28
+- Final runtime/test commit: `053fd4e26c28e39d665ae3360cef61a97ec1e147`.
+- Render build: `bld-dc555l17lnhs73ambc30` — **succeeded**.
+- Full Node test suite: **698 passed, 0 failed**.
+- Backend syntax checks completed in `npm run build`; Vite production build succeeded (`built in 2.27s`).
+- Render deployment: `dep-dc555l17lnhs73ambc1g`; startup confirmed `node backend/server.js`, API listening on port 10000, Supabase Data API HTTP 200 and Render `Your service is live`.
+- Service remains STAGING-only on `feature/messinho-conversation-engine`; `autoDeploy: no`, manually deployed.
+- No DB/schema migration, persistent user/player/scout/learning data mutation, model training, model-weight change or permission change. Production remains untouched.
+- Authenticated Admin/Scout conversation acceptance remains outstanding; build and tests do not establish human-level dialogue quality.
+- The initial build found stale source-wiring assertions after the new response-plan argument was inserted; those tests were updated and the final full build passed.
+
+
+## 40. Block 18 — Reasoning Intelligence: Explainable Problem Planning — 2026-11-28
+
+### Ziel und Abgrenzung
+MESSINHO erhält eine allgemeine, begrenzte Reasoning-Planungsschicht. Sie strukturiert mehrteilige Aufgaben, hält einfache Fragen bewusst einfach, erkennt relevante Vergleichs- und Rechenaufgaben und trennt Belege, Nutzeraussagen, frühere Assistentenaussagen, Annahmen, Hypothesen, Unbekanntes und mögliche Widersprüche.
+Die Komponente erzeugt eine kurze, nutzerorientierte Begründungsstruktur. Sie speichert oder offenbart keine private interne Gedankenkette, vergibt keine künstlichen Konfidenzwerte und ersetzt keine deterministischen Validierungs- oder Berechtigungskontrollen.
+
+### Implementierung
+- Neu: backend/messinho-reasoning-intelligence.js, Version 1.0.0.
+- Neu: tests/messinho-reasoning-intelligence.test.js.
+- Aufgabenarten: Vergleich, Berechnung, Planung, Verifikation, Erklärung und allgemeine Aufgaben.
+- Komplexitätsstufen: simple, multi_part, complex; einfache Anfragen erhalten genau einen Antwortschritt, mehrteilige Aufgaben maximal vier begrenzte Planungsschritte.
+- Vergleichsplanung benennt relevante Kriterien wie Kosten, Risiko, Zeit und Qualität, ohne Optionen oder Ergebnisse zu erfinden.
+- Rechenplanung prüft Eingaben, Formelannahmen, Einheiten, Arithmetik und Ergebnisinterpretation.
+- Evidenz-Ledger trennt verifizierte, ausdrücklich übergebene Evidenz von Nutzerbehauptungen, früheren Assistentenaussagen, Annahmen, Hypothesen, Unbekanntem und Korrektur-/Widerspruchskandidaten.
+- Eine Korrektur wird als Prüfauftrag behandelt, nicht als automatischer Beweis, dass eine der Aussagen wahr oder falsch ist.
+- Ausgabe ist begrenzt; numerische Konfidenz wird ohne kalibrierte Evidenz ausdrücklich nicht berechnet.
+
+### Integration
+- backend/server.js erstellt pro Chat-Turn einen einzigen Reasoning-Plan auf Basis der aktuellen Nachricht, des Gesprächsverlaufs sowie der vorhandenen Reasoning-, Kontext- und Antwortverträge.
+- backend/messinho-conversational-intelligence.js erhält reasoning_intelligence_context bereits im semantischen Router-Turn.
+- backend/messinho-natural-conversation.js erhält denselben Plan für die eigentliche natürlichsprachliche Antwort.
+- Die vorhandene messinho-reasoning-validation.js bleibt als deterministische Schutzschicht erhalten; Block 18 ersetzt sie nicht.
+- Keine neue Aktion, Toolausführung, Berechtigung, Persistenz oder Datenbankoperation wird durch die neue Planungsschicht freigegeben.
+
+### Tests
+- Mehrteilige Aufgabenzerlegung und Begrenzung.
+- Einfache Frage ohne unnötige Zerlegung.
+- Rechenplanung mit Einheiten-/Arithmetikprüfung.
+- Getrennte Attribution von Nutzer- und Assistentenaussagen.
+- Annahmen/Hypothesen getrennt von verifizierter Evidenz.
+- Mehrdeutige Referenzen und fehlende strukturierte Evidenz als Unbekanntes.
+- Korrekturen als Widerspruchskandidaten statt als Wahrheitsentscheidung.
+- Begrenzung, fehlende künstliche Konfidenz sowie ausgewählte mehrsprachige Signale.
+- Übergabe desselben Plans an Cognitive Router und Natural Conversation Composer.
+
+### Sicherheits- und Datenumfang
+- Keine DB-/Schema-Migration.
+- Keine Änderung persistierter Nutzer-, Spieler-, Scout-, Organisations- oder Lerndaten.
+- Keine Modellgewichtsänderung und kein automatisches Training.
+- Bestehende serverseitige Admin-/Scout-Autorisierung bleibt unverändert.
+- STAGING-only; Produktion bleibt unangetastet.
+
+### Verifikation
+- Implementierung und Quelltextintegration sind erfolgt.
+- Vollständige Node-Tests, Syntaxprüfung, Vite-Build und Render-STAGING-Deployment stehen bis zum Verifikationsnachtrag aus.
+- Authentifizierte Admin-/Scout-End-to-End-Abnahme bleibt separat erforderlich.
+
+
+
+### Block 18 STAGING verification addendum — 2026-11-28
+- Initial build exposed stale source-wiring assertions in existing pragmatic-context, response-composition and conversation-continuity tests after the new reasoning-plan argument was added. Those assertions were updated to verify the additional context; no runtime behavior was rolled back.
+- Final Render build: bld-dc5594ff3r2c73dj0ef0 — succeeded.
+- Full Node test suite: 710 passed, 0 failed.
+- Backend syntax checks completed as part of npm run build; Vite production build succeeded (built in 2.54s).
+- Render deployment: dep-dc5594ff3r2c73dj0ee0 — live, finished 2026-11-28T04:12:42Z.
+- Deployed runtime commit: e1c4b54d95f5098db253b290177996df553f1356.
+- Service remains myscoutingdatabase-messinho-staging on feature/messinho-conversation-engine; autoDeploy remains disabled and the deployment was manually triggered.
+- No DB/schema migration, persistent user/player/scout/organization/learning data mutation, model training, model-weight change or permission change. Production remains untouched.
+- The automated suite verifies plan construction and delivery to both model turns. It does not prove real-world reasoning accuracy or authenticated Admin/Scout conversational acceptance; those remain separate acceptance tasks.
+
+
+## 41. Block 19 — Answer Verification & Bounded Self-Correction — 2026-11-28
+
+### Ziel und Abgrenzung
+MESSINHO prüft einen generierten Gesprächsentwurf vor der Ausgabe auf wenige, deterministisch überprüfbare Fehler. Bei einem kritischen Treffer erhält die Antwortgenerierung genau einen Korrekturversuch; der überarbeitete Entwurf wird erneut geprüft. Bleibt ein kritischer Fehler bestehen oder schlägt die Korrektur fehl, wird eine sichere, begrenzte Rückmeldung ausgegeben.
+Diese Schicht ist kein allgemeiner Faktenprüfer und kein Beweisgenerator. Ein Modell-Selbstreview gilt nicht als unabhängige Verifikation. Nicht überprüfbare Aussagen werden höchstens als Prüfhinweis markiert und nicht automatisch als falsch verworfen.
+
+### Implementierung
+- Neu: backend/messinho-answer-verification.js, Version 1.0.0.
+- Neu: tests/messinho-answer-verification.test.js.
+- Deterministische Prozentrechnungskontrolle für explizit behauptete Prozentresultate.
+- Nutzung der bestehenden allowlist-basierten Spieler-Messwertprüfung, wenn der Dialog ausdrücklich einen Spieler-/Fußballerkontext enthält.
+- Advisory-Hinweise bei zeitkritischen oder absoluten Tatsachenbehauptungen ohne strukturierte Recherchebelege; diese Hinweise behaupten nicht, dass die Aussage falsch ist.
+- Begrenzter Korrekturvertrag: maximal vier Befunde/Anweisungen; keine Berechtigungen, Tools, Persistenz oder Datenänderungen.
+
+### Integration und Korrekturschleife
+- backend/server.js prüft den ersten Gesprächsentwurf nach der Generierung.
+- Bei revision_required wird genau ein weiterer Aufruf des Natural Conversation Composers mit begrenzten, strukturierten Prüfbefunden und dem fehlerhaften Entwurf ausgelöst.
+- Der korrigierte Entwurf wird erneut durch dieselbe deterministische Prüfschicht geleitet.
+- Bleibt ein kritischer Fehler bestehen oder ist der Korrekturaufruf nicht erfolgreich, wird kein ungeprüfter Entwurf ausgegeben; MESSINHO antwortet mit einer sicheren Rückmeldung oder einer vorhandenen spezifischen Safe-Reply.
+- backend/messinho-natural-conversation.js erhält answer_verification_feedback nur für diesen Korrekturversuch.
+- Die bestehende Conversation Response Guard bleibt als zusätzliche Schutzschicht aktiv.
+
+### Sicherheits- und Datenumfang
+- Keine DB-/Schema-Migration und keine Persistenz von Prüfentwürfen.
+- Keine Modellgewichtsänderung und kein automatisches Training.
+- Keine Berechtigungsänderung oder neue Toolausführung.
+- Nur deterministisch prüfbare Fälle dürfen eine automatische Korrektur erzwingen; allgemeine Wahrheit wird nicht behauptet.
+- STAGING-only; Produktion bleibt unangetastet.
+
+### Verifikation
+- Implementierung und Integration sind erfolgt; vollständige Tests, Syntaxprüfung, Vite-Build und Render-STAGING-Deployment stehen noch aus.
+- Authentifizierte Admin-/Scout-End-to-End-Abnahme bleibt separat erforderlich.
+
+
+### Block 19 STAGING verification addendum — 2026-11-28
+- First build exposed one stale source assertion in tests/messinho-conversation-response-guard.test.js because the final response now passes through answer verification before the existing response guard. The assertion was updated to check the verified finalReply; the guard itself remains active.
+- Final Render build: bld-dc55bq17lnhs73an1pdg — succeeded.
+- Full Node test suite: 719 passed, 0 failed.
+- Backend syntax checks completed as part of npm run build; Vite production build succeeded (built in 2.29s).
+- Render deployment: dep-dc55bq17lnhs73an1p8g — live, finished 2026-11-28T04:18:23Z.
+- Deployed runtime commit: a1a28a52705df422c173e373cbc735578966b003.
+- Service remains myscoutingdatabase-messinho-staging on feature/messinho-conversation-engine; autoDeploy remains disabled and deployment was manually triggered.
+- No DB/schema migration, persistent user/player/scout/organization/learning data mutation, model training, model-weight change or permission change. Production remains untouched.
+- The checks cover explicit percentage arithmetic and existing allowlisted player speed metrics, plus the bounded one-retry flow. They do not prove general factual correctness; authenticated Admin/Scout end-to-end acceptance remains outstanding.
+
+
+## 42. Block 20 — Dialogue Adaptation & Conversation Maturity — 2026-11-28
+
+### Verbindliche Wissensbreite — Ergänzung der Produktvision
+MESSINHO ist im Fußball-Scouting spezialisiert, aber nicht auf Fußballwissen begrenzt. Das Grundlagenwissen soll perspektivisch fachübergreifend aufgebaut und kontrolliert erweitert werden: Biologie, Physik, Mathematik, Chemie, Medizin, Ethik, Börse/Finanzen, Prognoseberechnungen, Sportmedizin, Informatik und Sportwissenschaft. Die Wissensarchitektur muss fachliche Begriffe, Grundprinzipien, Formeln, Statistik, Einheiten, Berechnungsmethoden, Modelle und deren Anwendungsgrenzen abbilden. Bei Prognosen sind Datenqualität, Annahmen, Unsicherheit, Validierung und nachvollziehbare Ergebnisse verpflichtend. Medizinische, ethische und finanzielle Aussagen benötigen domänengerechte Grenzen und dürfen nicht als individuelle Diagnose, verbindliche Anlageberatung oder moralische Autorisierung ausgegeben werden. Fußball bleibt die Spezialisierung und ein wichtiger Anwendungsfall, nicht die Grenze des allgemeinen Wissens.
+
+### Ziel und Abgrenzung
+Block 20 verbindet die vorhandenen Dialog-, Kontinuitäts-, Klärungs-, Gedächtnis-, Pragmatik-, Antwortplanungs-, Sprach- und Reasoning-Signale zu einem kompakten, request-lokalen Anpassungsvertrag. Die Schicht steuert keine Aktionen und ersetzt keine bestehenden Spezialmodule. Sie soll MESSINHO dabei unterstützen, natürliche Gespräche fortzuführen, Korrekturen aufzunehmen, die Antwortlänge an explizite Wünsche anzupassen, bereits behandelte Punkte nicht unnötig zu wiederholen und Mehrdeutigkeiten mit höchstens einer gezielten Rückfrage zu klären.
+
+### Implementierung
+- Neu: `backend/messinho-dialogue-adaptation.js`, Version `1.0.0`.
+- Neu: `tests/messinho-dialogue-adaptation.test.js`.
+- Der Vertrag unterscheidet Themenwechsel, Korrektur, Follow-up, offene Klärung und eigenständige Nachricht.
+- Antwortlänge wird nur anhand expliziter aktueller Formulierungen angepasst (kurz/knapp vs. ausführlich/Schritt für Schritt); sonst bleibt sie ausgewogen.
+- Die jüngsten Assistentenbeiträge werden begrenzt als bereits behandelte Gesprächspunkte übergeben, damit MESSINHO nicht unnötig wiederholt. Assistentenaussagen werden dadurch nicht zu Fakten.
+- Korrekturen lösen erneute Bewertung aus; ein Themenwechsel verwirft alte Filter und offene Rückfragen.
+- Mehrdeutige Referenten und offene Klärungen führen höchstens zu einer fokussierten Rückfrage.
+- Keine Emotionen, dauerhaften Stilpräferenzen oder Identitätsmerkmale werden aus dem Kontext abgeleitet.
+- Der Vertrag wird pro Request berechnet und nicht als Nutzerprofil persistiert.
+
+### Integration
+- `backend/server.js` erstellt den Anpassungsvertrag aus den bereits vorhandenen Dialog-, Kontinuitäts-, Klärungs-, Gedächtnis-, Pragmatik-, Antwort- und Sprachkontexten.
+- Der Cognitive Router erhält `dialogue_adaptation_context` als beratenden Kontext; Intent-Entscheidung, Autorisierung und Aktionsausführung bleiben unverändert.
+- Der Natural Conversation Composer erhält denselben Vertrag für die tatsächliche Antwortformulierung.
+- Die einmalige Antwortkorrektur aus Block 19 und der bestehende Conversation Response Guard bleiben aktiv.
+
+### Tests und Grenzen
+- Tests prüfen Follow-up-Kontinuität, Korrekturen, explizite Antwortlänge, Themenwechsel, Mehrdeutigkeit, Begrenzung, sensible Kontextfilterung und Integration in beide Modellturns.
+- Kein Datenbank-Schemawechsel, keine neue Persistenz, kein Training und keine Modellgewichtsänderung.
+- Die Komponente verbessert Steuerungshinweise, garantiert aber keine menschenähnliche Gesprächsqualität. Authentifizierte Admin-/Scout-Dialogtests bleiben erforderlich.
+- STAGING-only; Produktion und `main` bleiben unangetastet.
+
+### Nächster Schritt
+Block 21: integrierte Gesprächs- und Wissensabnahme mit realistischen mehrsprachigen Admin-/Scout-Dialogen, fachübergreifenden Fragen, Korrekturen, Themenwechseln, Berechtigungsgrenzen und Fehlerfällen. Anschließend die Wissensdomänen als eigenständige, belegte und versionierte Wissenspakete planen, ohne unkontrolliertes automatisches Lernen.
+
+
+## 43. Block 21 — Cross-Domain Knowledge Coverage Completion — 2026-11-28
+
+### Befund aus dem bestehenden System
+Die hierarchische Wissensarchitektur und die Legacy-Domain-Wissensschicht waren bereits vorhanden. Die tatsächliche Domain-Allowlist und beide SQL-Check-Constraints enthielten jedoch weder `chemistry` noch `ethics`. Diese Fachgebiete waren zwar in der Produktanforderung genannt, aber noch keine eigenständigen, klassifizierbaren Wissensdomänen. Die Dokumentation allein hätte diese Lücke nicht geschlossen.
+
+### Implementierung
+- `backend/messinho-domain-knowledge.js`: `chemistry` und `ethics` als kanonische Wissensdomänen ergänzt.
+- Deutsche und englische Fachbegriffe für Chemie (Atome, Moleküle, Periodensystem, Reaktionen, Säuren/Basen, Stöchiometrie, Redox, pH) und Ethik (Deontologie, Utilitarismus, Tugendethik, Forschungsethik, KI-Ethik, Fairness) werden domänenspezifisch klassifiziert.
+- `docs/MESSINHO_KNOWLEDGE_FOUNDATION.md`: beide Domänen in die vierstufige Lernlandkarte aufgenommen; Branch-Metadaten aktualisiert.
+- Neue Migration `20261128042845_messinho_chemistry_ethics_domains.sql`: erweitert ausschließlich die Domain-Check-Constraints beider bestehenden Wissenstabellen. Sie legt keine Tabellen an, importiert keine Inhalte und ändert keine Berechtigungen.
+- Migration wurde auf dem dedizierten Supabase-Projekt `myScoutingDatabase-staging` (`nwqwnrhupbyhshsprxjt`) unter `messinho_chemistry_ethics_domains` erfolgreich angewendet. Die Datenbankabfrage bestätigt `chemistry` und `ethics` in beiden Constraints; die Tabelleninhalte blieben unverändert.
+- Neue Tests `tests/messinho-domain-coverage.test.js`: prüfen Domain-Allowlist, deutsche/englische Klassifikation und beide SQL-Constraints.
+
+### Sicherheits- und Betriebsgrenzen
+- Die Migration ist auf `myScoutingDatabase-staging` ausgeführt und durch Abfrage beider Check-Constraints verifiziert. Es wurden keine Wissensinhalte importiert oder verändert.
+- Es werden keine Wissensinhalte automatisch aktiviert oder importiert. Die bestehenden Rechte-, Quellen-, Evidenz- und Admin-Freigaben bleiben unverändert.
+- Keine Änderung an Scouting-Bewertungen, Modellgewichten, Rollen, RLS oder Produktionssystem.
+- Die Domain-Constraints sind auf STAGING erweitert und verifiziert. Die nächste Abnahme prüft nun die vollständige Runtime-Kette: Klassifikation → Rechte-/Quellenprüfung → Retrieval → fachliche Antwortgrenzen → Admin-Freigabe.
+
+### Nächster Schritt
+Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen. Dazu gehören repräsentative Grundfragen, korrekte Domain-Zuordnung, Quellen-/Rechteprüfung, Retrieval-Treffer, fachliche Grenzen und ein kontrollierter Admin-Freigabepfad. Erst danach wird eine fachbezogene Wissensaufnahme erweitert.
+
+
+### Supabase advisor note — 2026-11-28
+- Nach der Domain-Migration wurden Security- und Performance-Advisors auf `myScoutingDatabase-staging` ausgeführt. Die Migration selbst hat keine RLS-, Grant-, Rollen- oder Funktionsänderung vorgenommen.
+- Vorbestehender Security-Hinweis: `public.admin_set_scout_approval(uuid, boolean)` ist als SECURITY DEFINER für `authenticated` ausführbar. Der Funktionskörper prüft zusätzlich `auth.uid()` und `private.is_admin()`; die tatsächliche Ausführungsnotwendigkeit und Grant-Beschränkung ist separat zu reviewen. Nicht Teil von Block 21 und nicht verändert.
+- Weitere Advisor-Informationen betreffen RLS-aktivierte, policy-freie serverseitige Tabellen sowie deaktivierten Schutz vor kompromittierten Passwörtern. Diese bestehenden Betriebs-/Sicherheitsbefunde bleiben separat offen; keine automatische Änderung im Rahmen dieser Domain-Erweiterung.
+
+
+## 2026-11-28 — Block 21, part 1: Versioned runtime core knowledge
+
+### Implemented on the feature branch
+- Added `backend/messinho-core-knowledge.js` as a first-party, immutable, versioned runtime knowledge pack (`1.0.0`). It is loaded by the Node.js module system at server startup and is available without a database query or external research call.
+- Initial curriculum contains 23 compact foundational concepts across mathematics, statistics, physics, chemistry, biology, medicine, sports science, banking, financial markets, risk management, ethics, computer science, football scouting and general systems thinking.
+- Concepts include a stable key, domain, title, definition, optional formula, applicability keywords and explicit limitations. The ACL/ruptured anterior cruciate ligament foundation explicitly rejects a universal recovery timeline and requires individual, criterion-based return-to-sport assessment.
+- Added deterministic, bounded lexical retrieval and a runtime manifest with version, load state, entry count and domain coverage.
+- Integrated the runtime pack into the authenticated chat's active knowledge context and system prompt. It is distinguished from approved graph knowledge and source-backed research; it is not represented as a rights-cleared external-source corpus or specialist-level coverage.
+- Added `tests/messinho-core-knowledge.test.js` for runtime loading/versioning, domain coverage, ACL retrieval, maths/chemistry/finance/football retrieval, empty-input behavior and foundational-level limitations.
+
+### Boundaries
+- This is the first runtime foundation, not complete expertise in all listed fields. The pack must grow through reviewed curriculum releases with domain experts, explicit assumptions, formulas, evidence grades, limitations and regression tests.
+- Time-sensitive market data, current medical guidelines, player-specific facts, specialist conclusions and individual diagnoses still require current, permitted evidence and suitable validation.
+- Runtime core concepts are first-party authored material. They are not falsely labelled as independently corroborated external research. The existing source-rights registry, candidate workflow, graph versioning and admin approval remain unchanged.
+- No automatic activation of learning candidates, no player rating/model-weight changes, no privileged execution rights and no production changes are introduced by this block.
+
+### Verification and release status
+- Initial commits: `e0a278b6ab8ec12877670d9befa3f07e03554ea6` (runtime pack), `a69cabe9856e9f553c15ac54ceacedc76a74df95` (tests), `3a6261989314497c5e841394b84fbe41a1dd3322` (chat integration).
+- GitHub CI for the integrated HEAD is pending verification at the time of this record.
+- Render STAGING has not been deployed or verified for Block 21. The branch commits must not be described as live.
+- Production branch, production service, production database and existing user/player data remain untouched.
+
+### Next steps
+1. Verify the complete CI suite and fix any regression on this branch.
+2. Expand tests for retrieval collisions, multilingual synonyms, domain ambiguity and chat-context behavior.
+3. Improve the runtime loader so approved, versioned knowledge packs can be loaded once per process with safe refresh/invalidation, while retaining fail-closed behavior.
+4. Build Block 22 curriculum packages in dependency order, then Block 23 calculation engines and Block 24 cross-domain reasoning. Keep each domain's confidence, evidence and limitations explicit.
+5. Deploy only the verified feature commit to the dedicated STAGING service after confirming the exact Render workspace/service and deployment target.
+
+
+### Block 21 integration refinement — evidence research handoff
+- Extended `researchMessinhoGeneralQuestion` with an optional, bounded runtime-foundation context parameter.
+- The evidence-synthesis request now receives up to six matched first-party foundation concepts as conceptual context. External, current or specialist factual claims must still be supported by the independently retrieved source set; internal foundations do not count as external evidence or bypass the two-domain evidence gate.
+- The chat route passes the request-matched runtime concepts into general research. This closes the earlier gap where the runtime pack was only attached to the ordinary conversation fallback and not to the evidence-research synthesis path.
+- Added an integration test that checks the core context reaches the synthesis request and that the resulting answer still passes the independent evidence review.
+- Commits for this refinement: `fae2610867bd8537837afd2bd62dc631407cf6d8` (research handoff), `774f01dfaf612e26055e964eeea0ece3d05a86dc` (chat handoff), `c8ea58a94d3ff05e2afaa9f6aab2c58481013aad` (integration test).
+- CI and STAGING deployment remain to be verified for the final branch HEAD.
+
+
+### Block 21 integration refinement — bounded local fallback
+- Added `formatMessinhoCoreKnowledgeFallback` to produce a clear answer from matched runtime foundations when external research is unavailable or the evidence gate is not met.
+- The chat uses this fallback only for non-time-sensitive questions. It labels the answer as foundational, includes the concept limitations, does not invent sources, and does not present internal foundations as externally corroborated evidence.
+- Time-sensitive questions continue to fail closed rather than using potentially stale runtime knowledge.
+- Added a regression test for the ACL example: the local foundation explains why there is no universal recovery timeline and does not invent a fixed number of weeks or months.
+- Commits: `2a044d41ee0d8b68b5609a207fe7377c98b9b7ce` (fallback formatter), `fdcb9437ce21e251401a995b49b46182e8d23cc0` (chat fallback), `d1cd9b07baad56fa9668c4cc1d4596dc05947893` (fallback test assertion).
+- The runtime pack now contains 23 concepts, including banking liquidity foundations. Automated test execution, CI status and STAGING deployment are still pending verification.
+
+
+## 2026-11-28 — Greeting regression reported from STAGING
+- User-provided screenshot confirms that the chat's initial welcome bubble is rendered, but the next plain user message `hallo` receives the cognitive-router-unavailable fallback instead of a conversational response.
+- Root cause in the request path: `/api/agent/chat` ran `classifyMessinhoTurn` before the normal conversation composer; when the semantic router returned unavailable, the route exited early. Plain greetings therefore depended unnecessarily on the semantic router.
+- Fix on `feature/messinho-conversation-engine`: import and invoke the existing deterministic `getMessinhoSocialReply` handler after authentication, message persistence, language interpretation and admin-command guard, but before cognitive routing. Plain social messages (including `Hallo`) now return a direct conversational response without requiring an AI provider round trip. Messages containing scouting/work intent are deliberately not intercepted.
+- Added `tests/messinho-social-greeting.test.js` covering German greeting classification, a non-empty reply, protection against intercepting a scouting request, and route ordering before `classifyMessinhoTurn`.
+- CI workflow `.github/workflows/messinho-tests.yml` is configured to run `npm test` and backend syntax checks on pushes to this branch.
+- Commits: route fix `ac48ac1b4fffec10f449c9c1fcb0b3c38e5e5fd6`; greeting regression test `51d846b8c3c41838e453399fc1e5d10e1bfe3804`; test assertion correction `50851bf35002e0137d23c0166f14615365bda81e`.
+- Status at documentation time: code and test are committed to the feature branch; CI result and Render STAGING deployment/runtime behavior still require verification. No production or `main` changes.
+
+
+## 2026-11-28 — Conversation-engine architecture correction
+- The user correctly rejected canned greeting templates as inconsistent with the intended ChatGPT-like MESSINHO conversation experience.
+- The deterministic greeting shortcut was removed from the live chat route. Greeting detection remains a small intent utility, but it no longer generates the user-facing answer.
+- The route now treats the semantic cognitive router as an intent/action planner, not as a hard prerequisite for ordinary dialogue. If that router fails, the request attempts the existing generative `generateMessinhoNaturalConversationReply` engine with the same bounded dialogue, linguistic, memory, reasoning and continuity context.
+- This fallback is explicitly non-executing: it dispatches no scouting, memory or engineering actions. If the language provider itself is unavailable, the route returns a truthful provider-unavailable response rather than pretending to converse.
+- Updated regression test checks that the generative conversation engine is used as the router-failure fallback and that no canned greeting handler is wired into the route.
+- Commits: architecture correction `33d5ac2ef99fd95239a238abfca77015e8d8df27`; route regression test `40ade372c06b928fb4dd142c4f7bc69fbc59c90d`; removed canned-response expectations `aa5b923f3263f04f590f7b31e0117e90ca3f38d7`.
+- CI and STAGING deployment/runtime verification remain pending. This change does not touch `main` or production.
+
+
+## 2026-11-28 — Conversation-engine integration verification
+- Rechecked the existing natural conversation composer, cognitive router, dialogue engine, conversation continuity, language context, reasoning and response-intelligence wiring. These components were already implemented; work focused on the request path and failure behavior rather than creating a second engine.
+- The user-facing deterministic greeting shortcut was removed. Normal conversational output remains generated by `generateMessinhoNaturalConversationReply`; the semantic router is not a hard prerequisite for ordinary dialogue.
+- When cognitive routing is unavailable, the route now invokes the existing generative conversation composer with bounded history and the same language, conversation-memory, reasoning, response-plan, continuity and dialogue-adaptation context. This fallback is non-executing: no scouting, memory-write or engineering action is dispatched.
+- CI uncovered two pre-existing knowledge-pack defects during this work: a literal escaped newline made the module syntactically invalid, and compound German `Fußballspieler` was not matched by the lexical retrieval. Both were corrected. The research fixture was also aligned with the actual relevance-filter anchors.
+- Verification on branch commit `3edcc6c94c1c6a0d3f7b8259b86afb5077801f70`:
+  - GitHub Node test run `46111712348`: success.
+  - GitHub staging CI run `46111712344`: success (full regression suite, backend syntax and Vite production build).
+  - Render staging service `myscoutingdatabase-messinho-staging` deployed commit `3edcc6c94c1c6a0d3f7b8259b86afb5077801f70`; deploy `dep-dc569pei0phs73cilb20` reached status `live`.
+  - Render build log reports 739 tests, 739 passed, 0 failed; Vite production build completed successfully.
+- STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- Scope: only `feature/messinho-conversation-engine` and the staging service were changed. `main` and the production service were not deployed or modified.
+- Remaining acceptance test: authenticate in STAGING and exercise real provider-backed turns (greeting, open conversation, follow-up, correction, topic change, and longer dialogue). Automated tests and deployment prove the code is live, not yet that the configured live model behaves correctly for every conversation.
+
+## 2026-11-28 — Engineering review and diagnostic false-negative correction
+- Confirmed Render STAGING deployment dep-dc58hugu01pc73fr4i80 is LIVE on commit 0e092fe7b2c9326dd7911fb0e982f32b96648660; build succeeded, 741 tests passed, and Vite completed successfully. Production/main was not touched.
+- Increased the engineering source-review per-file bound from 16,000 to 32,000 characters and added regression tests for a 24,000-character accepted source and a 32,001-character rejected source. The error response now distinguishes a source-size limit from a generic review failure and records a bounded, safe reason.
+- Compared saved diagnostics with the live build. backend/messinho-project-audit.js incorrectly required the literal substring "vite build"; the actual working package script invokes "node ./node_modules/vite/bin/vite.js build". This caused a false critical Build-Pipeline finding despite the successful Render build.
+- Corrected the audit to recognize both the standard "vite build" command and the direct Vite CLI invocation, while still requiring the test command to run before the build. Added a fixture regression test for the exact staging package script.
+- Verification on branch commit c197695b74548a87881ad0d979adb08c983fba80: Node test workflow success; backend syntax workflow success; full staging branch CI (tests, syntax, Vite production build) success. The earlier intermediate commit ddfb5527ccc35cab61bbeea2defb4bc7bd2866c0 had a temporary syntax defect in the audit regex and was superseded by c197695; do not deploy the intermediate commit.
+- Current DB evidence: latest system_diagnostic_runs record at 2026-11-28 07:41:55 UTC was healthy (46/46 checks). The MESSINHO project-audit ticket MYKI-2026-F17BFB5915AA and failed engineering review records are older (around 05:02–05:15 UTC) and predate the successful 0e092fe staging deployment. The global MESSINHO control is paused with stop_requested=true (updated 07:59:42 UTC); this stop state was respected and not changed.
+- Open safety issue before enabling autonomous sandbox execution: the deployed app branch is feature/messinho-conversation-engine, while messinho-myki-engineer.js and messinho-sandbox-dispatch.js still pin source review and GitHub Actions dispatch to feature/messinho-unified-ai-integration. Verify and align the review baseline, workflow branch and deployment provenance before enabling sandbox execution. The sandbox gate remains closed unless the explicit staging service identity and required credentials are configured.
+- Remaining: deploy the verified c197695 code/doc checkpoint to STAGING; run a fresh authenticated MESSINHO project diagnosis; confirm current relative-import results and the remaining direct-test-coverage warning; then resolve the cross-branch engineering/sandbox baseline before implementing the autonomous diagnose → explain → propose → sandbox-test → verify → persist loop. No production/main or Supabase schema changes.
+
+## 2026-11-28 — Engineering baseline aligned to the active STAGING branch
+- A branch comparison proved that feature/messinho-conversation-engine is 386 commits ahead of feature/messinho-unified-ai-integration. The engineering reviewer and sandbox dispatcher had still been reading and dispatching against the older branch. That could have produced proposals against code different from the deployed STAGING application.
+- Corrected backend/messinho-myki-engineer.js, backend/messinho-sandbox-dispatch.js, backend/messinho-engineering-scheduler.js, and .github/workflows/messinho-isolated-engineering.yml so source review, benchmark identity, sandbox dispatch, workflow trigger and expected GitHub ref all use feature/messinho-conversation-engine.
+- Updated regression tests in messinho-myki-engineer.test.js, messinho-engineering-scheduler.test.js and messinho-sandbox-engineering.test.js. Added a test that asserts reviewer, dispatcher and workflow branch alignment.
+- Verification on commit 5bef56456b9697fee8a4aac57410f334924642d3: GitHub Node tests passed 743/743; backend syntax passed; full staging branch CI including Vite production build passed. An earlier intermediate commit failed because one legacy sandbox test still expected the old branch; that test was corrected before the successful commit. Do not deploy the intermediate commits.
+- The isolated engineering workflow was moved to the active STAGING branch. Its push-triggered baseline validation has no job payload and does not apply a patch. The sandbox remains separately gated by the explicit Render STAGING identity and GitHub credential. Do not enable the execution gate until the baseline sandbox run and end-to-end callback are verified.
+- STAGING deployment of the branch-aligned commit is pending. Production/main and Supabase schema/data remain untouched.
+- Next: deploy the verified branch-aligned commit to STAGING; verify deployment health; request a fresh authenticated MESSINHO project diagnosis (the old ticket predates this deployment); then test a controlled sandbox job only after the staging identity/credential gate is verified. The autonomous diagnose → explain → propose → isolated execute → test → verify → persist workflow remains the next product milestone, not yet complete.
+
+## 2026-11-28 — MESSINHO-Steuerung: Diagnose von Autonomie getrennt
+- Admin-UI in src/asi/MyKiChat.jsx umgebaut: Die einmalige Schaltfläche "Diagnose starten" ruft direkt POST /api/admin/messinho-diagnostics/run auf. Sie ist unabhängig vom Autonomie-Modus und führt keine Reparatur aus. Das Ergebnis wird als verständliche MESSINHO-Nachricht mit Status, bestanden/gesamt und bis zu fünf konkreten Auffälligkeiten im Chat angezeigt; der Diagnosebericht wird serverseitig wie bisher dauerhaft gespeichert.
+- Die autonomen Steueraktionen sind getrennt und klar benannt: "Autonomie pausieren" (paused), "Fehleranalyse & Reparaturprüfung" (working), "Weiterentwicklung" (developing) und "Stopp anfordern" (stop). Die bestehende Backend-Logik und Sicherheitsgrenzen wurden nicht gelockert.
+- In src/asi/myki-chat.css die manuelle Diagnose visuell als eigene Prüfaktion gruppiert und die Autonomie-Steuerung separat dargestellt; responsive Darstellung für kleine Displays ergänzt.
+- Regressionstest tests/messinho-myki-controls.test.js hinzugefügt: prüft den separaten Diagnose-Endpunkt und die getrennten Modusaktionen.
+- Verifiziert auf Commit 2be75fd9ab1b256d7d2fd188ef923e681af8875b: MESSINHO Node tests erfolgreich, Backend-Syntax erfolgreich, Staging-Branch-CI einschließlich Vite-Produktionsbuild erfolgreich. Die finalen GitHub-Post-Schritte waren zum Zeitpunkt der Dokumentation noch in Bearbeitung; alle eigentlichen Test-/Build-Schritte waren erfolgreich.
+- WICHTIG: Der globale MESSINHO-Control-Datensatz bleibt paused mit stop_requested=true. Die UI-Änderung aktiviert keine autonome Arbeit und ändert keinen Datenbankzustand. Der manuelle Diagnose-Endpunkt bleibt als explizite Admin-Aktion erreichbar.
+- Nächster Schritt: den geprüften Commit auf Render STAGING bereitstellen und danach den Admin-Button "Diagnose starten" in der echten Anwendung testen. Keine Production-/main-Änderungen und keine Supabase-Schemaänderungen.
+
+- Deployment verification completed: Render STAGING deployment dep-dc58sn8u01pc73fsc9k0 is LIVE on application commit 3ae742d8002da7c6b2fa3a674e78d98346b316a4. Build succeeded, server started, and service reported live. The 745-test run passed (745/745); no Production deployment was triggered.
+- User-facing confirmation still required: sign in to STAGING, click the new "Diagnose starten" action while MESSINHO remains paused, and confirm the saved report and summary appear. This authenticated end-to-end UI action has not yet been executed by the admin.
+
+- Follow-up formatting correction: diagnostic summaries now use real multiline rendering in the chat. Verified on commit ebd4bf011f794e2395a4279ff720bb5ac7780f25: 745/745 Node tests passed, backend syntax passed, Vite production build succeeded. Render STAGING deployment dep-dc58tj6c6qcc73866pb0 is LIVE on this commit.
+
+## 2026-11-28 — Project-Audit false positives corrected
+- Admin's first manual MESSINHO diagnosis completed and persisted while autonomous mode remained paused. It reported CRITICAL 19/21 with two static-audit findings: eight "unresolvable" relative imports and six backend modules without same-basename tests.
+- Code review found both heuristics were unsound: the import scanner treated import examples inside JavaScript string assertions/comments as real imports; test assignment compared file basenames instead of resolving actual test import dependencies. The findings were not evidence of eight broken imports or six untested modules.
+- backend/messinho-project-audit.js now tokenizes JavaScript module syntax and ignores comments, strings, templates and regex literals; resolves actual static, re-export and literal dynamic imports against the project inventory; and maps backend modules to test files through resolved relative import targets rather than filename similarity.
+- Added regression coverage for import examples embedded in strings/comments, static and side-effect imports, real missing imports, test imports with different filenames, and the staging Vite CLI build script.
+- Verified commit d8e48965c05a0d849682cefb1a3f25ba2db9b447: 747/747 Node tests passed; backend syntax checks passed; staging branch CI including production Vite build passed. Isolated engineering sandbox validation was still running when this note was prepared.
+- Next: deploy this validated audit correction to Render STAGING only, rerun the admin MESSINHO diagnosis, and inspect whether the eight import and six test-assignment warnings disappear. Do not start autonomous development or modify Production.
+
+- Deployment of the audit correction completed: Render STAGING deployment dep-dc592us9v7es739ltpe0 is LIVE on commit 7843abc0dbe50353de6cbae5b3965b2a6340a36a. Build logs confirm Vite build success and the API process started; service reported live.
+- Supabase global MESSINHO control was rechecked after deployment and remains mode=paused, stop_requested=true. No autonomous development was started and no Production deployment occurred.
+- Required next validation is a fresh manual admin diagnosis against this deployment. The prior 19/21 result belongs to the old audit implementation and must not be used as the new baseline.
+
+## 2026-11-28 — myKI dashboard layout, visual consistency and interaction stability
+- Reorganized the Admin myKI page into a clear top-to-bottom hierarchy: page heading and refresh action → three key KPI cards (open proposals, successfully integrated, errors/review) → direct MESSINHO chat and primary controls → detailed activity monitor → development ticket inbox and selected-ticket details.
+- Moved the KPI cards from below the large activity/chat sections to immediately below the page heading, so the important counts are visible first.
+- Kept the main chat and Admin controls ahead of secondary status information. Detailed technical metadata in the chat and the operating schedule in the activity monitor are now collapsed by default and remain available on demand.
+- Unified myKI styling with the established black/anthracite/gold palette: gold headings, borders, focus rings and primary controls; dark neutral secondary controls; red reserved for destructive/stop actions. Scoped styling to myKI so other workspaces are not unintentionally recolored.
+- Stabilized controls: removed hover/active transforms within myKI and fixed a hover margin reset that could change vertical layout; standardized control transitions and focus styles. Reduced chat status polling from every 10 seconds to every 30 seconds to match the activity monitor and reduce unnecessary layout refreshes.
+- Added tests in tests/myki-dashboard-layout.test.js for section order, collapsed secondary details, status polling cadence, stationary buttons and gold focus styling.
+- Validation on commit b7db24a90b01ae94e061eeaade7ee490d809a461: 750/750 Node tests passed; backend syntax checks passed; Vite production build passed. Render deployment dep-dc597061egvs73b2tang is LIVE on STAGING.
+- Production was not modified. MESSINHO autonomy control was not changed by this UI task.
+- Next: visually verify the new myKI layout on desktop and mobile in STAGING, including the diagnostic, refresh, mode, ticket selection, pagination and destructive-action controls. Adjust only if an actual device/browser reproduction shows remaining movement.
+
+## 2026-11-28 — Per-message timestamps in MESSINHO chat
+- Every chat entry now receives its own ISO timestamp at creation: initial welcome message, each user submission, each completed MESSINHO response, and Admin-triggered diagnostic output.
+- Timestamps are rendered directly beneath the corresponding message using the Europe/Berlin time zone and German date/time formatting (date plus 24-hour time including seconds).
+- The timestamp is stored on the message object and remains stable while the chat component is open; it is not recalculated during re-render or auto-scroll.
+- Added a regression test covering timestamp creation for user messages, assistant replies and diagnostic output, plus the semantic HTML time element and Berlin timezone.
+- Validation on commit 791a91ffcc8d79780c91475241ec62837d83e4e9: 751/751 Node tests passed; backend syntax checks passed; Vite production build passed.
+- Render staging deployment: dep-dc59cul6e07s739ugkrg, commit 791a91ffcc8d79780c91475241ec62837d83e4e9. Deployment completion must be verified before calling this change live.
+- This change is presentation/session metadata only; it does not change chat model behavior, message persistence policy, autonomy settings, or Production.
+
+
+## 2026-11-28 — myKI dashboard aligned to owner sketch (implementation in STAGING branch)
+
+### Accepted dashboard structure
+- Top: myKI overall maturity/progress bar.
+- Next: the existing single MESSINHO conversation interface (no duplicate chat).
+- Separate operating panels: **myKI Diagnose** and **myKI Entwickler**.
+- Bottom: two independent ticket boards side by side — diagnostic tickets on the left and development tickets on the right — with a maximum of five visible entries per page and independent pagination.
+- Selecting either ticket opens its detail below the two boards. Diagnostic tickets show diagnosis-oriented headings and do not expose the development sandbox/integration controls.
+
+### Implemented in the feature branch
+- Added `src/asi/MyKiMaturity.jsx`: reads the existing evidence-based maturity report from the authenticated Admin status endpoint and displays the percentage, level, snapshot date, and expandable pillar evidence. The score is explicitly labelled with its verification snapshot; it is not represented as a live recalculation.
+- Added `src/asi/MyKiOperations.jsx`: separate diagnosis and development panels. The diagnosis action now runs both `/api/admin/system-diagnostics/run` and `/api/admin/messinho-diagnostics/run`, so the requested check covers the whole application and MESSINHO. Development start/pause/stop uses the existing Admin control endpoint.
+- Added `src/asi/MyKiTicketBoards.jsx`: splits existing myKI ticket records by the diagnostic finding marker and presents each type in its own five-item paginated board.
+- `src/asi/MyKiChat.jsx` is now focused on the conversation itself; duplicate operating controls were moved out of the chat.
+- `src/main.jsx` places the progress report before the chat and the two ticket boards after the operational panels/activity monitor. Diagnostic ticket details are distinguished from development proposals.
+- `src/styles.css` adds responsive black/anthracite/gold styling for the new controls and dual-board layout.
+
+### Verified database facts and explicit gaps
+- The connected STAGING Supabase project is `myScoutingDatabase-staging` (`nwqwnrhupbyhshsprxjt`). No Production Supabase project was changed.
+- At inspection time, STAGING contained 2 active rows in `messinho_myki_tickets` (both diagnostic findings) and 13 rows in `messinho_diagnostic_runs`.
+- Existing system and MESSINHO diagnostic-run retention functions keep the latest 50 reports. New STAGING migration `20261128092859_messinho_myki_ticket_retention_50.sql` now keeps at most 50 active diagnostic tickets and 50 active development tickets. On the 51st insert in a category, the oldest active ticket is soft-deleted from the inbox and an append-only `retention_pruned` event records the reason/fingerprint. The ticket row and event history remain as an audit tombstone; this is intentional, so the active inbox is capped without destroying audit history.
+- The current diagnostic endpoints execute synchronously. The UI therefore shows the requested pause/end controls as disabled with an explanation instead of pretending they can interrupt a running diagnostic. A resumable/cancellable background diagnostic job API is still required to make those actions functional.
+- The maturity percentage comes from the existing report snapshot dated `2026-11-27`; it is shown with that date and must be recalculated from the newer branch baseline before treating it as a current score.
+
+### Safety and release status
+- Changes are confined to `feature/messinho-conversation-engine` and the explicitly configured STAGING service. Production branch, Production Render service, and Production Supabase remain untouched.
+- The STAGING Render service has `autoDeploy=no`; manual deployment is required. Deployment `dep-dc59ulec6qcc7389pdjg` is now **LIVE** on commit `46e02b7420dea984fa23985b03e2f9394d38c64b`. Render logs confirm the API process started on port 10000, the Supabase Data API returned HTTP 200, and Render reported the service live.
+- Regression tests were expanded for the dashboard order, dual ticket classification, five-item pagination, combined diagnostics, and separated development controls. CI initially found outdated tests that still expected controls inside the chat and a diagnostic timestamp in the chat; those tests were migrated to the new component boundaries. Final verification on commit `46e02b7420dea984fa23985b03e2f9394d38c64b`: 753/753 Node tests passed, backend syntax passed, staging branch CI passed, and Vite production build passed (1,643 modules transformed).
+- STAGING Supabase migration `20261128092859_messinho_myki_ticket_retention_50` was applied successfully. A transactional rollback test inserted 51 temporary tickets into each category and verified 50 active records per category; the test transaction was rolled back. Follow-up query confirmed 2 existing active diagnostic tickets, 0 development tickets, and 0 leftover test rows. The retention trigger exists. Production Supabase was not changed.
+
+### Next required steps
+1. Confirm all CI checks pass on the final feature-branch HEAD and complete the Vite build.
+2. Implement background diagnostic job state so pause and stop are real server-side operations.
+3. Recalculate the maturity score against the current branch and fresh tests/diagnostics.
+4. Admin must visually verify desktop/mobile STAGING UI, run both diagnostic paths, and select tickets from both boards. Automated tests/build and Render startup are green, but authenticated visual end-to-end testing has not yet been performed.
+
+
+## 2026-11-28 — myKI Dashboard an Eigentümer-Skizze angepasst
+- Verbindliche Layoutreferenz: vom Eigentümer am 2026-11-28 bereitgestellte Handskizze „my KI Dashboard“. Die Reihenfolge ist: Dashboard-Titel → myKI-Entwicklungsstand Gesamt in % (Reifegrad) → myKI Chat mit Verlauf und Eingabe → myKI Diagnose mit Betriebszustand/Status, Start-/Pause-/Beenden-Aktionen und laufender Diagnoseinformation → myKI Entwickler mit Start-/Pause-/Beenden-Aktionen und laufender Entwicklungsinformation → zwei Ticketboards nebeneinander (Diagnosetickets links, Entwicklungstickets rechts) → ausgewählte Ticketdetails darunter.
+- Falsche Zusatz-KPI-Leiste und der separate Aktivitätsmonitor wurden aus der sichtbaren Dashboard-Hauptansicht entfernt, weil sie in der Eigentümer-Skizze nicht vorgesehen sind. Die vorhandenen Daten-/Monitorfunktionen werden dadurch nicht aus dem Projekt gelöscht.
+- Diagnose und Entwicklersteuerung werden als zwei getrennte, untereinander angeordnete Bereiche gerendert, nicht als nebeneinanderliegende Karten. Diagnose prüft weiterhin Gesamtprojekt und MESSINHO-Agent. Diagnose-Pause/Beenden bleiben ehrlich deaktiviert, solange die synchronen Diagnose-Endpunkte keine serverseitige Unterbrechung unterstützen.
+- Ticketboards bleiben unabhängig paginiert (maximal fünf sichtbare Tickets pro Seite); bestehende STAGING-Aufbewahrung begrenzt aktive Tickets je Kategorie auf 50 und protokolliert die Archivierung älterer Einträge. Ticketdetails erscheinen unter den beiden Boards.
+- Betroffene Dateien: src/main.jsx, src/asi/MyKiOperations.jsx, src/asi/MyKiChat.jsx, src/asi/MyKiMaturity.jsx, src/asi/myki-chat.css; Layout-Regressionstest in tests/myki-dashboard-layout.test.js sowie Diagnose-Regressionswortlaut in tests/messinho-myki-controls.test.js.
+- Verifiziert auf Codecommit 9d0e7ede8fd806e5bd4af3588ad87312877262b5: 754/754 Node-Tests erfolgreich; Backend-Syntax erfolgreich; vollständige STAGING-Branch-CI einschließlich Vite-Produktionsbuild erfolgreich. Die frühere Testabweichung betraf nur eine veraltete Formulierung im Diagnose-Regressionstest und wurde korrigiert.
+- Render STAGING ist ausdrücklich auf feature/messinho-conversation-engine mit autoDeploy=no konfiguriert. Manuelles Deployment dep-dc5a5dvf3r2c73e3r6pg für Commit 9d0e7ede8fd806e5bd4af3588ad87312877262b5 wurde gestartet; Deployment erfolgreich abgeschlossen: Build und Deploy wurden am 2026-11-28 um 09:46:36 UTC als succeeded bestätigt. Render STAGING ist LIVE auf Commit 9d0e7ede8fd806e5bd4af3588ad87312877262b5 (Deployment dep-dc5a5dvf3r2c73e3r6pg).
+- Production-Service (Branch main) und Production-Datenbank wurden nicht verändert. MESSINHO-Autonomie wurde nicht aktiviert.
+- Nächste Schritte: Render-Deployment bis LIVE verifizieren; danach visuelle Admin-Prüfung auf Desktop und Mobilgerät gegen die Eigentümer-Skizze. Insbesondere Chat-Eingabe, Statusanzeigen, Diagnoseaktionen, Entwickleraktionen, Ticket-Pagination und Ticketdetails kontrollieren.
+
+
+## 2026-11-28 — Verbindlicher Zeitstempelstandard für Logs, Eingaben und Dashboard-Ausgaben
+- Grundregel: Jeder gespeicherte Vorgang behält einen server-/datenbankseitigen UTC-Zeitpunkt. Sichtbare myKI-/MESSINHO-Zeitpunkte werden einheitlich in Europe/Berlin mit Datum, Stunden, Minuten und Sekunden dargestellt. Client-Zeit ist nur ergänzende Erfassungsinformation, niemals die maßgebliche Audit-Zeit.
+- Backend-Logging: console.log/info/warn/error/debug werden zentral mit ISO-UTC-Präfix versehen. Jede JSON-Antwort erhält den Header X-Server-Timestamp; JSON-Objekte und Array-Einträge erhalten zusätzlich server_timestamp. Dadurch bekommen auch Fehlerantworten und Statusantworten einen nachvollziehbaren Server-Ausgabezeitpunkt.
+- MESSINHO-Chat-Eingaben: client_submitted_at, server_received_at und die Datenbankzeit created_at werden gespeichert. Die Verarbeitung erhält processing_started_at. Antworten erhalten output_generated_at sowie output_persisted_at aus dem Datenbankeintrag. Zeitmetadaten werden im message.metadata JSONB gespeichert; bestehende created_at-Spalte der messinho_conversation_messages bleibt die maßgebliche Persistenzzeit. Kein zusätzlicher DB-Migrationsschritt erforderlich.
+- Gesprächswiederherstellung gibt die gespeicherten Zeitpunkte zurück. Chat zeigt Eingabe gespeichert, Servereingang, Ausgabe gespeichert und Erzeugt jeweils als separate Zeitangaben; der Live-Status im Chat erhält ebenfalls einen Zeitstempel.
+- myKI Dashboard: Gesamtansicht, Reifegrad-Ausgabe, Betriebsstatus, Diagnoseberichte, Systemdiagnose, MESSINHO-Diagnose, Ticketboards, Ticket-Erstellung/Änderung, Ticket-Auditereignisse, Sandbox-Prüfläufe und Programmiergedächtnis zeigen Zeitstempel. Diagnoseeinzelprüfungen verwenden checkedAt; Diagnoseläufe finished_at/created_at; Ticket- und Auditereignisse created_at.
+- Die bestehenden Tabellen messinho_conversation_messages, messinho_myki_tickets und messinho_myki_ticket_events besitzen bereits created_at timestamptz not null default now(); vorhandene updated_at/finished_at/checkedAt-Felder werden weiterverwendet. Keine Daten werden durch diese UI-Änderung überschrieben oder rückdatiert.
+- Einheitliche Europe/Berlin-Anzeige wurde auch in SystemDiagnostics und MyKiActivityMonitor umgesetzt.
+- Geänderte Dateien: backend/server.js; src/asi/MyKiChat.jsx; src/asi/MyKiOperations.jsx; src/asi/MyKiMaturity.jsx; src/asi/MyKiTicketBoards.jsx; src/asi/SystemDiagnostics.jsx; src/asi/MyKiActivityMonitor.jsx; src/asi/myki-chat.css; src/main.jsx; tests/myki-dashboard-layout.test.js; tests/myki-timestamp-coverage.test.js.
+- Regressionstests decken Server-/Logzeitstempel, persistierte Chat-Lifecycle-Zeitpunkte, Gesprächswiederherstellung, Dashboard-Komponenten, Sandbox-/Programmiergedächtnis-Ausgaben und Europe/Berlin-Darstellung ab.
+- Alle Änderungen bleiben auf feature/messinho-conversation-engine und STAGING. Production wird nicht geändert. Deployment erst nach erfolgreicher CI und anschließendem Health-Check.
+
+
+### Ergänzung Zeitstempel – abschließende Präzisierung
+- Der Server-Eingangszeitpunkt wird jetzt direkt beim Eintritt in den POST-Handler `/api/agent/chat` erfasst (nicht erst nach Authentifizierung oder Datenbankabfrage).
+- Die Chatoberfläche unterscheidet ausdrücklich zwischen lokal gesendeten, noch nicht bestätigten Eingaben und server-/datenbankseitig gespeicherten Eingaben. Nicht persistierte Assistentenausgaben werden als erzeugt, aber nicht gespeichert gekennzeichnet.
+- Sichtbar sind Client-Sendezeit, Servereingang, Datenbank-Speicherzeit, Verarbeitungsbeginn, Ausgabeerzeugung und Ausgabe-Speicherzeit.
+- Finale Regression: 759/759 Node-Tests bestanden; Backend-Syntax erfolgreich; vollständiger STAGING-Branch-CI-Lauf einschließlich Vite-Produktionsbuild erfolgreich auf Commit 9f196d2c40d3831b4160c5c0b9b48fe77a1c5ef4.
+- Render-Deployment dieses Commits wurde gestartet: dep-dc5abegu01pc73816f50. Status muss bis zur bestätigten LIVE-Meldung weiter geprüft werden.
+
+
+### STAGING-Deployment bestätigt
+- Render STAGING Deployment `dep-dc5abegu01pc73816f50` ist seit 2026-11-28 09:58:59 UTC erfolgreich `live`.
+- Ausgerollter Codecommit: `9f196d2c40d3831b4160c5c0b9b48fe77a1c5ef4`. Build erfolgreich; Backend meldet API listening auf Port 10000; Supabase Data API Health-Check HTTP 200.
+- Node-Regression: 759/759 bestanden; Backend-Syntax und vollständiger Vite-Produktionsbuild bestanden.
+- Render-Service bleibt auf `feature/messinho-conversation-engine`, `autoDeploy=no`. Production unverändert.
+- Sichtprüfung im Browser bleibt als abschließende Abnahme offen: Chat-Verlauf nach Reload, Client-/Server-/DB-Zeitpunkte, Ausgabezeitpunkte, Diagnose-/Entwicklungsstatus, Tickets, Ticketverlauf und Sandbox-Protokolle auf Desktop und Mobilgerät.
+
+
+## 2026-11-28 — Globale Zeitstempel-Abdeckung (Erweiterung nach Komponenten-Audit)
+- Verbindliche Regel gilt für die gesamte Anwendung, nicht nur für myKI: jeder persistierte Datensatz besitzt einen serverseitigen `created_at`-Zeitpunkt; änderbare Datensätze verwenden zusätzlich `updated_at`; Ereignis-/Audit-Tabellen speichern je Ereignis `created_at` bzw. fachliche Zeitpunkte wie `finished_at`, `resolved_at`, `reviewed_at`.
+- Supabase STAGING-Prüfung: 43 öffentliche Tabellen. Nach der Ergänzung besitzen 43/43 Tabellen ein `created_at` mit `timestamptz NOT NULL DEFAULT now()`. Einzige zuvor fehlende Tabelle war `messinho_agent_memory`; sie besitzt jetzt `created_at` und einen BEFORE UPDATE Trigger für `updated_at`. Der bestehende Datensatz erhält den Migrationszeitpunkt als Baseline, nicht einen erfundenen historischen Erstellungszeitpunkt.
+- Datenbankmigration: `supabase/migrations/20261128102005_global_timestamp_coverage.sql`; auf `myScoutingDatabase-staging` erfolgreich angewendet und Spalten/Defaults anschließend direkt geprüft.
+- Wichtige Korrektur aus dem Komponenten-Audit: Die primäre Scout/Admin-Konversation läuft über `src/asi/MessinhoWorkspace.jsx`, nicht nur über `MyKiChat.jsx`. Daher sind jetzt auch dort Client-Sendezeit, Servereingang, Datenbank-Speicherzeit, Ausgabeerzeugung und Ausgabe-Speicherzeit sichtbar; nicht bestätigte lokale Nachrichten werden als solche markiert.
+- Browser-Logs erhalten zentral in `src/main.jsx` dieselbe UTC-Zeitpräfixierung wie Backend-Logs. Backend-Logger-Wrapper wurde vor die initialen Konfigurations-/Startup-Logs verschoben, damit auch diese protokolliert werden.
+- myKI Diagnose, Systemdiagnose, Status, Reifegrad, Ticketboards, Ticketverläufe, Sandbox-Prüfläufe und Programmiergedächtnis behalten ihre Zeitstempel-Anzeigen. Alle API-JSON-Antworten erhalten `server_timestamp` und den Header `X-Server-Timestamp`.
+- Regressionstests erweitert: primäre MESSINHO-Konversation, Browser-/Backend-Logs, Datenbankmigration und bisherige myKI-Ausgaben.
+- Änderungen bleiben ausschließlich auf `feature/messinho-conversation-engine` und STAGING. Die neue UI-/Backend-Version muss nach grüner CI erneut nach STAGING deployed und dort visuell geprüft werden; Production bleibt unangetastet.
+
+
+### Globale Zeitstempel-Erweiterung — STAGING-Deployment abgeschlossen
+- Neue Version auf Render STAGING erfolgreich LIVE: `dep-dc5amh61egvs73b84ov0`, Commit `00981bea4adcbe4232110109c70ec87d2b0a7feb`, Live-Zeit 2026-11-28 10:22:41 UTC.
+- Supabase STAGING-Migration `global_timestamp_coverage` erfolgreich angewendet. Verifiziert: 43/43 öffentliche Tabellen haben `created_at timestamptz NOT NULL DEFAULT now()`; `messinho_agent_memory` besitzt jetzt zusätzlich `created_at` und einen Update-Trigger für `updated_at`.
+- Primäre MESSINHO-Chatoberfläche (Scout/Admin) zeigt pro Nachricht den Zeitstempel, unterscheidet lokal gesendete von bestätigten/persistierten Eingaben und markiert nicht gespeicherte Ausgaben. Client-Sendezeit, Servereingang, Datenbank-Speicherzeit und Ausgabeerzeugung sind separat sichtbar. Fehlerausgaben haben ebenfalls einen Zeitstempel.
+- Browser- und Backend-Logs werden ab Beginn des jeweiligen Anwendungscodes mit ISO-UTC-Präfix ausgegeben; API-JSON-Antworten erhalten `server_timestamp` und `X-Server-Timestamp`.
+- CI auf Commit `00981bea4adcbe4232110109c70ec87d2b0a7feb`: 761/761 Tests bestanden, Backend-Syntax erfolgreich, Vite-Produktionsbuild erfolgreich.
+- Anzeige in der Oberfläche: Europe/Berlin mit Datum, Stunden, Minuten und Sekunden; Speicherung in der Datenbank bleibt UTC/timestamptz.
+- Production bleibt unverändert. Nächster Abnahmeschritt: visueller Live-Test im iPhone-Browser und Kontrolle, dass die sichtbaren Zeitangaben nach Reload aus den gespeicherten Daten wiederhergestellt werden.
+
+
+## 2026-11-28 — MESSINHO Diagnose-Engine: Block 1 / Baseline und präzise Befunde
+- Verbindliche Erweiterung gemäß `docs/MESSINHO_PROJECT_DIAGNOSTICS_SPEC.md`: MESSINHO muss projektweit Quellcode, Frontend, Backend, Datenbank-/API-Verträge, Tests, Projektmanagement und seine eigene Diagnose prüfen. Fehler müssen mit konkreten Belegen und möglichst Datei/Zeile/Spalte eingegrenzt werden. Statische Hinweise sind von reproduzierten Laufzeitfehlern zu unterscheiden.
+- Ausgangsdatei `backend/messinho-project-audit.js` untersucht. Bestätigt: Die bestehende Prüfung ist ein read-only statischer Inventar-/Konsistenzscan. Sie führt keine Tests, Compiler, Build-Kommandos oder Laufzeitprüfungen aus. Der bisherige Diagnosebericht konnte daher nicht belegen, dass alle Quellcodes tatsächlich funktionieren.
+- Reale CI-Logs des Prüflaufs vom Commit `cf2f02e426c3d84cb73a6b97ce7bb22c6c1276a8` ausgelesen. In diesem Lauf wurden 765 Tests gestartet, 762 bestanden und 3 neue Diagnose-Regressionstests schlugen fehl. Die Fehler betrafen die neu ergänzten Test-Fixtures/Assertions (keine drei zusätzlichen Produktivfehler). Der dazugehörige ältere Prüflauf endete deshalb mit Fehler; ein weiterer Build-Lauf wurde abgebrochen. Diese Ergebnisse dürfen nicht als erfolgreiche CI gewertet werden.
+- Diagnose-Code erweitert: strukturierte `findings` mit eindeutiger ID, Status `unverified`, Schweregrad, Kategorie, betroffener Komponente, Datei, Zeile, Spalte, Importziel, Quellzeilen-Beleg und konkreter nächster Maßnahme. Statische Importkandidaten werden ausdrücklich nicht als bestätigte Laufzeitfehler ausgegeben.
+- Relative Importhinweise zeigen nun konkrete Fundstellen statt nur einer verkürzten Dateiliste. Tokenisierte Modulreferenzen liefern Quellpositionen.
+- Backend-Testzuordnung korrigiert: fehlender direkter Testimport wird als Informationshinweis behandelt und nicht mehr als Beweis für fehlende Testabdeckung oder als fehlgeschlagene Prüfung gewertet. Indirekte Integrationsabdeckung muss in der nächsten Phase mit realen Coverage-/Testdaten untersucht werden.
+- Build-Skript-Prüfung erweitert, damit der tatsächlich verwendete Vite-CLI-Pfad `node ./node_modules/vite/bin/vite.js build` erkannt wird.
+- Regressionstests ergänzt: exakte Importfundstelle, Zeile/Spalte, Belegtext, Vite-CLI-Pfad und ehrliche Einstufung der Testzuordnung.
+- Commits auf `feature/messinho-conversation-engine`: Diagnosekern `baf2e9089689f2d8ac8995fd0f3384672c64305f`; Positions-/Build-Erkennung `66e92fe66c243d066dd0750d8841c5483f42a6db`; Regressionstests `cf2f02e426c3d84cb73a6b97ce7bb22c6c1276a8`; anschließende Korrekturen `5b210e24d16fe3cbc706796b787089bc7b3c73d3`, `77008786b1bcc554b0e27c423f26492b0a7b0c0f`, `88628b2117df9859874922dd02935c2675f78d5a`, `2d12c2e5bba644dfc0174631b22110862bab430a`.
+- **Noch nicht abgenommen:** Die nachfolgenden Korrekturen besitzen in diesem Prüfschritt keinen bestätigten grünen CI-Nachweis. Deshalb kein Render-STAGING-Deployment ausgelöst. Die bisherige Produktiv-/STAGING-Laufversion wurde nicht verändert; Production bleibt unangetastet.
+- Nächster Schritt: aktuellen Branch-Stand mit vollständigem Node-Testlauf, Backend-Syntaxprüfung und Vite-Produktionsbuild verifizieren; danach den Importresolver gegen die tatsächlichen sieben Diagnosekandidaten prüfen und erst bei grüner CI Block 2/3 weiterführen.
+
+
+### Diagnose-Engine — CI-Nachprüfung und STAGING-Freigabe
+- Nach Korrektur der Regression-Fixtures wurde der aktuelle Branch-Commit `ad02c4acad3a4ba83b313d8f0d34abb30abbe5a8` geprüft.
+- GitHub Actions für exakt diesen Commit: Node-Tests erfolgreich (765/765 bestanden), Backend-Syntaxprüfung erfolgreich und vollständige STAGING-Branch-CI einschließlich Regressionstests und Vite-Produktionsbuild erfolgreich. Die zugehörigen Push- und Pull-Request-Prüfläufe wurden erfolgreich abgeschlossen.
+- Die Diagnosebefunde werden in `checks[].findings` mitgespeichert, damit die vorhandene JSONB-Diagnosehistorie die exakten Fundstellen nicht verliert. Die Admin-Diagnoseoberfläche zeigt Datei, Zeile, Spalte, Importziel und den Hinweis „Statischer Hinweis – noch nicht zur Laufzeit bestätigt“.
+- Die Testzuordnung ohne direkten Import wird nicht als fehlgeschlagene Prüfung gewertet. Die Diagnose macht ausdrücklich kenntlich, dass dies keine vollständige Coverage-Messung ersetzt.
+- Vite-CLI-Erkennung deckt jetzt den tatsächlich verwendeten Pfad `node ./node_modules/vite/bin/vite.js build` ab.
+- Render-Service geprüft: `myscoutingdatabase-messinho-staging`, Branch `feature/messinho-conversation-engine`, `autoDeploy=no`. Letzte Live-Version vor diesem Diagnoserelease blieb Commit `00981bea4adcbe4232110109c70ec87d2b0a7feb`.
+- Nächster Schritt: manuelles STAGING-Deployment des geprüften Branch-Stands; danach Health-Check und Prüfung des Diagnoseendpunkts. Production-Service und Production-Datenbank bleiben unangetastet.
+
+
+### Diagnose-Engine — STAGING LIVE bestätigt
+- Render STAGING Deployment `dep-dc5ba149v7es739u0v10` ist seit `2026-11-28T11:04:14.576Z` LIVE.
+- Ausgerollter Commit: `eb4ab910905649e44ec07f74fa840be7fb41c92f`; Service: `myscoutingdatabase-messinho-staging`; Branch: `feature/messinho-conversation-engine`.
+- Build erfolgreich; Laufzeitlogs bestätigen `myScoutingDatabase API listening on 10000`; Supabase Data API Health-Check HTTP 200; Render meldet „Your service is live“.
+- GitHub Actions auf Code-Commit `ad02c4acad3a4ba83b313d8f0d34abb30abbe5a8`: 765/765 Node-Tests bestanden, Backend-Syntax und Vite-Produktionsbuild erfolgreich.
+- Das Deployment umfasst den Diagnosekern mit strukturierten, positionsgenauen Importbefunden und die Admin-Oberfläche zur Anzeige dieser Fundstellen. Die neue Darstellung erscheint bei einem neu gestarteten Diagnose-Lauf; bereits gespeicherte Altberichte werden nicht rückwirkend verändert.
+- Kein Produktionsservice und keine Produktionsdatenbank wurden geändert. Keine automatische Reparatur und keine Änderung am Live-Code außerhalb des STAGING-Deployments.
+- Noch offen: Admin-Login in STAGING und ein neuer MESSINHO-Diagnoselauf zur Sichtprüfung der gespeicherten `findings`-Details. Die Engine ist weiterhin eine erste statische Prüfebene; echte Parser-/Compiler-/Test-/Coverage-Ausführung und Laufzeitkorrelation sind die nächsten Entwicklungsblöcke.
+
+
+## 2026-11-28 — MESSINHO Full-Stack Intelligence & Sandbox Audit (Block 2)
+- Vorschlag geprüft und als mehrschichtige Diagnose umgesetzt; der Python-Prototyp wurde nicht blind übernommen. MESSINHO läuft als Node.js-Anwendung, daher wurde die Prüfung an vorhandene JavaScript-/TypeScript-, Capability-, Linguistik-, Reasoning-, Modell- und Sandbox-Module angepasst.
+- Neue Engine: `backend/messinho-full-stack-audit.js`; Integration in den Admin-Diagnoseablauf in `backend/server.js`. Die Ergebnisse werden als strukturierte Prüfungen in der bestehenden MESSINHO-Diagnosehistorie persistiert.
+- Code-Introspektion: Abgleich Capability-Katalog/Handler, Speziallogik vs. generischer Fallback sowie AST-basierte Projektmodul-/Export-/Importgraph-Erfassung.
+- Linguistik/Reasoning: synthetische Sprachtests für Deutsch, Englisch, Französisch und tunesisches Arabisch; Aufgabenzerlegung, Quellenattribution und Nicht-Ausführungsregeln.
+- LLM: Standarddiagnose prüft Modellkonfiguration ohne externen Aufruf. Admin kann eine optionale Live-Probe aktivieren: 8-Sekunden-Timeout, JSON-Antwort, angeforderte Obergrenze 64 Ausgabetoken, Latenz und Provider-Usage-Metriken. Secrets und Rohantworten werden nicht gespeichert.
+- Sandbox: tatsächliche Docker-/GitHub-Actions-Definition wird auf Netzwerkabschaltung, Read-only, 3-GiB-/2-vCPU-/128-PID-Limits, Capability-Drop, no-new-privileges, unprivilegierten Benutzer, Quellcode-Mount und Zeitlimits geprüft. Die Gate-Logik wird gegen Staging- und abweichende Production-Identität getestet; kein Job wird aus dem Audit heraus gestartet.
+- Weitere Checks: Parameter-Fuzzing an reinen Capability-Validierungen, Memory-Dubletten-/Sensitivitäts-/Vertrauensfilter, lexikalische Ähnlichkeitssuche und Prompt-Injection-Datenkanalgrenze.
+- Grenzen explizit: kein Zugriff auf private Chain-of-Thought; kein automatisches Patchen; kein echter Provideraufruf im Standardlauf; kein behaupteter Vektorindex; echte Container-Ressourcenwerte und unabhängige semantische Bewertung bleiben offen.
+- Regressionstests ergänzt: `tests/messinho-full-stack-audit.test.js`, `tests/messinho-model-runtime.test.js`, Erweiterungen in `tests/messinho-project-audit.test.js`.
+- Korrektur: Das Backend-Syntax-Workflow-YAML wurde repariert und installiert nun die Abhängigkeiten vor dem Testlauf.
+- Arbeitsbereich bleibt `feature/messinho-conversation-engine`; STAGING-only. Kein Production-Deployment und keine Production-Datenänderung.
+- CI-Abnahme des endgültigen Commits steht noch aus; bis dahin kein Render-STAGING-Deployment.
+
+
+### Block 2 — Abschluss der technischen CI-/Sandbox-Prüfung und STAGING-Deployment
+- Finaler geprüfter Commit: `ba69abcd5cebf02e5728051f5713f337ac8a7157`.
+- GitHub CI: 779/779 Node-Tests bestanden; Backend-Syntaxprüfung bestanden; vollständiger `npm run build` einschließlich Vite-Build bestanden.
+- Isolierte Sandbox: Docker-Compiler-Image erfolgreich erstellt; Baseline im Container erfolgreich, Exitcode 0; Ergebnis `MESSINHO_SANDBOX_OUTCOME=toolchain_smoke_passed`.
+- Gemessene Sandbox-cgroup-Werte aus dem tatsächlichen Joblog: Speicher 130,138,112 Byte vor Validierung und 135,884,800 Byte nach Baseline bei 3,221,225,472 Byte Limit (3 GiB); Prozesse 3/128; CPU-Verbrauch 13,416,551 µs nach Baseline; 12 gedrosselte CPU-Perioden. Diese Messwerte sind Joblog-Belege und noch nicht im Admin-Dashboard aggregiert.
+- Render STAGING Deployment: `dep-dc5br4l6e07s73a6toug`, Status LIVE, Commit `ba69abcd5cebf02e5728051f5713f337ac8a7157`, live seit 2026-11-28 11:40:48 UTC.
+- STAGING-Startlogs: Node API lauscht auf Port 10000; Supabase Data API meldete HTTP 200; Render meldete den Service als live.
+- Der Admin-Diagnoselauf in der Oberfläche wurde noch nicht manuell ausgelöst. Die optionale echte LLM-Live-Probe wurde nicht gestartet; Standardlauf bleibt ohne externen Provideraufruf.
+- Noch offen: echte Vektor-Embeddings/Vector-Index-Prüfung, unabhängiger Judge-LLM-Test, XML-/weitere strukturierte Formate, Aggregation der cgroup-Metriken in Admin-Berichte und manueller iPhone-/Desktop-Abnahmelauf.
+- Production wurde weder deployed noch verändert.
+
+
+## 2026-11-28 — Block 3: MESSINHO Memory-Persistenz-Audit
+- Neue Komponente: `backend/messinho-memory-persistence-audit.js`.
+- Integration in `backend/messinho-full-stack-audit.js` und den Admin-Diagnoseablauf in `backend/server.js`. Die Diagnose erhält den serverseitigen Supabase-Client und die authentifizierte Admin-Owner-ID (`req.user.sub`).
+- Der Audit liest `messinho_agent_memory` owner-scoped und prüft Tabellenzugriff sowie die erwartete Form der gespeicherten Player-/Preference-/Entity-Daten. Dieser Teil ist bewusst read-only; vorhandene persönliche Memory-Daten werden nicht überschrieben.
+- Für den tatsächlichen Persistenz-Roundtrip wird ein synthetischer, zufällig fingerprinteter Eintrag über die bestehende Produktions-API `storeMessinhoKnowledge` gespeichert, über `findMessinhoKnowledge` exakt wiedergefunden und im `finally`-Pfad ausschließlich anhand Owner-ID + eindeutigem Fingerprint gelöscht.
+- Ein PASS ist nur möglich, wenn Schreibbestätigung, exakter Readback, Owner-Zuordnung und Löschung genau eines Testdatensatzes bestätigt sind. Fehlt DB/Owner-Kontext, wird ausdrücklich `NOT_VERIFIED` statt PASS gemeldet. Bei fehlgeschlagenem Cleanup wird der Audit als FAIL/WARN markiert.
+- Die Diagnose weist die transienten Datenbank-/Memory-Mutationen transparent aus. Es werden keine echten User-Notizen überschrieben, keine Modellgewichte trainiert und keine produktiven Spieler-/Scoutingdaten geändert.
+- `backend/messinho-knowledge-memory.js`: Readback-Projektion enthält jetzt auch `owner_id`, damit der Owner-Scope beim Roundtrip tatsächlich überprüft werden kann.
+- Neue Tests: `tests/messinho-memory-persistence-audit.test.js`; Full-Stack-Regressionstests erweitert. CI auf Commit `209b29291c9b4a152c4484b8502b6d4276eaebd8`: 783/783 Node-Tests bestanden, Backend-Syntax erfolgreich und STAGING-Branch-CI/Produktionsbuild erfolgreich.
+- Wichtige Grenze: Der aktuelle Knowledge-Memory-Retrievalpfad nutzt lexikalische Ähnlichkeitssuche. Ein echter Embedding-/Vektorindex wird nicht behauptet und bleibt offen. Der echte Supabase-Roundtrip wird beim nächsten Admin-Diagnoselauf in STAGING mit der realen Owner-ID nachgewiesen; CI-Tests verwenden isolierte Testadapter.
+- Stand bei Dokumentation: isolierter Docker-Sandbox-Lauf für den neuen Commit noch in Ausführung; daher noch kein neues Render-STAGING-Deployment freigegeben. Production bleibt unverändert.
+
+
+### Block 3 — STAGING-Deployment und Datenbankschema-Nachprüfung
+- Render STAGING Deployment `dep-dc5bvhvf3r2c73eafq3g` ist LIVE; ausgerollter Commit `117dda94c028e4fcede266741d384dfedb7cc541`; Build erfolgreich, API lauscht auf Port 10000, Supabase Data API Health-Check HTTP 200.
+- Supabase-Projekt `myScoutingDatabase-staging` (`nwqwnrhupbyhshsprxjt`) read-only geprüft: `messinho_agent_memory` und `messinho_knowledge_memory` existieren; beide haben RLS aktiviert und `owner_id`. Die vorhandenen SELECT-/INSERT-/UPDATE-/DELETE-Policies begrenzen den Zugriff auf `auth.uid() = owner_id` entsprechend der jeweiligen Tabelle.
+- Schema-Prüfung bestätigt: `messinho_agent_memory` nutzt `user_preferences` und `active_entities` als JSONB sowie Player-IDs und Goal-/Intent-Felder. `messinho_knowledge_memory` enthält Quellen-, Verifikations-, Ablauf- und Zugriffszähler-Felder.
+- Kein Embedding-/Vector-Feld in diesen beiden Memory-Tabellen vorhanden. Der aktuelle Similarity-Retrievalpfad bleibt lexikalisch; Vektor-Embeddings sind ausdrücklich noch nicht implementiert.
+- CI für Code-Commit `209b29291c9b4a152c4484b8502b6d4276eaebd8`: 783/783 Tests, Backend-Syntax und vollständige STAGING-Branch-CI erfolgreich. Der Dokumentationscommit `117dda94c028e4fcede266741d384dfedb7cc541` wurde ebenfalls durch Node-Tests, Syntaxprüfung und vollständige Branch-CI einschließlich Vite-Build bestätigt.
+- Der dedizierte isolierte Sandbox-Lauf des Kandidaten wurde nachfolgend durch neuere Pushes abgebrochen; für den Memory-Block wird deshalb kein neuer Sandbox-Runtime-Smoke-Test behauptet. Die erfolgreiche CI-/Build-Prüfung und das Live-STAGING-Deployment sind bestätigt.
+- Noch ausstehend: Admin-Login in STAGING und tatsächlicher Diagnoseaufruf mit authentifizierter Owner-ID. Erst dieser Lauf bestätigt den realen Supabase-Schreib-/Readback-/Cleanup-Roundtrip; die automatisierten Tests verwendeten isolierte Testadapter. Production bleibt unverändert.
+
+
+### Block 4 — Full-Stack Audit + Memory-Persistenz: Codeabschluss und STAGING-Abnahme (28.11.2026)
+- Arbeitsbranch: `feature/messinho-conversation-engine`; geprüfter Code-Commit: `92138a9a1f58ea3e1240c48e7410755fa63b64cd`.
+- Fehler aus dem ersten Testlauf identifiziert und korrigiert: historische Evolution-Auswertung sowie isolierter Memory-Testadapter. Die Folgeprüfung ist erfolgreich: Node-Testworkflow PASS (783 Tests im Suite-Lauf), Backend-Syntax PASS und vollständige STAGING-Branch-CI einschließlich Frontend-Build PASS.
+- Dedizierter isolierter Engineering-Sandbox-Workflow für denselben Code-Commit erfolgreich: Docker-Compiler-Image gebaut; Baseline-/Kandidatenlauf innerhalb des eingeschränkten Containers abgeschlossen; Workflow SUCCESS. Der Push-Lauf verwendete keinen Patch-Dispatch und hat keine Änderungen an den Quell-Dateien ausgeführt.
+- Render STAGING Service `myscoutingdatabase-messinho-staging`: Deployment `dep-dc5c1h56e07s73a7iln0` für Commit `92138a9a1f58ea3e1240c48e7410755fa63b64cd` ist LIVE; Build erfolgreich. Production wurde nicht deployt oder verändert.
+- Implementierung: Full-Stack-Audit bindet jetzt einen echten, owner-scoped Memory-Prüfpfad an. Er liest `messinho_agent_memory`, legt über die Produktions-Memory-API einen synthetischen Datensatz in `messinho_knowledge_memory` an, liest exakt denselben Datensatz zurück und löscht ausschließlich den Datensatz anhand Owner-ID + Frage-Fingerprint. Ein PASS erfordert Readback, Owner-Übereinstimmung und bestätigte Löschung genau eines Datensatzes. Fehlender DB-/Owner-Kontext ergibt NOT_VERIFIED; Cleanup-Fehler ergeben FAIL.
+- Neue Regressionstests sichern fehlenden DB-Kontext und fehlgeschlagenen Cleanup ab. `owner_id` ist in der Readback-Projektion enthalten, damit die Owner-Isolation tatsächlich geprüft werden kann.
+- Sicherheitsgrenzen: Keine echten Benutzer-Memory-Einträge werden überschrieben; keine Modellgewichte trainiert; keine Produktionsdaten angefasst. Die Auditmutationen beschränken sich auf den synthetischen Testdatensatz in STAGING.
+- Nachweisgrenze bleibt ausdrücklich bestehen: Die automatisierten Tests nutzen isolierte DB-Adapter. Der echte Supabase-Roundtrip mit einer realen, authentifizierten Admin-Owner-ID wird erst beim Admin-Diagnoselauf im laufenden STAGING-System final nachgewiesen. Dieser authentifizierte UI-Lauf wurde nicht simuliert.
+- Weitere offene technische Grenze: Das aktuelle Knowledge-Retrieval verwendet lexikalische Ähnlichkeit; echte Embeddings/Vektorindex sind nicht implementiert und werden vom Audit nicht als vorhanden ausgegeben. Ebenso bleibt die Aggregation von cgroup-CPU/RAM-Messwerten in den Admin-Bericht eine separate Ausbauaufgabe.
+- Nächster Abnahmeschritt: Im STAGING als Admin anmelden und MESSINHO-Diagnose ausführen; im Bericht muss Memory-Persistenz PASS anzeigen. Bei NOT_VERIFIED/FAIL keine Freigabe behaupten, sondern Fehler anhand des Diagnoseberichts beheben. Production bleibt unverändert.
+
+
+### Block 5 — Tabwechsel-Session und Audit-Abhängigkeitsprüfung (28.11.2026)
+- Arbeitsbranch: `feature/messinho-conversation-engine`; geprüfter Code-Commit: `f1a02255a2a25e7ddb216cf603c5257aea0cdbab`.
+- Root Cause Tabwechsel: Supabase kann beim Zurückkehren in einen inaktiven Tab erneut `SIGNED_IN` auslösen. Die Anwendung behandelte jedes `SIGNED_IN` bislang als frische manuelle Anmeldung und startete die 6,5-Sekunden-Willkommensanimation erneut. Zusätzlich konnte die Login-Maske sichtbar werden, bevor die initiale Session-Wiederherstellung abgeschlossen war.
+- Korrektur `src/main.jsx`: Login-Intro wird nur noch bei einem explizit angeforderten Login ausgelöst (`loginRequestedRef)); `INITIAL_SESSION` und der erste `getSession()`-Abschluss geben die Auth-Initialisierung frei; die Login-Maske wartet auf `authReady`; wiederholte Session-Abfragen aktualisieren den React-Session-State nicht unnötig, wenn dieselbe User-ID bereits aktiv ist. Temporär leere Session-Lesevorgänge lösen weiterhin keinen Logout aus; nur `SIGNED_OUT` leert den Auth-State.
+- Root Cause Audit-Fehlalarme: Die Dependency-Prüfung leitete bei `node:fs/promises` den Paketnamen fehlerhaft als `node:fs` ab, bevor der Built-in-Abgleich abgeschlossen war. Zusätzlich erhielt der Parsergraph beim Projekt-Audit nur Quellcode-Dateien, nicht die vorhandenen Asset-Dateien.
+- Korrektur `backend/messinho-project-audit.js`: `isNodeBuiltinSpecifier()` ignoriert explizit alle `node:`-Specifier und prüft auch unpräfixierte Core-Module gegen `module.builtinModules`. Der Projekt-Audit übergibt dem Dependency-Graph nun das vollständige Datei-Inventar, damit vorhandene `.webp`-Assets als interne Modulziele aufgelöst werden. Unbekannte relative Imports und nicht deklarierte echte npm-Pakete bleiben weiterhin Befunde.
+- Regressionstests: `tests/session-persistence.test.js` prüft Session-Wiederherstellung, Initialisierung und dass Tab-Fokus nicht die Login-Animation auslöst. `tests/messinho-project-audit.test.js` prüft `node:crypto`, `node:fs/promises`, `path`, beide Scout-WEBP-Assets und die vollständige Projektinventar-Auflösung. Der Evolutionstest vergleicht den Trend dynamisch mit dem tatsächlich berechneten Passanteil, statt einen veralteten festen Trend zu erwarten.
+- CI für Code-Commit `f1a02255a2a25e7ddb216cf603c5257aea0cdbab`: Node-Tests **790/790 PASS**, Backend-Syntax **PASS**, vollständige STAGING-Branch-CI einschließlich Vite-Produktionsbuild **PASS**.
+- Render STAGING Deployment `dep-dc5cgqh7lnhs73bg920g` für Commit `f1a02255a2a25e7ddb216cf603c5257aea0cdbab` ist **LIVE**. API-Start auf Port 10000 und Supabase Data API Health-Check HTTP 200 sind in den Service-Logs bestätigt.
+- Isolierter Engineering-Sandboxlauf `46144606823` war bei der Dokumentation weiterhin im Schritt Docker-Compiler-Image-Build. Daher wird hierfür kein Erfolg behauptet. Die reguläre Test-, Syntax- und Buildpipeline ist vollständig erfolgreich.
+- Production bleibt unverändert. Nächster praktischer Abnahmeschritt: Benutzer soll auf STAGING angemeldet bleiben, zwischen Browser-Tabs und anderen Programmen wechseln und prüfen, ob weder Login-Maske noch Welcome-Animation erneut erscheinen. Der echte geräte-/browserübergreifende Laufzeittest kann nicht durch statische Tests ersetzt werden.
+
+
+
+### Block 6 — myKI-Entwickler-Fehlerdiagnose und Chat-Zeitstempelkorrektur (28.11.2026)
+- Benutzerabnahme: Session bleibt beim Tab-/App-Wechsel erhalten; MESSINHO-Chat zeigt Zeitstempel. Zwei verbleibende Punkte gemeldet: überflüssiges Zeichen direkt nach der Chatzeit und myKI-Entwickler meldet `MYKI_ENGINEERING_REVIEW_FAILED`.
+- Quellcodeprüfung bestätigte in `src/asi/MyKiChat.jsx` ein zusätzliches `}` direkt nach dem schließenden `</time>`-Element. Der Render-Ausdruck wurde korrigiert; Regressionstest prüft das JSX-Markup. Ein vorhandener Vite/esbuild-Loghinweis hatte genau diese ungültige Klammer gemeldet.
+- Engineering-Review-Fehlerpfad untersucht: `backend/messinho-myki-engineer.js` las 17 festgelegte Dateien vom gepinnten Branch-Commit und gab bei unerwarteten GitHub-/Provider-/Netzwerkfehlern nur einen generischen Fehler zurück. Die 17 geprüften Quelldateien lagen jeweils unter dem konfigurierten 32.000-Zeichenlimit.
+- Fehlerbehandlung erweitert: sichere Stage-/Ursachenkennzeichnung (GitHub-Commit, GitHub-Quelldateien, Provider), HTTP-Statusklassen, ungültige JSON-Antworten, Timeout und Netzwerkfehler. Keine Antwortkörper, Zugangsdaten oder Tokens werden protokolliert. Scheduler speichert den sicheren Grund im Review-Fehlercode; Admin-Statusmeldung zeigt ihn zusätzlich an.
+- Regressionstests ergänzt: GitHub-HTTP-Fehler, Provider-HTTP-429, keine Secret-Ausgabe, dauerhafte Übernahme der sicheren Fehlerursache sowie Chat-Zeitstempel-Markup.
+- Arbeitsbranch enthält die Änderungen; letzter Code-/Testcommit: `b49cfe95e1107f1980e81d1a577b88fd90dc225a`. Die CI-Nachprüfung für diesen neuesten Commit ist noch nicht bestätigt. Daher **kein STAGING-Deployment ausgelöst** und keine Aussage, dass der myKI-Entwickler bereits wieder erfolgreich läuft.
+- STAGING bleibt auf der zuletzt bestätigten Laufversion; Production und Production-Datenbank bleiben unverändert.
+- Nächster Schritt: CI für den neuesten Branch-Stand vollständig abwarten/prüfen. Bei grünem Test-, Syntax- und Buildlauf kontrolliert nach STAGING deployen; danach „Entwicklung starten“ erneut auslösen und den nun sichtbaren sicheren Fehlergrund bzw. einen erfolgreichen Vorschlag verifizieren.
+
+
+
+### Block 7 — providerunabhängiger Smalltalk, Nachrichtenbereinigung und STAGING-Rollout (28.11.2026)
+- Fehlerbild aus Benutzer-Screenshot: einfache Begrüßung `hallo` wurde nicht beantwortet, stattdessen Provider-Fehlertext; zusätzlich erschien eine alleinstehende schließende Klammer `}` unter Benutzer- und Assistentennachrichten.
+- Routing geprüft: Der deterministische Social-Conversation-Pfad ist vor dem kognitiven Router und vor externen Sprachdienst-Aufrufen platziert. Er beantwortet einfache Begrüßungen providerunabhängig und dispatcht keine Tools/Aktionen. Admin-Berechtigungsprüfung bleibt davor. Die zugehörigen Regressionstests bestätigen diese Reihenfolge.
+- UI-Nachrichtenbereinigung in `src/asi/myki-chat-utils.js` ergänzt und in `src/asi/MyKiChat.jsx` für eingehende, gesendete und neu erzeugte Nachrichten sowie beim Wiederherstellen des Verlaufs eingebunden. Die Bereinigung entfernt eine einzelne abschließende Klammerzeile nur bei einfachem Text ohne Code-/Brace-Kontext. Komplexe Inhalte werden unverändert gelassen.
+- Engineering-Review-Fehlerdiagnose aus Block 6 bleibt enthalten: sichere Fehlerstufe und Ursache werden zurückgegeben, ohne Tokens oder Provider-Antwortkörper zu protokollieren.
+- Aktueller Branch-Commit: `b9aa02b879a24a54ebb34acfc499edc657b6280e`.
+- CI auf diesem Commit: Node-Tests **795/795 PASS**, Backend-Syntax **PASS**, vollständige STAGING-Branch-CI einschließlich Vite-Produktionsbuild **PASS**.
+- Render STAGING Deployment `dep-dc5dkrp7lnhs73bk4j7g` für Commit `b9aa02b879a24a54ebb34acfc499edc657b6280e` ist **LIVE** (Build erfolgreich; Deployment erfolgreich am 28.11.2026 um 13:43:56 UTC).
+- STAGING-URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- Production und Production-Datenbank wurden nicht verändert.
+- Benutzerabnahme bleibt erforderlich: STAGING neu laden, im MESSINHO-Chat `hallo` senden und prüfen, ob eine normale Begrüßung ohne Provider-Fehler erscheint. Danach prüfen, ob unter Benutzer- und Assistentennachrichten keine alleinstehende `}` mehr steht. Die erfolgreiche CI belegt die Code-/Build-Prüfung, nicht die tatsächliche Browserabnahme.
+
+
+
+### Block 8 — Upstream-Ausfälle im myKI-Entwickler und providerunabhängiger Dialog (28.11.2026)
+- Screenshots aus STAGING geprüft: Die Diagnose zeigte 31/31 bestandene MESSINHO-Prüfungen; der separate autonome Engineering-Review schlug fehl. Das sind unterschiedliche Prüfpfade und kein Widerspruch.
+- Render-Logs zum Fehlerzeitpunkt belegten temporäre Upstream-Probleme: GitHub-API HTTP 503 sowie KI-Provider HTTP 429. Die bisherige Sammelmeldung `MYKI_ENGINEERING_REVIEW_FAILED` verbarg die konkrete Ursache.
+- `backend/messinho-myki-engineer.js`: begrenzte Wiederholungen bei transienten HTTP-429/502/503/504-Antworten (maximal drei Versuche, Retry-After respektiert, begrenzte Wartezeit). Provider-Quota-/Billing-Fehler werden erkannt und nicht sinnlos wiederholt. Keine Antwortkörper oder Geheimnisse werden in Logs ausgegeben.
+- `backend/server.js`: Admin-Steuerstatus gibt jetzt eine verständliche, sichere Ursache aus (Provider ausgelastet, Kontingent erschöpft, GitHub vorübergehend nicht erreichbar usw.), ohne technische Geheimnisse offenzulegen.
+- `backend/messinho-conversation.js`: die offene Frage „Was können wir machen?“ wird als providerunabhängiger Gesprächseinstieg beantwortet und nicht unnötig an den externen Sprachdienst geschickt. Klare Scouting-Aufträge werden weiterhin nicht abgefangen, sondern regulär geroutet.
+- Tests: **798/798 bestanden**, Backend-Syntax **PASS**, Staging-Branch-CI einschließlich Vite-Build **PASS**.
+- Render STAGING Deployment `dep-dc5dra8u01pc738dc670` für Commit `6e1e9f3b80181e79024674dd597508b853fa55d3` ist **LIVE** (28.11.2026, 13:57:41 UTC).
+- STAGING-URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- Keine erfundenen Entwicklungstickets: Ein Engineering-Ticket entsteht erst nach einem vollständig validierten Codevorschlag. Fehlgeschlagene Review-Läufe bleiben in `messinho_engineering_review_runs` mit Fehlercode dokumentiert; sie dürfen nicht als fertige Verbesserung ausgegeben werden.
+- Production und Production-Datenbank wurden nicht verändert.
+- Benutzerabnahme offen: In STAGING „Was können wir machen?“ und „Hallo“ testen; danach myKI-Entwicklung erneut starten. Bei echtem Provider-Quota-/Billing-Fehler muss das Providerkonto administrativ korrigiert werden; Retry-Logik kann fehlendes Guthaben nicht ersetzen.
+
+
+
+### Block 9 — Eigene MESSINHO-Architektur: Zieldefinition und providerunabhängiger Dialogschritt (28.11.2026)
+- Verbindliche Zielentscheidung: MESSINHO wird als eigenständige KI-Architektur entwickelt. OpenAI ist weder Zielarchitektur noch zwingende Laufzeitabhängigkeit. Ein lokal oder selbst gehostet ausführbares Sprachmodell darf nur austauschbare Inferenzkomponente sein; Linguistik, Kontext, Gedächtnis, Wissen, Reasoning, Planung, Rechte, Tools, Ausführung und Qualitätskontrolle bleiben eigene MESSINHO-Komponenten.
+- Bestandsaufnahme: Bereits vorhanden sind u. a. Linguistik-/Grammatik-, Semantik-, Dialogkontinuitäts-, Kontext-, Gedächtnis-, Reasoning-, Wissens-, Capability- und deterministische Scoring-Module. Die zentrale Gesprächsverarbeitung und mehrere Spezialfunktionen haben jedoch noch direkte OpenAI-/OpenAI-kompatible Modellaufrufe. Die vollständige Providerentkopplung ist deshalb ausdrücklich NICHT abgeschlossen.
+- Architekturziel und Migrationsphasen dokumentiert in `docs/MESSINHO_AUTONOMOUS_AI_ARCHITECTURE.md`: Bestandsinventar, providerneutrale Inferenzschnittstelle, deterministische Dialogpfade, lokale/self-hosted Inferenz, providerunabhängige Planung/Capabilities, Wissensintegration, kontrolliertes Lernen.
+- Erste konkrete Dialogverbesserung: `resolveMessinhoDeterministicFollowUp()` in `backend/messinho-conversation.js` erkennt eine explizite Annahme eines unmittelbar zuvor angebotenen Recherche-, Spieleranalyse-, Datenauswertungs- oder Entwicklungswegs. Der Server stellt dann eine gezielte Rückfrage ohne Provideraufruf. Es wird keine Recherche oder sonstige Aktion ohne fehlenden Gegenstand/klare Eingabe gestartet.
+- Sicherheitsgrenze: Die neue Regel ist eng an die letzte Assistant-Nachricht gebunden, nur bei positiver Annahme aktiv und führt selbst keine Capability aus. Unklare oder nicht passende Nachrichten bleiben im normalen Dialogrouting.
+- Regressionstests: Kontextgebundene Rechercheannahme, fehlender vorheriger Kontext, negative Formulierung sowie alternative angebotene Optionen. Node-Testlauf **800/800 PASS**, Backend-Syntax **PASS**, vollständige STAGING-Branch-CI einschließlich Vite-Build **PASS** auf Code-Commit `c6c53f12628b08e8f9d31cad95169c003df0cf19`.
+- Isolierter Engineering-Sandboxlauf für diesen Commit war bei der Dokumentation noch in Ausführung; daher wird kein Sandbox-Runtime-Erfolg behauptet.
+- Noch NICHT umgesetzt: OpenAI-Aufrufe in zentralem Router, natürlicher Antwortgenerierung, Recherche-/Analysepfaden und Engineering-Review vollständig entfernen. Ebenso noch kein lokaler Modellserver bereitgestellt. Kein localhost-Endpunkt wird als in Render erreichbar vorausgesetzt.
+- STAGING-only; Production und Production-Datenbank unverändert. Nächster Schritt: providerneutrale Runtime-Inventur und Adapter-Migration, danach lokal/self-hosted Modellbereitstellung und Benchmarkabnahme.
+
+
+---
+
+## Verbindlicher Gesamtentwicklungsweg MESSINHO — STRIKTER ABSCHLUSSPLAN (28.11.2026)
+
+### Verbindliche Projektentscheidung
+Dieser Entwicklungsweg ist ab sofort die maßgebliche und verbindliche Roadmap für MESSINHO. Er wird vollständig und in der festgelegten Reihenfolge umgesetzt, bis sämtliche Abschlusskriterien nachweislich erfüllt sind. Einzelne erfolgreiche Module, Funktionszahlen, Dashboard-Anzeigen oder bestandene Teil-Diagnosen gelten ausdrücklich NICHT als Projektabschluss.
+
+**Ziel:** MESSINHO wird zu einer eigenständigen, breit einsetzbaren KI, die natürliche Gespräche führen, Wissen aus unterschiedlichen Fachgebieten verarbeiten, logisch denken, rechnen, lernen, sich erinnern und bei ausdrücklichem Bedarf Werkzeuge und Agenten einsetzen kann. Er darf nicht auf Fußballscouting oder Smalltalk beschränkt sein. Scouting bleibt ein wichtiges Spezialgebiet innerhalb einer allgemeinen Intelligenz.
+
+### Unveränderliche Leitplanken
+1. **Vollständigkeit vor neuen Einzelfunktionen:** Bestehende Module zuerst inventarisieren, testen und verbinden. Keine parallelen Insellösungen und keine bloßen Antwortvorlagen als Ersatz für Verständnis.
+2. **Keine OpenAI-Zwangsabhängigkeit:** OpenAI ist nicht die Zielarchitektur. Sämtliche zentralen Modellaufrufe und Spezialpfade werden inventarisiert und hinter eine providerneutrale Schnittstelle migriert. Ziel ist eine tatsächlich erreichbare, selbst gehostete/offene Inferenzlaufzeit. Keine Behauptung der Unabhängigkeit, solange Laufzeit und Tests sie nicht belegen.
+3. **Allgemeine Intelligenz vor Spezialisierungszwang:** MESSINHO muss normale Gespräche, Erklärungen, Fragen, Meinungen, Humor, Korrekturen und Themenwechsel ebenso beherrschen wie Fachaufgaben. Recherche, Scouting oder Agentenaktionen dürfen nicht ungefragt ausgelöst werden.
+4. **Vorhandene Arbeit bewahren:** Linguistik, Grammatik, Semantik, Dialog, Gedächtnis, Wissen, Reasoning, Mathematik, Agenten, Sicherheit, Lernen und Qualitätssicherung werden nicht verworfen. Ihre tatsächliche Reife und Integration werden geprüft.
+5. **Nachweis statt Behauptung:** Jede Phase erhält Implementierung, automatisierte Tests, Integrations-/Regressionstests, Diagnose und dokumentierte Abnahme. Nicht implementierte oder nicht getestete Fähigkeiten bleiben als offen markiert.
+6. **Kontrolliertes Lernen:** Keine unkontrollierte Selbständerung. Wissens- und Modelländerungen werden versioniert, evaluiert, freigegeben und rückrollbar gemacht. Kein behauptetes Training von Modellgewichten ohne realen Trainingslauf und Messnachweis.
+7. **STAGING-ONLY:** Alle Codeänderungen, Migrationen und Deployments ausschließlich auf dem vereinbarten Entwicklungsbranch und STAGING. Production, Production-Daten und Production-Konfiguration bleiben unangetastet.
+8. **Kein stiller Scope-Wechsel:** Diese Roadmap darf nicht durch neue Ideen, kosmetische Dashboard-Arbeiten oder zusätzliche Einzelmodule verdrängt werden. Abweichungen nur nach ausdrücklicher Entscheidung des Benutzers.
+9. **Fortschrittsbuchführung:** Nach jedem abgeschlossenen Block PROJECTSCOUT.md aktualisieren: Commit, geänderte Module, Tests, CI, Sandbox-/Deploymentstatus, offene Risiken, nächste konkrete Aufgabe und Production-Unberührtheit. Unbestätigte Zustände klar als offen kennzeichnen.
+
+### Verbindliche Phasen und Abschluss-Gates
+
+#### Phase 0 — Bestandsaufnahme und Integrationslandkarte
+- Alle MESSINHO-Module, Importbeziehungen, Server-Routen, Datenbanktabellen, Modell-/Provideraufrufe, externen Dienste und Hintergrundjobs erfassen.
+- Jedes Modul nach Status klassifizieren: vorhanden, getestet, integriert, produktiv auf STAGING erreichbar, fachlich validiert.
+- Doppelte, isolierte, ungenutzte oder nur scheinbar ausführbare Komponenten identifizieren.
+- Abhängigkeiten und Integrationslücken in einer nachvollziehbaren Architekturkarte dokumentieren.
+- **Gate 0:** Vollständiges Inventar mit Datei-/Funktionsbelegen, Abhängigkeitsgraph, Providerinventar und priorisiertem Integrationsbacklog.
+
+#### Phase 1 — Zentrale MESSINHO-Intelligenz und Orchestrierung
+- Einen durchgängigen kognitiven Ablauf herstellen: Eingabe → Sprachverständnis → Kontext/Gedächtnis → Absicht/Plan → Wissen/Reasoning → Antwort oder autorisierte Aktion → Verifikation → Protokollierung.
+- Vorhandene Module über klar definierte Verträge verbinden; keine unkontrollierte gegenseitige Aufrufschleife.
+- Dialogantwort und Handlungsentscheidung trennen. Jede Aktion benötigt klare Absicht, Berechtigung, validierte Eingaben und Audit.
+- Deterministische Fähigkeiten (z. B. Mathematik, Zeit/Datum, sichere Regeln) ohne unnötige Modellabhängigkeit ausführbar halten.
+- **Gate 1:** Ende-zu-Ende-Tests belegen, dass die zentralen Module tatsächlich in einem Gesprächsablauf zusammenarbeiten; sichere Fallbacks und Fehlerzustände sind getestet.
+
+#### Phase 2 — Allgemeine Sprach-, Gesprächs- und Antwortintelligenz
+- Natürliche, offene Gespräche ohne starre Vorlagen oder Menüzwang.
+- Sprachverständnis für Grammatik, Semantik, Pragmatik, Mehrdeutigkeit, Tipp-/Diktatfehler, Umgangssprache, Humor, Meinungen, Korrekturen und Themenwechsel.
+- Mehrsprachigkeit und sprachabhängige Antwortqualität systematisch evaluieren.
+- Gesprächsverlauf, Referenzen, offene Fragen und Kontext über mehrere Gesprächsrunden korrekt fortführen.
+- Antwortgenerierung muss zusammenhängend, situationsgerecht, wahrheitsorientiert und nicht repetitiv sein.
+- Smalltalk ist ein normaler Gesprächsmodus, nicht eine Sammlung einzelner Begrüßungsantworten. MESSINHO darf den Benutzer nicht ständig in Scouting/Recherche/Arbeit lenken.
+- **Gate 2:** Versionierter Dialogbenchmark mit Begrüßung, Smalltalk, längeren freien Gesprächen, Themenwechsel, Rückfragen, Humor, Widerspruch, Korrekturen, Mehrdeutigkeit und mehrsprachigen Fällen; definierte Mindestwerte müssen erreicht sein.
+
+#### Phase 3 — Eigenständige Inferenz- und Modelllaufzeit
+- Sämtliche direkten OpenAI-Aufrufe, OpenAI-Defaults, SDK-Abhängigkeiten und versteckten Fallbacks vollständig erfassen und aus der Zielarchitektur entfernen.
+- Providerneutrale Schnittstelle mit expliziter Konfiguration, Timeouts, Abbruch, Ressourcenlimits, sicherer Diagnose und Adaptertests.
+- Offenes/lokal oder selbst gehostetes Sprachmodell und passende Hardware-/Hosting-Architektur auswählen, bereitstellen und absichern. Render darf nicht fälschlich über localhost auf einen nicht vorhandenen Modellprozess zugreifen.
+- Qualität, Latenz, Durchsatz, Stabilität, Kosten und deutsche Gesprächsleistung messen. Modellversionen reproduzierbar festhalten.
+- **Gate 3:** STAGING-Gesprächs- und Routingtests bestehen mit OpenAI-Zugangsdaten vollständig entfernt/deaktiviert. Netzwerk-/Codeaudit bestätigt keine versteckte OpenAI-Laufzeitabhängigkeit. Selbst gehosteter Inferenzendpunkt ist nachweislich erreichbar und überwacht.
+
+#### Phase 4 — Breite Wissensarchitektur
+- Grundlagenwissen und Fachwissen systematisch strukturieren: Mathematik, Physik, Chemie, Biologie, Informatik, Medizin/Gesundheitswissenschaften, Ethik, Wirtschaft/Finanzen, Sprachen, Geschichte, Sportwissenschaft/Sportmedizin sowie weitere relevante Domänen.
+- Wissensgraph, Begriffsbeziehungen, Einheiten/Formeln, Gültigkeitszeiträume, Provenienz, Quellenqualität, Widerspruchserkennung und Wissenslücken integrieren.
+- Zwischen intern gespeichertem Wissen, Nutzerangaben, Hypothesen und extern belegten Fakten klar unterscheiden.
+- Rechtlich zulässige Quellen und Nutzungsrechte dokumentieren; sensible Fachgebiete mit angemessenen Sicherheitsgrenzen behandeln.
+- **Gate 4:** Fachbereichsübergreifender Wissensbenchmark mit Faktenprüfung, Quellenherkunft, Widerspruchs- und Unsicherheitstests; kein unbelegtes Wissen als gesicherte Tatsache.
+
+#### Phase 5 — Reasoning, Mathematik und Problemlösung
+- Mehrstufiges Schlussfolgern, Zerlegung komplexer Aufgaben, Hypothesenvergleich, Gegenprüfung, Einheiten-/Dimensionsanalyse und Fehlerkorrektur.
+- Rechenwerkzeuge für Arithmetik, Algebra, Statistik, Wahrscheinlichkeit, Physik und weitere formal lösbare Aufgaben verbinden.
+- Prognosen als probabilistische Schätzungen mit Annahmen, Datenqualität und Unsicherheit ausgeben; keine Scheingenauigkeit.
+- **Gate 5:** Reproduzierbarer Testkatalog aus Mathematik, Naturwissenschaften, Logik, Datenanalyse und Prognosen; korrekte Ergebnisse, nachvollziehbare Herleitung und angemessene Unsicherheitsangaben.
+
+#### Phase 6 — Gedächtnis und Personalisierung
+- Kurzzeit-, Gesprächs-, Langzeit- und Fachgedächtnis klar trennen.
+- Faktenherkunft, Zeitbezug, Konflikte, Aktualisierung, Lösch-/Korrekturanfragen, Mandantentrennung und Datenschutz berücksichtigen.
+- Kontext nur dann übertragen, wenn er tatsächlich relevant ist; neue Themen nicht mit alten Aufgabenfiltern belasten.
+- **Gate 6:** Mehrsitzungs- und Regressionstests belegen korrekte Erinnerung, Referenzauflösung, Korrektur, Datenschutz und Isolation.
+
+#### Phase 7 — Lernen und kontrollierte Selbstverbesserung
+- Feedback, Fehlerfälle und geprüfte Quellen in einen versionierten Lern-/Evaluationsprozess überführen.
+- Änderungen zunächst offline evaluieren; Regressionen, Datenkontamination und Qualitätsverlust erkennen.
+- Freigabe, Rollback, Audit und nachvollziehbare Modell-/Wissensversionierung verpflichtend.
+- **Gate 7:** Nachweisbarer Vorher-/Nachher-Benchmarkgewinn ohne Regression der freigegebenen Kernfähigkeiten. Keine unkontrollierte Selbstmodifikation.
+
+#### Phase 8 — Autonome Agenten und Werkzeuge
+- Ziele in überprüfbare Teilaufgaben zerlegen, planen, priorisieren, ausführen, Ergebnisse kontrollieren und bei Unklarheit nachfragen.
+- Capability-Registry, Rollen-/Mandantenrechte, Ressourcenbudgets, Abbruch, Idempotenz, Wiederaufnahme und Audit vollständig verbinden.
+- Externe Recherche und Aktionen nur bei erkennbarem Bedarf bzw. ausdrücklichem Auftrag; vor riskanten oder irreversiblen Aktionen Freigabe einholen.
+- **Gate 8:** Ende-zu-Ende-Agententests für erfolgreiche Ausführung, Fehler, Unterbrechung, Wiederaufnahme, Rechteverletzung und sichere Verweigerung.
+
+#### Phase 9 — Gesamtintegration, Belastbarkeit und Abschlussabnahme
+- Alle Phasen gemeinsam unter realistischen STAGING-Bedingungen testen: freie Gespräche, Fachfragen, Berechnungen, Gedächtnis, Wissen, Agenten, parallele Anfragen, Provider-/Netzausfälle und Datenbankfehler.
+- Sicherheits-, Datenschutz-, Rollen-, Mandanten-, Performance-, Verfügbarkeits- und Regressionstests durchführen.
+- Dokumentation, Betriebsanleitung, Architekturdiagramme, Wiederherstellung, Monitoring und bekannte Grenzen vervollständigen.
+- **Gate 9 / Projektabschluss:** Alle Gates 0–8 nachweislich bestanden; keine kritischen oder hohen offenen Fehler; unabhängige Abschlussdiagnose und Benutzerabnahme auf STAGING. Erst dann darf MESSINHO als gemäß diesem Ziel fertig bezeichnet werden. Production bleibt bis zu einer gesonderten ausdrücklichen Freigabe unangetastet.
+
+### Arbeitsregel für jede weitere Sitzung
+- Vor jedem neuen Entwicklungsblock zuerst den letzten Stand dieses Abschnitts und die referenzierten Commits/Tests prüfen.
+- Immer am offenen Gate weiterarbeiten; bereits bestandene Gates nicht ohne konkreten Regressionshinweis wiederholen.
+- Nach jedem Block die Änderungen testen, committen und diesen Projektstand aktualisieren.
+- Bei fehlenden Ressourcen, Zugangsdaten, Hardware oder Benutzerentscheidungen den konkreten Engpass dokumentieren; keine Konfiguration erfinden und nicht stillschweigend auf einen externen Anbieter zurückfallen.
+- Keine Fertigmeldung aufgrund einer Teilfunktion. Der Weg endet ausschließlich mit Gate 9.
+
+
+---
+
+### Phase 0 — erster Repository- und Providerbestand (28.11.2026)
+- Untersuchter Ausgangs-HEAD: `9adb572f3f1486bebe3883597200a2d304ecea60`; aktueller Inventar-Dokumentationscommit: `adfe50be564afbb37c8bf5958825e704e74a5a82`.
+- Repository-Baumaufnahme: 78 Backend-JavaScriptdateien, 88 Testdateien, 64 SQL-Migrationen und 16 MESSINHO-spezifische Dokumente.
+- Neue Bestandsaufnahme: `docs/MESSINHO_INTEGRATION_INVENTORY.md`. Sie enthält die erste Funktions-/Schichtzuordnung, eine vorläufige Provider-/Fähigkeitsmatrix, konkrete Fundstellen und offene Phase-0-Nachweise.
+- Zentrale Befunde:
+  - `messinho-model-runtime.js` hat weiterhin OpenAI-URL, API-Key und Modell als Fallback-Defaults.
+  - `messinho-conversational-intelligence.js` und `messinho-natural-conversation.js` hängen an dieser Laufzeit.
+  - `server.js` enthält direkte OpenAI-Aufrufe für Spielersuche/Discovery (ca. Zeile 1175), Spieleranalyse (ca. 1282), Spieler-Folgeanalyse (ca. 2717) und freie allgemeine Unterhaltung (ca. 2935). Der freie Chatpfad verweigert freie Unterhaltung ohne `OPENAI_API_KEY`.
+  - `messinho-myki-engineer.js` besitzt einen separaten direkten OpenAI-Aufruf.
+  - Die Diagnose bezeichnet OpenAI als optional, obwohl freie Unterhaltung und mehrere konkrete Analysepfade davon abhängen. Diagnose-/Health-Aussagen müssen später an die reale Abhängigkeit angepasst werden.
+  - Sprach-, Dialog-, Gedächtnis-, Wissens-, Reasoning-, Mathematik-, Agenten-, Capability- und Governance-Module sind vorhanden. Ihre bloße Existenz beweist keine vollständige Integration oder fachliche Reife.
+- CI-Status für den neuen Dokumentationscommit wurde noch nicht nachgewiesen; die GitHub-Combined-Status-Abfrage für den vorherigen Roadmap-Commit lieferte keine Status-Einträge. Es wird deshalb kein CI-Erfolg behauptet.
+- **Gate 0 bleibt OFFEN.** Noch ausstehend: vollständige repositoryweite Import-/Providerinventur, Datei-zu-Test-Zuordnung, vollständige Endpunkt-/Job-/Capability-Matrix, lesender Abgleich der tatsächlichen STAGING-Datenbankstruktur sowie Commit-/Deployment-/Health-Abgleich.
+- Nächster Schritt: vollständige automatisierte Quelltextinventur und Provideraufruf-Zuordnung über das gesamte Repository. Erst danach restliche Gate-0-Nachweise vervollständigen.
+- Ausschließlich Dokumentationsänderung; keine Datenbankmigration und kein Production-Eingriff.
+
+
+## Phase-0-Fortschritt — AST-Providerinventur (28.11.2026)
+
+- **Implementierung:** backend/messinho-project-audit.js ergänzt um scanMessinhoProviderReferences() und buildMessinhoProviderInventory(). AST-basierte Erkennung von Provider-URL-Literalen, direkten HTTP-Aufrufen, SDK-Imports und Provider-Environment-Referenzen mit Datei-/Zeilenangabe.
+- **Sicherheitsgrenzen:** Runtime-Quellcode und Testcode getrennt; keine Secret-Werte werden gelesen/ausgegeben; keine externen Provideraufrufe, keine Datenbankänderungen, keine Toolausführung.
+- **Projekt-Audit:** eigener Warnbefund „Direkte OpenAI-Laufzeitabhängigkeiten“; OpenAI-Referenzen werden nicht länger als optional oder providerunabhängig verharmlost.
+- **Verifizierter Scan-HEAD:** 7c074e29c5e9b227fb05d54f2a2788828c04fa30.
+- **Scan-Ergebnis:** 7 Runtime-Dateien mit Providerreferenzen; 105 Runtime-Referenzen; 69 OpenAI-Referenzen in 7 Dateien; 4 direkte OpenAI-HTTP-Aufrufstellen; 46 OPENAI_*-Environment-Referenzen; 15 OpenAI-URL-Literale; 15 providerneutrale Modellkonfigurationsreferenzen in messinho-model-runtime.js und server.js; 20 Tavily-Referenzen in 3 Dateien.
+- **OpenAI-betroffene Runtime-Dateien:** backend/messinho-engineering-scheduler.js, backend/messinho-general-research.js, backend/messinho-model-runtime.js, backend/messinho-myki-engineer.js, backend/messinho-quality-control.js, backend/messinho-research.js und backend/server.js.
+- **CI:** Node-Testlauf 46155954807 erfolgreich, 804/804 Tests; Backend-Syntax 46155958958 erfolgreich; Node-Testlauf 46155959018 erfolgreich; Staging-Branch-CI 46155958962 erfolgreich.
+- **Live-Staging:** Render-Service srv-dc3chlqjnfac73acd6ig; Deployment dep-dc5e1agu01pc738e0dr0 ist live, läuft aber auf Commit 46ddebed678b495d7575e8548ecf0c0369c3967a und ist damit älter als der Audit-HEAD. autoDeploy ist deaktiviert; ein neuer Staging-Deploy ist nach CI-Freigabe explizit auszulösen.
+- **Provider-Störung:** Staging-Log meldete am 28.11.2026 beim kognitiven Router HTTP 429 / credit_balance_exhausted. Vorhandene API-Konfiguration beweist keine nutzbare Modellantwort; fehlendes Provider-Guthaben kann nicht per Retry behoben werden.
+- **Wichtige Grenze:** Ein erkanntes local_or_self_hosted-URL-Literal ist kein Nachweis eines laufenden lokalen Inferenzdienstes. Kein solcher Dienst wurde in diesem Schritt bereitgestellt.
+- **Status:** Providerinventur implementiert und CI-geprüft. Gate 0 bleibt OFFEN; vollständige Route-/Job-/Capability-/Datenbankmatrix und lesender STAGING-Schemaabgleich fehlen noch.
+- **Production:** nicht verändert; keine Production-Deployments, Production-Secrets oder Production-Daten angefasst.
+
+### Nächster verbindlicher Schritt
+Die vier direkten OpenAI-HTTP-Aufrufstellen und die übrigen OpenAI-Referenzen einzeln einem konkreten Feature, Endpunkt, Hintergrundjob, Datenvertrag, Berechtigungsmodell und Regressionstest zuordnen. Danach Route-/Job-/Capability-/Schema-Matrix schließen und erst dann Gate 0 bewerten. Keine Provider-Migration vor Abschluss dieser Zuordnung.
+
+
+
+## 28.11.2026 — Providerneutrale Sprachlaufzeit und STAGING-Abgleich
+
+### Verbindliche Fortsetzung
+- Repository/Branch: Dridi06/myScoutingDatabase — feature/messinho-conversation-engine.
+- Aktueller HEAD zum Eintrag: 677033bc57dce2f9af4082f2e5ba0782bbbe3d39.
+- Ausschließlich STAGING und lesende Prüfungen; Production bleibt unangetastet.
+- Der bestehende Chat POST /api/agent/chat bleibt die einzige Benutzeroberfläche.
+
+### Implementiert
+- Der freie Gesprächspfad in backend/server.js verwendet jetzt die providerneutrale Schnittstelle backend/messinho-model-runtime.js.
+- Bevorzugte Konfiguration: MESSINHO_MODEL_BASE_URL, MESSINHO_MODEL_API_KEY, MESSINHO_MODEL_NAME.
+- Vorläufige Legacy-Kompatibilität: OPENAI_BASE_URL, OPENAI_API_KEY, OPENAI_MODEL. OpenAI kann also übergangsweise weiterverwendet werden, ist aber nicht mehr als direkter HTTP-Aufruf im freien Chatpfad fest verdrahtet.
+- Localhost/self-hosted-kompatible Endpunkte können ohne Hosted API Key angesprochen werden, sofern die Laufzeit-URL als lokale Adresse erkannt wird.
+- Tests für Providerkonfigurations-Priorität, Legacy-Fallback, lokalen Key-Modus, Fehlerbehandlung und Secret-Schutz ergänzt.
+- Direkte OpenAI-Aufrufe in Spielersuche/Discovery, bestimmten Spieler-Folgeanalysen und MyKi-Engineering sind noch nicht migriert; diese folgen einzeln mit Vertrag und Regressionstests.
+- Tavily bleibt ein separater Rechercheanbieter und ist nicht mit der Sprachlaufzeit gleichzusetzen.
+
+### STAGING-Schema — nur lesend geprüft
+- Projekt myScoutingDatabase-staging, Supabase-ID nwqwnrhupbyhshsprxjt.
+- 43 öffentliche Tabellen, alle mit RLS aktiviert; 24 MESSINHO- und 13 ASI-Tabellen.
+- 44 gespeicherte Gesprächsnachrichten, 84 Sprachwissenseinträge, 20 MESSINHO-Diagnosen, 11 Engineering-Review-Runs und 2 MyKi-Tickets.
+- MESSINHO-Agent-Control ist vorhanden; der Datensatz ist pausiert. Es wird keine autonome Live-Ausführung behauptet.
+- 75 explizite Express-Routen in backend/server.js erkannt. Die vollständige Rollen-/Owner-/Tabellen-/Testzuordnung steht noch aus.
+
+### Migrationen
+- Repository enthält 64 SQL-Dateien; Supabase führt 74 Migrationsdatensätze.
+- Ein einfacher Namensvergleich zeigt 13 DB-Einträge ohne exakte Dateinamenentsprechung und 6 Dateien ohne exakte DB-Namensentsprechung. Historische Umbenennungen sind möglich; daraus darf keine Schemaabweichung abgeleitet werden.
+- Keine Migration erneut ausführen, als angewendet markieren oder anderweitig ändern, bevor SQL-Inhalte und tatsächliche DB-Struktur abgeglichen sind.
+
+### CI und Deployment
+- Für HEAD 677033bc57dce2f9af4082f2e5ba0782bbbe3d39 wurden Node-Tests, Backend-Syntax und Staging-CI gestartet; bei Eintrag noch nicht abschließend verifiziert.
+- Render Staging autoDeploy bleibt deaktiviert; aktuelles Live-Deployment ist älter als dieser Branch-HEAD. Kein Deploy wurde in diesem Schritt ausgelöst.
+- Nächste Schritte: CI abschließend prüfen; Routen-/Worker-/Capability-Matrix vervollständigen; Migrationen inhaltlich vergleichen; danach weitere direkte Providerzugriffe hinter die neutrale Laufzeit ziehen; erst nach bestandener CI Staging-Deploy und authentifizierte Smoke-Tests.
+
+**Gate 0 bleibt OFFEN.** Keine Datenbankänderung, kein Staging-Deploy, kein Production-Eingriff.
+
+
+## 28.11.2026 — Providerentkopplung der Gesprächs- und Analysepfade
+
+- Branch: feature/messinho-conversation-engine.
+- Code-HEAD: 1a401c2a70d125a7db973cf522b78bb29d8d5936.
+- Der freie Gesprächspfad, die ASI-Spielersuche/Discovery, Spieleranalyse und Spieler-Folgefragen verwenden jetzt die providerneutrale Sprachlaufzeit.
+- Auch allgemeine Wissenssynthese, Qualitätskritik, Spielerprofil-Synthese und Marktwertanalyse wurden auf dieselbe Schnittstelle umgestellt.
+- Die Sprachlaufzeit bevorzugt MESSINHO_MODEL_BASE_URL / MESSINHO_MODEL_API_KEY / MESSINHO_MODEL_NAME. OPENAI_* bleibt als temporärer Kompatibilitäts-Fallback erhalten, damit die Übergangsphase nicht künstlich blockiert wird.
+- Tavily bleibt ein eigenständiger Rechercheanbieter. Keine Vermischung von Websuche und Sprachmodell.
+- Health-/Diagnoseanzeige meldet jetzt die providerneutrale Sprachdienst-Konfiguration.
+- Repository-Scan auf Code-HEAD: 64 Runtime-Referenzen, 28 OpenAI-Referenzen, 0 direkte OpenAI-HTTP-Aufrufstellen und 1 über Hilfsfunktion ausgeführte HTTP-URL-Aufrufstelle. Die verbleibenden OpenAI-Referenzen liegen in Scheduler, Modellkompatibilität, MyKi-Engineering und Legacy-Konfiguration. MyKi-Engineering ist noch nicht migriert.
+- CI: 812/812 Node-Tests bestanden; Backend-Syntax success; Staging-Branch-CI success.
+- Ein früherer CI-Lauf schlug fehl, weil ein Audit-Test ausschließlich direkte HTTP-Aufrufe erwartete. Der Test wurde korrekt auf die Erkennung von HTTP-URL-Aufrufstellen über Wrapper angepasst; die aktuelle CI auf dem genannten HEAD ist erfolgreich.
+- Supabase STAGING Advisor: 13 RLS-Tabellen ohne Policies haben nachweislich keine anon/authenticated SELECT-/INSERT-Grants; deny-by-default/service-role-only. Keine Policies ergänzen.
+- Supabase WARN: SECURITY DEFINER Funktion admin_set_scout_approval ist für authenticated ausführbar, prüft aber auth.uid() und private.is_admin(). Least-Privilege-Prüfung offen; vor Änderung Client-Nutzung ausschließen.
+- Supabase WARN: Leaked Password Protection deaktiviert; Auth-Konfiguration separat auf STAGING prüfen.
+- Vier unindizierte Fremdschlüssel, 42 als ungenutzt markierte Indizes. Keine Änderungen ohne Workload-/Migrationsprüfung.
+- Render Staging ist auf den richtigen Branch konfiguriert, autoDeploy aus. Live läuft noch auf altem Commit 46ddebed678b495d7575e8548ecf0c0369c3967a. Kein Deploy in diesem Schritt.
+- Staging-Log zeigt zuvor HTTP 429 / credit_balance_exhausted beim OpenAI-Anbieter. Ein erfolgreicher Code-Test ist kein Nachweis einer live funktionierenden Sprachantwort.
+- Keine Production-Änderung, keine Supabase-Änderung, keine Migration und kein Deploy.
+
+### Nächster verbindlicher Schritt
+1. Aktuellen Code-HEAD kontrolliert auf STAGING deployen, nachdem der Dokumentationscommit ebenfalls CI-geprüft ist.
+2. Authentifizierte Smoke-Tests: Hallo/Smalltalk, freie normale Frage, Folgefrage mit Kontext, providerneutraler Modellpfad, Recherchepfad und Quota-Fehler.
+3. MyKi-Engineering an die providerneutrale Laufzeit anbinden und Scheduler-Konfigurationsgate aktualisieren, ohne Retry-/Quota-Semantik zu verlieren.
+4. Supabase Least-Privilege-Funktion und Auth-Leaked-Password-WARN prüfen; Migrationen nur nach Inhaltsvergleich.
+5. Route-/Job-/Capability-/Schema-Matrix abschließen.
+
+**Gate 0 bleibt OFFEN.** Staging-only; Production unverändert.
+
+
+## 28.11.2026 — STAGING-Deployment bestätigt
+
+- Nach bestandener CI (812/812 Tests, Backend-Syntax und Staging-Branch-CI erfolgreich) wurde der providerneutrale Sprachlaufzeit-Stand explizit auf STAGING deployed.
+- Render Deploy-ID: dep-dc5elih5efls73f8bk60.
+- Status: live.
+- Deployment-Commit: 71a14c31b9b91095f49ee5a2ebd848f57832eaad.
+- Render Startlogs: API gestartet, Supabase Data API HTTP 200, Tavily- und Legacy-OpenAI-Konfiguration vorhanden.
+- autoDeploy bleibt deaktiviert. Der explizite Deploy war notwendig.
+- Kein authentifizierter Chat-Smoke-Test wurde in diesem Schritt abgeschlossen; die externe Webansicht konnte /api/health nicht abrufen. Build/Start ist daher kein Nachweis einer funktionierenden Modellantwort.
+- Legacy OpenAI bleibt derzeit konfiguriert. Das zuvor beobachtete 429 / credit_balance_exhausted ist nicht durch Code oder Deploy behoben.
+- Keine Datenbankmigration oder Supabase-Konfigurationsänderung. Production unberührt.
+
+### Nächster verbindlicher Schritt
+Authentifizierte Chat-Smoke-Tests durchführen: Begrüßung und Smalltalk, freie normale Unterhaltung, Gesprächsfortsetzung mit Verlauf, Wissensabruf, ASI-Recherche, provider-neutraler Fallback und verständliche Quota-/Ausfallmeldung. Danach MyKi-Engineering providerneutral migrieren und verbleibende Gate-0-Sicherheits-/Migrationsbefunde schließen.
+
+
+## 28.11.2026 — MyKi Engineering provider-neutral migration
+
+- Repository: `Dridi06/myScoutingDatabase`; branch: `feature/messinho-conversation-engine`.
+- Continuation point preserved: the previous language/chat, ASI search/analysis, general knowledge, critic, player-profile and market-value paths already use `backend/messinho-model-runtime.js`; MyKi Engineering was the remaining direct model-provider dependency.
+- `backend/messinho-myki-engineer.js` now resolves `MESSINHO_MODEL_BASE_URL`, `MESSINHO_MODEL_API_KEY`, and `MESSINHO_MODEL_NAME` through the shared runtime. Legacy `OPENAI_*` remains only as compatibility fallback through `resolveMessinhoModelConfig`; no OpenAI URL or authorization header is hardcoded in MyKi Engineering.
+- MyKi keeps its GitHub pinned-source retrieval and patch validation unchanged. Model completion is routed through `requestMessinhoModelCompletion`.
+- Transient provider retry behavior remains bounded to three attempts for HTTP 429/502/503/504; quota codes including `insufficient_quota`, `billing_hard_limit`, `quota_exceeded`, and `credit_balance_exhausted` fail immediately without repeated billing attempts. Bounded `Retry-After` is propagated by the shared runtime.
+- Engineering review retains its 4,500-token budget through an explicit per-call cap; the runtime's default 128-token cap remains unchanged for existing callers.
+- `backend/messinho-engineering-scheduler.js` now gates autonomous review on provider-neutral model readiness, including local endpoints without a hosted API key, while retaining the explicit STAGING service identity and Supabase service credential checks.
+- Added regression coverage for local/provider-neutral configuration, 4,500-token engineering output, bounded Retry-After, immediate quota failure and scheduler readiness. Test execution is pending CI after this commit; no test result is claimed before CI reports it.
+- No database changes, migrations, secrets, Render configuration or deployment were changed in this step. Production remains untouched.
+
+### Next required gate
+1. Verify all CI workflows for the new code commit, including Node tests, backend syntax and isolated STAGING engineering workflow.
+2. If CI passes, explicitly deploy this exact code commit to the isolated Render STAGING service only (auto-deploy remains disabled).
+3. Run authenticated STAGING smoke tests for ordinary chat, MyKi proposal-only review, local/provider-neutral model routing and quota failure. Confirm that proposal generation still does not apply code changes directly.
+4. Continue the documented route/job/capability permission matrix and remaining Gate 0 security/migration reconciliation.
+
+**Gate 0 remains OPEN.** No production deployment or production-side change is authorized.
+
+
+### 28.11.2026 — MyKi Engineering migration verification update
+
+- Code candidate: `e0581f47dfb403ec00dafe4bd32ea48c0c21ec5f` on `feature/messinho-conversation-engine`.
+- MyKi Engineering and its scheduler are now routed through the shared provider-neutral model runtime. Legacy OpenAI settings are compatibility fallback only.
+- Regression suite: **817 passed, 0 failed** on the candidate. Backend syntax: success. Staging branch CI: success.
+- The first migration CI attempts exposed a stale provider-inventory assertion and an upstream error-response mock that omitted `.json()`. Both were corrected; the current passing run includes the updated zero-direct-OpenAI-call-site assertion.
+- The isolated engineering sandbox workflow was still building its dedicated compiler image; do not claim that sandbox validation or callback completed until its final status is checked.
+- No STAGING deployment of this MyKi migration yet. Existing STAGING deployment remains `dep-dc5elih5efls73f8bk60` at code commit `71a14c31b9b91095f49ee5a2ebd848f57832eaad`.
+- The previously observed OpenAI `429 / credit_balance_exhausted` remains an operational provider-credit issue; the migration makes a configured local/self-hosted model possible but does not install or start such a model service.
+- No database changes, migrations, secrets, Render environment changes or Production changes.
+
+### Next gate
+1. Finish and verify the isolated engineering sandbox workflow.
+2. If all CI gates pass, explicitly deploy the verified code candidate to Render STAGING only; auto-deploy remains disabled.
+3. Confirm staging startup and run authenticated tests when an authorized staging test session is available. Cover ordinary chat, MyKi proposal-only review, local/provider-neutral routing, retry handling and quota failure.
+4. Continue remaining Gate 0 work: route/worker/capability permission matrix, migration-content reconciliation, and Supabase least-privilege/auth findings.
+
+**Gate 0 remains OPEN. Production remains untouched.**
+
+
+### 28.11.2026 — STAGING-Deployment der providerneutralen MyKi-Version bestätigt
+
+- Render-Service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`), Branch `feature/messinho-conversation-engine`, autoDeploy weiterhin deaktiviert.
+- Deployment: `dep-dc5f6hmi0phs73dhvbj0`; Status **live**; deployed commit `63804884f7922a2d8fe8390801999b2ca819e114`.
+- Build erfolgreich; Vite-Produktionsbuild abgeschlossen. Der Server startete und meldete `myScoutingDatabase API listening on 10000`.
+- Supabase Data API lieferte beim Start HTTP 200. Startlogs meldeten Tavily und Legacy-OpenAI-Konfiguration vorhanden.
+- Dies bestätigt Build und Prozessstart, nicht den erfolgreichen authentifizierten Chat oder eine erfolgreiche Modellantwort. Die zuvor beobachtete Provider-Quota-Erschöpfung ist weiterhin separat zu verifizieren.
+- GitHub CI auf demselben Commit: 817 Node-Tests bestanden, Backend-Syntax erfolgreich, Staging-Branch-CI erfolgreich.
+- Der separate GitHub-Workflow `MESSINHO isolated engineering sandbox` war zum Zeitpunkt dieses Eintrags noch beim Bau des dedizierten Compiler-Images; die Sandbox-Ausführung selbst und ein Evidence-Callback sind daher nicht bestätigt.
+- Kein authentifizierter End-to-End-Smoke-Test abgeschlossen, da keine autorisierte Staging-Testsitzung vorlag. Keine Supabase-Migration, keine Datenänderung und keine Production-Aktion.
+
+**Nächster Schritt:** autorisierte Staging-Testsitzung für Chat/Smalltalk, Kontext-Folgefrage, MyKi-Review im Vorschlagsmodus und Providerfehlerbehandlung verwenden; parallel die ausstehende Sandbox-Workflow-Ausführung abschließend prüfen.

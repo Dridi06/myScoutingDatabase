@@ -62,6 +62,14 @@
 .myki-control-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#e9d6a8;font-size:12px}
 .myki-control-heading span{color:#8190a3;font-size:9px}
 .myki-control-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.myki-control-action-group{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:10px;padding:11px 12px;border:1px solid rgba(204,171,93,.2);border-radius:10px;background:rgba(204,171,93,.055)}
+.myki-control-action-copy{display:grid;gap:4px;min-width:0}
+.myki-control-action-copy strong{color:#f0d99f;font-size:11px}
+.myki-control-action-copy small{color:#aab5c5;font-size:10px;line-height:1.5}
+.myki-control-diagnostic{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;flex:none;padding:8px 13px;border:1px solid rgba(231,195,112,.65);border-radius:9px;background:linear-gradient(145deg,rgba(218,184,105,.24),rgba(166,127,58,.15));color:#f5d994;font:inherit;font-size:11px;font-weight:700;cursor:pointer}
+.myki-control-diagnostic:disabled{opacity:.55;cursor:wait}
+.myki-control-divider{height:1px;margin:13px 0;border-top:1px solid rgba(255,255,255,.08)}
+.myki-control-actions button{white-space:normal;text-align:center;line-height:1.35}
 .myki-control-actions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:7px 12px;border:1px solid rgba(205,185,140,.22);border-radius:9px;background:rgba(255,255,255,.045);color:#d9e0e9;font:inherit;font-size:11px;cursor:pointer}
 .myki-control-actions button.selected{border-color:rgba(222,190,120,.72);background:rgba(194,157,83,.18);color:#f4d998}
 .myki-control-actions button.stop{margin-left:auto;border-color:rgba(213,91,91,.38);color:#ffb4b4}
@@ -70,4 +78,72 @@
 .myki-current-work{display:grid;gap:4px;margin-top:10px;padding:9px 10px;border-radius:9px;background:rgba(255,255,255,.04);color:#e2e8f0;font-size:10px;overflow-wrap:anywhere}
 .myki-current-work span{color:#c7d0dc;line-height:1.5}
 .myki-current-work small{color:#8e9bae;font-size:9px}
-@media(max-width:650px){.myki-control-actions{display:grid;grid-template-columns:1fr 1fr}.myki-control-actions button{min-width:0}.myki-control-actions button.stop{margin-left:0}}
+@media(max-width:650px){.myki-control-action-group{align-items:stretch;flex-direction:column}.myki-control-diagnostic{width:100%}.myki-control-actions{display:grid;grid-template-columns:1fr 1fr}.myki-control-actions button{min-width:0}.myki-control-actions button.stop{margin-left:0}}
+
+/* Per-message timestamp: local Berlin date and time */
+.myki-chat-timestamp{
+ display:block;
+ margin-top:7px;
+ color:#9aa7b8;
+ font-size:9px;
+ line-height:1.35;
+ font-variant-numeric:tabular-nums;
+ letter-spacing:.015em;
+ text-align:right;
+ white-space:nowrap;
+}
+.myki-chat-message.user .myki-chat-timestamp{color:#b4c0cf}
+
+/* myKI dashboard – layout aligned to the owner's hand-drawn reference */
+.myki-dashboard{max-width:1180px;margin:0 auto}
+.myki-dashboard .myki-heading{margin-bottom:10px}
+.myki-dashboard .myki-heading h1{margin:0;color:#ead6a6;font-size:25px;letter-spacing:.01em}
+.myki-dashboard .myki-heading p{margin:4px 0 0}
+.myki-dashboard .myki-maturity-top{margin:0 0 12px;padding:12px 15px;border-radius:10px;background:#11151b;border:1px solid rgba(216,183,109,.42);box-shadow:none}
+.myki-dashboard .myki-maturity-top .myki-maturity-header h3{font-size:13px;color:#e5c77f}
+.myki-dashboard .myki-maturity-top .myki-maturity-policy{margin:6px 0 0}
+.myki-dashboard .myki-chat{margin:0 0 12px;border-radius:10px;background:#10151c;border:1px solid rgba(216,183,109,.35);box-shadow:none}
+.myki-dashboard .myki-chat-header{margin-bottom:10px}
+.myki-dashboard .myki-chat-title h2{font-size:17px}
+.myki-dashboard .myki-chat-messages{min-height:190px;max-height:390px}
+.myki-dashboard .myki-operations{display:flex;flex-direction:column;gap:12px;margin:0 0 14px}
+.myki-dashboard .myki-ops-card{padding:13px 15px;border:1px solid rgba(216,183,109,.36);border-radius:10px;background:#10151b;box-shadow:none}
+.myki-dashboard .myki-ops-card>header{align-items:center}
+.myki-dashboard .myki-ops-card h2{font-size:15px;color:#e8d5a9}
+.myki-dashboard .myki-ops-status-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.myki-dashboard .myki-ops-state-label,.myki-dashboard .myki-ops-status-label{font-size:10px;color:#b9c0ca}
+.myki-dashboard .myki-ops-status-label{padding-left:8px;border-left:1px solid rgba(255,255,255,.16);font-weight:700;letter-spacing:.04em}
+.myki-dashboard .myki-ops-state{max-width:none;padding:5px 9px;border-radius:5px;font-size:10px}
+.myki-dashboard .myki-ops-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0 9px}
+.myki-dashboard .myki-ops-actions button{min-height:37px;border-radius:6px;font-size:11px;white-space:normal}
+.myki-dashboard .myki-ops-actions button:not(.secondary):not(.danger){background:#b89553!important;border-color:#c8a966!important;color:#14171c!important}
+.myki-dashboard .myki-ops-actions button.secondary{background:#242a32!important;border-color:#4b515a!important;color:#e0e3e8!important}
+.myki-dashboard .myki-ops-actions button.danger{background:#382326!important;border-color:#744044!important;color:#f0b9b9!important}
+.myki-dashboard .myki-ops-info{margin:0;padding:9px 11px;border:1px solid rgba(255,255,255,.08);border-radius:6px;background:#0b0f14;color:#b9c1cb;font-size:10px;line-height:1.55}
+.myki-dashboard .myki-ops-note{display:flex;align-items:center;gap:5px;margin-top:7px;color:#8994a2;font-size:9px;line-height:1.45}
+.myki-dashboard .myki-layout{display:block}
+.myki-dashboard .myki-ticket-boards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch}
+.myki-dashboard .myki-ticket-board{min-width:0;margin:0;padding:13px;border:1px solid rgba(216,183,109,.34);border-radius:10px;background:#10151b;box-shadow:none}
+.myki-dashboard .myki-ticket-board>header{align-items:center}
+.myki-dashboard .myki-ticket-board h2{font-size:14px;color:#e7d5ad}
+.myki-dashboard .myki-board-list{display:flex;flex-direction:column;gap:7px}
+.myki-dashboard .myki-board-ticket{min-height:62px;margin:0;padding:9px 10px;border:1px solid rgba(255,255,255,.09);border-radius:6px;background:#171d25;color:#e4e8ee;text-align:left}
+.myki-dashboard .myki-board-ticket.selected{border-color:#c4a15b;background:#242319}
+.myki-dashboard .myki-board-ticket p{margin:4px 0 0}
+.myki-dashboard .myki-detail{margin:12px 0 0;border-radius:10px}
+@media(max-width:700px){
+ .myki-dashboard .myki-ops-card>header{align-items:flex-start;flex-direction:column}
+ .myki-dashboard .myki-ops-status-group{justify-content:flex-start}
+ .myki-dashboard .myki-ops-actions{grid-template-columns:1fr}
+ .myki-dashboard .myki-ticket-boards{grid-template-columns:1fr}
+ .myki-dashboard .myki-chat-messages{max-height:46vh}
+}
+
+/* Authoritative timestamps for every visible myKI dashboard output */
+.myki-dashboard-timestamp,.myki-maturity-timestamp{display:block;margin-top:5px;color:#aab2bd;font-size:10px;line-height:1.45;font-variant-numeric:tabular-nums}
+.myki-dashboard .myki-ops-note,.myki-dashboard .myki-chat-timestamp{font-variant-numeric:tabular-nums}
+.myki-dashboard .myki-chat-timestamp{display:block;margin-top:5px;color:#aab2bd;font-size:10px;line-height:1.4}
+.myki-dashboard .myki-ticket-board>header+small{display:block;margin:7px 0 9px;color:#aab2bd;font-size:10px;font-variant-numeric:tabular-nums}
+.myki-dashboard .myki-detail-head>div>small{display:block;margin-top:5px;color:#aab2bd;font-size:10px;line-height:1.5;font-variant-numeric:tabular-nums}
+.myki-dashboard .myki-timeline p{font-variant-numeric:tabular-nums}
+.myki-dashboard .myki-ops-error small{display:block;flex-basis:100%;margin-left:23px;color:#d4b8a2;font-size:10px}

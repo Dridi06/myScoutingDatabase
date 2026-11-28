@@ -1,8 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { MESSINHO_SANDBOX_BRANCH } from '../backend/messinho-sandbox-dispatch.js';
 import {buildMessinhoSelfRepairGoal,getMessinhoEngineeringReviewSchedule,isMessinhoEngineeringAutoReviewEnabled,isMessinhoEngineeringStagingService,runMessinhoScheduledEngineeringReview} from '../backend/messinho-engineering-scheduler.js';
 
 const staging={MESSINHO_ENGINEERING_AUTOREVIEW_ENABLED:'true',RENDER:'true',RENDER_SERVICE_ID:'stage',MESSINHO_STAGING_RENDER_SERVICE_ID:'stage',OPENAI_API_KEY:'configured',SUPABASE_URL:'https://example.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'configured'};
+test('engineering review, sandbox dispatch and workflow use the active staging branch',async()=>{
+ const workflow=await readFile(new URL('../.github/workflows/messinho-isolated-engineering.yml',import.meta.url),'utf8');
+ assert.equal(MESSINHO_SANDBOX_BRANCH,'feature/messinho-conversation-engine');
+ assert.match(workflow,/branches: \[feature\/messinho-conversation-engine\]/);
+ assert.match(workflow,/refs\/heads\/feature\/messinho-conversation-engine/);
+});
 test('daily review is strictly gated to the explicitly enabled staging service',()=>{
  assert.equal(isMessinhoEngineeringAutoReviewEnabled(staging),true);
  assert.equal(isMessinhoEngineeringAutoReviewEnabled({...staging,RENDER_SERVICE_ID:'production'}),false);
@@ -49,6 +57,15 @@ test('claims one review per Berlin work window and records no-improvement result
  const result=await runMessinhoScheduledEngineeringReview({db,now:new Date('2026-11-27T02:00:00Z'),getCurrentTime:()=>new Date('2026-11-27T02:00:00Z'),generate:async()=>({ok:true,proposal:null,source_sha:'a'.repeat(40)})});
  assert.equal(result.status,'no_improvement');assert.equal(db.state.claim.review_date,'2026-11-27');assert.equal(db.state.claim.review_slot,'morning');assert.equal(db.state.update.status,'no_improvement');
 });
+test('preserves a safe upstream failure reason in the durable review result',async()=>{
+ const db=mockDb();
+ const result=await runMessinhoScheduledEngineeringReview({db,now:new Date('2026-11-27T18:00:00Z'),getCurrentTime:()=>new Date('2026-11-27T18:00:00Z'),
+  generate:async()=>({ok:false,code:'MYKI_ENGINEERING_REVIEW_FAILED',failure_stage:'provider',failure_reason:'provider_http_429'})});
+ assert.equal(result.ok,false);
+ assert.equal(result.failure_reason,'provider_http_429');
+ assert.equal(db.state.update.error_code,'MYKI_ENGINEERING_REVIEW_FAILED:provider_http_429');
+});
+
 test('does not duplicate an already claimed review window',async()=>{
  const db=mockDb({claimError:{code:'23505'}});
  const result=await runMessinhoScheduledEngineeringReview({db,now:new Date('2026-11-27T02:00:00Z')});
@@ -107,7 +124,7 @@ test('does not persist a proposal when the work window ends during generation',a
 
 test('a real autonomous proposal is dispatched only to the isolated STAGING sandbox',async()=>{
  const db=mockDb();
- db.state.ticket={id:'123e4567-e89b-12d3-a456-426614174001',diff:'bounded patch content',baseline_id:'feature/messinho-unified-ai-integration@'+'b'.repeat(40)};
+ db.state.ticket={id:'123e4567-e89b-12d3-a456-426614174001',diff:'bounded patch content',baseline_id:'feature/messinho-conversation-engine@'+'b'.repeat(40)};
  let dispatched=null;
  const now=new Date('2026-11-27T02:00:00Z');
  const result=await runMessinhoScheduledEngineeringReview({db,now,getCurrentTime:()=>now,
@@ -180,4 +197,12 @@ test('explicit admin development refuses to run outside the staging service',asy
  });
  assert.equal(result.code,'STAGING_GATE_CLOSED');
  assert.equal(db.state.claim,null);
+});
+
+
+test('autonomous engineering scheduler accepts provider-neutral and local model configuration',()=>{
+ const {OPENAI_API_KEY,...withoutLegacy}=staging;
+ assert.equal(isMessinhoEngineeringAutoReviewEnabled({...withoutLegacy,MESSINHO_MODEL_API_KEY:'configured'}),true);
+ assert.equal(isMessinhoEngineeringAutoReviewEnabled({...withoutLegacy,MESSINHO_MODEL_BASE_URL:'http://127.0.0.1:8080/v1',MESSINHO_MODEL_NAME:'local-model'}),true);
+ assert.equal(isMessinhoEngineeringAutoReviewEnabled({...withoutLegacy,MESSINHO_MODEL_BASE_URL:'https://model.example/v1',MESSINHO_MODEL_NAME:'remote-model'}),false);
 });
