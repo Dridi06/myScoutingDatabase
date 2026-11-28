@@ -106,3 +106,13 @@ export function correctMessinhoInput(input, { language = 'de' } = {}) {
     skipped_reason: null
   };
 }
+
+
+export function inferMessinhoCorrectionLanguage(input, detectedLanguage = null) {
+  if (typeof detectedLanguage === 'string' && detectedLanguage) return detectedLanguage;
+  const probe = correctMessinhoInput(input, { language: 'de' });
+  const strongGermanSignals = probe.corrections.filter(item =>
+    item.kind === 'known_typo' || item.kind === 'phrase'
+  ).length;
+  return strongGermanSignals >= 2 ? 'de' : null;
+}
