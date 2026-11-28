@@ -22,9 +22,58 @@ async function walk(root,relative=''){
  return found;
 }
 function resolveRelativeImport(fromFile,specifier,known){
- const base=path.posix.normalize(path.posix.join(path.posix.dirname(fromFile),specifier));
+ const cleanSpecifier=String(specifier||'').split(/[?#]/,1)[0];
+ const base=path.posix.normalize(path.posix.join(path.posix.dirname(fromFile),cleanSpecifier));
  const candidates=path.posix.extname(base)?[base]:[base,...JS_EXTENSIONS.map(ext=>base+ext),...JS_EXTENSIONS.map(ext=>path.posix.join(base,'index'+ext))];
- return candidates.some(candidate=>known.has(candidate));
+ return candidates.find(candidate=>known.has(candidate))||null;
+}
+
+// Tokenize JavaScript module syntax only. Strings, comments, templates and regex
+// literals are opaque, so import examples embedded in tests are not dependencies.
+function moduleTokens(source){
+ const tokens=[];let i=0,line=1;const text=String(source||'');
+ const push=(type,value,startLine)=>tokens.push({type,value,line:startLine});
+ const isStartRegex=()=>{const p=tokens[tokens.length-1];return !p||(p.type==='punct'&&['(','[','{',',',':','=','!','?',';','=>'].includes(p.value))||(p.type==='identifier'&&['return','throw','case','delete','void','typeof','instanceof','in','of','yield','await'].includes(p.value));};
+ while(i<text.length){
+  const ch=text[i],next=text[i+1];
+  if(/\s/.test(ch)){if(ch==='\n')line++;i++;continue;}
+  if(ch==='/'&&next==='/'){i+=2;while(i<text.length&&text[i]!=='\n')i++;continue;}
+  if(ch==='/'&&next==='*'){i+=2;while(i<text.length&&!(text[i]==='*'&&text[i+1]==='/')){if(text[i]==='\n')line++;i++;}i=Math.min(text.length,i+2);continue;}
+  if(ch==='/'&&isStartRegex()){
+   i++;let inClass=false,escaped=false;
+   while(i<text.length){const value=text[i++];if(value==='\n')line++;if(escaped){escaped=false;continue;}if(value==='\\'){escaped=true;continue;}if(value==='[')inClass=true;else if(value===']')inClass=false;else if(value==='/'&&!inClass)break;}
+   while(i<text.length&&/[a-z]/i.test(text[i]))i++;
+   continue;
+  }
+  if(ch==='"'||ch==="'"||ch==='`'){
+   const quote=ch,startLine=line;i++;let value='';
+   while(i<text.length){const current=text[i++];if(current==='\n')line++;if(current===quote)break;if(current==='\\'&&i<text.length){const escaped=text[i++];if(escaped==='\n')line++;value+=escaped;}else value+=current;}
+   if(quote!=='`')push('string',value,startLine);
+   continue;
+  }
+  if(/[A-Za-z_$]/.test(ch)){
+   const start=i,startLine=line;i++;while(i<text.length&&/[A-Za-z0-9_$]/.test(text[i]))i++;
+   push('identifier',text.slice(start,i),startLine);continue;
+  }
+  push('punct',ch,line);i++;
+ }
+ return tokens;
+}
+function extractModuleSpecifiers(source){
+ const tokens=moduleTokens(source),found=[];
+ for(let i=0;i<tokens.length;i++){
+  const token=tokens[i];
+  if(token.type!=='identifier'||(token.value!=='import'&&token.value!=='export'))continue;
+  const next=tokens[i+1];
+  if(token.value==='import'&&next?.type==='punct'&&next.value==='.')continue;
+  if(token.value==='import'&&next?.type==='string'){found.push(next.value);continue;}
+  if(token.value==='import'&&next?.type==='punct'&&next.value==='('&&tokens[i+2]?.type==='string'&&tokens[i+3]?.value===')'){found.push(tokens[i+2].value);continue;}
+  for(let j=i+1;j<Math.min(tokens.length,i+160);j++){
+   if(tokens[j].type==='punct'&&tokens[j].value===';')break;
+   if(tokens[j].type==='identifier'&&tokens[j].value==='from'&&tokens[j+1]?.type==='string'){found.push(tokens[j+1].value);break;}
+  }
+ }
+ return [...new Set(found)];
 }
 function add(checks,name,category,ok,detail,severity='warning',recommendation=''){
  checks.push({name,category,ok:Boolean(ok),detail:safe(detail),severity,
@@ -63,11 +112,8 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
    if(!content.trim())empty.push(relative);
    if(Buffer.byteLength(content,'utf8')>1024*1024)oversized.push(relative);
    if(/\.(?:js|mjs|cjs|jsx|ts|tsx)$/i.test(relative)){
-    const pattern=/(?:\bfrom\s*|\bimport\s*\()\s*['"]([^'"]+)['"]|^\s*import\s*['"]([^'"]+)['"]/gm;
-    let match;
-    while((match=pattern.exec(content))){
-     const specifier=match[1]||match[2];
-     if(specifier?.startsWith('.')&&!resolveRelativeImport(relative,specifier,known))unresolved.push(relative+' → '+specifier);
+    for(const specifier of extractModuleSpecifiers(content)){
+     if(specifier.startsWith('.')&&!resolveRelativeImport(relative,specifier,known))unresolved.push(relative+' → '+specifier);
     }
    }
   }catch{unreadable.push(relative);}
@@ -86,11 +132,21 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
  const backendJs=allFiles.filter(file=>file.startsWith('backend/')&&/\.(?:js|mjs|cjs)$/.test(file));
  const tests=inventory.tests||[];
  const testFiles=tests.filter(file=>/\.test\.(?:js|mjs|cjs|jsx|ts|tsx)$/.test(file));
- const missingTests=backendJs.filter(file=>!file.endsWith('/server.js')&&!testFiles.some(test=>path.basename(test).replace(/\.test\.[^.]+$/,'')===path.basename(file).replace(/\.[^.]+$/,'')));
+ const directlyTested=new Set();
+ for(const testFile of testFiles){
+  const relative='tests/'+testFile;
+  const content=sourceContents.get(relative)||'';
+  for(const specifier of extractModuleSpecifiers(content)){
+   if(!specifier.startsWith('.'))continue;
+   const target=resolveRelativeImport(relative,specifier,known);
+   if(target?.startsWith('backend/'))directlyTested.add(target);
+  }
+ }
+ const missingTests=backendJs.filter(file=>!file.endsWith('/server.js')&&!directlyTested.has(file));
  add(checks,'Backend-Testzuordnung','Testabdeckung',missingTests.length===0,
-  'Backend-Module: '+backendJs.length+'; Testdateien: '+testFiles.length+'; Module ohne gleichnamige direkte Testdatei: '+missingTests.length+
+  'Backend-Module: '+backendJs.length+'; Testdateien: '+testFiles.length+'; Module ohne direkten Testimport: '+missingTests.length+
   (missingTests.length?'; '+missingTests.slice(0,18).join(', '):''),
-  'warning','Für kritische Module gezielte Erfolgs-, Fehler-, Berechtigungs- und Regressionstests ergänzen.');
+  'warning','Prüfen, ob die genannten Module bereits über Integrations-/Abhängigkeitstests abgedeckt sind; andernfalls gezielte Erfolgs-, Fehler-, Berechtigungs- und Regressionstests ergänzen.');
  const packageFile=path.join(root,'package.json');
  let packageData=null;
  try{packageData=JSON.parse(await readFile(packageFile,'utf8'));}catch{}
