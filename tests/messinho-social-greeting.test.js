@@ -11,12 +11,11 @@ test('plain German greetings are recognized as social conversation',()=>{
 
 test('simple social greetings bypass provider routing while admin authorization remains first',async()=>{
  const server=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
- const failure=server.indexOf("if(cognitiveResult.status!=='completed'||!cognitiveResult.decision){");
- const fallback=server.indexOf('const conversationalFallback=await generateMessinhoNaturalConversationReply({',failure);
- const blocked=server.indexOf("intent:'conversation_provider_unavailable'",fallback);
- assert.ok(failure>=0);
- assert.ok(fallback>failure);
- assert.ok(blocked>fallback);
- assert.match(server.slice(failure,blocked),/actions_dispatched:false/);
- assert.doesNotMatch(server,/getMessinhoSocialReply\(interpretedMessage/);
+ const authorization=server.indexOf("if(profile.role==='scout'&&isMessinhoAdminOnlyCommand(interpretedMessage))");
+ const social=server.indexOf('const socialReply=getMessinhoSocialReply(interpretedMessage,history,new Date())');
+ const semantic=server.indexOf('const cognitiveResult=await classifyMessinhoTurn');
+ assert.ok(authorization>=0);
+ assert.ok(social>authorization);
+ assert.ok(semantic>social);
+ assert.match(server.slice(social,semantic),/actions_dispatched:false/);
 });
