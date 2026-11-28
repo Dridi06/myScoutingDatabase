@@ -7367,3 +7367,11 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Geänderte Dateien: backend/server.js; src/asi/MyKiChat.jsx; src/asi/MyKiOperations.jsx; src/asi/MyKiMaturity.jsx; src/asi/MyKiTicketBoards.jsx; src/asi/SystemDiagnostics.jsx; src/asi/MyKiActivityMonitor.jsx; src/asi/myki-chat.css; src/main.jsx; tests/myki-dashboard-layout.test.js; tests/myki-timestamp-coverage.test.js.
 - Regressionstests decken Server-/Logzeitstempel, persistierte Chat-Lifecycle-Zeitpunkte, Gesprächswiederherstellung, Dashboard-Komponenten, Sandbox-/Programmiergedächtnis-Ausgaben und Europe/Berlin-Darstellung ab.
 - Alle Änderungen bleiben auf feature/messinho-conversation-engine und STAGING. Production wird nicht geändert. Deployment erst nach erfolgreicher CI und anschließendem Health-Check.
+
+
+### Ergänzung Zeitstempel – abschließende Präzisierung
+- Der Server-Eingangszeitpunkt wird jetzt direkt beim Eintritt in den POST-Handler `/api/agent/chat` erfasst (nicht erst nach Authentifizierung oder Datenbankabfrage).
+- Die Chatoberfläche unterscheidet ausdrücklich zwischen lokal gesendeten, noch nicht bestätigten Eingaben und server-/datenbankseitig gespeicherten Eingaben. Nicht persistierte Assistentenausgaben werden als erzeugt, aber nicht gespeichert gekennzeichnet.
+- Sichtbar sind Client-Sendezeit, Servereingang, Datenbank-Speicherzeit, Verarbeitungsbeginn, Ausgabeerzeugung und Ausgabe-Speicherzeit.
+- Finale Regression: 759/759 Node-Tests bestanden; Backend-Syntax erfolgreich; vollständiger STAGING-Branch-CI-Lauf einschließlich Vite-Produktionsbuild erfolgreich auf Commit 9f196d2c40d3831b4160c5c0b9b48fe77a1c5ef4.
+- Render-Deployment dieses Commits wurde gestartet: dep-dc5abegu01pc73816f50. Status muss bis zur bestätigten LIVE-Meldung weiter geprüft werden.
