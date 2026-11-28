@@ -122,7 +122,7 @@ export function buildMessinhoNaturalConversationMessages({
 export async function generateMessinhoNaturalConversationReply({
   message, history = [], linguisticContext = null, linguisticKnowledgeContext = [],
   conversationMemoryContext = null, reasoningContext = null, pragmaticContext = null,
-  responseCompositionContext = null, responseIntelligenceContext = null, reasoningIntelligenceContext = null, verificationFeedback = null, conversationContinuityContext = null, userRole = 'scout', apiKey, baseUrl, model,
+  responseCompositionContext = null, responseIntelligenceContext = null, reasoningIntelligenceContext = null, dialogueAdaptationContext = null, verificationFeedback = null, conversationContinuityContext = null, userRole = 'scout', apiKey, baseUrl, model,
   fetchImpl = fetch, timeoutMs = 18000
 } = {}) {
   const config = resolveMessinhoModelConfig({
