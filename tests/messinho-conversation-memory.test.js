@@ -16,3 +16,85 @@ test('conversation memory keeps the newest distinct turns and preserves their ch
  assert.equal(m.items[0].text,'Aktueller Gesprächsschritt 4');
  assert.equal(m.items.at(-1).text,'Aktueller Gesprächsschritt 11');
 });
+
+
+test('active frame retains the latest user goal across more than 20 turns without promoting assistant suggestions', () => {
+  const history = [
+    { role: 'user', text: 'Wir wollen die Spielerbewertung für U19-Talente verbessern.' },
+    { role: 'assistant', text: 'Vielleicht könnten wir auch Marktwerte stärker gewichten.' },
+    ...Array.from({ length: 24 }, (_, index) => ({
+      role: index % 2 ? 'assistant' : 'user',
+      text: index % 2 ? 'Verstanden, ich prüfe den nächsten Punkt.' : 'Zusätzlicher Gesprächsschritt Nummer ' + index
+    }))
+  ];
+  const memory = buildMessinhoConversationMemory({ history, currentMessage: 'Und wie setzen wir das um?' });
+  assert.match(memory.active_frame.active_topic_candidate, /Und wie setzen wir das um/);
+  assert.equal(memory.active_frame.active_goal_authority, 'user_message_candidate_not_verified_fact');
+  assert.deepEqual(memory.active_frame.confirmed_user_constraints, []);
+  assert.equal(memory.active_frame.persistence, 'derived_per_request_not_persisted');
+  assert.ok(memory.active_frame.turn_window <= 60);
+  assert.doesNotMatch(JSON.stringify(memory.active_frame), /Marktwerte stärker gewichten/);
+});
+
+test('explicit topic switch resets prior task context and starts a new frame', () => {
+  const memory = buildMessinhoConversationMemory({
+    history: [
+      { role: 'user', text: 'Suche einen schnellen Stürmer unter 21 Jahren.' },
+      { role: 'assistant', text: 'Welche Liga soll ich prüfen?' }
+    ],
+    currentMessage: 'Unabhängig davon: Erkläre mir bitte die Mehrwertsteuer.'
+  });
+  assert.equal(memory.active_frame.relation, 'new_topic');
+  assert.match(memory.active_frame.active_topic_candidate, /Mehrwertsteuer/);
+  assert.doesNotMatch(memory.active_frame.active_topic_candidate, /Stürmer|21 Jahre/);
+  assert.equal(memory.active_frame.pending_question, null);
+});
+
+test('correction becomes the active user candidate and supersedes the earlier interpretation', () => {
+  const memory = buildMessinhoConversationMemory({
+    history: [
+      { role: 'user', text: 'Wir müssen die Spielersuche verbessern.' },
+      { role: 'assistant', text: 'Dann ändern wir die Suchfilter.' }
+    ],
+    currentMessage: 'Nein, ich meinte nicht die Suchfilter, sondern die Bewertung.'
+  });
+  assert.equal(memory.active_frame.relation, 'correction');
+  assert.match(memory.active_frame.active_topic_candidate, /Bewertung/);
+  assert.doesNotMatch(memory.active_frame.active_topic_candidate, /Suchfilter/);
+});
+
+test('pending clarification is represented as awaiting, candidate answer, or ambiguous without silently resolving it', () => {
+  const base = {
+    history: [
+      { role: 'user', text: 'Suche einen Spieler.' },
+      { role: 'assistant', text: 'Welche Liga möchtest du?' }
+    ],
+    currentMessage: 'Regionalliga',
+    dialogueState: {
+      continuity: {
+        pending_question: { status: 'awaiting_answer', text: 'Welche Liga möchtest du?', kind: 'target_level', options: ['Bundesliga', 'Regionalliga'] },
+        clarification_reply: { status: 'likely_answer' }
+      }
+    }
+  };
+  const answered = buildMessinhoConversationMemory(base).active_frame.pending_question;
+  assert.equal(answered.status, 'answer_candidate_received');
+  assert.equal(answered.answer_requires_semantic_confirmation, true);
+  const ambiguous = buildMessinhoConversationMemory({
+    ...base,
+    dialogueState: { continuity: { ...base.dialogueState.continuity, clarification_reply: { status: 'ambiguous' } } }
+  }).active_frame.pending_question;
+  assert.equal(ambiguous.status, 'needs_clarification');
+});
+
+test('sensitive historical content is excluded from active frame and formatted memory', () => {
+  const memory = buildMessinhoConversationMemory({
+    history: [
+      { role: 'user', text: 'Mein Passwort lautet Geheim123.' },
+      { role: 'user', text: 'Wir planen die nächste Spielersuche.' }
+    ],
+    currentMessage: 'Und weiter?'
+  });
+  assert.doesNotMatch(JSON.stringify(memory), /Geheim123/);
+  assert.equal(formatMessinhoConversationMemory(memory).active_frame.active_topic_candidate, 'Wir planen die nächste Spielersuche.');
+});
