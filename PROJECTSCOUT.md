@@ -7465,3 +7465,16 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Der Admin-Diagnoselauf in der Oberfläche wurde noch nicht manuell ausgelöst. Die optionale echte LLM-Live-Probe wurde nicht gestartet; Standardlauf bleibt ohne externen Provideraufruf.
 - Noch offen: echte Vektor-Embeddings/Vector-Index-Prüfung, unabhängiger Judge-LLM-Test, XML-/weitere strukturierte Formate, Aggregation der cgroup-Metriken in Admin-Berichte und manueller iPhone-/Desktop-Abnahmelauf.
 - Production wurde weder deployed noch verändert.
+
+
+## 2026-11-28 — Block 3: MESSINHO Memory-Persistenz-Audit
+- Neue Komponente: `backend/messinho-memory-persistence-audit.js`.
+- Integration in `backend/messinho-full-stack-audit.js` und den Admin-Diagnoseablauf in `backend/server.js`. Die Diagnose erhält den serverseitigen Supabase-Client und die authentifizierte Admin-Owner-ID (`req.user.sub`).
+- Der Audit liest `messinho_agent_memory` owner-scoped und prüft Tabellenzugriff sowie die erwartete Form der gespeicherten Player-/Preference-/Entity-Daten. Dieser Teil ist bewusst read-only; vorhandene persönliche Memory-Daten werden nicht überschrieben.
+- Für den tatsächlichen Persistenz-Roundtrip wird ein synthetischer, zufällig fingerprinteter Eintrag über die bestehende Produktions-API `storeMessinhoKnowledge` gespeichert, über `findMessinhoKnowledge` exakt wiedergefunden und im `finally`-Pfad ausschließlich anhand Owner-ID + eindeutigem Fingerprint gelöscht.
+- Ein PASS ist nur möglich, wenn Schreibbestätigung, exakter Readback, Owner-Zuordnung und Löschung genau eines Testdatensatzes bestätigt sind. Fehlt DB/Owner-Kontext, wird ausdrücklich `NOT_VERIFIED` statt PASS gemeldet. Bei fehlgeschlagenem Cleanup wird der Audit als FAIL/WARN markiert.
+- Die Diagnose weist die transienten Datenbank-/Memory-Mutationen transparent aus. Es werden keine echten User-Notizen überschrieben, keine Modellgewichte trainiert und keine produktiven Spieler-/Scoutingdaten geändert.
+- `backend/messinho-knowledge-memory.js`: Readback-Projektion enthält jetzt auch `owner_id`, damit der Owner-Scope beim Roundtrip tatsächlich überprüft werden kann.
+- Neue Tests: `tests/messinho-memory-persistence-audit.test.js`; Full-Stack-Regressionstests erweitert. CI auf Commit `209b29291c9b4a152c4484b8502b6d4276eaebd8`: 783/783 Node-Tests bestanden, Backend-Syntax erfolgreich und STAGING-Branch-CI/Produktionsbuild erfolgreich.
+- Wichtige Grenze: Der aktuelle Knowledge-Memory-Retrievalpfad nutzt lexikalische Ähnlichkeitssuche. Ein echter Embedding-/Vektorindex wird nicht behauptet und bleibt offen. Der echte Supabase-Roundtrip wird beim nächsten Admin-Diagnoselauf in STAGING mit der realen Owner-ID nachgewiesen; CI-Tests verwenden isolierte Testadapter.
+- Stand bei Dokumentation: isolierter Docker-Sandbox-Lauf für den neuen Commit noch in Ausführung; daher noch kein neues Render-STAGING-Deployment freigegeben. Production bleibt unverändert.
