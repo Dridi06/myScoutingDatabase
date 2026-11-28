@@ -224,7 +224,7 @@ async function runModelBindingAudit(env,probeProvider){
   '; angeforderte Ausgabetoken-Obergrenze: 64.',
   passed?'info':'warning',{model:result.model||config.model,latency_ms:latencyMs,status:result.status,
    error_code:result.error_code||null,usage:result.usage||null,json_valid:Boolean(parsed),
-   instruction_following:passed,token_budget:{max_completion_tokens_requested:64,provider_reported:result.usage||null},
+   instruction_following:passed,probe_executed:true,token_budget:{max_completion_tokens_requested:64,provider_reported:result.usage||null},
    response_format:'json_object',response_content_stored:false},
   'Providerverbindung, Modellkompatibilität, Timeout und Structured-Output-Unterstützung prüfen. Rohantworten und API-Schlüssel werden nicht gespeichert.');
 }
@@ -254,13 +254,14 @@ export async function runMessinhoFullStackIntelligenceAudit({root=DEFAULT_ROOT,e
  modules.push(check('Evolution und Audit-Trend','Evolution',true,
   'Historische Vergleichsläufe: '+evolution.previous_runs+'; aktueller Teilmodul-Passanteil: '+Math.round(evolution.current_pass_rate*100)+' %; Trend: '+evolution.trend+'.',
   'info',evolution,'Mehrere versionierte Läufe mit gleicher Testbasis speichern und Erfolgsraten, Fehlerwiederholungen und Laufzeiten vergleichen.'));
+ const providerCalls=modules.some(item=>item.evidence?.probe_executed===true)?1:0;
  const failed=modules.filter(item=>!item.ok);
  const critical=failed.filter(item=>item.severity==='critical');
  const status=critical.length?'CRITICAL_FAILURE':failed.length?'DEGRADED':'PASS';
  return {audit_type:'full_stack_intelligence_sandbox_audit',version:'1.0.0',status,
   started_at:checkedAt,finished_at:new Date().toISOString(),duration_ms:Date.now()-started,
   scope:{source_directories:SOURCE_DIRS,source_file_counts:files.reduce((sum,n)=>sum+n,0),
-   external_provider_calls:probeProvider?1:0,tool_executions:0,sandbox_jobs_dispatched:0,database_mutations:0,
+   external_provider_calls:providerCalls,tool_executions:0,sandbox_jobs_dispatched:0,database_mutations:0,
    memory_mutations:0,model_weight_changes:0,production_access:false},
   modules,summary:{total:modules.length,passed:modules.length-failed.length,failed:failed.length,
    critical_failed:critical.length,warnings:failed.length-critical.length},
