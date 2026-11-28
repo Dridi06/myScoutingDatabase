@@ -160,3 +160,55 @@ Production wurde in dieser Bestandsaufnahme nicht verändert.
 5. Providerentkopplung erst nach abgeschlossenem Inventar schrittweise umsetzen. Keine vorschnelle Umleitung auf einen nicht vorhandenen lokalen Modellserver.
 
 **Status:** Providerinventur implementiert und CI-geprüft. Gate 0 bleibt **OFFEN**, bis die vollständige Feature-/Route-/Job-/Schema-Matrix und der STAGING-Abgleich abgeschlossen sind.
+
+
+## 9. Providerneutrale Sprachlaufzeit im bestehenden Chat — 28.11.2026
+
+### Änderung
+- Der bestehende freie Chatpfad in backend/server.js verwendet jetzt resolveMessinhoModelConfig() und requestMessinhoModelCompletion() aus backend/messinho-model-runtime.js.
+- Der Chat liest bevorzugt MESSINHO_MODEL_BASE_URL, MESSINHO_MODEL_API_KEY und MESSINHO_MODEL_NAME.
+- Die bisherigen OPENAI_BASE_URL, OPENAI_API_KEY und OPENAI_MODEL bleiben vorläufige Kompatibilitäts-Fallbacks. OpenAI ist damit weiterhin als temporärer Sprachdienst nutzbar, aber der eigentliche Chatpfad ist nicht mehr direkt an dessen URL-/HTTP-Protokollcode gebunden.
+- Lokale/self-hosted OpenAI-kompatible Endpunkte können ohne gehosteten API-Key konfiguriert werden, sofern die URL als localhost/127.0.0.1/::1 erkannt wird.
+- Modellfehler werden als begrenzte Status-/Fehlercodes verarbeitet; Schlüssel und Antwortkörper werden nicht protokolliert.
+- Bestehende deterministic Smalltalk-, Wissens-, Mathematik-, Recherche- und Agentenpfade bleiben erhalten. Es wurde keine zweite Chatoberfläche hinzugefügt.
+
+### Tests
+- tests/messinho-model-runtime.test.js erweitert: Priorität der MESSINHO-Variablen vor Legacy-OpenAI-Konfiguration, Legacy-Fallback, lokale Keyfreiheit, Quota-Fehler und Secret-Schutz.
+- Änderungen auf Branch HEAD 677033bc57dce2f9af4082f2e5ba0782bbbe3d39.
+- GitHub Actions für diesen HEAD: Node-Tests, Backend-Syntax und Staging-Branch-CI wurden gestartet; Ergebnisse zum Zeitpunkt dieses Eintrags noch nicht abschließend verifiziert.
+- Das Live-Staging läuft weiterhin auf einem älteren Deployment-Commit; diese Änderung wurde noch nicht deployed.
+
+### Bewusste Grenze
+Diese Änderung entkoppelt nur die freie Unterhaltung vom direkten OpenAI-Aufruf. Die Spielersuche/Discovery, bestimmte Spieler-Folgeanalysen und MyKi-Engineering besitzen noch direkte Providerzugriffe. Sie werden einzeln migriert, nachdem jeder Pfad einem konkreten Vertrag und Regressionstest zugeordnet ist. Die ASI-Recherche über Tavily bleibt ein eigenständiger Rechercheanbieter und wird nicht mit dem Sprachmodell verwechselt.
+
+## 10. Lesender Route-/Schema-/Migrationsabgleich — 28.11.2026
+
+### Backend-Routen
+- AST-/Quelltextinventur von backend/server.js: **75 explizite Express-Routen**.
+- Enthalten sind Authentifizierung, Scout- und Spielerverwaltung, Support-Tickets, ASI-Spielersuche, MESSINHO-Capabilities, Wissen/Review, Feedback/Lernen, Vorhersage/Entwicklung, Agentenaufgaben, Admin-Diagnose und der bestehende Chat POST /api/agent/chat.
+- Routenliste und Middleware-Zuordnung sind noch nicht vollständig als maschinenprüfbare Berechtigungs-Matrix verifiziert. Die reine Existenz einer Route gilt nicht als Nachweis eines erfolgreichen oder korrekt autorisierten End-to-End-Ablaufs.
+- Für jede Route sind HTTP-Methode, Authentifizierungsweg, Rollen-/Owner-Scope, Eingabeschema, Datenbanktabellen, externe Abhängigkeiten, Tests und Audit-Log-Zuordnung zu dokumentieren.
+
+### Tatsächliches STAGING-Schema
+- Supabase-Projekt: myScoutingDatabase-staging, Region eu-central-1.
+- 43 öffentliche Tabellen; alle 43 mit aktiviertem RLS.
+- 24 MESSINHO-Tabellen und 13 ASI-Tabellen.
+- Relevante persistente Daten: 44 Chatnachrichten, 84 Sprachwissenseinträge, 20 MESSINHO-Diagnosen, 11 Engineering-Review-Runs, 2 MyKi-Tickets.
+- Diese Zählwerte beschreiben den lesend ermittelten STAGING-Zustand, nicht die Vollständigkeit oder fachliche Qualität der Inhalte.
+- Der Agent-Control-Datensatz steht auf einem pausierten Zustand; autonome Entwicklungsarbeit darf nicht als live aktiv behauptet werden.
+
+### Migrationen — wichtiger Befund
+- Im aktuellen Branch wurden 64 SQL-Dateien unter supabase/migrations/ gefunden; Supabase registriert 74 Migrationsdatensätze.
+- Ein einfacher Vergleich der Migrationsnamen ergibt 13 DB-Namen ohne exakte normalisierte Dateinamensentsprechung und 6 Dateien ohne exakte normalisierte DB-Namensentsprechung. Mehrere Einträge sind offenbar unterschiedlich benannte historische/neu benannte Migrationen.
+- Dieser Namensvergleich beweist **keine** Schemaabweichung und beweist ebenso wenig, dass alle SQL-Inhalte identisch sind.
+- Die Tabellenstruktur enthält zahlreiche bereits vorhandene MESSINHO-/ASI-Objekte, die durch Migrationen mit abweichenden Namen angelegt worden sein können.
+- **Sicherheitsentscheidung:** Keine Migration nachträglich als angewendet markieren, keine Migration erneut ausführen und keine Schemaänderung durchführen, bevor Dateiinhalte, Migrationshistorie, tatsächliche Tabellen/Spalten/Constraints/Policies/Funktionen und gegebenenfalls SQL-Diffs einzeln abgeglichen sind.
+
+### Offene Phase-0-Nachweise
+1. Alle 75 Routen vollständig mit Authentifizierung, Rollen, Owner-Scope, Tabellen, Fähigkeiten und Tests verbinden.
+2. Hintergrundworker und Engineering-Scheduler mit ihren Triggern, Laufzeitbedingungen, Locks, Stop-Gates und Datenzugriffen erfassen.
+3. Migrationen anhand tatsächlicher SQL-Inhalte und pg_catalog-/RLS-/Policy-/Function-Struktur abgleichen; Namensabweichungen einzeln auflösen.
+4. Providerzugriffe außerhalb des freien Chats migrieren und Regressionstests ergänzen.
+5. CI auf aktuellem HEAD abschließend verifizieren, danach kontrollierter Staging-Deploy und authentifizierter Smoke-/Smalltalk-Test. Production bleibt unangetastet.
+
+**Gate 0 bleibt OFFEN.** Keine Datenbankmigration und kein Staging-Deployment in diesem Schritt.
