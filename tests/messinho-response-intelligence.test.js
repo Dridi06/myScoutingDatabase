@@ -72,3 +72,15 @@ test('response plan remains bounded and does not expose permissions or actions',
  assert.equal(Object.hasOwn(plan,'execute'),false);
  assert.equal(plan.follow_up_policy.max_questions,1);
 });
+
+test('authenticated chat constructs one response plan and forwards it to both model turns',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const server=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+ const router=await readFile(new URL('../backend/messinho-conversational-intelligence.js',import.meta.url),'utf8');
+ const natural=await readFile(new URL('../backend/messinho-natural-conversation.js',import.meta.url),'utf8');
+ assert.ok(server.includes("import { buildMessinhoResponseIntelligence } from './messinho-response-intelligence.js';"));
+ assert.ok(server.includes('const responseIntelligenceContext=buildMessinhoResponseIntelligence('));
+ assert.ok(server.includes('responseIntelligenceContext,'));
+ assert.ok(router.includes('response_intelligence_context:responseIntelligenceContext||null'));
+ assert.ok(natural.includes('response_intelligence_context: responseIntelligenceContext || null'));
+});
