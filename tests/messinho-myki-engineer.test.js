@@ -94,6 +94,24 @@ test('reports an oversized source file with a safe file-specific reason',async()
  assert.equal(result.failure_reason,'source_size_limit_exceeded:backend/messinho-development.js');
 });
 
+test('reports the failing upstream stage without exposing response bodies or credentials',async()=>{
+ const githubFailure=await generateMessinhoEngineeringProposal({goal:'Prüfe MESSINHO auf konkrete sichere Verbesserungen',env:{OPENAI_API_KEY:'secret-test-value'},fetchImpl:async()=>({ok:false,status:503})});
+ assert.equal(githubFailure.ok,false);
+ assert.equal(githubFailure.code,'MYKI_ENGINEERING_REVIEW_FAILED');
+ assert.equal(githubFailure.failure_stage,'github_commit');
+ assert.equal(githubFailure.failure_reason,'github_http_503');
+ assert.equal(JSON.stringify(githubFailure).includes('secret-test-value'),false);
+
+ const providerFailure=await generateMessinhoEngineeringProposal({goal:'Prüfe MESSINHO auf konkrete sichere Verbesserungen',env:{OPENAI_API_KEY:'secret-test-value'},fetchImpl:async url=>{
+  if(url.includes('/commits/'))return response({sha});
+  if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=>sourceFor(url)};
+  return {ok:false,status:429};
+ }});
+ assert.equal(providerFailure.ok,false);
+ assert.equal(providerFailure.failure_stage,'provider');
+ assert.equal(providerFailure.failure_reason,'provider_http_429');
+});
+
 test('rejects a model patch whose old lines do not exist in the pinned source',()=>{
  const result=validateMessinhoEngineeringPatchAgainstSources(patch,[{path:'backend/messinho-input-correction.js',content:'const actual = 1;\n'}]);
  assert.equal(result.ok,false);
