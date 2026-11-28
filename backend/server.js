@@ -737,7 +737,7 @@ app.post('/api/admin/myki/control',myKiControlLimiter,async(req,res)=>{
           else if(result.status==='no_improvement')message='Entwicklungsprüfung abgeschlossen. Es wurde keine ausreichend belegte und sichere Verbesserung gefunden.';
           else if(result.status==='duplicate'||result.skipped==='already_claimed')message='Der Vorschlag ist bereits vorhanden; es wurde kein doppeltes Ticket erstellt.';
           else if(result.status==='stopped'||result.skipped==='admin_mode_not_active')message='Die Entwicklungsprüfung wurde kontrolliert gestoppt.';
-          else message='Die Entwicklungsprüfung konnte nicht abgeschlossen werden ('+(result.code||result.skipped||'unbekannter Fehler')+'). Bitte Status und Logs prüfen.';
+          else message='Die Entwicklungsprüfung konnte nicht abgeschlossen werden ('+(result.code||result.skipped||'unbekannter Fehler')+(result.failure_reason?': '+result.failure_reason:'')+'). Bitte Status und Logs prüfen.';
           const {error:statusError}=await db.from('messinho_agent_control').update({status_message:message,current_task:null,updated_at:new Date().toISOString()})
             .eq('id','global').eq('mode','developing').eq('stop_requested',false);
           if(statusError)console.warn('MESSINHO development status could not be persisted:',statusError.message);
