@@ -62,7 +62,7 @@ export default function MyKiChat({supabase}){
  const label=mode==='working'?'MESSINHO arbeitet gerade':mode==='learning'?'MESSINHO entwickelt sich autonom weiter':'MESSINHO ist pausiert';
  return <section className="myki-chat panel" aria-label="Direkter Chat mit MESSINHO">
   <div className="myki-chat-header">
-   <div className="myki-chat-title"><span className="myki-eyebrow">DIREKTE KOMMUNIKATION</span><h2><BrainCircuit size={20}/> Sprich mit MESSINHO</h2><p>Ein Gespräch auf Augenhöhe – mit dem Wissen und den Fähigkeiten des bestehenden MESSINHO-Agenten.</p></div>
+   <div className="myki-chat-title"><span className="myki-eyebrow">DIREKTE KOMMUNIKATION</span><h2><BrainCircuit size={20}/> myKI Chat</h2><p>Direkte Unterhaltung mit MESSINHO.</p></div>
    <div className={'myki-agent-state '+mode} role="status" aria-live="polite"><i/>{label}</div>
   </div>
   <div className="myki-chat-messages" ref={messagesRef} aria-live="polite">
