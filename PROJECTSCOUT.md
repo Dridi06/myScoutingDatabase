@@ -7453,3 +7453,15 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Korrektur: Das Backend-Syntax-Workflow-YAML wurde repariert und installiert nun die Abhängigkeiten vor dem Testlauf.
 - Arbeitsbereich bleibt `feature/messinho-conversation-engine`; STAGING-only. Kein Production-Deployment und keine Production-Datenänderung.
 - CI-Abnahme des endgültigen Commits steht noch aus; bis dahin kein Render-STAGING-Deployment.
+
+
+### Block 2 — Abschluss der technischen CI-/Sandbox-Prüfung und STAGING-Deployment
+- Finaler geprüfter Commit: `ba69abcd5cebf02e5728051f5713f337ac8a7157`.
+- GitHub CI: 779/779 Node-Tests bestanden; Backend-Syntaxprüfung bestanden; vollständiger `npm run build` einschließlich Vite-Build bestanden.
+- Isolierte Sandbox: Docker-Compiler-Image erfolgreich erstellt; Baseline im Container erfolgreich, Exitcode 0; Ergebnis `MESSINHO_SANDBOX_OUTCOME=toolchain_smoke_passed`.
+- Gemessene Sandbox-cgroup-Werte aus dem tatsächlichen Joblog: Speicher 130,138,112 Byte vor Validierung und 135,884,800 Byte nach Baseline bei 3,221,225,472 Byte Limit (3 GiB); Prozesse 3/128; CPU-Verbrauch 13,416,551 µs nach Baseline; 12 gedrosselte CPU-Perioden. Diese Messwerte sind Joblog-Belege und noch nicht im Admin-Dashboard aggregiert.
+- Render STAGING Deployment: `dep-dc5br4l6e07s73a6toug`, Status LIVE, Commit `ba69abcd5cebf02e5728051f5713f337ac8a7157`, live seit 2026-11-28 11:40:48 UTC.
+- STAGING-Startlogs: Node API lauscht auf Port 10000; Supabase Data API meldete HTTP 200; Render meldete den Service als live.
+- Der Admin-Diagnoselauf in der Oberfläche wurde noch nicht manuell ausgelöst. Die optionale echte LLM-Live-Probe wurde nicht gestartet; Standardlauf bleibt ohne externen Provideraufruf.
+- Noch offen: echte Vektor-Embeddings/Vector-Index-Prüfung, unabhängiger Judge-LLM-Test, XML-/weitere strukturierte Formate, Aggregation der cgroup-Metriken in Admin-Berichte und manueller iPhone-/Desktop-Abnahmelauf.
+- Production wurde weder deployed noch verändert.
