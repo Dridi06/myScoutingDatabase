@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Activity,BrainCircuit,LoaderCircle,PauseCircle,Send,ShieldCheck,Sparkles,TrendingUp} from 'lucide-react';
+import {BrainCircuit,Send,Sparkles} from 'lucide-react';
 import './myki-chat.css';
 
 const timestampNow=()=>new Date().toISOString();
@@ -12,8 +12,6 @@ export default function MyKiChat({supabase}){
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
  const [status,setStatus]=useState({scheduler_enabled:false,last_run:null,run_state:'paused',autonomy_mode:'paused'});
- const [controlBusy,setControlBusy]=useState(false);
- const [diagnosticBusy,setDiagnosticBusy]=useState(false);
  const messagesRef=useRef(null);
 
  useEffect(()=>{const el=messagesRef.current;if(el)el.scrollTop=el.scrollHeight;},[messages,busy]);
@@ -36,42 +34,6 @@ export default function MyKiChat({supabase}){
   refresh();const timer=setInterval(refresh,30000);
   return()=>{active=false;clearInterval(timer)};
  },[supabase]);
-
- async function changeControl(action,mode){
-  if(controlBusy)return;
-  setControlBusy(true);setError('');
-  try{
-   const {data:{session}}=await supabase.auth.getSession();
-   if(!session?.access_token)throw new Error('Deine Admin-Sitzung ist abgelaufen.');
-   const response=await fetch('/api/admin/myki/control',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},
-    body:JSON.stringify(action==='stop'?{action}:{action:'set_mode',mode})});
-   const payload=await response.json().catch(()=>({}));
-   if(!response.ok)throw new Error(payload.error||'Die Steuerung konnte nicht gespeichert werden.');
-   await refreshStatus();
-  }catch(err){setError(err.message||'Die Steuerung ist fehlgeschlagen.');}
-  finally{setControlBusy(false);}
- }
-
-
- async function runDiagnostic(){
-  if(diagnosticBusy)return;
-  setDiagnosticBusy(true);setError('');
-  try{
-   const {data:{session}}=await supabase.auth.getSession();
-   if(!session?.access_token)throw new Error('Deine Admin-Sitzung ist abgelaufen. Bitte melde dich erneut an.');
-   const response=await fetch('/api/admin/messinho-diagnostics/run',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token}});
-   const payload=await response.json().catch(()=>({}));
-   if(!response.ok)throw new Error(payload.error||payload.detail||'Die MESSINHO-Diagnose konnte nicht ausgeführt werden.');
-   const checks=Array.isArray(payload.checks)?payload.checks:[];
-   const failed=checks.filter(item=>item.ok===false);
-   const passed=payload.summary?.passed??checks.length-failed.length;
-   const total=payload.summary?.total??checks.length;
-   const details=failed.slice(0,5).map((item,index)=>(index+1)+'. '+(item.name||'Prüfung')+': '+(item.detail||'Keine Detailbeschreibung verfügbar.')).join('\n');
-   const summary='Diagnose abgeschlossen und gespeichert.\nErgebnis: '+(payload.status||'unbekannt').toUpperCase()+' · '+passed+'/'+total+' Prüfungen bestanden · '+failed.length+' Auffälligkeiten.'+(details?'\n\nGefundene Auffälligkeiten:\n'+details:failed.length>5?'\n\nWeitere Auffälligkeiten stehen im Diagnose-Center.':'\n\nKeine Fehler gefunden.');
-   setMessages(prev=>[...prev,{id:'diag-'+(payload.id||Date.now()),role:'assistant',timestamp:timestampNow(),text:summary}]);
-  }catch(err){setError(err.message||'Die MESSINHO-Diagnose ist fehlgeschlagen.');}
-  finally{setDiagnosticBusy(false);}
- }
 
  async function sendMessage(event){
   event?.preventDefault();
@@ -98,7 +60,6 @@ export default function MyKiChat({supabase}){
  const operatingMode=status.control?.mode||status.autonomy_mode||'paused';
  const mode=busy?'working':schedulerRunning?'learning':operatingMode==='developing'?'learning':operatingMode==='working'?'working':'paused';
  const label=mode==='working'?'MESSINHO arbeitet gerade':mode==='learning'?'MESSINHO entwickelt sich autonom weiter':'MESSINHO ist pausiert';
- const lastRun=status.last_run;
  return <section className="myki-chat panel" aria-label="Direkter Chat mit MESSINHO">
   <div className="myki-chat-header">
    <div className="myki-chat-title"><span className="myki-eyebrow">DIREKTE KOMMUNIKATION</span><h2><BrainCircuit size={20}/> Sprich mit MESSINHO</h2><p>Ein Gespräch auf Augenhöhe – mit dem Wissen und den Fähigkeiten des bestehenden MESSINHO-Agenten.</p></div>
