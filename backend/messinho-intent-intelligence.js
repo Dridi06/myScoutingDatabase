@@ -16,7 +16,7 @@ const PATTERNS = [
   { intent:'general_research', strength:'strong', pattern:/\b(?:recherchiere|recherchier|recherche\s+(?:bitte|zu|über|ueber)|finde\s+(?:heraus|informationen|quellen)|informiere\s+mich\s+über|erkläre\s+mir\s+(?:wissenschaftlich|die\s+fakten)|aktuelle\s+(?:informationen|daten|nachrichten)|quellen\s+zu|research\s+(?:this|the\s+topic|about)|look\s+up|find\s+sources|latest\s+(?:data|news|information)|investigate|cherche\s+des\s+informations|investiga|busca\s+información|ابحث\s+عن|اعطيني\s+معلومات)\b/iu }
 ];
 const DOMAIN_PATTERNS = [
-  {domain:'football',pattern:/\b(?:fußball|fussball|spieler|verein|mannschaft|liga|scouting|transfer|player|club|team|league|joueur|équipe|jugador|equipo|لاعب|فريق)\b/iu},
+  {domain:'football',pattern:/\b(?:fußball|fussball|\p{L}*spieler|verein|mannschaft|liga|scouting|transfer|player|club|team|league|joueur|équipe|jugador|equipo|لاعب|فريق)\b/iu},
   {domain:'science',pattern:/\b(?:biologie|physik|chemie|mathematik|statistik|medizin|sportmedizin|wissenschaft|biology|physics|chemistry|mathematics|statistics|medicine|science|biología|física|química|ciencia|طب|فيزياء|رياضيات)\b/iu},
   {domain:'finance',pattern:/\b(?:börse|aktie|aktien|etf|finanzen|finanzmarkt|portfolio|trading|stock|stocks|equity|bond|crypto|investment|finance|bourse|acciones|bolsa|أسهم|بورصة)\b/iu},
   {domain:'software',pattern:/\b(?:code|programmierung|software|datenbank|api|github|supabase|render|bug|deployment|server|programming|database|développement|código)\b/iu}
