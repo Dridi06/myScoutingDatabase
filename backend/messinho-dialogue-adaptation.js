@@ -5,7 +5,7 @@
  */
 export const MESSINHO_DIALOGUE_ADAPTATION_VERSION = '1.0.0';
 const MAX_TEXT = 360;
-const SENSITIVE = /(?:password|api[ _-]?key|access[ _-]?token|secret|private[ _-]?key|krank(?:heit|en)?|diagnos(?:e|ed)|medikament|therapie|depress(?:ion|iv)|diabetes|blutdruck|religion|muslim|islam|christ(?:entum|lich)|j[uü]disch|polit(?:ik|ische partei)|wahlentscheidung|ethn(?:ie|isch)|sexuell(?:e|er)? orientierung|homosexuell|straf(?:tat|verfahren)|vorstrafe)/iu;
+const SENSITIVE = /(?:passw(?:ort|ord)|password|api[ _-]?key|access[ _-]?token|secret|private[ _-]?key|krank(?:heit|en)?|diagnos(?:e|ed)|medikament|therapie|depress(?:ion|iv)|diabetes|blutdruck|religion|muslim|islam|christ(?:entum|lich)|j[uü]disch|polit(?:ik|ische partei)|wahlentscheidung|ethn(?:ie|isch)|sexuell(?:e|er)? orientierung|homosexuell|straf(?:tat|verfahren)|vorstrafe)/iu;
 const DETAIL = /\b(?:ausführlich|detailliert|im detail|schritt für schritt|genauer erklären|deep dive|in depth|detailed|step by step|en détail|detalladamente)\b/iu;
 const BRIEF = /\b(?:kurz|knapp|in einem satz|stichpunkte|nur das ergebnis|kurzfassung|briefly|short answer|concise|résumé bref|brevemente)\b/iu;
 const CORRECTION = /\b(?:nein[, ]+(?:ich meinte|nicht)|ich meinte|gemeint habe ich|das stimmt nicht|nicht den|nicht die|nicht das|sondern|i meant|not that|that's not what|je voulais dire|no quise decir|موش هذا|موش هكا)\b/iu;
