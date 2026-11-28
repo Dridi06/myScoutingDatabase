@@ -18,12 +18,14 @@ function endpointFor(baseUrl){
   return /\/chat\/completions$/iu.test(base)?base:base+'/chat/completions';
 }
 
-function extractProviderError(payload,status){
+function extractProviderError(payload,status,headers){
   const error=payload?.error||{};
   const code=typeof error.code==='string'?error.code:
     (typeof error.type==='string'?error.type:'provider_http_'+status);
   const message=typeof error.message==='string'?error.message.slice(0,500):'The model provider rejected the request.';
-  return {status:'provider_error',http_status:status,error_code:code,error_message:message};
+  const retryAfter=Number(headers?.get?.('retry-after'));
+  return {status:'provider_error',http_status:status,error_code:code,error_message:message,
+    ...(Number.isFinite(retryAfter)&&retryAfter>0?{retry_after_ms:Math.min(2000,retryAfter*1000)}:{})};
 }
 
 function isSchemaModeUnsupported(result){
@@ -34,14 +36,15 @@ function isSchemaModeUnsupported(result){
 
 export async function requestMessinhoModelCompletion({
   messages,model,apiKey,baseUrl='https://api.openai.com/v1',fetchImpl=fetch,timeoutMs=18000,
-  temperature=0.2,responseFormat=null,maxTokens=null
+  temperature=0.2,responseFormat=null,maxTokens=null,maxTokensLimit=128
 }={}){
   const endpoint=endpointFor(baseUrl);
   if(!endpoint||typeof fetchImpl!=='function')return {status:'unavailable',content:null,error_code:'model_endpoint_unavailable'};
   if(!apiKey&& !/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/|$)/iu.test(String(baseUrl||''))){
     return {status:'unavailable',content:null,error_code:'model_api_key_missing'};
   }
-  const tokenLimit=maxTokens===null||maxTokens===undefined?null:Math.max(1,Math.min(128,Math.floor(Number(maxTokens)||64)));
+  const tokenCap=Math.max(1,Math.min(8192,Math.floor(Number(maxTokensLimit)||128)));
+  const tokenLimit=maxTokens===null||maxTokens===undefined?null:Math.max(1,Math.min(tokenCap,Math.floor(Number(maxTokens)||64)));
   const baseBody={model:String(model||'').trim(),messages,temperature,...(tokenLimit===null?{}:{max_tokens:tokenLimit})};
   if(!baseBody.model)return {status:'unavailable',content:null,error_code:'model_name_missing'};
   const perform=async(format)=>{
@@ -53,7 +56,7 @@ export async function requestMessinhoModelCompletion({
         body:JSON.stringify({...baseBody,...(format?{response_format:format}:{})})
       });
       const payload=await response.json().catch(()=>({}));
-      if(!response.ok)return extractProviderError(payload,response.status);
+      if(!response.ok)return extractProviderError(payload,response.status,response.headers);
       const content=payload?.choices?.[0]?.message?.content;
       if(typeof content!=='string'||!content.trim())return {status:'invalid_output',content:null,error_code:'empty_model_response'};
       return {status:'completed',content:content.trim(),usage:payload.usage||null,model:payload.model||baseBody.model};
