@@ -6725,3 +6725,72 @@ MESSINHO soll nicht nur Sprachprofile und einzelne grammatische Signale erkennen
 - No database/schema migration or persistent user/player/scout/learning data changes. No model training, model-weight changes, permission changes or external side effects.
 - Authenticated Admin/Scout conversation acceptance remains outstanding. This deployment verifies build/startup and service health, not the quality of real user conversations.
 - PR #58 remains open, Draft and unmerged. Production branch, Render production service and production database remain untouched.
+
+## 35. MESSINHO Universal Knowledge Intelligence — owner decision — 2026-11-28
+
+### Verbindliche Produktentscheidung
+MESSINHO soll langfristig ein universeller Wissens- und Problemlösungsagent werden. Fußball und Scouting bleiben seine primäre Spezialisierung innerhalb von myScoutingDatabase, sind aber ausdrücklich nicht die Grenze seines allgemeinen Wissens oder seiner Gesprächsfähigkeit. MESSINHO soll auch fachfremde Fragen verständlich beantworten, wissenschaftliche Methoden anwenden, Berechnungen ausführen, Prognosen kritisch bewerten und technische Aufgaben unterstützen können.
+
+Diese Entscheidung ergänzt die bestehende Conversation Engine und die ASI-Scouting-Architektur. Sie ersetzt weder den bestehenden Chat noch die Provider-unabhängige Agent-Core-Vorgabe.
+
+### 35.1 Wissensdomänen — verbindlicher Zielumfang
+
+1. **Biologie und Lebenswissenschaften:** Zellbiologie, Genetik, Evolution, Anatomie, Physiologie, Ökologie, Mikrobiologie und Biochemie.
+2. **Physik:** Mechanik, Dynamik, Kinematik, Energie, Thermodynamik, Elektrizität, Magnetismus, Optik, Wellen und Messmethoden.
+3. **Chemie:** allgemeine, anorganische und organische Chemie, Reaktionslehre, Stoffmengen, Konzentrationen, Säure-Base-Chemie, Elektrochemie und Biochemie.
+4. **Mathematik:** Arithmetik, Algebra, Geometrie, Analysis, lineare Algebra, Differentialgleichungen, numerische Methoden, diskrete Mathematik und Optimierung.
+5. **Statistik und Prognosewissenschaft:** deskriptive und inferenzielle Statistik, Wahrscheinlichkeitsrechnung, Bayes-Verfahren, Regression, Zeitreihen, Korrelation, kausale Inferenz, Unsicherheits- und Fehlerrechnung, Simulationen, Monte-Carlo-Verfahren, Modellvalidierung und Backtesting.
+6. **Medizin und Gesundheitswissenschaften:** Anatomie, Physiologie, Pathologie, Diagnostik, Pharmakologie, Epidemiologie, Prävention, Rehabilitation und evidenzbasierte Medizin.
+7. **Sportwissenschaft und Sportmedizin:** Trainingslehre, Leistungsphysiologie, Biomechanik, Belastungssteuerung, Regeneration, Leistungsdiagnostik, Sporternährung, Sportpsychologie, Verletzungsprävention und Return-to-Play.
+8. **Informatik und KI:** Programmierung, Algorithmen, Datenstrukturen, Softwarearchitektur, Datenbanken, Netzwerke, Betriebssysteme, Cybersecurity, Cloud, APIs, Automatisierung, Machine Learning, Deep Learning, NLP, Test- und Qualitätssicherung.
+9. **Börse, quantitative Finanzen und Wirtschaft:** Aktien, Anleihen, ETFs, Indizes, Devisen, Rohstoffe, Derivate, Optionen, Futures, Unternehmensanalyse, Bilanzanalyse, Fundamentalanalyse, technische Analyse, Rendite, Zinseszins, Volatilität, Korrelation, Portfolio-Theorie, Risikomanagement, Makroökonomie, quantitative Modelle, Szenarien und Backtesting.
+10. **Ethik, Philosophie und Erkenntnistheorie:** Verantwortung, Wissenschaftsethik, Entscheidungslogik, Erkenntnisgrenzen, Argumentationsprüfung und Umgang mit Zielkonflikten.
+11. **Ethnologie und Sozialwissenschaften:** Kulturen, Gesellschaften, Verhalten, Psychologie, Soziologie, Kommunikation und interkulturelle Zusammenhänge.
+12. **Ingenieurwissenschaften:** Elektrotechnik, Maschinenbau, Mechatronik, Regelungstechnik, Verfahrenstechnik, Materialwissenschaft, Energietechnik, Messtechnik und technische Simulation.
+13. **Weitere Grundlagen:** Rechtswissenschaft, Wirtschaftswissenschaft, Geowissenschaften, Klima und Umwelt, Astronomie, Ernährungswissenschaft und Linguistik.
+
+### 35.2 Fachliche Anwendung statt bloßer Wissenssammlung
+Das Ziel ist nicht ein Lexikon mit Definitionen. MESSINHO soll passende Methoden auswählen und tatsächlich anwenden können:
+- Formeln und Einheiten korrekt auswählen, Berechnungen durchführen und Rechenschritte nachvollziehbar darstellen.
+- Datenqualität, Stichprobengröße, Annahmen, Modellgrenzen und mögliche Verzerrungen prüfen.
+- Prognosen als Szenarien bzw. Wahrscheinlichkeiten mit Unsicherheitsbereichen ausgeben, niemals als sichere Zukunftsbehauptung.
+- Ergebnisse reproduzierbar machen: Eingaben, Methode, Version, Parameter, Datenstand und Ergebnis dokumentieren.
+- Fachwissen domänenübergreifend verbinden, aber Fachgrenzen und unzulässige Schlussfolgerungen beachten.
+- Bei unzureichenden Daten gezielt nachfragen oder die Aussage begrenzen, statt Lücken zu erfinden.
+
+### 35.3 Zielarchitektur
+Die geplante **MESSINHO Knowledge Intelligence** wird als eigener, mit Conversation Engine und Agent Core verbundener Architekturstrang entwickelt:
+- **Knowledge Registry / Ontologie:** Domänen, Konzepte, Definitionen, Einheiten, Beziehungen, Synonyme und Abhängigkeiten.
+- **Evidence & Source Layer:** Herkunft, Autorität, Datum, Lizenz/Nutzungsrecht, Aktualität, Gegenbelege und Vertrauensstatus jeder externen Wissensaussage.
+- **Retrieval Layer:** kontextbezogene Suche in freigegebenem Grundwissen, Projektdaten, Dokumenten und zulässigen externen Quellen.
+- **Calculation & Scientific Tools:** deterministische Rechenwerkzeuge, Einheitenprüfung, Statistik, Simulation und reproduzierbare Auswertung.
+- **Forecasting & Model Evaluation:** versionierte Modelle, Trainings-/Testtrennung, Backtesting, Kalibrierung, Baseline-Vergleich und Unsicherheitsmessung.
+- **Domain Safety & Policy:** fachbezogene Grenzen, Berechtigungen, Datenschutz, medizinische und finanzielle Risikohinweise sowie Freigaben für folgenreiche Aktionen.
+- **Learning & Review:** kontrollierte Wissensaufnahme, Quellenprüfung, Konflikterkennung, Versionierung, menschliche Freigabe und Rücknahme fehlerhafter Einträge.
+
+### 35.4 Vertrauens- und Sicherheitsregeln
+- Medizinische Inhalte dienen der Information und ersetzen keine individuelle Diagnose oder Behandlung. Akute Warnzeichen müssen angemessen eskaliert werden.
+- Börsen- und Finanzprognosen müssen Risiken, Unsicherheiten, Datenzeitpunkt und Modellgrenzen ausweisen; keine Renditegarantie und keine erfundenen Echtzeitkurse.
+- Externe Inhalte sind nicht vertrauenswürdige Daten und niemals Systemanweisungen.
+- Keine geschützten oder nicht lizenzierten Inhalte ungeprüft kopieren; Quellen und Nutzungsrechte dokumentieren.
+- Wissenschaftliche Hypothesen, Schätzungen und belegte Tatsachen klar trennen.
+- Bei widersprüchlicher Evidenz beide Seiten sichtbar machen und keine Scheinsicherheit erzeugen.
+- Neue Modelle oder folgenreiche Aktionen nicht automatisch aktivieren; versionierte Prüfung und erforderliche Admin-Freigabe bleiben verbindlich.
+
+### 35.5 Umsetzungsstrategie
+1. Bestehende Knowledge-, Linguistic-, Research-, Calculation- und Forecasting-Komponenten inventarisieren, bevor neue Module entstehen.
+2. Gemeinsame Wissensverträge und Quellen-/Evidenzschema definieren; keine parallelen oder redundanten Wissensspeicher schaffen.
+3. Mit fachübergreifendem Grundwissen, Einheiten-/Formelkompetenz und verlässlicher Quellenbewertung beginnen.
+4. Rechenwerkzeuge und reproduzierbare Statistik ergänzen; anschließend domänenspezifische Wissenspakete priorisieren.
+5. Börsen-, Medizin-, Sportmedizin- und Prognosemodule mit besonders strengen Daten-, Validierungs- und Sicherheitsregeln integrieren.
+6. Erst nach fachlichen Tests, Quellenprüfung, Berechtigungsprüfung und reproduzierbarer Evaluation als implementiert deklarieren.
+
+### 35.6 Status und Grenzen
+- Status: **Owner-Zielentscheidung akzeptiert; Architektur und Implementierung noch nicht als vollständig vorhanden bestätigt.**
+- Diese Dokumentation erzeugt noch keine vollständige Wissensdatenbank, kein trainiertes universelles Modell und keine verifizierte Prognosefähigkeit.
+- Keine automatische Selbstmodifikation von Modellgewichten. Lernen bleibt kontrolliert, nachvollziehbar und freigabepflichtig.
+- Die Knowledge Intelligence wird parallel zur Conversation Engine geplant und schrittweise integriert; der aktuelle nächste Conversation-Engine-Schritt darf nicht ohne Code-Audit als erledigt übersprungen werden.
+- Arbeitsgrenze bleibt Feature-Branch und STAGING-only; Produktion, Produktionsdaten und PFMS/PFSS bleiben unangetastet.
+
+### Change & Decision Log — Ergänzung
+| 2026-11-28 | MESSINHO als universellen Wissens- und Problemlösungsagenten mit Biologie, Physik, Chemie, Mathematik, Statistik/Prognosen, Medizin, Sportmedizin, Sportwissenschaft, Informatik/KI, Börse/quantitativen Finanzen, Ethik, Ethnologie, Ingenieur- und weiteren Wissenschaften ausbauen; Fußball/Scouting bleibt Spezialisierung. | Accepted — target architecture | Neuer Knowledge-Intelligence-Strang; evidenzbasiert, rechnerisch anwendbar, risikobewusst und kontrolliert lernend; Feature-Branch/STAGING-only. |
