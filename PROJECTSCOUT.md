@@ -7428,3 +7428,13 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Vite-CLI-Erkennung deckt jetzt den tatsächlich verwendeten Pfad `node ./node_modules/vite/bin/vite.js build` ab.
 - Render-Service geprüft: `myscoutingdatabase-messinho-staging`, Branch `feature/messinho-conversation-engine`, `autoDeploy=no`. Letzte Live-Version vor diesem Diagnoserelease blieb Commit `00981bea4adcbe4232110109c70ec87d2b0a7feb`.
 - Nächster Schritt: manuelles STAGING-Deployment des geprüften Branch-Stands; danach Health-Check und Prüfung des Diagnoseendpunkts. Production-Service und Production-Datenbank bleiben unangetastet.
+
+
+### Diagnose-Engine — STAGING LIVE bestätigt
+- Render STAGING Deployment `dep-dc5ba149v7es739u0v10` ist seit `2026-11-28T11:04:14.576Z` LIVE.
+- Ausgerollter Commit: `eb4ab910905649e44ec07f74fa840be7fb41c92f`; Service: `myscoutingdatabase-messinho-staging`; Branch: `feature/messinho-conversation-engine`.
+- Build erfolgreich; Laufzeitlogs bestätigen `myScoutingDatabase API listening on 10000`; Supabase Data API Health-Check HTTP 200; Render meldet „Your service is live“.
+- GitHub Actions auf Code-Commit `ad02c4acad3a4ba83b313d8f0d34abb30abbe5a8`: 765/765 Node-Tests bestanden, Backend-Syntax und Vite-Produktionsbuild erfolgreich.
+- Das Deployment umfasst den Diagnosekern mit strukturierten, positionsgenauen Importbefunden und die Admin-Oberfläche zur Anzeige dieser Fundstellen. Die neue Darstellung erscheint bei einem neu gestarteten Diagnose-Lauf; bereits gespeicherte Altberichte werden nicht rückwirkend verändert.
+- Kein Produktionsservice und keine Produktionsdatenbank wurden geändert. Keine automatische Reparatur und keine Änderung am Live-Code außerhalb des STAGING-Deployments.
+- Noch offen: Admin-Login in STAGING und ein neuer MESSINHO-Diagnoselauf zur Sichtprüfung der gespeicherten `findings`-Details. Die Engine ist weiterhin eine erste statische Prüfebene; echte Parser-/Compiler-/Test-/Coverage-Ausführung und Laufzeitkorrelation sind die nächsten Entwicklungsblöcke.
