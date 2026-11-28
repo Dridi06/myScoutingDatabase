@@ -7665,3 +7665,22 @@ Dieser Entwicklungsweg ist ab sofort die maßgebliche und verbindliche Roadmap f
 - Nach jedem Block die Änderungen testen, committen und diesen Projektstand aktualisieren.
 - Bei fehlenden Ressourcen, Zugangsdaten, Hardware oder Benutzerentscheidungen den konkreten Engpass dokumentieren; keine Konfiguration erfinden und nicht stillschweigend auf einen externen Anbieter zurückfallen.
 - Keine Fertigmeldung aufgrund einer Teilfunktion. Der Weg endet ausschließlich mit Gate 9.
+
+
+---
+
+### Phase 0 — erster Repository- und Providerbestand (28.11.2026)
+- Untersuchter Ausgangs-HEAD: `9adb572f3f1486bebe3883597200a2d304ecea60`; aktueller Inventar-Dokumentationscommit: `adfe50be564afbb37c8bf5958825e704e74a5a82`.
+- Repository-Baumaufnahme: 78 Backend-JavaScriptdateien, 88 Testdateien, 64 SQL-Migrationen und 16 MESSINHO-spezifische Dokumente.
+- Neue Bestandsaufnahme: `docs/MESSINHO_INTEGRATION_INVENTORY.md`. Sie enthält die erste Funktions-/Schichtzuordnung, eine vorläufige Provider-/Fähigkeitsmatrix, konkrete Fundstellen und offene Phase-0-Nachweise.
+- Zentrale Befunde:
+  - `messinho-model-runtime.js` hat weiterhin OpenAI-URL, API-Key und Modell als Fallback-Defaults.
+  - `messinho-conversational-intelligence.js` und `messinho-natural-conversation.js` hängen an dieser Laufzeit.
+  - `server.js` enthält direkte OpenAI-Aufrufe für Spielersuche/Discovery (ca. Zeile 1175), Spieleranalyse (ca. 1282), Spieler-Folgeanalyse (ca. 2717) und freie allgemeine Unterhaltung (ca. 2935). Der freie Chatpfad verweigert freie Unterhaltung ohne `OPENAI_API_KEY`.
+  - `messinho-myki-engineer.js` besitzt einen separaten direkten OpenAI-Aufruf.
+  - Die Diagnose bezeichnet OpenAI als optional, obwohl freie Unterhaltung und mehrere konkrete Analysepfade davon abhängen. Diagnose-/Health-Aussagen müssen später an die reale Abhängigkeit angepasst werden.
+  - Sprach-, Dialog-, Gedächtnis-, Wissens-, Reasoning-, Mathematik-, Agenten-, Capability- und Governance-Module sind vorhanden. Ihre bloße Existenz beweist keine vollständige Integration oder fachliche Reife.
+- CI-Status für den neuen Dokumentationscommit wurde noch nicht nachgewiesen; die GitHub-Combined-Status-Abfrage für den vorherigen Roadmap-Commit lieferte keine Status-Einträge. Es wird deshalb kein CI-Erfolg behauptet.
+- **Gate 0 bleibt OFFEN.** Noch ausstehend: vollständige repositoryweite Import-/Providerinventur, Datei-zu-Test-Zuordnung, vollständige Endpunkt-/Job-/Capability-Matrix, lesender Abgleich der tatsächlichen STAGING-Datenbankstruktur sowie Commit-/Deployment-/Health-Abgleich.
+- Nächster Schritt: vollständige automatisierte Quelltextinventur und Provideraufruf-Zuordnung über das gesamte Repository. Erst danach restliche Gate-0-Nachweise vervollständigen.
+- Ausschließlich Dokumentationsänderung; keine Datenbankmigration und kein Production-Eingriff.
