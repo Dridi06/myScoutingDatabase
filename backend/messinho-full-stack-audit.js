@@ -179,7 +179,10 @@ async function runSandboxAudit(root,env){
   bounded_timeout:/timeout\s+15m/.test(workflow)&&/timeout\s+8m/.test(runner),
   unprivileged_user:/USER\s+10001:10001/.test(docker),
   no_lifecycle_scripts:/npm install[^\n]*--ignore-scripts/.test(workflow),
-  baseline_before_candidate:/BASELINE: npm run build/.test(runner)&&/CANDIDATE: npm run build/.test(runner)
+  baseline_before_candidate:/BASELINE: npm run build/.test(runner)&&/CANDIDATE: npm run build/.test(runner),
+  cgroup_memory_metrics:/memory\\.current/.test(runner)&&/memory\\.max/.test(runner),
+  cgroup_cpu_metrics:/cpu\\.stat/.test(runner)&&/usage_usec/.test(runner),
+  cgroup_process_metrics:/pids\\.current/.test(runner)&&/pids\\.max/.test(runner)
  };
  const safeEnv={MESSINHO_SANDBOX_ENABLED:'true',RENDER:'true',RENDER_SERVICE_ID:'staging-service',MESSINHO_STAGING_RENDER_SERVICE_ID:'staging-service'};
  const productionEnv={...safeEnv,RENDER_SERVICE_ID:'production-service'};
@@ -189,9 +192,10 @@ async function runSandboxAudit(root,env){
  const ok=failed.length===0;
  return check('Sandbox- und Ressourcen-Audit','Sandbox & Ressourcen',ok,
   'Geprüfte Isolationskontrollen: '+Object.keys(checks).length+'; erfüllt: '+(Object.keys(checks).length-failed.length)+
-  '; fehlend: '+failed.length+'. Host-/Container-Liveverbrauch (CPU/RAM) wird nicht aus dem Webprozess abgeleitet.',
+  '; fehlend: '+failed.length+'. Container-CPU/RAM/PID-Werte werden vom Sandbox-Runner direkt aus cgroup erfasst; sie werden nicht aus dem Webprozess abgeleitet.',
   ok?'info':'critical',{controls:checks,failed_controls:failed,
    resource_limits:{memory:'3 GiB',cpu:'2 vCPU',pids:128,job_timeout:'15 Minuten',baseline_timeout:'8 Minuten'},
+   runtime_metrics:{source:'Sandbox-Runner cgroup v2',fields:['memory.current','memory.max','cpu.stat usage_usec','cpu.stat nr_throttled','pids.current','pids.max'],emitted_to_job_log:true},
    execution:{network_access:false,container_read_only:true,source_mount_read_only:true,application_code_executed:false,
     sandbox_job_dispatched:false,production_access:false}},
   'Isolationsworkflow, Runner und Docker-Limits reparieren. Ressourcenwerte nur innerhalb des Containers messen; keine Hostwerte als Sandboxwerte ausgeben.');
