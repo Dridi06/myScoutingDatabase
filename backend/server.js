@@ -65,6 +65,7 @@ import { buildMessinhoResponseCompositionContext } from './messinho-response-com
 import { buildMessinhoIntentEvidence } from './messinho-intent-intelligence.js';
 import { buildMessinhoContextIntelligence } from './messinho-context-intelligence.js';
 import { buildMessinhoResponseIntelligence } from './messinho-response-intelligence.js';
+import { buildMessinhoReasoningIntelligence } from './messinho-reasoning-intelligence.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -2357,6 +2358,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const intentEvidenceContext=buildMessinhoIntentEvidence({message:interpretedMessage,userRole:profile.role,dialogueState,clarificationContinuity});
     const contextIntelligenceContext=buildMessinhoContextIntelligence({message:interpretedMessage,history,dialogueState,clarificationContinuity,conversationContinuityContext,conversationMemoryContext,entityResolution,reasoningContext,intentEvidenceContext});
     const responseIntelligenceContext=buildMessinhoResponseIntelligence({message:interpretedMessage,responseCompositionContext,contextIntelligenceContext,reasoningContext,clarificationContinuity,conversationContinuityContext,linguisticContext});
+    const reasoningIntelligenceContext=buildMessinhoReasoningIntelligence({message:interpretedMessage,history,reasoningContext,contextIntelligenceContext,responseIntelligenceContext});
     const cognitiveResult=await classifyMessinhoTurn({
       message:interpretedMessage,
       history,
@@ -2370,6 +2372,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       intentEvidenceContext,
       contextIntelligenceContext,
       responseIntelligenceContext,
+      reasoningIntelligenceContext,
       conversationContinuityContext,
       userRole:profile.role,
       apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
@@ -2441,6 +2444,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         pragmaticContext,
         responseCompositionContext,
         responseIntelligenceContext,
+        reasoningIntelligenceContext,
         conversationContinuityContext,
         userRole:profile.role,
         apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
