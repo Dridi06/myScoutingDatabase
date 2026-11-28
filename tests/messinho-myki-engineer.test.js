@@ -160,3 +160,39 @@ test('does not retry provider quota exhaustion as a transient rate limit',async(
  assert.equal(result.failure_reason,'provider_quota_exceeded');
  assert.equal(providerCalls,1);
 });
+
+
+test('uses MESSINHO model settings for engineering review without requiring OpenAI configuration',async()=>{
+ const calls=[];
+ const fetchImpl=async(url,options)=>{
+  calls.push({url,options});
+  if(url.includes('/commits/'))return response({sha});
+  if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=>sourceFor(url)};
+  if(url==='https://local-model.invalid/v1/chat/completions'){
+   assert.equal(options.headers.Authorization,undefined);
+   const body=JSON.parse(options.body);
+   assert.equal(body.model,'messinho-local');
+   assert.equal(body.max_tokens,4500);
+   return response({choices:[{message:{content:'{"proposal":null}'}}]});
+  }
+  throw new Error('unexpected_url');
+ };
+ const result=await generateMessinhoEngineeringProposal({goal:'Prüfe MESSINHO auf konkrete sichere Verbesserungen',env:{MESSINHO_MODEL_BASE_URL:'https://local-model.invalid/v1',MESSINHO_MODEL_NAME:'messinho-local'},fetchImpl});
+ assert.equal(result.ok,true);
+ assert.equal(result.proposal,null);
+ assert.ok(calls.some(call=>call.url==='https://local-model.invalid/v1/chat/completions'));
+});
+
+test('classifies exhausted provider credits without retrying the request',async()=>{
+ let providerCalls=0;
+ const fetchImpl=async url=>{
+  if(url.includes('/commits/'))return response({sha});
+  if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=>sourceFor(url)};
+  if(url.includes('/chat/completions')){providerCalls++;return {ok:false,status:429,json:async()=>({error:{code:'credit_balance_exhausted'}})};}
+  throw new Error('unexpected_url');
+ };
+ const result=await generateMessinhoEngineeringProposal({goal:'Prüfe MESSINHO auf konkrete sichere Verbesserungen',env:{MESSINHO_MODEL_API_KEY:'test-key'},fetchImpl});
+ assert.equal(result.ok,false);
+ assert.equal(result.failure_reason,'provider_quota_exceeded');
+ assert.equal(providerCalls,1);
+});
