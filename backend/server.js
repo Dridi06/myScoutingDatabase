@@ -28,7 +28,7 @@ import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './me
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
 import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 import { planMessinhoAutonomously } from './messinho-autonomy.js';
-import { classifyMessinhoProviderFailure, resolveMessinhoLiveQuestion, buildMessinhoKnowledgeApplicationFollowUp, buildMessinhoVo2maxApplicationQuery, isMessinhoVo2maxApplicationDataReply, getMessinhoSocialReply } from './messinho-conversation.js';
+import { classifyMessinhoProviderFailure, resolveMessinhoLiveQuestion, buildMessinhoKnowledgeApplicationFollowUp, buildMessinhoVo2maxApplicationQuery, isMessinhoVo2maxApplicationDataReply } from './messinho-conversation.js';
 import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
 import { isMessinhoGeneralResearchQuestion, isMessinhoTimeSensitiveQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
@@ -2330,10 +2330,6 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     if(profile.role==='scout'&&isMessinhoAdminOnlyCommand(interpretedMessage)){
       return respond({reply:'Diese Anweisung ist aus Sicherheitsgründen Administratoren vorbehalten. Du kannst MESSINHO weiterhin uneingeschränkt für normale Scouting-Fragen, Spieleranalysen und Recherchen nutzen.',intent:'admin_command_denied',items:[],permission:{allowed:false,required_role:'admin'}});
     }
-    const socialReply=getMessinhoSocialReply(interpretedMessage,history);
-    if(socialReply){
-      return respond({reply:socialReply,intent:'social_conversation',items:[],conversation_mode:'deterministic_greeting'});
-    }
     const actor={user:authData.user,profile};
     const agentMemory=await loadMessinhoAgentMemory(ownerId);
     const entityResolution=resolveMessinhoEntityReferences({
@@ -2390,10 +2386,29 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     });
     if(cognitiveResult.status!=='completed'||!cognitiveResult.decision){
       console.warn('MESSINHO cognitive router unavailable:',cognitiveResult.status,'http_status='+String(cognitiveResult.http_status||'n/a'),'error_code='+String(cognitiveResult.error_code||'unknown'));
+      // The semantic router is an action/intent planner, not a prerequisite for ordinary dialogue.
+      // On router failure, let the natural-language conversation engine attempt a safe,
+      // non-executing reply. No scouting, memory or engineering action is dispatched here.
+      const conversationalFallback=await generateMessinhoNaturalConversationReply({
+        message:interpretedMessage,history,
+        linguisticContext:{...linguisticContext,dialogue_state:dialogueState},
+        linguisticKnowledgeContext,conversationMemoryContext,reasoningContext,pragmaticContext,
+        responseCompositionContext,responseIntelligenceContext,reasoningIntelligenceContext,
+        conversationContinuityContext,userRole:profile.role,dialogueAdaptationContext,
+        apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
+        baseUrl:process.env.MESSINHO_MODEL_BASE_URL||process.env.OPENAI_BASE_URL||'https://api.openai.com/v1',
+        model:process.env.MESSINHO_MODEL_NAME||process.env.OPENAI_MODEL||'gpt-4.1-mini'
+      });
+      if(conversationalFallback.status==='completed'){
+        return respond({
+          reply:conversationalFallback.reply,intent:'conversation_router_fallback',items:[],
+          cognitive_routing:{status:cognitiveResult.status||'unavailable',fallback:'natural_conversation',actions_dispatched:false}
+        });
+      }
       return respond({
-        reply:'Ich kann die Bedeutung deiner Nachricht gerade nicht zuverlässig einordnen. Deine Nachricht ist gespeichert. Bitte versuche es noch einmal; ich starte vorsichtshalber keine Recherche und führe keine Aktion aus.',
-        intent:'cognitive_router_unavailable',items:[],
-        cognitive_routing:{status:cognitiveResult.status||'unavailable',safe_fallback:true}
+        reply:'Ich kann gerade keine verlässliche Gesprächsantwort erzeugen, weil mein Sprachdienst nicht richtig antwortet. Deine Nachricht ist gespeichert. Bitte versuche es gleich noch einmal.',
+        intent:'conversation_provider_unavailable',items:[],
+        cognitive_routing:{status:cognitiveResult.status||'unavailable',error_code:cognitiveResult.error_code||'unknown',fallback_status:conversationalFallback.status||'unavailable',actions_dispatched:false}
       });
     }
     const cognitive=cognitiveResult.decision;
