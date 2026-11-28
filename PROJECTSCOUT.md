@@ -7081,3 +7081,15 @@ Diese Schicht ist kein allgemeiner Faktenprüfer und kein Beweisgenerator. Ein M
 ### Verifikation
 - Implementierung und Integration sind erfolgt; vollständige Tests, Syntaxprüfung, Vite-Build und Render-STAGING-Deployment stehen noch aus.
 - Authentifizierte Admin-/Scout-End-to-End-Abnahme bleibt separat erforderlich.
+
+
+### Block 19 STAGING verification addendum — 2026-11-28
+- First build exposed one stale source assertion in tests/messinho-conversation-response-guard.test.js because the final response now passes through answer verification before the existing response guard. The assertion was updated to check the verified finalReply; the guard itself remains active.
+- Final Render build: bld-dc55bq17lnhs73an1pdg — succeeded.
+- Full Node test suite: 719 passed, 0 failed.
+- Backend syntax checks completed as part of npm run build; Vite production build succeeded (built in 2.29s).
+- Render deployment: dep-dc55bq17lnhs73an1p8g — live, finished 2026-11-28T04:18:23Z.
+- Deployed runtime commit: a1a28a52705df422c173e373cbc735578966b003.
+- Service remains myscoutingdatabase-messinho-staging on feature/messinho-conversation-engine; autoDeploy remains disabled and deployment was manually triggered.
+- No DB/schema migration, persistent user/player/scout/organization/learning data mutation, model training, model-weight change or permission change. Production remains untouched.
+- The checks cover explicit percentage arithmetic and existing allowlisted player speed metrics, plus the bounded one-retry flow. They do not prove general factual correctness; authenticated Admin/Scout end-to-end acceptance remains outstanding.
