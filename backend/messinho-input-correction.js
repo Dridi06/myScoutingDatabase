@@ -70,8 +70,11 @@ function closestVocabularyMatch(token) {
  * Conservative German/football-domain correction. Names and unknown words are
  * intentionally preserved; ambiguous corrections are never guessed.
  */
-export function correctMessinhoInput(input) {
+export function correctMessinhoInput(input, { language = 'de' } = {}) {
   const original = String(input ?? '').slice(0, 1200);
+  if (language !== 'de') {
+    return { original, corrected: original, changed: false, corrections: [], confidence: 'unchanged', language, skipped_reason: 'language_specific_correction_not_available' };
+  }
   let corrected = original;
   const corrections = [];
 
@@ -98,6 +101,8 @@ export function correctMessinhoInput(input) {
     corrected,
     changed: corrected !== original,
     corrections,
-    confidence: corrections.length ? (corrections.every(item=>item.kind==='known_typo'||item.kind==='phrase')?'high':'medium') : 'unchanged'
+    confidence: corrections.length ? (corrections.every(item=>item.kind==='known_typo'||item.kind==='phrase')?'high':'medium') : 'unchanged',
+    language,
+    skipped_reason: null
   };
 }
