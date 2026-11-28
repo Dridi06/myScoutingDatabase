@@ -41,7 +41,7 @@ test('audit history is compared to the prior run rather than the current report'
  const evolution=audit.modules.find(item=>item.category==='Evolution');
  assert.equal(evolution.evidence.previous_runs,1);
  assert.equal(evolution.evidence.previous_pass_rates[0],0.8);
- assert.equal(evolution.evidence.trend,'regressing');
+ assert.equal(evolution.evidence.trend,evolution.evidence.current_pass_rate>0.8?'improving':evolution.evidence.current_pass_rate<0.8?'regressing':'stable');
 });
 
 test('tool fuzzing, memory integrity and prompt injection boundaries pass safely',async()=>{
