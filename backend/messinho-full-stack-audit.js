@@ -11,6 +11,7 @@ import { listExecutableMessinhoCapabilities, getMessinhoRuntimeSummary, executeM
 import { buildMessinhoLinguisticContext } from './messinho-linguistic-intelligence.js';
 import { buildMessinhoReasoningIntelligence } from './messinho-reasoning-intelligence.js';
 import { appendMessinhoLongTermMemories, buildMessinhoCognitiveRouterMessages } from './messinho-conversational-intelligence.js';
+import { scoreMessinhoKnowledgeSimilarity } from './messinho-knowledge-memory.js';
 import { evaluateMessinhoConversationCase } from './messinho-conversation-evaluation.js';
 import { resolveMessinhoModelConfig, requestMessinhoModelCompletion } from './messinho-model-runtime.js';
 import { isMessinhoSandboxStagingAllowed } from './messinho-sandbox-dispatch.js';
@@ -110,6 +111,7 @@ function runToolParameterFuzzing(){
 }
 function runMemoryIntegrityAudit(){
  const timestamp='2026-11-28T00:00:00.000Z';
+ const similarity=scoreMessinhoKnowledgeSimilarity('Wie speichert MESSINHO bestätigtes Wissen dauerhaft?','MESSINHO speichert bestätigtes Wissen dauerhaft.');
  const initial={long_term_memory:[{text:'Black and gold project theme',category:'project',confidence:0.9,created_at:'2026-01-01T00:00:00.000Z'}]};
  const next=appendMessinhoLongTermMemories(initial,[
   {text:'Black and gold project theme',category:'project',confidence:0.95},
@@ -122,13 +124,13 @@ function runMemoryIntegrityAudit(){
  const secretStored=rows.some(item=>/api key|secret/i.test(item.text));
  const uncertainStored=rows.some(item=>item.text==='uncertain guess');
  const timestamped=rows.every(item=>typeof item.created_at==='string'&&Number.isFinite(Date.parse(item.created_at)));
- const passed=duplicateCount===1&&!secretStored&&!uncertainStored&&timestamped&&rows.some(item=>item.text==='Use concise scouting reports');
- return check('Memory- und Langzeitgedächtnis-Integrität','Memory & Vektoren',passed,
+ const passed=duplicateCount===1&&!secretStored&&!uncertainStored&&timestamped&&rows.some(item=>item.text==='Use concise scouting reports')&&similarity.eligible;
+ return check('Memory- und Langzeitgedächtnis-Integrität','Memory-Integrität',passed,
   'Dubletten zusammengeführt: '+(duplicateCount===1)+'; Geheimnis blockiert: '+(!secretStored)+
   '; unsichere Behauptung blockiert: '+(!uncertainStored)+'; Zeitstempel vorhanden: '+timestamped+
-  '. Persistenz und Embedding-Suche werden in diesem synthetischen Test nicht beschrieben oder verändert.',
+  '; lexikalische Ähnlichkeitssuche: '+similarity.eligible+'. Persistenz und echte Vektor-Embeddings werden nicht verändert oder als vorhanden behauptet.',
   passed?'info':'critical',{items:rows.map(item=>({text:item.text,category:item.category,confidence:item.confidence,created_at:item.created_at})),
-   vector_search:'not_executed',database_write:false},
+   lexical_similarity:similarity,vector_embeddings:'not_verified_or_not_connected_by_this_check',database_write:false},
   'Memory-Validierung, Sensitivitätsfilter, Dublettenbehandlung und Persistenz-/Embedding-Integrität separat gegen eine isolierte Testdatenbank prüfen.');
 }
 function runPromptInjectionBoundaryTest(){
