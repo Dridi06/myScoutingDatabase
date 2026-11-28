@@ -53,3 +53,42 @@ test('ordinary model requests are not globally capped by the diagnostic token bu
  });
  assert.equal(Object.prototype.hasOwnProperty.call(captured,'max_tokens'),false);
 });
+
+
+test('provider-neutral model configuration prefers MESSINHO settings over legacy OpenAI compatibility settings',()=>{
+ const config=resolveMessinhoModelConfig({
+  MESSINHO_MODEL_BASE_URL:'https://self-hosted.example/v1',
+  MESSINHO_MODEL_API_KEY:'messinho-key',
+  MESSINHO_MODEL_NAME:'self-hosted-chat',
+  OPENAI_BASE_URL:'https://api.openai.com/v1',
+  OPENAI_API_KEY:'legacy-key',
+  OPENAI_MODEL:'gpt-4.1-mini'
+ });
+ assert.equal(config.baseUrl,'https://self-hosted.example/v1');
+ assert.equal(config.apiKey,'messinho-key');
+ assert.equal(config.model,'self-hosted-chat');
+ assert.equal(config.requiresApiKey,true);
+ assert.equal(JSON.stringify(config).includes('legacy-key'),false);
+});
+
+test('legacy OpenAI configuration remains a temporary compatibility fallback',()=>{
+ const config=resolveMessinhoModelConfig({
+  OPENAI_API_KEY:'temporary-key',
+  OPENAI_MODEL:'gpt-4.1-mini'
+ });
+ assert.equal(config.baseUrl,'https://api.openai.com/v1');
+ assert.equal(config.apiKey,'temporary-key');
+ assert.equal(config.model,'gpt-4.1-mini');
+});
+
+test('provider-neutral chat runtime reports exhausted provider quota without exposing credentials',async()=>{
+ const result=await requestMessinhoModelCompletion({
+  model:'temporary-model',apiKey:'private-token',baseUrl:'https://provider.invalid/v1',
+  messages:[{role:'user',content:'Hallo'}],
+  fetchImpl:async()=>({ok:false,status:429,json:async()=>({error:{code:'insufficient_quota',message:'No credits remaining'}})})
+ });
+ assert.equal(result.status,'provider_error');
+ assert.equal(result.http_status,429);
+ assert.equal(result.error_code,'insufficient_quota');
+ assert.equal(JSON.stringify(result).includes('private-token'),false);
+});
