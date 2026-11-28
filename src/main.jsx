@@ -12,6 +12,12 @@ import MyKiMaturity from './asi/MyKiMaturity.jsx';
 import MyKiOperations from './asi/MyKiOperations.jsx';
 import MyKiTicketBoards from './asi/MyKiTicketBoards.jsx';
 import scoutStadiumBackdrop from './assets/scout-stadium-panel.webp';
+
+// Client-side logs receive the same UTC audit prefix as backend logs.
+for (const method of ['log','info','warn','error','debug']) {
+  const write=console[method].bind(console);
+  console[method]=(...args)=>write(`[${new Date().toISOString()}]`,...args);
+}
 const scoutPortraitData = scoutPortraitHd;
 const url=import.meta.env.VITE_SUPABASE_URL,key=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const sb=url&&key?createClient(url,key):null;
