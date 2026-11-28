@@ -6364,20 +6364,12 @@ Turn dialogue and pragmatic cues into a useful response structure, so MESSINHO a
 - The model remains responsible for composing the actual natural-language reply; evidence validation and application role checks remain in force.
 - No database migration, persistent data mutation, provider secret change, model-weight training or production deployment.
 
-### Checkpoint
-- Work branch: `feature/messinho-conversation-engine`.
+### Checkpoint (historical snapshot — superseded by Sections 29 and 30)
+- The original Block 8 checkpoint preceded the subsequent CI verification and STAGING deployments.
+- Current verified implementation, CI and deployment records are maintained in Sections 29 and 30 below.
 - PR #58 remains open, Draft and unmerged.
-- Block 8 implementation is committed to the feature branch. Exact-head CI is pending; do not report the tests as passed until verified.
-- Render STAGING remains on the previously verified Block 6 deployment `dep-dc51a4s9v7es738pj5vg`, commit `f5817aa38fc8f53a3e40fef47524e7eba8c78a7f`. Block 7 and Block 8 are not deployed.
 - Authenticated Admin/Scout end-to-end conversation testing remains outstanding.
 - Production branch, production Render service and production database remain untouched.
-
-### Next actions
-1. Verify Node tests, backend syntax and full STAGING CI on the exact current PR head.
-2. Review and fix any regression before deployment.
-3. Deploy the exact tested head to the named Render STAGING service only.
-4. Test natural multi-turn dialogue, correction, disagreement, follow-up question with preserved constraints, ambiguous reference, explicit emotion and topic change using authenticated accounts.
-5. Keep PR #58 Draft and unmerged until the owner explicitly authorizes otherwise.
 
 
 ## 29. Block 7/8 verification and pragmatic cue-strength correction — 2026-11-28
@@ -6417,3 +6409,47 @@ All three workflows completed successfully on exact head `08dd035d2edabebdcf7b8c
 - Render build log: all 630 Node tests passed, 0 failed; Vite production build transformed 1,640 modules and completed successfully.
 - Runtime startup log: `npm start` launched `node backend/server.js`; API reported listening on port 10000; Supabase Data API check returned HTTP 200.
 - This verifies build, deployment and startup connectivity. It does not replace authenticated Admin/Scout end-to-end conversational acceptance tests.
+
+
+## 30. Block 9 — Natural Dialogue Intelligence — 2026-11-28
+
+### Objective
+Separate semantic intent routing from natural-language response composition. The prior cognitive router returned both the intent decision and the user-facing reply in one constrained JSON-schema completion. Block 9 adds a dedicated free-form response-generation turn for ordinary conversation, so the reply is no longer forced through the router's structured-output format.
+
+### Implementation
+- New module: `backend/messinho-natural-conversation.js`.
+- New tests: `tests/messinho-natural-conversation.test.js`.
+- `backend/server.js` invokes the composer only after the cognitive router has selected `conversation`; scouting, research, memory and engineering routing remain separate.
+- The composer uses the existing provider-neutral model runtime and current configured provider/model.
+- Natural reply generation uses a plain-text completion at temperature `0.55`, rather than the router's JSON-schema response format.
+- The response turn receives the current user message, up to 12 recent speaker-labelled turns, bounded conversation-memory context, detected language segments, approved language knowledge, bounded reasoning evidence, pragmatic cues and response-composition guidance.
+- Replies preserve paragraph breaks and multiline formatting.
+- If the second completion is unavailable or invalid, the server falls back to the router's already-generated reply. The existing conversation response guard remains the final check before the reply is returned.
+- The composer cannot call tools, initiate research, persist memory, alter settings, grant permissions or claim that a system action has been completed.
+- The composer prompt explicitly prioritizes natural turn-taking, answering the actual point, following topic changes, considering corrections, avoiding automatic follow-up questions and preserving the user's language/dialect.
+
+### Automated verification
+Exact feature-branch head: `d39e8e3a0cb0cf4863ddc7082b0a391693c432ed`.
+- MESSINHO Node tests: run `46087356010` — success; **638 tests passed, 0 failed**.
+- Backend syntax: run `46087356003` — success.
+- Full STAGING branch CI (tests, backend syntax and Vite production build): run `46087355979` — success.
+- The dedicated tests cover speaker-labelled history, history bounds, invalid role removal, language-specific knowledge, plain-text completion, provider fallback, JSON-shaped output rejection and paragraph preservation.
+
+### STAGING deployment
+- Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`).
+- Deployment: `dep-dc51sv56e07s7393msng`.
+- Status: **live**; finished at `2026-11-28T00:22:00.653231Z`.
+- Deployed exact code/test commit: `d39e8e3a0cb0cf4863ddc7082b0a391693c432ed`.
+- Render build completed successfully; Vite transformed 1,640 modules.
+- Runtime started with `node backend/server.js`; API listened on port 10000 and Supabase Data API returned HTTP 200.
+- STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
+
+### Limitations and acceptance gate
+- This is a separate natural-language generation step, not a new foundation model or model-weight training.
+- Ordinary conversation now uses two model completions (semantic routing plus natural response composition). The resulting latency and provider cost must be measured during authenticated testing.
+- CI and successful startup do not prove that the live model consistently sounds natural. Authenticated Admin/Scout dialogue tests remain outstanding.
+- Required dialogue acceptance: multi-turn follow-up, pronoun/reference continuity, user correction, disagreement, incomplete colloquial sentence, language switch (German/English/French/Arabic/Derja), topic change, direct factual question and provider-failure fallback.
+- PR #58 remains open, Draft and unmerged. Production branch, production Render service and production database remain untouched.
+
+### Next action
+Test the deployed STAGING conversation with an authenticated Admin or Scout account. Record actual replies and response times before starting Block 10.
