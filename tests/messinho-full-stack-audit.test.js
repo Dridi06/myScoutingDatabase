@@ -7,7 +7,7 @@ test('full-stack audit covers all five layers and records safe execution boundar
  assert.equal(audit.audit_type,'full_stack_intelligence_sandbox_audit');
  assert.equal(audit.modules.length,9);
  const categories=new Set(audit.modules.map(item=>item.category));
- for(const category of ['Code & Tools','LLM & Modellbindung','Intelligence & Linguistik','Sandbox & Ressourcen','Kognition & Sicherheit','Tool-Fuzzing','Memory & Vektoren','Sicherheit','Evolution'])assert.ok(categories.has(category),category);
+ for(const category of ['Code & Tools','LLM & Modellbindung','Intelligence & Linguistik','Sandbox & Ressourcen','Kognition & Sicherheit','Tool-Fuzzing','Memory-Integrität','Sicherheit','Evolution'])assert.ok(categories.has(category),category);
  assert.equal(audit.scope.external_provider_calls,0);
  assert.equal(audit.scope.tool_executions,0);
  assert.equal(audit.scope.sandbox_jobs_dispatched,0);
