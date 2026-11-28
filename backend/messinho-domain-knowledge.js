@@ -16,7 +16,7 @@ export function classifyMessinhoKnowledgeDomain(text=''){
  const rules=[
   ['mathematics',/\b(mathematik|mathematisch|gleichung|algebra|geometrie|integral|ableitung|prozentrechnung|wahrscheinlichkeit)\b/],
   ['physics',/\b(physik|physikal|kraft|energie|bewegung|geschwindigkeit|beschleunigung|druck|welle|newton)\b/],
-  ['chemistry',/\b(chemie|chemisch|chemistry|chemical|atom(?:e|ar|ic)?|molek[uü]l(?:e|ar)?|periodensystem|elemente?|verbindung(?:en)?|reaktion(?:en)?|stoichiometrie|stöchiometrie|s[aä]ure(?:n)?|basen?|oxidation|reduktion|redox|ph[- ]?wert|pka|molare masse)\b/],
+  ['chemistry',/\b(chemie|chemisch|chemistry|chemical|atom(?:e|s|ar|ic)?|molek[uü]l(?:e|ar)?|molecule(?:s)?|molecular|periodensystem|periodic table|elemente?|elements?|verbindung(?:en)?|compounds?|reaktion(?:en)?|reactions?|stoichiometr(?:ie|y)|stöchiometrie|s[aä]ure(?:n)?|acids?|basen?|oxidation|reduktion|reduction|redox|ph[- ]?wert|pka|molare masse|molar mass|bonding|chemical equilibrium)\b/],
   ['biology',/\b(biologie|biologisch|zelle|genetik|stoffwechsel|photosynthese|organismus|evolution)\b/],
   ['medicine',/\b(medizin|medizinisch|orthopädie|verletzung|anatomie|sportmedizin|rehabilitation|diagnose)\b/],
   ['ethics',/\b(ethik|ethisch|ethics|ethical|moralphilosophie|moralisch|deontologie|deontology|utilitarismus|utilitarianism|tugendethik|virtue ethics|menschenw[uü]rde|gerechtigkeitstheorie|forschungsethik|ki[- ]?ethik|ai ethics)\b/],
