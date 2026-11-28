@@ -78,7 +78,7 @@ export async function findMessinhoKnowledge(db,ownerId,question,now=new Date()){
  const fingerprint=fingerprintMessinhoKnowledgeQuestion(question);
  if(!db||!ownerId||!fingerprint)return {status:'unavailable',record:null};
  try{
-  const base=()=>db.from('messinho_knowledge_memory').select('id,question,answer,answer_mode,claims,sources,evidence_summary,source_count,distinct_domains,last_verified_at,expires_at,hit_count')
+  const base=()=>db.from('messinho_knowledge_memory').select('id,owner_id,question,answer,answer_mode,claims,sources,evidence_summary,source_count,distinct_domains,last_verified_at,expires_at,hit_count')
    .eq('owner_id',ownerId).eq('verification_status','corroborated').gt('expires_at',new Date(now).toISOString());
   const exact=await base().eq('question_fingerprint',fingerprint).maybeSingle();
   if(exact.error)throw exact.error;
