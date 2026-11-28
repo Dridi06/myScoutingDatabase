@@ -67,5 +67,5 @@ test('authenticated chat builds response composition from dialogue and clarifica
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
   assert.ok(source.includes("import { buildMessinhoResponseCompositionContext } from './messinho-response-composition.js';"));
   assert.ok(source.includes('buildMessinhoResponseCompositionContext({message:interpretedMessage,dialogueState,clarificationContinuity,pragmaticContext})'));
-  assert.ok(source.includes('responseCompositionContext,\n      userRole:profile.role'));
+  assert.ok(source.includes('responseCompositionContext,\n      conversationContinuityContext,\n      userRole:profile.role'));
 });
