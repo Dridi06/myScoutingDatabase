@@ -39,3 +39,17 @@ test('local model endpoints do not require a hosted API key',()=>{
  assert.equal(config.requiresApiKey,false);
  assert.equal(config.model,'local');
 });
+
+
+test('ordinary model requests are not globally capped by the diagnostic token budget',async()=>{
+ let captured=null;
+ await requestMessinhoModelCompletion({
+  model:'normal-chat-model',apiKey:'test-secret',baseUrl:'https://provider.invalid/v1',
+  messages:[{role:'user',content:'ordinary conversation'}],
+  fetchImpl:async(_url,options)=>{
+   captured=JSON.parse(options.body);
+   return {ok:true,status:200,json:async()=>({choices:[{message:{content:'ok'}}]})};
+  }
+ });
+ assert.equal(Object.prototype.hasOwnProperty.call(captured,'max_tokens'),false);
+});
