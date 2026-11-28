@@ -179,7 +179,7 @@ Der zusätzliche Full-Stack-Audit ergänzt die projektweite Diagnose um fünf Sc
 ### 11.1 Code- und Funktionsintrospektion
 - Abgleich des 100-Funktionen-Capability-Katalogs mit ausführbaren Handlern und Laufzeitregistrierung.
 - Separate Kennzeichnung von Speziallogik und generischem Fallback; Registrierung oder Dispatch gelten nicht als End-to-End-Abnahme.
-- AST-basierte Erfassung von JavaScript-/TypeScript-Modulen, Exporten, Imports, Abhängigkeiten, nicht auflösbaren Importen, fehlenden benannten Exporten und Modulzyklen.
+- AST-basierte Erfassung von JavaScript-/TypeScript-Modulen, exportierten Symbolen, Funktionen, Klassen, Methoden, Imports, Abhängigkeiten, nicht auflösbaren Importen, fehlenden benannten Exporten und Modulzyklen.
 - Der Audit weist die Grenzen des unterstützten Parsers und der nicht ausgeführten Anwendungslaufzeit aus.
 
 ### 11.2 LLM- und Linguistic-Engine-Prüfung
@@ -190,8 +190,8 @@ Der zusätzliche Full-Stack-Audit ergänzt die projektweite Diagnose um fünf Sc
 
 ### 11.3 Sandbox- und Ressourcen-Audit
 - Statische Prüfung des tatsächlich verwendeten GitHub-Actions-/Docker-Setups: Netzwerkabschaltung, Read-only-Container, Speicher-/CPU-/PID-Limits, Capability-Drop, `no-new-privileges`, unprivilegierter Benutzer, schreibgeschützte Quellcode-Mounts, Zeitlimits und Baseline-vor-Kandidat-Reihenfolge.
-- Die Staging-Service-Gate-Logik wird mit einer passenden Staging-Identität und einer abweichenden Production-Identität geprüft. Es wird kein Sandbox-Job ausgelöst.
-- Host-CPU/RAM-Werte werden nicht als Sandbox-Ressourcenwerte ausgegeben. Echte Ressourcenmessung muss aus dem Container oder dessen Jobmetriken kommen.
+- Die Staging-Service-Gate-Logik wird mit einer passenden Staging-Identität und einer abweichenden Production-Identität geprüft. Es wird kein Sandbox-Job aus dem Admin-Audit ausgelöst. Der isolierte CI-Baseline-Runner protokolliert tatsächliche cgroup-Werte für Speicher, CPU und Prozesse.
+- Host-CPU/RAM-Werte werden nicht als Sandbox-Ressourcenwerte ausgegeben. cgroup-Werte werden im Container erfasst und in Joblogs ausgegeben; die Aggregation in Admin-Berichte bleibt offen.
 
 ### 11.4 Kognitive, Sicherheits- und Tool-Stresstests
 - Kontrollierte Capability-Eingaben: null, Array, unbekannte Funktion und übergroße Textfelder; nur reine, nebenwirkungsarme Capability-Validierung.
@@ -214,4 +214,4 @@ Der zusätzliche Full-Stack-Audit ergänzt die projektweite Diagnose um fünf Sc
 - Implementiert: `backend/messinho-full-stack-audit.js`, Integration in die Admin-MESSINHO-Diagnose, sichtbare Admin-Option für die optionale Live-LLM-Probe und Regressionstests.
 - Implementiert: AST-basierte Export-/Modulintrospektion, synthetische Sprach-/Reasoning-Tests, Sandbox-Konfigurationsprüfung, Parameter-Fuzzing, Memory-Filter-/Ähnlichkeitstest und Prompt-Injection-Grenztest.
 - Noch offen: echter Provider-Stresstest mit variablen Kontextlängen, XML-/weitere strukturierte Ausgabeformate, echte Container-Ressourcenmetriken, End-to-End-Tool-Fuzzing in kurzlebiger Sandbox, reale Embedding-/Vektorsuche und unabhängige Qualitätsbewertung durch ein Judge-Modell.
-- Ein Prüflauf ist erst nach erfolgreicher CI und anschließendem Admin-Test in STAGING als abgenommen zu kennzeichnen.
+- Technische CI-Abnahme am 2026-11-28: 779/779 Tests, Backend-Syntax und Vite-Build erfolgreich; isolierter Sandbox-Baseline-Lauf erfolgreich mit Exitcode 0. Render-STAGING-Deployment `dep-dc5br4l6e07s73a6toug` ist LIVE. Der manuelle Admin-Diagnoselauf und die optionale Provider-Live-Probe bleiben als getrennte Abnahmeschritte offen.
