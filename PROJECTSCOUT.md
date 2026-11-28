@@ -7271,3 +7271,5 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 
 - Deployment verification completed: Render STAGING deployment dep-dc58sn8u01pc73fsc9k0 is LIVE on application commit 3ae742d8002da7c6b2fa3a674e78d98346b316a4. Build succeeded, server started, and service reported live. The 745-test run passed (745/745); no Production deployment was triggered.
 - User-facing confirmation still required: sign in to STAGING, click the new "Diagnose starten" action while MESSINHO remains paused, and confirm the saved report and summary appear. This authenticated end-to-end UI action has not yet been executed by the admin.
+
+- Follow-up formatting correction: diagnostic summaries now use real multiline rendering in the chat. Verified on commit ebd4bf011f794e2395a4279ff720bb5ac7780f25: 745/745 Node tests passed, backend syntax passed, Vite production build succeeded. Render STAGING deployment dep-dc58tj6c6qcc73866pb0 is LIVE on this commit.
