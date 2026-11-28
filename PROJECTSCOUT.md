@@ -6974,3 +6974,15 @@ MESSINHO soll nicht nur Gesprächsabsicht und Kontext erkennen, sondern die Antw
 - Abschließende Node-Tests, Syntaxprüfung, Vite-Build und Render-STAGING-Deployment werden im Verifikationsnachtrag dokumentiert.
 - Ein erfolgreicher Testlauf belegt nicht automatisch natürliche Gesprächsqualität in echten Admin-/Scout-Sitzungen; diese Abnahme bleibt erforderlich.
 - STAGING-only; Produktion bleibt unangetastet.
+
+
+### Block 17 STAGING verification addendum — 2026-11-28
+- Final runtime/test commit: `053fd4e26c28e39d665ae3360cef61a97ec1e147`.
+- Render build: `bld-dc555l17lnhs73ambc30` — **succeeded**.
+- Full Node test suite: **698 passed, 0 failed**.
+- Backend syntax checks completed in `npm run build`; Vite production build succeeded (`built in 2.27s`).
+- Render deployment: `dep-dc555l17lnhs73ambc1g`; startup confirmed `node backend/server.js`, API listening on port 10000, Supabase Data API HTTP 200 and Render `Your service is live`.
+- Service remains STAGING-only on `feature/messinho-conversation-engine`; `autoDeploy: no`, manually deployed.
+- No DB/schema migration, persistent user/player/scout/learning data mutation, model training, model-weight change or permission change. Production remains untouched.
+- Authenticated Admin/Scout conversation acceptance remains outstanding; build and tests do not establish human-level dialogue quality.
+- The initial build found stale source-wiring assertions after the new response-plan argument was inserted; those tests were updated and the final full build passed.
