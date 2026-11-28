@@ -3,7 +3,7 @@
  * Read-only by default. Synthetic checks never execute tools, mutate memory,
  * change model weights, dispatch sandbox jobs or contact external providers.
  */
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getMessinhoCapabilityCatalog } from './messinho-capabilities.js';
@@ -119,7 +119,7 @@ async function runSandboxAudit(root,env){
 }
 async function runModelBindingAudit(env,probeProvider){
  const config=resolveMessinhoModelConfig(env);
- const keyPresent=Boolean(config.apiKey),localEndpoint=/(?:localhost|127\\.0\\.1|\\[::1\\])(?::\\d+)?(?:\\/|$)/iu.test(config.baseUrl);
+ const keyPresent=Boolean(config.apiKey),localEndpoint=/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/|$)/iu.test(config.baseUrl);
  const ready=Boolean(config.model&&config.baseUrl&&(!config.requiresApiKey||keyPresent));
  if(!probeProvider)return check('LLM-Anbindung und Modellkonfiguration','LLM & Modellbindung',ready,
   'Modell konfiguriert: '+Boolean(config.model)+'; Endpoint konfiguriert: '+Boolean(config.baseUrl)+
