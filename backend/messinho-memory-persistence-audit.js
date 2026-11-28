@@ -17,8 +17,12 @@ export async function runMessinhoMemoryPersistenceAudit({db,ownerId,store=storeM
   claims:[],sources:[{title:'Audit source A',url:'https://audit-source-a.example.test/memory',publisher:'Audit A',snippet:SOURCE_TEXT},
    {title:'Audit source B',url:'https://audit-source-b.example.test/memory',publisher:'Audit B',snippet:SOURCE_TEXT}],
   evidence:{can_answer:true},quality_control:{passed:true}};
- let stored=null,retrieved=null,cleanup={confirmed:false,attempted:false,error:null},failure=null;
+ let stored=null,retrieved=null,agentMemoryRead=null,cleanup={confirmed:false,attempted:false,error:null},failure=null;
  try{
+  const agentMemory=await db.from('messinho_agent_memory').select('owner_id,active_player_ids,user_preferences,active_entities,last_intent,last_goal,updated_at').eq('owner_id',ownerId).maybeSingle();
+  if(agentMemory.error)throw new Error('agent_memory_read_failed:'+clean(agentMemory.error.message||agentMemory.error.code||'unknown',100));
+  agentMemoryRead={table_accessible:true,owner_scoped_query:true,record_present:Boolean(agentMemory.data),owner_match:!agentMemory.data||agentMemory.data.owner_id===ownerId,shape_valid:!agentMemory.data||(Array.isArray(agentMemory.data.active_player_ids)&&agentMemory.data.user_preferences&&typeof agentMemory.data.user_preferences==='object'&&agentMemory.data.active_entities&&typeof agentMemory.data.active_entities==='object')};
+  if(!agentMemoryRead.owner_match||!agentMemoryRead.shape_valid)throw new Error('agent_memory_owner_or_shape_invalid');
   stored=await store(db,ownerId,question,research,now);
   if(!stored?.persisted||!stored.id)throw new Error('write_not_confirmed');
   retrieved=await find(db,ownerId,question,now);
@@ -37,12 +41,12 @@ export async function runMessinhoMemoryPersistenceAudit({db,ownerId,store=storeM
   }
  }
  const exact=!failure&&retrieved?.status==='hit'&&retrieved?.match==='exact'&&retrieved?.record?.id===stored?.id&&retrieved?.record?.owner_id===ownerId;
- const ok=exact&&cleanup.confirmed;
+ const ok=exact&&cleanup.confirmed&&agentMemoryRead?.table_accessible===true&&agentMemoryRead?.owner_match===true&&agentMemoryRead?.shape_valid===true;
  return {ok,status:ok?'PASS':'FAIL',severity:ok?'info':'warning',
-  detail:ok?'Echter Memory-Roundtrip bestanden: synthetischer Eintrag wurde gespeichert, owner-scoped exakt wiedergefunden und anschließend entfernt.':
+  detail:ok?'Echter Memory-Roundtrip bestanden: agent_memory wurde owner-scoped gelesen; Knowledge-Memory wurde gespeichert, exakt wiedergefunden und anschließend entfernt.':
    'Echter Memory-Roundtrip nicht vollständig bestätigt: '+(failure||(!cleanup.confirmed?'temporärer Testeintrag konnte nicht sicher als gelöscht bestätigt werden.':'Readback fehlgeschlagen.')),
   evidence:{write_confirmed:Boolean(stored?.persisted),readback_confirmed:Boolean(retrieved?.record),exact_match:Boolean(exact),
-   owner_scope_confirmed:retrieved?.record?.owner_id===ownerId,cleanup,record_id:stored?.id||null,
+   owner_scope_confirmed:retrieved?.record?.owner_id===ownerId,agent_memory_read:agentMemoryRead,cleanup,record_id:stored?.id||null,
    match:retrieved?.match||null,storage_table:'messinho_knowledge_memory',synthetic_record:true,model_training:false,
    database_mutations_attempted:(stored?.persisted?1:0)+(retrieved?.record?1:0)+(cleanup.attempted?1:0)},
   recommendation:ok?'Keine Maßnahme erforderlich.':'Supabase-Schema, Owner-Fremdschlüssel, Service-Key-Berechtigung, Unique-Constraint, Readback und Cleanup prüfen.'};
