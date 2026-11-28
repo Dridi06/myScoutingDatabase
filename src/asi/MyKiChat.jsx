@@ -104,54 +104,6 @@ export default function MyKiChat({supabase}){
    <div className="myki-chat-title"><span className="myki-eyebrow">DIREKTE KOMMUNIKATION</span><h2><BrainCircuit size={20}/> Sprich mit MESSINHO</h2><p>Ein Gespräch auf Augenhöhe – mit dem Wissen und den Fähigkeiten des bestehenden MESSINHO-Agenten.</p></div>
    <div className={'myki-agent-state '+mode} role="status" aria-live="polite"><i/>{label}</div>
   </div>
-  <div className="myki-control-panel" aria-label="Admin-Steuerung von MESSINHO">
-   <div className="myki-control-heading"><b>MESSINHO-Steuerung</b><span>Nur für Administratoren sichtbar</span></div>
-   <div className="myki-control-action-group">
-    <div className="myki-control-action-copy"><strong>Einmalige Systemprüfung</strong><small>Führt die MESSINHO-Diagnose sofort aus – auch im Pausenmodus. Ändert keinen Autonomie-Modus und startet keine Reparatur.</small></div>
-    <button type="button" className="myki-control-diagnostic" onClick={runDiagnostic} disabled={diagnosticBusy||controlBusy}>{diagnosticBusy?<LoaderCircle className="myki-chat-spin" size={15}/>:<ShieldCheck size={15}/>} {diagnosticBusy?'Diagnose läuft …':'Diagnose starten'}</button>
-   </div>
-   <div className="myki-control-divider"/>
-   <div className="myki-control-heading"><b>Autonome Arbeitsweise</b><span>Steuert länger laufende Aufgaben</span></div>
-   <div className="myki-control-actions">
-    <button type="button" className={operatingMode==='paused'?'selected':''} onClick={()=>changeControl('set_mode','paused')} disabled={controlBusy||diagnosticBusy}><PauseCircle size={15}/> Autonomie pausieren</button>
-    <button type="button" className={operatingMode==='working'?'selected':''} onClick={()=>changeControl('set_mode','working')} disabled={controlBusy||diagnosticBusy}><Activity size={15}/> Fehleranalyse & Reparaturprüfung</button>
-    <button type="button" className={operatingMode==='developing'?'selected':''} onClick={()=>changeControl('set_mode','developing')} disabled={controlBusy||diagnosticBusy}><TrendingUp size={15}/> Weiterentwicklung</button>
-    <button type="button" className="stop" onClick={()=>changeControl('stop')} disabled={controlBusy||diagnosticBusy}><PauseCircle size={15}/> Stopp anfordern</button>
-   </div>
-   <p className="myki-control-description">{status.control?.status_message||'Diagnose startet eine einzelne Prüfung. Fehleranalyse führt Diagnose, Ursachenbewertung und – falls sicher möglich – einen Reparaturvorschlag aus. Weiterentwicklung sucht nach belegbaren Verbesserungen. Pause hält autonome Aufträge an; der Chat bleibt erreichbar.'}</p>
-   {status.current_work&&<div className="myki-current-work"><b>Letzter Arbeitsauftrag</b><span>{status.current_work.goal}</span><small>Status: {status.current_work.status==='running'?'läuft':status.current_work.last_error||status.current_work.status} · offene Schritte: {status.current_work.pending_steps}</small></div>}
-  </div>
-  <details className="myki-agent-details"><summary><Activity size={14}/> Technische Statusdetails anzeigen</summary><div className="myki-agent-meta">
-   <span><Activity size={14}/> Selbstprüfung: {(status.self_repair_enabled||status.self_development_enabled||status.scheduler_enabled)?'aktiviert':'derzeit deaktiviert'}</span>
-   <span>Autonomie: {operatingMode==='developing'?'autonome Entwicklungsprüfungen':operatingMode==='working'?'Systemfehlersuche und Reparaturprüfung':'pausiert'}</span>
-   <span>Programmier-Sandbox: {status.sandbox?.state==='configured_not_yet_end_to_end_verified'?'Zugangsdaten konfiguriert – E2E-Prüfung offen':status.sandbox?.state==='credential_missing'?'GitHub-Zugangsdaten fehlen':'derzeit gesperrt'}</span>
-   <span><PauseCircle size={14}/> Entwicklungszeit: 03:00–08:00 und 10:00–23:00 Uhr (Berlin)</span>
-   <span>Ruhezeiten: 08:00–10:00 Uhr Pause · 23:00–03:00 Uhr Nachtruhe</span>
-   <span>Chat und Fragen bleiben rund um die Uhr erreichbar – Ruhezeiten gelten nur für autonome Entwicklung.</span>
-   <span>Chat und Fragen bleiben unabhängig vom Entwicklungsmodus erreichbar.</span>
-   <span>Letzte Prüfung: {lastRun?.finished_at?new Date(lastRun.finished_at).toLocaleString('de-DE'):lastRun?.started_at?new Date(lastRun.started_at).toLocaleString('de-DE'):'Noch kein Lauf gespeichert'}</span>
-   {lastRun?.status&&<span>Ergebnis: {lastRun.error_code==='ADMIN_STOP_REQUESTED'?'Kontrolliert gestoppt':lastRun.error_code==='WORK_WINDOW_ENDED'?'Zeitfenster beendet':({ticket_created:'Ticket erstellt',no_improvement:'Keine sichere Verbesserung gefunden',duplicate:'Vorschlag bereits vorhanden',failed:'Prüfung fehlgeschlagen',running:'Läuft'})[lastRun.status]||lastRun.status}</span>}
-  </div></details>
-  {status.maturity&&<section className="myki-maturity" aria-label="MESSINHO Entwicklungsstand">
-   <div className="myki-maturity-header">
-    <div><span className="myki-eyebrow">ENTWICKLUNGSSTAND</span><h3><TrendingUp size={17}/> MESSINHO-Reifegrad</h3></div>
-    <div className="myki-maturity-score"><strong>{status.maturity.score}</strong><span>/ 100</span></div>
-   </div>
-   <div className="myki-maturity-level"><b>{status.maturity.level}</b><span>Nachweisbasierte Einstufung</span></div>
-   <div className="myki-maturity-track" role="progressbar" aria-label="MESSINHO Reifegrad" aria-valuemin="0" aria-valuemax="100" aria-valuenow={status.maturity.score}><span style={{width:Math.max(0,Math.min(100,status.maturity.score))+'%'}}/></div>
-   <p className="myki-maturity-policy">{status.maturity.score_policy}</p>
-   <details className="myki-maturity-details">
-    <summary>Bewertung der Entwicklungsbereiche anzeigen</summary>
-    <div className="myki-maturity-pillars">
-     {status.maturity.pillars?.map(item=><div className="myki-maturity-pillar" key={item.id}>
-      <div><b>{item.label}</b><strong>{item.points}/{item.maximum}</strong></div>
-      <div className="myki-maturity-mini-track"><span style={{width:Math.max(0,Math.min(100,item.points/item.maximum*100))+'%'}}/></div>
-      <p>{item.evidence}</p><small>Nächster Schritt: {item.next}</small>
-     </div>)}
-    </div>
-   </details>
-   <div className="myki-maturity-next"><b>Nächste Entwicklungsschritte</b><ol>{status.maturity.next_milestones?.slice(0,3).map((item,index)=><li key={index}>{item}</li>)}</ol></div>
-  </section>}
   <div className="myki-chat-messages" ref={messagesRef} aria-live="polite">
    {messages.map(item=><article key={item.id} className={'myki-chat-message '+item.role}><div className="myki-chat-avatar">{item.role==='assistant'?<BrainCircuit size={16}/>:<span>DU</span>}</div><div className="myki-chat-bubble"><small>{item.role==='assistant'?'MESSINHO':'DU'}</small><p>{item.text}</p><time className="myki-chat-timestamp" dateTime={item.timestamp||undefined}>{item.timestamp?formatTimestamp(item.timestamp):formatTimestamp(timestampNow())}</time></div></article>)}
    {busy&&<div className="myki-chat-thinking"><LoaderCircle className="myki-chat-spin" size={16}/> MESSINHO denkt nach und prüft deine Anfrage …</div>}
