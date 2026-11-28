@@ -204,3 +204,20 @@ test('parser-backed graph catches JavaScript syntax errors with parser evidence'
   assert.ok(finding.evidence.message);
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+
+test('dependency graph resolves TypeScript path aliases to real project modules',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'messinho-dependency-alias-'));
+ try{
+  await mkdir(path.join(root,'backend'),{recursive:true});
+  await mkdir(path.join(root,'src'),{recursive:true});
+  await writeFile(path.join(root,'tsconfig.json'),JSON.stringify({compilerOptions:{baseUrl:'.',paths:{'@/*':['src/*']}}}));
+  await writeFile(path.join(root,'src','util.js'),'export const util=true;');
+  await writeFile(path.join(root,'backend','consumer.js'),"import { util } from '@/util.js';\\nexport const value=util;");
+  const graph=await buildMessinhoDependencyGraph({root,files:['backend/consumer.js','src/util.js']});
+  assert.equal(graph.coverage.parsed,2);
+  assert.equal(graph.edges.length,1,JSON.stringify(graph.findings));
+  assert.equal(graph.edges[0].to,'src/util.js');
+  assert.equal(graph.findings.length,0);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
