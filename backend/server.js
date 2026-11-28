@@ -468,7 +468,7 @@ async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=n
   return record;
 }
 
-async function executeMessinhoDiagnostics(actorProfileId){
+async function executeMessinhoDiagnostics(actorProfileId,{probeProvider=false}={}){
   const started=Date.now(),startedAt=new Date().toISOString(),checks=[];
   const add=(name,category,ok,detail,severity='critical',recommendation='')=>checks.push({
     name,category,ok:Boolean(ok),detail:String(detail||''),severity,
@@ -566,7 +566,7 @@ async function executeMessinhoDiagnostics(actorProfileId){
     return {ok,detail:`Lokaler deterministischer Kern arbeitet ohne externe KI-Aufrufe; Engine ${result.engine_version}; Lernmodul ${typeof buildMessinhoLearningProposal}.`};
   });
   const {data:priorAuditRuns}=await db.from('messinho_diagnostic_runs').select('status,summary,created_at').order('created_at',{ascending:false}).limit(5);
-  const fullStackAudit=await runMessinhoFullStackIntelligenceAudit({root:process.cwd(),env:process.env,history:priorAuditRuns||[]});
+  const fullStackAudit=await runMessinhoFullStackIntelligenceAudit({root:process.cwd(),env:process.env,history:priorAuditRuns||[],probeProvider});
   for(const item of fullStackAudit.modules){
     checks.push({name:'Full-Stack · '+item.name,category:item.category,ok:item.ok,detail:item.detail,severity:item.severity,
       severity_label:item.severity==='critical'?'Kritisch':item.severity==='warning'?'Mittel':'Niedrig',
@@ -755,7 +755,7 @@ app.post('/api/admin/myki/control',myKiControlLimiter,async(req,res)=>{
 });
 app.post('/api/admin/messinho-diagnostics/run',requireSupabaseAdmin,async(req,res)=>{
   try{
-    const run=await executeMessinhoDiagnostics(req.user.sub);
+    const run=await executeMessinhoDiagnostics(req.user.sub,{probeProvider:req.body?.probe_llm===true});
     return res.status(201).json(run);
   }catch(error){
     console.error('MESSINHO diagnostics failed:',error.message);
