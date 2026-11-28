@@ -7808,3 +7808,23 @@ Authentifizierte Chat-Smoke-Tests durchführen: Begrüßung und Smalltalk, freie
 4. Continue the documented route/job/capability permission matrix and remaining Gate 0 security/migration reconciliation.
 
 **Gate 0 remains OPEN.** No production deployment or production-side change is authorized.
+
+
+### 28.11.2026 — MyKi Engineering migration verification update
+
+- Code candidate: `e0581f47dfb403ec00dafe4bd32ea48c0c21ec5f` on `feature/messinho-conversation-engine`.
+- MyKi Engineering and its scheduler are now routed through the shared provider-neutral model runtime. Legacy OpenAI settings are compatibility fallback only.
+- Regression suite: **817 passed, 0 failed** on the candidate. Backend syntax: success. Staging branch CI: success.
+- The first migration CI attempts exposed a stale provider-inventory assertion and an upstream error-response mock that omitted `.json()`. Both were corrected; the current passing run includes the updated zero-direct-OpenAI-call-site assertion.
+- The isolated engineering sandbox workflow was still building its dedicated compiler image; do not claim that sandbox validation or callback completed until its final status is checked.
+- No STAGING deployment of this MyKi migration yet. Existing STAGING deployment remains `dep-dc5elih5efls73f8bk60` at code commit `71a14c31b9b91095f49ee5a2ebd848f57832eaad`.
+- The previously observed OpenAI `429 / credit_balance_exhausted` remains an operational provider-credit issue; the migration makes a configured local/self-hosted model possible but does not install or start such a model service.
+- No database changes, migrations, secrets, Render environment changes or Production changes.
+
+### Next gate
+1. Finish and verify the isolated engineering sandbox workflow.
+2. If all CI gates pass, explicitly deploy the verified code candidate to Render STAGING only; auto-deploy remains disabled.
+3. Confirm staging startup and run authenticated tests when an authorized staging test session is available. Cover ordinary chat, MyKi proposal-only review, local/provider-neutral routing, retry handling and quota failure.
+4. Continue remaining Gate 0 work: route/worker/capability permission matrix, migration-content reconciliation, and Supabase least-privilege/auth findings.
+
+**Gate 0 remains OPEN. Production remains untouched.**
