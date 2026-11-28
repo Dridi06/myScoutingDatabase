@@ -32,7 +32,7 @@ function resolveRelativeImport(fromFile,specifier,known){
 // literals are opaque, so import examples embedded in tests are not dependencies.
 function moduleTokens(source){
  const tokens=[];let i=0,line=1;const text=String(source||'');
- const push=(type,value,startLine)=>tokens.push({type,value,line:startLine});
+ const push=(type,value,startLine,offset)=>tokens.push({type,value,line:startLine,column:offset-text.lastIndexOf('\\n',offset-1),offset});
  const isStartRegex=()=>{const p=tokens[tokens.length-1];return !p||(p.type==='punct'&&['(','[','{',',',':','=','!','?',';','=>'].includes(p.value))||(p.type==='identifier'&&['return','throw','case','delete','void','typeof','instanceof','in','of','yield','await'].includes(p.value));};
  while(i<text.length){
   const ch=text[i],next=text[i+1];
@@ -48,32 +48,41 @@ function moduleTokens(source){
   if(ch==='"'||ch==="'"||ch==='`'){
    const quote=ch,startLine=line;i++;let value='';
    while(i<text.length){const current=text[i++];if(current==='\n')line++;if(current===quote)break;if(current==='\\'&&i<text.length){const escaped=text[i++];if(escaped==='\n')line++;value+=escaped;}else value+=current;}
-   if(quote!=='`')push('string',value,startLine);
+   if(quote!=='`')push('string',value,startLine,i-value.length-1);
    continue;
   }
   if(/[A-Za-z_$]/.test(ch)){
    const start=i,startLine=line;i++;while(i<text.length&&/[A-Za-z0-9_$]/.test(text[i]))i++;
-   push('identifier',text.slice(start,i),startLine);continue;
+   push('identifier',text.slice(start,i),startLine,start);continue;
   }
   push('punct',ch,line);i++;
  }
  return tokens;
 }
-export function extractModuleSpecifiers(source){
- const tokens=moduleTokens(source),found=[];
+export function extractModuleReferences(source){
+ const tokens=moduleTokens(source),found=[],seen=new Set();
+ const add=(token,kind)=>{
+  if(!token||token.type!=='string')return;
+  const key=kind+':'+token.value+':'+token.line+':'+token.column;
+  if(seen.has(key))return;
+  seen.add(key);found.push({specifier:token.value,line:token.line,column:token.column,kind});
+ };
  for(let i=0;i<tokens.length;i++){
   const token=tokens[i];
   if(token.type!=='identifier'||(token.value!=='import'&&token.value!=='export'))continue;
   const next=tokens[i+1];
   if(token.value==='import'&&next?.type==='punct'&&next.value==='.')continue;
-  if(token.value==='import'&&next?.type==='string'){found.push(next.value);continue;}
-  if(token.value==='import'&&next?.type==='punct'&&next.value==='('&&tokens[i+2]?.type==='string'&&tokens[i+3]?.value===')'){found.push(tokens[i+2].value);continue;}
+  if(token.value==='import'&&next?.type==='string'){add(next,'static');continue;}
+  if(token.value==='import'&&next?.type==='punct'&&next.value==='('&&tokens[i+2]?.type==='string'&&tokens[i+3]?.value===')'){add(tokens[i+2],'dynamic_literal');continue;}
   for(let j=i+1;j<Math.min(tokens.length,i+160);j++){
    if(tokens[j].type==='punct'&&tokens[j].value===';')break;
-   if(tokens[j].type==='identifier'&&tokens[j].value==='from'&&tokens[j+1]?.type==='string'){found.push(tokens[j+1].value);break;}
+   if(tokens[j].type==='identifier'&&tokens[j].value==='from'&&tokens[j+1]?.type==='string'){add(tokens[j+1],token.value==='export'?'re_export':'static');break;}
   }
  }
- return [...new Set(found)];
+ return found;
+}
+export function extractModuleSpecifiers(source){
+ return [...new Set(extractModuleReferences(source).map(item=>item.specifier))];
 }
 function add(checks,name,category,ok,detail,severity='warning',recommendation=''){
  checks.push({name,category,ok:Boolean(ok),detail:safe(detail),severity,
@@ -103,7 +112,7 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
  }
  const sourceFiles=allFiles.filter(file=>SOURCE_EXTENSIONS.has(path.extname(file).toLowerCase()));
  const known=new Set(allFiles.map(file=>file.replace(/\\/g,'/')));
- const unreadable=[],empty=[],oversized=[],unresolved=[];
+ const unreadable=[],empty=[],oversized=[],unresolved=[],findings=[];
  const sourceContents=new Map();
  for(const relative of sourceFiles){
   try{
@@ -112,8 +121,20 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
    if(!content.trim())empty.push(relative);
    if(Buffer.byteLength(content,'utf8')>1024*1024)oversized.push(relative);
    if(/\.(?:js|mjs|cjs|jsx|ts|tsx)$/i.test(relative)){
-    for(const specifier of extractModuleSpecifiers(content)){
-     if(specifier.startsWith('.')&&!resolveRelativeImport(relative,specifier,known))unresolved.push(relative+' → '+specifier);
+    for(const reference of extractModuleReferences(content)){
+     const specifier=reference.specifier;
+     if(specifier.startsWith('.')&&!resolveRelativeImport(relative,specifier,known)){
+      const item={file:relative,line:reference.line,column:reference.column,symbol:null,dependency:specifier,kind:reference.kind};
+      unresolved.push(item);
+      findings.push({finding_id:'IMPORT-'+String(findings.length+1).padStart(4,'0'),status:'unverified',severity:'critical',
+       category:'dependency_resolution',component:relative.startsWith('backend/')?'Backend':relative.startsWith('src/')?'Frontend':'Tests',
+       title:'Relativer Import nicht auflösbar',file:relative,line:reference.line,column:reference.column,
+       dependency:specifier,root_cause:'Das Importziel konnte anhand des vorhandenen Projektinventars nicht aufgelöst werden.',
+       evidence:{source_line:content.split(/\\r?\\n/)[reference.line-1]?.trim()||'',import_kind:reference.kind},
+       reproduction:{check:'static_import_resolution',source_file:relative,specifier},
+       recommendation:'Dateipfad, Groß-/Kleinschreibung, Export-/Dateiendung und Build-Alias-Konfiguration prüfen.',
+       checked_at:new Date().toISOString()});
+     }
     }
    }
   }catch{unreadable.push(relative);}
@@ -127,7 +148,7 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
   'warning','Betroffene Dateien auf versehentliche Leere, generierte Inhalte oder ungewollte Artefakte prüfen.');
  add(checks,'Relative Modulimporte','Abhängigkeiten',unresolved.length===0,
   'Geprüfte Quelldateien: '+sourceFiles.length+'; nicht auflösbare relative Importe: '+unresolved.length+
-  (unresolved.length?'; '+unresolved.slice(0,15).join(' | '):''),
+  (unresolved.length?'; '+unresolved.slice(0,30).map(item=>item.file+':'+item.line+':'+item.column+' → '+item.dependency).join(' | '):''),
   'critical','Importpfade, Dateinamen und Build-Auflösung im betroffenen Modul korrigieren.');
  const backendJs=allFiles.filter(file=>file.startsWith('backend/')&&/\.(?:js|mjs|cjs)$/.test(file));
  const tests=inventory.tests||[];
@@ -146,8 +167,8 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
  const missingTests=backendJs.filter(file=>!file.endsWith('/server.js')&&!directlyTested.has(file));
  add(checks,'Backend-Testzuordnung','Testabdeckung',missingTests.length===0,
   'Backend-Module: '+backendJs.length+'; Testdateien: '+testFiles.length+'; Module ohne direkten Testimport: '+missingTests.length+
-  (missingTests.length?'; '+missingTests.slice(0,18).join(', '):''),
-  'warning','Prüfen, ob die genannten Module bereits über Integrations-/Abhängigkeitstests abgedeckt sind; andernfalls gezielte Erfolgs-, Fehler-, Berechtigungs- und Regressionstests ergänzen.');
+  (missingTests.length?'; '+missingTests.slice(0,30).join(', '):''),
+  'info','Die Zuordnung ist nicht abschließend: fehlender direkter Import beweist keine fehlende Testabdeckung. Coverage- und Integrationsnachweise ausführen.');
  const packageFile=path.join(root,'package.json');
  let packageData=null;
  try{packageData=JSON.parse(await readFile(packageFile,'utf8'));}catch{}
@@ -186,6 +207,8 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
   api_routes:routes.length,admin_routes:adminRoutes.length,checks:checks.length,
   failed:checks.filter(item=>!item.ok).length
  };
- return {ok:checks.every(item=>item.ok),checks,summary:totals,scope:'backend, frontend, tests, SQL migrations, relative imports, build scripts and API route surface',
-  limitations:['Read-only static inspection; no project code or shell command is executed.','No live database mutation, external request, compiler run or test suite is started by this audit.','Static route-guard hints do not prove authorization; authenticated integration tests remain necessary.']};
+ return {ok:checks.every(item=>item.ok),checks,findings,summary:totals,scope:'backend, frontend, tests, SQL migrations, relative imports, build scripts and API route surface',
+  audit_metadata:{mode:'static_read_only',source_file_count:sourceFiles.length,inventory_roots:ROOTS,checked_at:new Date().toISOString(),
+   finding_count:findings.length,confirmed_runtime_failures:0,unverified_static_findings:findings.length},
+  limitations:['Read-only static inspection; no project code or shell command is executed.','No live database mutation, external request, compiler run or test suite is started by this audit.','A static unresolved-import candidate is not a confirmed runtime failure until the build/runtime resolver independently reproduces it.','No direct test import is not proof of missing behavioral coverage; coverage and integration results are required.','Static route-guard hints do not prove authorization; authenticated integration tests remain necessary.']};
 }
