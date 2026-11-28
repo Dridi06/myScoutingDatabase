@@ -9,7 +9,7 @@ import {
 } from '../backend/messinho-grammar-engine.js';
 
 test('registers independent grammar profiles for all six supported language profiles',()=>{
-  assert.equal(MESSINHO_GRAMMAR_ENGINE_VERSION,'0.1.0');
+  assert.equal(MESSINHO_GRAMMAR_ENGINE_VERSION,'0.2.0');
   assert.deepEqual(MESSINHO_GRAMMAR_LANGUAGES,['de','en','fr','es','ar','ar-tn']);
   assert.equal(getMessinhoGrammarEngineSummary().automatic_rewriting,false);
 });
@@ -21,6 +21,8 @@ test('analyzes German subordinate clause and preserves original text',()=>{
   assert.equal(result.language_id,'de');
   assert.equal(result.source_preserved,true);
   assert.ok(result.structural_signals.conjunction_count>=1);
+  assert.equal(result.sentence_structure.status,'analyzed');
+  assert.ok(result.sentence_structure.clause_count>=1);
 });
 
 test('flags possible English be-verb agreement without rewriting',()=>{
