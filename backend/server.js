@@ -2824,7 +2824,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         });
       }
       let research;
-      try{research=await researchMessinhoGeneralQuestion(interpretedMessage);}
+      try{research=await researchMessinhoGeneralQuestion(interpretedMessage,process.env,fetch,coreKnowledgeContext);}
       catch(researchError){
         console.warn('MESSINHO general research temporarily unavailable:',researchError.message);
         return respond({reply:'Ich kann die externe Recherche gerade nicht zuverlässig erreichen. Ich möchte dir keine veralteten oder ungesicherten Informationen geben. Bitte versuche es gleich noch einmal.',intent:'general_knowledge_research_limited',items:[],sources:[],evidence:null,limitations:['Rechercheanbieter vorübergehend nicht erreichbar.']});
