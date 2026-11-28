@@ -36,3 +36,13 @@ test('myKI dashboard uses stationary gold-accented controls',async()=>{
  assert.doesNotMatch(css,/\.myki-dashboard button:hover[^}]*margin-top\s*:/s,'hover must not change button margins');
  assert.match(css,/linear-gradient\(145deg,#e9d39b,#b58c48\)/);
 });
+
+test('every MESSINHO chat entry receives and displays a Berlin-local timestamp',async()=>{
+ const chat=await read('src/asi/MyKiChat.jsx');
+ assert.match(chat,/const timestampNow=\(\)=>new Date\(\)\.toISOString\(\)/);
+ assert.match(chat,/timeZone:'Europe\/Berlin'/);
+ assert.match(chat,/role:'user',timestamp:timestampNow\(\),text:value/);
+ assert.match(chat,/role:'assistant',timestamp:timestampNow\(\),text:payload\.reply/);
+ assert.match(chat,/role:'assistant',timestamp:timestampNow\(\),text:summary/);
+ assert.match(chat,/<time className="myki-chat-timestamp" dateTime=\{item\.timestamp\|\|undefined\}>/);
+});
