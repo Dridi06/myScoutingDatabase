@@ -13,12 +13,14 @@ test('myKI dashboard places key information before detailed sections',async()=>{
  const positions=[
   page.indexOf('className="myki-heading"'),
   page.indexOf('className="myki-summary"'),
+  page.indexOf('<MyKiMaturity supabase={sb}/>'),
   page.indexOf('<MyKiChat supabase={sb}/>'),
+  page.indexOf('<MyKiOperations supabase={sb}/>'),
   page.indexOf('<MyKiActivityMonitor supabase={sb}/>'),
-  page.indexOf('className="myki-layout"')
+  page.indexOf('<MyKiTicketBoards')
  ];
  assert.ok(positions.every(index=>index>=0),'all dashboard sections must be present');
- assert.deepEqual(positions,[...positions].sort((a,b)=>a-b),'order must be heading, summary, chat, activity monitor, ticket inbox');
+ assert.deepEqual(positions,[...positions].sort((a,b)=>a-b),'order must be heading, summary, maturity, chat, diagnosis/development controls, activity monitor, split ticket boards');
 });
 
 test('secondary operational metadata and schedule are collapsed by default',async()=>{
@@ -45,4 +47,23 @@ test('every MESSINHO chat entry receives and displays a Berlin-local timestamp',
  assert.match(chat,/role:'assistant',timestamp:timestampNow\(\),text:payload\.reply/);
  assert.match(chat,/role:'assistant',timestamp:timestampNow\(\),text:summary/);
  assert.match(chat,/<time className="myki-chat-timestamp" dateTime=\{item\.timestamp\|\|undefined\}>/);
+});
+
+test('myKI dashboard separates diagnostic and development tickets with independent five-item pagination',async()=>{
+ const boards=await read('src/asi/MyKiTicketBoards.jsx');
+ assert.match(boards,/error_code==='diagnostic_finding'/);
+ assert.match(boards,/baseline_id==='diagnostic-only'/);
+ assert.match(boards,/const PAGE_SIZE=5/);
+ assert.match(boards,/Math\.ceil\(items\.length\/PAGE_SIZE\)/);
+ assert.match(boards,/myki-ticket-boards/);
+});
+test('myKI dashboard exposes diagnosis and development controls with truthful unsupported interrupt states',async()=>{
+ const [ops,main]=await Promise.all([read('src/asi/MyKiOperations.jsx'),read('src/main.jsx')]);
+ assert.match(ops,/api\/admin\/messinho-diagnostics\/run/);
+ assert.match(ops,/api\/admin\/myki\/control/);
+ assert.match(ops,/Entwicklung starten/);
+ assert.match(ops,/Entwicklung pausieren/);
+ assert.match(ops,/Entwicklung beenden/);
+ assert.match(ops,/Unterbrechung wird serverseitig noch nicht unterstützt/);
+ assert.match(main,/<MyKiMaturity supabase=\{sb\}\/>/);
 });
