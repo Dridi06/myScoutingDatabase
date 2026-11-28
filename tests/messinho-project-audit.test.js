@@ -99,7 +99,7 @@ test('diagnostic import findings identify exact file, line, column and evidence'
  try{
   for(const folder of ['backend','src','tests','supabase/migrations'])await mkdir(path.join(root,folder),{recursive:true});
   await writeFile(path.join(root,'package.json'),JSON.stringify({scripts:{test:'node --test',build:'npm test && vite build'}}));
-  await writeFile(path.join(root,'backend','broken.js'),"export const ok=true;\\nimport './missing.js';\\n");
+  await writeFile(path.join(root,'backend','broken.js'),"export const ok=true;\nimport './missing.js';\n");
   const result=await runMessinhoProjectAudit({root});
   const finding=result.findings.find(item=>item.category==='dependency_resolution');
   assert.equal(finding.file,'backend/broken.js');
@@ -139,7 +139,7 @@ test('missing direct test imports are informational and not asserted as missing 
 });
 
 test('module references preserve source line and column for imports',()=>{
- const source="const x=1;\\nimport './missing.js';";
+ const source="const x=1;\nimport './missing.js';";
  const refs=extractModuleReferences(source);
  assert.deepEqual(refs.map(({specifier,line,column})=>({specifier,line,column})),[
   {specifier:'./missing.js',line:2,column:8}
