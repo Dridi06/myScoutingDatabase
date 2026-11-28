@@ -14,6 +14,17 @@ function safeText(value, max = MAX_TURN_TEXT) {
   return String(value ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/gu, ' ').replace(/\s+/gu, ' ').trim().slice(0, max);
 }
 
+function safeReply(value, max = 5000) {
+  return String(value ?? '')
+    .replace(/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/gu, ' ')
+    .split(/\\r?\\n/u)
+    .map(line => line.replace(/[ \\t]+/gu, ' ').trim())
+    .join('\\n')
+    .replace(/\\n{3,}/gu, '\\n\\n')
+    .trim()
+    .slice(0, max);
+}
+
 function safeHistory(history) {
   return (Array.isArray(history) ? history : []).slice(-MAX_HISTORY).flatMap(item => {
     if (!['user', 'assistant'].includes(item?.role)) return [];
@@ -105,7 +116,7 @@ export async function generateMessinhoNaturalConversationReply({
     fetchImpl, timeoutMs, temperature: 0.55
   });
   if (result.status !== 'completed') return { status: result.status, reply: null, error_code: result.error_code || 'conversation_generation_unavailable' };
-  const reply = safeText(result.content, 5000);
+  const reply = safeReply(result.content, 5000);
   if (!reply || /^\s*(?:\{[\s\S]*\}|```(?:json)?)/iu.test(reply)) {
     return { status: 'invalid_output', reply: null, error_code: 'invalid_conversation_reply' };
   }
