@@ -33,5 +33,6 @@ test('myKI dashboard uses stationary gold-accented controls',async()=>{
  assert.match(css,/\.myki-dashboard\s*\{/);
  assert.match(css,/\.myki-dashboard button,\s*\.myki-dashboard button:hover,\s*\.myki-dashboard button:active\s*\{\s*transform:none!important/s);
  assert.match(css,/outline:2px solid #d8b76d!important/);
+ assert.doesNotMatch(css,/\.myki-dashboard button:hover[^}]*margin-top\s*:/s,'hover must not change button margins');
  assert.match(css,/linear-gradient\(145deg,#e9d39b,#b58c48\)/);
 });
