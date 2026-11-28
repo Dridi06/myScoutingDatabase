@@ -8,8 +8,8 @@ const staging={MESSINHO_ENGINEERING_AUTOREVIEW_ENABLED:'true',RENDER:'true',REND
 test('engineering review, sandbox dispatch and workflow use the active staging branch',async()=>{
  const workflow=await readFile(new URL('../.github/workflows/messinho-isolated-engineering.yml',import.meta.url),'utf8');
  assert.equal(MESSINHO_SANDBOX_BRANCH,'feature/messinho-conversation-engine');
- assert.match(workflow,/branches: \\[feature\\/messinho-conversation-engine\\]/);
- assert.match(workflow,/refs\\/heads\\/feature\\/messinho-conversation-engine/);
+ assert.match(workflow,/branches: \[feature\/messinho-conversation-engine\]/);
+ assert.match(workflow,/refs\/heads\/feature\/messinho-conversation-engine/);
 });
 test('daily review is strictly gated to the explicitly enabled staging service',()=>{
  assert.equal(isMessinhoEngineeringAutoReviewEnabled(staging),true);
