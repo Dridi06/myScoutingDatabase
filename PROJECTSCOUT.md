@@ -7540,3 +7540,18 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - STAGING-URL: https://myscoutingdatabase-messinho-staging.onrender.com
 - Production und Production-Datenbank wurden nicht verändert.
 - Benutzerabnahme bleibt erforderlich: STAGING neu laden, im MESSINHO-Chat `hallo` senden und prüfen, ob eine normale Begrüßung ohne Provider-Fehler erscheint. Danach prüfen, ob unter Benutzer- und Assistentennachrichten keine alleinstehende `}` mehr steht. Die erfolgreiche CI belegt die Code-/Build-Prüfung, nicht die tatsächliche Browserabnahme.
+
+
+
+### Block 8 — Upstream-Ausfälle im myKI-Entwickler und providerunabhängiger Dialog (28.11.2026)
+- Screenshots aus STAGING geprüft: Die Diagnose zeigte 31/31 bestandene MESSINHO-Prüfungen; der separate autonome Engineering-Review schlug fehl. Das sind unterschiedliche Prüfpfade und kein Widerspruch.
+- Render-Logs zum Fehlerzeitpunkt belegten temporäre Upstream-Probleme: GitHub-API HTTP 503 sowie KI-Provider HTTP 429. Die bisherige Sammelmeldung `MYKI_ENGINEERING_REVIEW_FAILED` verbarg die konkrete Ursache.
+- `backend/messinho-myki-engineer.js`: begrenzte Wiederholungen bei transienten HTTP-429/502/503/504-Antworten (maximal drei Versuche, Retry-After respektiert, begrenzte Wartezeit). Provider-Quota-/Billing-Fehler werden erkannt und nicht sinnlos wiederholt. Keine Antwortkörper oder Geheimnisse werden in Logs ausgegeben.
+- `backend/server.js`: Admin-Steuerstatus gibt jetzt eine verständliche, sichere Ursache aus (Provider ausgelastet, Kontingent erschöpft, GitHub vorübergehend nicht erreichbar usw.), ohne technische Geheimnisse offenzulegen.
+- `backend/messinho-conversation.js`: die offene Frage „Was können wir machen?“ wird als providerunabhängiger Gesprächseinstieg beantwortet und nicht unnötig an den externen Sprachdienst geschickt. Klare Scouting-Aufträge werden weiterhin nicht abgefangen, sondern regulär geroutet.
+- Tests: **798/798 bestanden**, Backend-Syntax **PASS**, Staging-Branch-CI einschließlich Vite-Build **PASS**.
+- Render STAGING Deployment `dep-dc5dra8u01pc738dc670` für Commit `6e1e9f3b80181e79024674dd597508b853fa55d3` ist **LIVE** (28.11.2026, 13:57:41 UTC).
+- STAGING-URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- Keine erfundenen Entwicklungstickets: Ein Engineering-Ticket entsteht erst nach einem vollständig validierten Codevorschlag. Fehlgeschlagene Review-Läufe bleiben in `messinho_engineering_review_runs` mit Fehlercode dokumentiert; sie dürfen nicht als fertige Verbesserung ausgegeben werden.
+- Production und Production-Datenbank wurden nicht verändert.
+- Benutzerabnahme offen: In STAGING „Was können wir machen?“ und „Hallo“ testen; danach myKI-Entwicklung erneut starten. Bei echtem Provider-Quota-/Billing-Fehler muss das Providerkonto administrativ korrigiert werden; Retry-Logik kann fehlendes Guthaben nicht ersetzen.
