@@ -41,7 +41,7 @@ test('knowledge is explicitly marked as foundational and not exhaustive expert c
 test('formats a bounded local answer when external evidence is unavailable',()=>{
  const fallback=formatMessinhoCoreKnowledgeFallback('Wie lange dauert die Genesung nach einem Kreuzbandriss?');
  assert.equal(fallback.status,'available');
- assert.match(fallback.reply,/keine pauschale Genesungsdauer/i);
+ assert.match(fallback.reply,/pauschale Genesungsdauer ist fachlich nicht zuverlässig/i);
  assert.match(fallback.reply,/keine vollständige Expertenbewertung/i);
  assert.ok(fallback.items.some(item=>item.key==='medicine.acl'));
 });
