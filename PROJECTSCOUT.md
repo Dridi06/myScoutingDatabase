@@ -6520,3 +6520,16 @@ Improve natural multi-turn dialogue so short follow-ups, pronouns, corrections a
 - Render STAGING has not yet been updated. The existing deployment `dep-dc51sv56e07s7393msng` remains the last verified live deployment on runtime commit `d39e8e3a0cb0cf4863ddc7082b0a391693c432ed`.
 - The first failing CI runs were `46088875566` (Node tests) and `46088875565` (full STAGING CI); all three identified regressions were corrected before the successful exact-commit runs above.
 - No database/schema or user/player data changes. PR #58 remains open, Draft and unmerged; production remains untouched.
+
+
+### Block 10 STAGING deployment verification — 2026-11-28
+- Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`); configured branch `feature/messinho-conversation-engine`; automatic deployment remains disabled.
+- Exact deployed commit: `7b09843d13a0d2ef2e0bf68643750b98ffd01b88`.
+- Render deployment: `dep-dc5262mi0phs73c3vdvg` — status **live**, finished `2026-11-28T00:41:30.058102Z`.
+- Render build event: `build_ended / succeeded` at `2026-11-28T00:41:12.482445Z`.
+- Render build command ran `npm install --no-audit --no-fund && npm run build`; the build script executes `npm test`, backend `node --check` and Vite production build. The deployment build completed successfully.
+- Runtime logs confirmed `node backend/server.js`, API listening on port 10000, and Supabase Data API HTTP 200.
+- STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- No production branch/service/database changes; no schema migration or user/player data changes.
+- Authenticated Admin/Scout conversation acceptance and latency measurements are still outstanding. Deployment/startup success does not prove subjective dialogue quality.
+- PR #58 remains open, Draft and unmerged.
