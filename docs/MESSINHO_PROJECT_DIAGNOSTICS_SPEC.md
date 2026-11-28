@@ -1,6 +1,6 @@
 # MESSINHO — Projektweite intelligente Diagnose- und Codeverifikation
 
-**Status:** Verbindliche Produktanforderung, Umsetzung noch ausstehend  
+**Status:** Verbindliche Produktanforderung; Block 1 und Teile von Block 2 umgesetzt, weitere Laufzeit- und Integrationsprüfungen offen  
 **Geltungsbereich:** Gesamtes Repository `Dridi06/myScoutingDatabase`, STAGING zuerst  
 **Arbeitsbranch:** `feature/messinho-conversation-engine`  
 **Letzte Aktualisierung:** 2026-11-28
@@ -170,3 +170,48 @@ Der vorhandene `backend/messinho-project-audit.js` ist derzeit überwiegend ein 
 Der sichtbare Diagnosebericht vom 2026-11-28 nennt 230 Quelldateien, 7 nicht auflösbare relative Importe, 74 Backend-Module, 76 Testdateien und 6 Module ohne direkten Testimport sowie einen fehlgeschlagenen Build-/Testskript-Check. Diese Zahlen sind zunächst als zu reproduzierende Diagnosebefunde zu behandeln, nicht als bereits bestätigte Root Causes.
 
 **Nächster konkreter Entwicklungsschritt:** Phase 1 — aktuellen Diagnosefehler reproduzieren und die statische Audit-Ausgabe durch präzise, beleggestützte Finding-Datensätze ergänzen. Danach CI-Ausführung und Abdeckungsanalyse anschließen.
+
+
+## 11. Full-Stack Intelligence & Sandbox Audit — Block 2
+
+Der zusätzliche Full-Stack-Audit ergänzt die projektweite Diagnose um fünf Schichten. Er wird ausschließlich über den geschützten Admin-Endpunkt `POST /api/admin/messinho-diagnostics/run` gestartet und sein Ergebnis wird in der vorhandenen Diagnosehistorie gespeichert.
+
+### 11.1 Code- und Funktionsintrospektion
+- Abgleich des 100-Funktionen-Capability-Katalogs mit ausführbaren Handlern und Laufzeitregistrierung.
+- Separate Kennzeichnung von Speziallogik und generischem Fallback; Registrierung oder Dispatch gelten nicht als End-to-End-Abnahme.
+- AST-basierte Erfassung von JavaScript-/TypeScript-Modulen, Exporten, Imports, Abhängigkeiten, nicht auflösbaren Importen, fehlenden benannten Exporten und Modulzyklen.
+- Der Audit weist die Grenzen des unterstützten Parsers und der nicht ausgeführten Anwendungslaufzeit aus.
+
+### 11.2 LLM- und Linguistic-Engine-Prüfung
+- Standardlauf: Modellname, Endpoint und Vorhandensein der erforderlichen Konfiguration prüfen, ohne Provideraufruf.
+- Optionale Live-Probe nur nach ausdrücklicher Admin-Aktivierung in der Diagnoseoberfläche: maximal 8 Sekunden Timeout, Temperatur 0, JSON-Format, maximal 64 angeforderte Ausgabetoken. Gemessen werden Latenz, JSON-Gültigkeit, erwartete Antwort und vom Provider gemeldete Tokenverwendung.
+- Das vollständige Kontextfenster des Providers wird nicht aus einer einzelnen Antwort abgeleitet.
+- Synthetische Sprachfälle decken Deutsch, Englisch, Französisch und tunesisches Arabisch ab. Mehrfachaufgaben, Quellenattribution und begrenzte Reasoning-Pläne werden separat ausgewiesen.
+
+### 11.3 Sandbox- und Ressourcen-Audit
+- Statische Prüfung des tatsächlich verwendeten GitHub-Actions-/Docker-Setups: Netzwerkabschaltung, Read-only-Container, Speicher-/CPU-/PID-Limits, Capability-Drop, `no-new-privileges`, unprivilegierter Benutzer, schreibgeschützte Quellcode-Mounts, Zeitlimits und Baseline-vor-Kandidat-Reihenfolge.
+- Die Staging-Service-Gate-Logik wird mit einer passenden Staging-Identität und einer abweichenden Production-Identität geprüft. Es wird kein Sandbox-Job ausgelöst.
+- Host-CPU/RAM-Werte werden nicht als Sandbox-Ressourcenwerte ausgegeben. Echte Ressourcenmessung muss aus dem Container oder dessen Jobmetriken kommen.
+
+### 11.4 Kognitive, Sicherheits- und Tool-Stresstests
+- Kontrollierte Capability-Eingaben: null, Array, unbekannte Funktion und übergroße Textfelder; nur reine, nebenwirkungsarme Capability-Validierung.
+- Prompt-Injection-Grenzfall: der Angriffsstring bleibt im User-Datenkanal, Systemregeln kennzeichnen Nutzereingaben als nicht vertrauenswürdig; der Modellanbieter wird dabei nicht aufgerufen.
+- Gesprächsvertrag prüft unter anderem Sprach-/Kontexttreue und die explizite Nichtausführung von Tools.
+- Der öffentliche, erklärbare Reasoning-Vertrag wird geprüft; private Chain-of-Thought wird weder ausgelesen noch gespeichert.
+
+### 11.5 Memory-Integrität und Evolution
+- Synthetischer Memory-Test prüft Dublettenbehandlung, Sensitivitätsfilter, Vertrauensschwelle und Zeitstempel ohne Datenbankmutation.
+- Die vorhandene lexikalische Ähnlichkeitssuche wird separat geprüft. Echte Vektor-Embeddings und ein Vektorindex werden nicht behauptet und bleiben als eigene Integrationslücke ausgewiesen.
+- Vergleich der aktuellen Audit-Erfolgsquote mit bis zu fünf zuvor gespeicherten Läufen; der Trend ist nur bei vergleichbarer Prüfgrundlage aussagekräftig.
+
+### 11.6 Sicherheits- und Wahrheitsregeln
+- Standardlauf: keine externen Provideraufrufe, keine Toolausführung, keine Sandbox-Dispatches, keine Memory-/Datenbankmutation und kein Modellgewichtswechsel.
+- Optionale LLM-Live-Probe: genau ein begrenzter externer Modellaufruf; Antwortinhalt und Secrets werden nicht in den Diagnosebericht übernommen.
+- Der Audit erstellt keine automatischen Code- oder Prompt-Korrekturen. Er liefert Belege und Empfehlungen; Änderungen bleiben Admin-reviewpflichtig.
+- Subjektive Natürlichkeit, Ironie, semantische Tiefe und langfristige Lernkurven benötigen zusätzliche unabhängige Bewertungen und reale Verlaufsdaten.
+
+### 11.7 Umsetzungsstatus
+- Implementiert: `backend/messinho-full-stack-audit.js`, Integration in die Admin-MESSINHO-Diagnose, sichtbare Admin-Option für die optionale Live-LLM-Probe und Regressionstests.
+- Implementiert: AST-basierte Export-/Modulintrospektion, synthetische Sprach-/Reasoning-Tests, Sandbox-Konfigurationsprüfung, Parameter-Fuzzing, Memory-Filter-/Ähnlichkeitstest und Prompt-Injection-Grenztest.
+- Noch offen: echter Provider-Stresstest mit variablen Kontextlängen, XML-/weitere strukturierte Ausgabeformate, echte Container-Ressourcenmetriken, End-to-End-Tool-Fuzzing in kurzlebiger Sandbox, reale Embedding-/Vektorsuche und unabhängige Qualitätsbewertung durch ein Judge-Modell.
+- Ein Prüflauf ist erst nach erfolgreicher CI und anschließendem Admin-Test in STAGING als abgenommen zu kennzeichnen.
