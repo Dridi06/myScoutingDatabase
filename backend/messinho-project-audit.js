@@ -132,7 +132,7 @@ export async function buildMessinhoDependencyGraph({root=PROJECT_ROOT,files=[]}=
   }
  }
  for(const error of buildErrors){
-  const locFile=error?.location?.file?normalizeModulePath(path.relative(root,error.location.file)):null;
+  const locFile=error?.location?.file?normalizeModulePath(path.relative(root,path.isAbsolute(error.location.file)?error.location.file:path.resolve(root,error.location.file))):null;
   const line=error?.location?.line||null,column=error?.location?.column==null?null:error.location.column+1;
   const message=safe(error.text||error.message||'Parser-/Modulauflösungsfehler',1800);
   const missingExport=/No matching export|does not provide an export/i.test(message);
