@@ -177,12 +177,12 @@ function resolveGraphImport(from,specifier,known,aliases,root){
  return null;
 }
 function resolveKnownPath(value,known){
- const base=path.posix.normalize(String(value||'').replace(/^\\//,''));
+ const base=path.posix.normalize(String(value||'').replace(/^\//,''));
  const candidates=path.posix.extname(base)?[base]:[base,...JS_EXTENSIONS.map(ext=>base+ext),...JS_EXTENSIONS.map(ext=>path.posix.join(base,'index'+ext))];
  return candidates.find(candidate=>known.has(candidate))||null;
 }
 export async function buildMessinhoDependencyGraph({root=PROJECT_ROOT,files=[]}={}){
- const modules=files.filter(file=>/\\.(?:js|mjs|cjs|jsx|ts|tsx)$/.test(file)).map(normalizeModulePath);
+ const modules=files.filter(file=>/\.(?:js|mjs|cjs|jsx|ts|tsx)$/.test(file)).map(normalizeModulePath);
  const checkedAt=new Date().toISOString(),known=new Set(files.map(normalizeModulePath));
  if(!modules.length)return {ok:false,checked_at:checkedAt,parser:'babel',nodes:[],edges:[],cycles:[],external_dependencies:[],findings:[],
   coverage:{modules:0,parsed:0,excluded:files.length},metrics:{nodes:0,edges:0,cycles:0,external_dependencies:0,findings:0}};
@@ -237,7 +237,7 @@ export async function buildMessinhoDependencyGraph({root=PROJECT_ROOT,files=[]}=
  }catch{}
  try{
   const vite=await readFile(path.join(root,'vite.config.js'),'utf8');
-  for(const match of vite.matchAll(/['"]([^'"]+)['"]\\s*:\\s*['"]([^'"]+)['"]/g)){
+  for(const match of vite.matchAll(/['"]([^'"]+)['"]\s*:\s*['"]([^'"]+)['"]/g)){
    const find=match[1],replacement=match[2];
    if(find.length<=12&&(replacement.startsWith('./')||replacement.startsWith('/')))aliases.push({find,replacement:path.resolve(root,replacement)});
   }
