@@ -1,8 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { MESSINHO_SANDBOX_BRANCH } from '../backend/messinho-sandbox-dispatch.js';
 import {buildMessinhoSelfRepairGoal,getMessinhoEngineeringReviewSchedule,isMessinhoEngineeringAutoReviewEnabled,isMessinhoEngineeringStagingService,runMessinhoScheduledEngineeringReview} from '../backend/messinho-engineering-scheduler.js';
 
 const staging={MESSINHO_ENGINEERING_AUTOREVIEW_ENABLED:'true',RENDER:'true',RENDER_SERVICE_ID:'stage',MESSINHO_STAGING_RENDER_SERVICE_ID:'stage',OPENAI_API_KEY:'configured',SUPABASE_URL:'https://example.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'configured'};
+test('engineering review, sandbox dispatch and workflow use the active staging branch',async()=>{
+ const workflow=await readFile(new URL('../.github/workflows/messinho-isolated-engineering.yml',import.meta.url),'utf8');
+ assert.equal(MESSINHO_SANDBOX_BRANCH,'feature/messinho-conversation-engine');
+ assert.match(workflow,/branches: \\[feature\\/messinho-conversation-engine\\]/);
+ assert.match(workflow,/refs\\/heads\\/feature\\/messinho-conversation-engine/);
+});
 test('daily review is strictly gated to the explicitly enabled staging service',()=>{
  assert.equal(isMessinhoEngineeringAutoReviewEnabled(staging),true);
  assert.equal(isMessinhoEngineeringAutoReviewEnabled({...staging,RENDER_SERVICE_ID:'production'}),false);
@@ -107,7 +115,7 @@ test('does not persist a proposal when the work window ends during generation',a
 
 test('a real autonomous proposal is dispatched only to the isolated STAGING sandbox',async()=>{
  const db=mockDb();
- db.state.ticket={id:'123e4567-e89b-12d3-a456-426614174001',diff:'bounded patch content',baseline_id:'feature/messinho-unified-ai-integration@'+'b'.repeat(40)};
+ db.state.ticket={id:'123e4567-e89b-12d3-a456-426614174001',diff:'bounded patch content',baseline_id:'feature/messinho-conversation-engine@'+'b'.repeat(40)};
  let dispatched=null;
  const now=new Date('2026-11-27T02:00:00Z');
  const result=await runMessinhoScheduledEngineeringReview({db,now,getCurrentTime:()=>now,
