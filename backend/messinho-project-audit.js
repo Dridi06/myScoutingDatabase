@@ -86,7 +86,7 @@ export function extractModuleSpecifiers(source){
  return [...new Set(extractModuleReferences(source).map(item=>item.specifier))];
 }
 
-function normalizeModulePath(value){return String(value||'').replace(/\\\\/g,'/').replace(/^\\.\\//,'');}
+function normalizeModulePath(value){return String(value||'').replace(/\\/g,'/').replace(/^\.\//,'');}
 function stronglyConnectedComponents(nodes,edges){
  let index=0;const stack=[],onStack=new Set(),indices=new Map(),low=new Map(),components=[];
  function visit(node){
@@ -104,7 +104,7 @@ function stronglyConnectedComponents(nodes,edges){
  return components;
 }
 export async function buildMessinhoDependencyGraph({root=PROJECT_ROOT,files=[]}={}){
- const modules=files.filter(file=>/\\.(?:js|mjs|cjs|jsx|ts|tsx)$/.test(file)).map(normalizeModulePath);
+ const modules=files.filter(file=>/\.(?:js|mjs|cjs|jsx|ts|tsx)$/.test(file)).map(normalizeModulePath);
  const checkedAt=new Date().toISOString();
  if(!modules.length)return {ok:false,checked_at:checkedAt,parser:'esbuild',nodes:[],edges:[],cycles:[],external_dependencies:[],findings:[],
   coverage:{modules:0,parsed:0,excluded:files.length},metrics:{nodes:0,edges:0,cycles:0,external_dependencies:0,findings:0}};
