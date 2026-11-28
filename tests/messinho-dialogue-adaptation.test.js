@@ -62,3 +62,19 @@ test('authenticated chat forwards adaptation to cognitive router and natural com
  assert.ok(router.includes('dialogue_adaptation_context:dialogueAdaptationContext||null'));
  assert.ok(composer.includes('dialogue_adaptation_context: dialogueAdaptationContext || null'));
 });
+
+test('natural reply generation forwards adaptation context to the provider request',async()=>{
+ let requestBody;
+ const {generateMessinhoNaturalConversationReply}=await import('../backend/messinho-natural-conversation.js');
+ const context={adaptation:{detail_level:'concise',maximum_follow_up_questions:1},bounded:true};
+ const result=await generateMessinhoNaturalConversationReply({
+  message:'Kurz bitte.',dialogueAdaptationContext:context,apiKey:'test-key',
+  baseUrl:'https://example.test/v1',model:'test-model',
+  fetchImpl:async(_url,options)=>{
+   requestBody=JSON.parse(options.body);
+   return {ok:true,status:200,json:async()=>({choices:[{message:{content:'Kurzantwort.'}}]})};
+  }
+ });
+ assert.equal(result.status,'completed');
+ assert.equal(requestBody.messages[1].content.includes('concise'),true);
+});
