@@ -138,3 +138,12 @@
  .myki-dashboard .myki-ticket-boards{grid-template-columns:1fr}
  .myki-dashboard .myki-chat-messages{max-height:46vh}
 }
+
+/* Authoritative timestamps for every visible myKI dashboard output */
+.myki-dashboard-timestamp,.myki-maturity-timestamp{display:block;margin-top:5px;color:#aab2bd;font-size:10px;line-height:1.45;font-variant-numeric:tabular-nums}
+.myki-dashboard .myki-ops-note,.myki-dashboard .myki-chat-timestamp{font-variant-numeric:tabular-nums}
+.myki-dashboard .myki-chat-timestamp{display:block;margin-top:5px;color:#aab2bd;font-size:10px;line-height:1.4}
+.myki-dashboard .myki-ticket-board>header+small{display:block;margin:7px 0 9px;color:#aab2bd;font-size:10px;font-variant-numeric:tabular-nums}
+.myki-dashboard .myki-detail-head>div>small{display:block;margin-top:5px;color:#aab2bd;font-size:10px;line-height:1.5;font-variant-numeric:tabular-nums}
+.myki-dashboard .myki-timeline p{font-variant-numeric:tabular-nums}
+.myki-dashboard .myki-ops-error small{display:block;flex-basis:100%;margin-left:23px;color:#d4b8a2;font-size:10px}
