@@ -36,7 +36,7 @@ test('model configuration audit does not claim a live provider check',async()=>{
 });
 
 test('audit history is compared to the prior run rather than the current report',async()=>{
- const history=[{status:'healthy',summary:{total:10,passed:8,failed:2},created_at:'2026-11-27T10:00:00Z'}];
+ const history=[{status:'healthy',summary:{total:10,passed:8,failed:2},created_at:'2026-11-27T10:00:00Z',checks:[{category:'Code & Tools',ok:true},{category:'LLM & Modellbindung',ok:true},{category:'Intelligence & Linguistik',ok:true},{category:'Sandbox & Ressourcen',ok:true},{category:'Kognition & Sicherheit',ok:false}]}];
  const audit=await runMessinhoFullStackIntelligenceAudit({env:{MESSINHO_MODEL_BASE_URL:'http://127.0.0.1:1234/v1'},history});
  const evolution=audit.modules.find(item=>item.category==='Evolution');
  assert.equal(evolution.evidence.previous_runs,1);
