@@ -110,3 +110,10 @@ test('natural replies preserve paragraph breaks and readable multiline formattin
   assert.equal(result.status, 'completed');
   assert.equal(result.reply, 'Erster Absatz.\n\nZweiter Absatz.');
 });
+
+test('natural composer receives explicit continuity context without treating it as evidence',()=>{
+ const continuity={relation:'follow_up',active_topic_candidate:'Wir müssen die Spielerbewertung verbessern.',evidence_policy:'extractive only'};
+ const payload=JSON.parse(buildMessinhoNaturalConversationMessages({message:'Und wie lösen wir das?',conversationContinuityContext:continuity})[1].content);
+ assert.equal(payload.conversation_continuity_context.relation,'follow_up');
+ assert.match(payload.conversation_continuity_context.evidence_policy,/extractive only/);
+});
