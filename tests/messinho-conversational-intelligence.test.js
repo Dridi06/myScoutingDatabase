@@ -247,3 +247,11 @@ test('authenticated chat builds intent evidence before semantic routing',async()
   assert.ok(source.includes('buildMessinhoIntentEvidence({message:interpretedMessage,userRole:profile.role,dialogueState,clarificationContinuity})'));
   assert.ok(source.includes('intentEvidenceContext,\n      contextIntelligenceContext,\n      conversationContinuityContext,'));
 });
+
+test('cognitive router receives semantic response plan as advisory context',()=>{
+ const plan={response_goal:'reassess_and_correct',response_sequence:['recheck_the_disputed_reasoning_or_evidence'],follow_up_policy:{max_questions:1}};
+ const messages=buildMessinhoCognitiveRouterMessages({message:'Nein, das stimmt nicht.',responseIntelligenceContext:plan});
+ const payload=JSON.parse(messages[1].content);
+ assert.equal(payload.response_intelligence_context.response_goal,'reassess_and_correct');
+ assert.match(messages[0].content,/semantic answer plan/i);
+});
