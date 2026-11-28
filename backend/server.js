@@ -565,7 +565,7 @@ async function executeMessinhoDiagnostics(actorProfileId,{probeProvider=false}={
     const ok=Number.isFinite(result.score)&&result.engine_version&&typeof buildMessinhoLearningProposal==='function';
     return {ok,detail:`Lokaler deterministischer Kern arbeitet ohne externe KI-Aufrufe; Engine ${result.engine_version}; Lernmodul ${typeof buildMessinhoLearningProposal}.`};
   });
-  const {data:priorAuditRuns}=await db.from('messinho_diagnostic_runs').select('status,summary,created_at').order('created_at',{ascending:false}).limit(5);
+  const {data:priorAuditRuns}=await db.from('messinho_diagnostic_runs').select('status,summary,checks,created_at').order('created_at',{ascending:false}).limit(5);
   const fullStackAudit=await runMessinhoFullStackIntelligenceAudit({root:process.cwd(),env:process.env,history:priorAuditRuns||[],probeProvider});
   for(const item of fullStackAudit.modules){
     checks.push({name:'Full-Stack · '+item.name,category:item.category,ok:item.ok,detail:item.detail,severity:item.severity,
@@ -581,7 +581,7 @@ async function executeMessinhoDiagnostics(actorProfileId,{probeProvider=false}={
   const warning=checks.some(x=>!x.ok&&x.severity==='warning');
   const status=critical?'critical':warning?'warning':'healthy';
   const finishedAt=new Date().toISOString();
-  const record={triggered_by:'admin',actor_profile_id:actorProfileId,status,started_at:startedAt,finished_at:finishedAt,duration_ms:Date.now()-started,full_stack_audit:fullStackAudit,summary:{total:checks.length,passed:checks.filter(x=>x.ok).length,failed:checks.filter(x=>!x.ok).length,critical_failed:checks.filter(x=>!x.ok&&x.severity==='critical').length,warnings:checks.filter(x=>!x.ok&&x.severity==='warning').length,categories:[...new Set(checks.map(x=>x.category))].length},checks};
+  const record={triggered_by:'admin',actor_profile_id:actorProfileId,status,started_at:startedAt,finished_at:finishedAt,duration_ms:Date.now()-started,full_stack_audit:{version:fullStackAudit.version,status:fullStackAudit.status,summary:fullStackAudit.summary,scope:fullStackAudit.scope,started_at:fullStackAudit.started_at,finished_at:fullStackAudit.finished_at,duration_ms:fullStackAudit.duration_ms,limitations:fullStackAudit.limitations},summary:{total:checks.length,passed:checks.filter(x=>x.ok).length,failed:checks.filter(x=>!x.ok).length,critical_failed:checks.filter(x=>!x.ok&&x.severity==='critical').length,warnings:checks.filter(x=>!x.ok&&x.severity==='warning').length,categories:[...new Set(checks.map(x=>x.category))].length},checks};
   const {data,error}=await db.rpc('save_messinho_diagnostic_run',{p_record:record});
   if(error)throw new Error('MESSINHO-Bericht konnte nicht gespeichert werden: '+error.message);
   return {...record,id:data?.id||data?.run_id||null,persisted:true};
