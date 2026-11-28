@@ -7047,3 +7047,37 @@ Die Komponente erzeugt eine kurze, nutzerorientierte Begründungsstruktur. Sie s
 - Service remains myscoutingdatabase-messinho-staging on feature/messinho-conversation-engine; autoDeploy remains disabled and the deployment was manually triggered.
 - No DB/schema migration, persistent user/player/scout/organization/learning data mutation, model training, model-weight change or permission change. Production remains untouched.
 - The automated suite verifies plan construction and delivery to both model turns. It does not prove real-world reasoning accuracy or authenticated Admin/Scout conversational acceptance; those remain separate acceptance tasks.
+
+
+## 41. Block 19 — Answer Verification & Bounded Self-Correction — 2026-11-28
+
+### Ziel und Abgrenzung
+MESSINHO prüft einen generierten Gesprächsentwurf vor der Ausgabe auf wenige, deterministisch überprüfbare Fehler. Bei einem kritischen Treffer erhält die Antwortgenerierung genau einen Korrekturversuch; der überarbeitete Entwurf wird erneut geprüft. Bleibt ein kritischer Fehler bestehen oder schlägt die Korrektur fehl, wird eine sichere, begrenzte Rückmeldung ausgegeben.
+Diese Schicht ist kein allgemeiner Faktenprüfer und kein Beweisgenerator. Ein Modell-Selbstreview gilt nicht als unabhängige Verifikation. Nicht überprüfbare Aussagen werden höchstens als Prüfhinweis markiert und nicht automatisch als falsch verworfen.
+
+### Implementierung
+- Neu: backend/messinho-answer-verification.js, Version 1.0.0.
+- Neu: tests/messinho-answer-verification.test.js.
+- Deterministische Prozentrechnungskontrolle für explizit behauptete Prozentresultate.
+- Nutzung der bestehenden allowlist-basierten Spieler-Messwertprüfung, wenn der Dialog ausdrücklich einen Spieler-/Fußballerkontext enthält.
+- Advisory-Hinweise bei zeitkritischen oder absoluten Tatsachenbehauptungen ohne strukturierte Recherchebelege; diese Hinweise behaupten nicht, dass die Aussage falsch ist.
+- Begrenzter Korrekturvertrag: maximal vier Befunde/Anweisungen; keine Berechtigungen, Tools, Persistenz oder Datenänderungen.
+
+### Integration und Korrekturschleife
+- backend/server.js prüft den ersten Gesprächsentwurf nach der Generierung.
+- Bei revision_required wird genau ein weiterer Aufruf des Natural Conversation Composers mit begrenzten, strukturierten Prüfbefunden und dem fehlerhaften Entwurf ausgelöst.
+- Der korrigierte Entwurf wird erneut durch dieselbe deterministische Prüfschicht geleitet.
+- Bleibt ein kritischer Fehler bestehen oder ist der Korrekturaufruf nicht erfolgreich, wird kein ungeprüfter Entwurf ausgegeben; MESSINHO antwortet mit einer sicheren Rückmeldung oder einer vorhandenen spezifischen Safe-Reply.
+- backend/messinho-natural-conversation.js erhält answer_verification_feedback nur für diesen Korrekturversuch.
+- Die bestehende Conversation Response Guard bleibt als zusätzliche Schutzschicht aktiv.
+
+### Sicherheits- und Datenumfang
+- Keine DB-/Schema-Migration und keine Persistenz von Prüfentwürfen.
+- Keine Modellgewichtsänderung und kein automatisches Training.
+- Keine Berechtigungsänderung oder neue Toolausführung.
+- Nur deterministisch prüfbare Fälle dürfen eine automatische Korrektur erzwingen; allgemeine Wahrheit wird nicht behauptet.
+- STAGING-only; Produktion bleibt unangetastet.
+
+### Verifikation
+- Implementierung und Integration sind erfolgt; vollständige Tests, Syntaxprüfung, Vite-Build und Render-STAGING-Deployment stehen noch aus.
+- Authentifizierte Admin-/Scout-End-to-End-Abnahme bleibt separat erforderlich.
