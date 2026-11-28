@@ -1,9 +1,9 @@
 name: MESSINHO backend syntax
 on:
   push:
-    branches: [feature/messinho-unified-ai-integration, feature/messinho-conversational-intelligence-2]
+    branches: [feature/messinho-unified-ai-integration, feature/messinho-conversational-intelligence-2, feature/messinho-conversation-engine]
   pull_request:
-    branches: [main, feature/messinho-unified-ai-integration]
+    branches: [main, feature/messinho-unified-ai-integration, feature/messinho-conversation-engine]
 jobs:
   backend-syntax:
     runs-on: ubuntu-latest
@@ -12,7 +12,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: node --check backend/server.js
+      - name: Install dependencies\n        run: npm install --ignore-scripts --no-audit --no-fund\n      - run: node --check backend/server.js
       - run: node --check backend/messinho-agent-core.js
       - run: node --check backend/messinho-orchestrator.js
       - run: npm test
