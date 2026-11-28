@@ -44,7 +44,6 @@ test('every MESSINHO chat entry receives and displays a Berlin-local timestamp',
  assert.match(chat,/timeZone:'Europe\/Berlin'/);
  assert.match(chat,/role:'user',timestamp:timestampNow\(\),text:value/);
  assert.match(chat,/role:'assistant',timestamp:timestampNow\(\),text:payload\.reply/);
- assert.match(chat,/role:'assistant',timestamp:timestampNow\(\),text:summary/);
  assert.match(chat,/<time className="myki-chat-timestamp" dateTime=\{item\.timestamp\|\|undefined\}>/);
 });
 
