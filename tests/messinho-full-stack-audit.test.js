@@ -5,9 +5,9 @@ import { runMessinhoFullStackIntelligenceAudit } from '../backend/messinho-full-
 test('full-stack audit covers all five layers and records safe execution boundaries',async()=>{
  const audit=await runMessinhoFullStackIntelligenceAudit({env:{MESSINHO_MODEL_BASE_URL:'http://127.0.0.1:1234/v1'},history:[]});
  assert.equal(audit.audit_type,'full_stack_intelligence_sandbox_audit');
- assert.equal(audit.modules.length,6);
+ assert.equal(audit.modules.length,9);
  const categories=new Set(audit.modules.map(item=>item.category));
- for(const category of ['Code & Tools','LLM & Modellbindung','Intelligence & Linguistik','Sandbox & Ressourcen','Kognition & Sicherheit','Evolution'])assert.ok(categories.has(category),category);
+ for(const category of ['Code & Tools','LLM & Modellbindung','Intelligence & Linguistik','Sandbox & Ressourcen','Kognition & Sicherheit','Tool-Fuzzing','Memory & Vektoren','Sicherheit','Evolution'])assert.ok(categories.has(category),category);
  assert.equal(audit.scope.external_provider_calls,0);
  assert.equal(audit.scope.tool_executions,0);
  assert.equal(audit.scope.sandbox_jobs_dispatched,0);
@@ -38,4 +38,13 @@ test('audit history is compared to the prior run rather than the current report'
  assert.equal(evolution.evidence.previous_runs,1);
  assert.equal(evolution.evidence.previous_pass_rates[0],0.8);
  assert.equal(evolution.evidence.trend,'improving');
+});
+
+test('tool fuzzing, memory integrity and prompt injection boundaries pass safely',async()=>{
+ const audit=await runMessinhoFullStackIntelligenceAudit({env:{MESSINHO_MODEL_BASE_URL:'http://127.0.0.1:1234/v1'}});
+ for(const category of ['Tool-Fuzzing','Memory & Vektoren','Sicherheit']){
+  const item=audit.modules.find(module=>module.category===category);
+  assert.ok(item,category);
+  assert.equal(item.ok,true,JSON.stringify(item.evidence));
+ }
 });
