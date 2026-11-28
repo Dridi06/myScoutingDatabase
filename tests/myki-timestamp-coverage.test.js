@@ -25,7 +25,7 @@ test('MESSINHO input and output persist database timestamps and lifecycle metada
  assert.match(server,/server_received_at:row\.metadata\?\.server_received_at/);
 });
 
-test('primary Scout/Admin MESSINHO conversation displays authoritative timestamps for each message',async()=>{
+test('primary Scout/Admin MESSINHO conversation displays one local clock timestamp per message',async()=>{
  const [chat,styles,main]=await Promise.all([
   read('src/asi/MessinhoWorkspace.jsx'),read('src/asi/messinho.css'),read('src/main.jsx')
  ]);
@@ -42,17 +42,15 @@ test('primary Scout/Admin MESSINHO conversation displays authoritative timestamp
  assert.match(main,/\['log','info','warn','error','debug'\]/);
 });
 
-test('myKI chat restores stored timestamps and displays input, server receipt and generated output times',async()=>{
+test('myKI chat restores message timestamps but displays only the local clock time',async()=>{
  const chat=await read('src/asi/MyKiChat.jsx');
  assert.match(chat,/fetch\('\/api\/agent\/conversation'/);
  assert.match(chat,/client_submitted_at:clientSubmittedAt/);
  assert.match(chat,/input_persisted_at/);
  assert.match(chat,/output_persisted_at/);
- assert.match(chat,/Eingabe gespeichert/);
- assert.match(chat,/Ausgabe gespeichert/);
- assert.match(chat,/Servereingang/);
- assert.match(chat,/Erzeugt/);
- assert.match(chat,/timeZone:'Europe\/Berlin'/);
+ assert.match(chat,/hour:'2-digit',minute:'2-digit',timeZone:'Europe\/Berlin'/);
+ assert.match(chat,/<time className="myki-chat-timestamp" dateTime={item.timestamp\|\|undefined}>\{formatTimestamp\(item.timestamp\)\}<\/time>/);
+ assert.doesNotMatch(chat,/Client gesendet|Servereingang|Ausgabe gespeichert|Eingabe gespeichert|Erzeugt ·/);
 });
 
 test('all myKI dashboard panels expose their server or record timestamp',async()=>{
