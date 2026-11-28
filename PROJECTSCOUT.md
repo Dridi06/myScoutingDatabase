@@ -6698,3 +6698,17 @@ MESSINHO soll nicht nur Sprachprofile und einzelne grammatische Signale erkennen
 
 ### Change & Decision Log
 | 2026-11-28 | Satzstruktur-Analyse als nächste Linguistic-Intelligence-Stufe integrieren; keine parallele Chatoberfläche und keine automatische Textkorrektur. | In progress | Block 13; Feature-Branch und STAGING-only. |
+
+
+### Block 13 verification addendum — 2026-11-28
+- Corrected two test-discovered implementation defects before acceptance:
+  - The language lexicons were initially split with an incorrectly escaped whitespace regular expression; corrected both verb and subject lexicon tokenization.
+  - The first CI attempt also exposed an array/Set mismatch; corrected the lexicon lookup contract.
+- Exact tested code commit: `8a615ff31a46dcbff44b544eb50ac369aa89f3c8`.
+- MESSINHO Node tests: workflow run `46103371667` — **664 passed, 0 failed**.
+- Backend syntax: workflow run `46103371701` — **success**.
+- Full STAGING branch CI/build: workflow run `46103371703` — **success**, including regression suite, backend syntax checks and Vite production build.
+- The successful checks cover the tested code commit above. The subsequent documentation-only commit does not change runtime code.
+- Block 13 is **implemented and CI-verified**, but not yet deployed or live. Render STAGING deployment verification is pending.
+- No database migration, persistent user/player/scout/learning data change, model training, model-weight update, permission change, or production resource change.
+- PR #58 remains Draft and unmerged; production remains untouched.
