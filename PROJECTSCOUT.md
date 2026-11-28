@@ -9,7 +9,7 @@
 - **Production branch:** `main`
 - **Production URL:** https://myscoutingdatabase.onrender.com
 - **Document owner:** Project owner / user
-- **Last updated:** 2026-11-27
+- **Last updated:** 2026-11-28
 - **Document status:** Active — authoritative project record
 
 ---
@@ -6378,3 +6378,34 @@ Turn dialogue and pragmatic cues into a useful response structure, so MESSINHO a
 3. Deploy the exact tested head to the named Render STAGING service only.
 4. Test natural multi-turn dialogue, correction, disagreement, follow-up question with preserved constraints, ambiguous reference, explicit emotion and topic change using authenticated accounts.
 5. Keep PR #58 Draft and unmerged until the owner explicitly authorizes otherwise.
+
+
+## 29. Block 7/8 verification and pragmatic cue-strength correction — 2026-11-28
+
+### Review finding and correction
+- Post-deployment review found a field-name mismatch in `backend/messinho-pragmatic-context.js`: cue construction read `entry.confidence`, while the pattern definitions provide `entry.signal_strength`.
+- Corrected the mapping to `signal_strength: entry.signal_strength`; the statement fallback retains an explicit bounded strength of `0.55`.
+- Added regression assertions in `tests/messinho-pragmatic-context.test.js` for correction (`0.94`), disagreement (`0.90`), opinion (`0.87`) and explicit emotion (`0.86`).
+- Runtime correction commit: `7bbf084871fa5264916d2ed777f2f48739be7c9a`.
+- Regression-test commit / exact feature-branch head at verification: `08dd035d2edabebdcf7b8c51a6bfc5527871da98`.
+
+### Exact-head CI
+All three workflows completed successfully on exact head `08dd035d2edabebdcf7b8c51a6bfc5527871da98`:
+- MESSINHO Node tests: run `46086151986` — success.
+- Backend syntax: run `46086152006` — success.
+- MESSINHO STAGING branch CI: run `46086151981` — success.
+- These results establish automated test/build success for this exact commit; they do not establish authenticated end-to-end dialogue quality.
+
+### STAGING release gate
+- Render service verified: `myscoutingdatabase-messinho-staging`, service ID `srv-dc3chlqjnfac73acd6ig`.
+- Service branch: `feature/messinho-conversation-engine`; automatic deployment is disabled (`autoDeploy=no`), so deployment must be manually triggered after checks.
+- Workspace: `tea-dboagk9srm7s73bdor10`.
+- At this checkpoint, the cue-strength correction has not yet been deployed. Deploy only the exact CI-verified feature-branch head, then verify deployment status and deployed commit.
+- Authenticated Admin/Scout end-to-end tests remain outstanding, including multi-turn continuity, correction, disagreement, follow-up constraints, ambiguous references, explicit emotion and topic changes.
+- PR #58 remains open, Draft and unmerged. Production branch, service and database remain untouched.
+
+### Next actions
+1. Trigger the verified feature-branch commit on the named STAGING service only.
+2. Confirm deployment is live and reports the expected commit SHA; inspect startup logs and staging health.
+3. Run authenticated dialogue acceptance tests and record observed responses separately from automated CI.
+4. Continue with the next conversational-engine block only after the staging acceptance baseline is recorded.
