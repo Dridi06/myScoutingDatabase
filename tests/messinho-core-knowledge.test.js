@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MESSINHO_CORE_KNOWLEDGE_VERSION,getMessinhoCoreKnowledgeManifest,getMessinhoCoreKnowledgeContext} from '../backend/messinho-core-knowledge.js';
+import {MESSINHO_CORE_KNOWLEDGE_VERSION,getMessinhoCoreKnowledgeManifest,getMessinhoCoreKnowledgeContext,formatMessinhoCoreKnowledgeFallback} from '../backend/messinho-core-knowledge.js';
 
 test('core knowledge is loaded and versioned at runtime',()=>{
  const manifest=getMessinhoCoreKnowledgeManifest();
@@ -36,4 +36,12 @@ test('knowledge is explicitly marked as foundational and not exhaustive expert c
  assert.equal(manifest.source_type,'first_party_curated');
  assert.equal(manifest.external_research_required_for_current_or_specialist_facts,true);
  assert.ok(getMessinhoCoreKnowledgeContext('Kreuzbandriss').items.every(item=>item.level==='foundational'));
+});
+
+test('formats a bounded local answer when external evidence is unavailable',()=>{
+ const fallback=formatMessinhoCoreKnowledgeFallback('Wie lange dauert die Genesung nach einem Kreuzbandriss?');
+ assert.equal(fallback.status,'available');
+ assert.match(fallback.reply,/keine pauschale Genesungsdauer/i);
+ assert.match(fallback.reply,/keine vollständige Expertenbewertung/i);
+ assert.ok(fallback.items.some(item=>item.key==='medicine.acl'));
 });
