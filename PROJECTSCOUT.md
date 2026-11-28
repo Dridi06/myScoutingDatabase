@@ -7514,3 +7514,15 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Render STAGING Deployment `dep-dc5cgqh7lnhs73bg920g` für Commit `f1a02255a2a25e7ddb216cf603c5257aea0cdbab` ist **LIVE**. API-Start auf Port 10000 und Supabase Data API Health-Check HTTP 200 sind in den Service-Logs bestätigt.
 - Isolierter Engineering-Sandboxlauf `46144606823` war bei der Dokumentation weiterhin im Schritt Docker-Compiler-Image-Build. Daher wird hierfür kein Erfolg behauptet. Die reguläre Test-, Syntax- und Buildpipeline ist vollständig erfolgreich.
 - Production bleibt unverändert. Nächster praktischer Abnahmeschritt: Benutzer soll auf STAGING angemeldet bleiben, zwischen Browser-Tabs und anderen Programmen wechseln und prüfen, ob weder Login-Maske noch Welcome-Animation erneut erscheinen. Der echte geräte-/browserübergreifende Laufzeittest kann nicht durch statische Tests ersetzt werden.
+
+
+
+### Block 6 — myKI-Entwickler-Fehlerdiagnose und Chat-Zeitstempelkorrektur (28.11.2026)
+- Benutzerabnahme: Session bleibt beim Tab-/App-Wechsel erhalten; MESSINHO-Chat zeigt Zeitstempel. Zwei verbleibende Punkte gemeldet: überflüssiges Zeichen direkt nach der Chatzeit und myKI-Entwickler meldet `MYKI_ENGINEERING_REVIEW_FAILED`.
+- Quellcodeprüfung bestätigte in `src/asi/MyKiChat.jsx` ein zusätzliches `}` direkt nach dem schließenden `</time>`-Element. Der Render-Ausdruck wurde korrigiert; Regressionstest prüft das JSX-Markup. Ein vorhandener Vite/esbuild-Loghinweis hatte genau diese ungültige Klammer gemeldet.
+- Engineering-Review-Fehlerpfad untersucht: `backend/messinho-myki-engineer.js` las 17 festgelegte Dateien vom gepinnten Branch-Commit und gab bei unerwarteten GitHub-/Provider-/Netzwerkfehlern nur einen generischen Fehler zurück. Die 17 geprüften Quelldateien lagen jeweils unter dem konfigurierten 32.000-Zeichenlimit.
+- Fehlerbehandlung erweitert: sichere Stage-/Ursachenkennzeichnung (GitHub-Commit, GitHub-Quelldateien, Provider), HTTP-Statusklassen, ungültige JSON-Antworten, Timeout und Netzwerkfehler. Keine Antwortkörper, Zugangsdaten oder Tokens werden protokolliert. Scheduler speichert den sicheren Grund im Review-Fehlercode; Admin-Statusmeldung zeigt ihn zusätzlich an.
+- Regressionstests ergänzt: GitHub-HTTP-Fehler, Provider-HTTP-429, keine Secret-Ausgabe, dauerhafte Übernahme der sicheren Fehlerursache sowie Chat-Zeitstempel-Markup.
+- Arbeitsbranch enthält die Änderungen; letzter Code-/Testcommit: `b49cfe95e1107f1980e81d1a577b88fd90dc225a`. Die CI-Nachprüfung für diesen neuesten Commit ist noch nicht bestätigt. Daher **kein STAGING-Deployment ausgelöst** und keine Aussage, dass der myKI-Entwickler bereits wieder erfolgreich läuft.
+- STAGING bleibt auf der zuletzt bestätigten Laufversion; Production und Production-Datenbank bleiben unverändert.
+- Nächster Schritt: CI für den neuesten Branch-Stand vollständig abwarten/prüfen. Bei grünem Test-, Syntax- und Buildlauf kontrolliert nach STAGING deployen; danach „Entwicklung starten“ erneut auslösen und den nun sichtbaren sicheren Fehlergrund bzw. einen erfolgreichen Vorschlag verifizieren.
