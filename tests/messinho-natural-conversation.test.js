@@ -124,3 +124,11 @@ test('natural composer receives the semantic answer plan and uncertainty policy'
  assert.equal(payload.response_intelligence_context.response_goal,'answer_then_reason');
  assert.equal(payload.response_intelligence_context.follow_up_policy.max_questions,1);
 });
+
+
+test('natural composer receives bounded reasoning plan for actual response generation',()=>{
+ const plan={task:{kind:'calculation'},decomposition:{required:true,steps:[{id:'identify_inputs'}]},validation_checks:['verify_arithmetic_and_units']};
+ const payload=JSON.parse(buildMessinhoNaturalConversationMessages({message:'Berechne 15 Prozent.',reasoningIntelligenceContext:plan})[1].content);
+ assert.equal(payload.reasoning_intelligence_context.task.kind,'calculation');
+ assert.ok(payload.reasoning_intelligence_context.validation_checks.includes('verify_arithmetic_and_units'));
+});
