@@ -25,6 +25,23 @@ test('MESSINHO input and output persist database timestamps and lifecycle metada
  assert.match(server,/server_received_at:row\.metadata\?\.server_received_at/);
 });
 
+test('primary Scout/Admin MESSINHO conversation displays authoritative timestamps for each message',async()=>{
+ const [chat,styles,main]=await Promise.all([
+  read('src/asi/MessinhoWorkspace.jsx'),read('src/asi/messinho.css'),read('src/main.jsx')
+ ]);
+ assert.match(chat,/client_submitted_at:clientSubmittedAt/);
+ assert.match(chat,/input_persisted_at/);
+ assert.match(chat,/output_persisted_at/);
+ assert.match(chat,/serverReceivedAt/);
+ assert.match(chat,/message\.persisted\?'Ausgabe gespeichert'/);
+ assert.match(chat,/message\.persisted\?'Eingabe gespeichert'/);
+ assert.match(chat,/formatMessinhoTimestamp\(message\.timestamp\)/);
+ assert.match(chat,/timeZone:'Europe\/Berlin'/);
+ assert.match(styles,/\.messinho-message-timestamp/);
+ assert.match(main,/Client-side logs receive the same UTC audit prefix/);
+ assert.match(main,/\['log','info','warn','error','debug'\]/);
+});
+
 test('myKI chat restores stored timestamps and displays input, server receipt and generated output times',async()=>{
  const chat=await read('src/asi/MyKiChat.jsx');
  assert.match(chat,/fetch\('\/api\/agent\/conversation'/);
