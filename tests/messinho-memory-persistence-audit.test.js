@@ -10,7 +10,7 @@ function createMemoryDb({failDelete=false}={}){
   const query={
    upsert(record){state.op='upsert';state.record={...record,id:'audit-row-1'};return this;},
    select(){return this;},
-   maybeSingle(){return Promise.resolve({data:state.op==='upsert'?state.record:(rows.find(row=>Object.entries(state.filters).every(([key,value])=>row[key]===value))||null),error:null});},
+   maybeSingle(){return Promise.resolve({data:state.op==='upsert'?state.record:(rows.find(row=>Object.entries(state.filters).every(([key,value])=>value&&typeof value==='object'&&'gt' in value?row[key]>value.gt:row[key]===value))||null),error:null});},
    eq(key,value){if(value!==undefined)state.filters[key]=value;return this;},
    gt(key,value){state.filters[key]={gt:value};return this;},
    update(values){state.op='update';state.record=values;return this;},
