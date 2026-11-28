@@ -5,7 +5,7 @@ import { runMessinhoMemoryPersistenceAudit } from '../backend/messinho-memory-pe
 function createMemoryDb({failDelete=false}={}){
  const rows=[];
  return {rows,from(table){
-  assert.equal(table,'messinho_knowledge_memory');
+  assert.ok(['messinho_knowledge_memory','messinho_agent_memory'].includes(table));
   const state={op:null,record:null,filters:{}};
   const query={
    upsert(record){state.op='upsert';state.record={...record,id:'audit-row-1'};return this;},
