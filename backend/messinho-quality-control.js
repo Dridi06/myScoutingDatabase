@@ -1,3 +1,4 @@
+import { resolveMessinhoModelConfig, requestMessinhoModelCompletion } from './messinho-model-runtime.js';
 /**
  * Bounded MESSINHO quality control. The deterministic evidence gate is authoritative.
  */
@@ -19,15 +20,19 @@ export async function reviewMessinhoDraft({question,draft,sources=[],claims=[],e
  const unsupportedClaims=claims.filter(claim=>!sources.some(source=>claim.source_urls?.includes(source.url)&&(()=>{const tokens=String(claim.text||'').toLocaleLowerCase('de-DE').split(/\s+/).filter(token=>token.length>=4);const sourceText=(String(source.title||'')+' '+String(source.snippet||'')).toLocaleLowerCase('de-DE');const matches=tokens.filter(token=>sourceText.includes(token)).length;return tokens.length>=3&&matches>=3&&matches/tokens.length>=.35;})()));
  const links=inspectMessinhoAnswerLinks(draft,sources);
  const deterministic={passed:invalidClaims.length===0&&unsupportedClaims.length===0&&links.valid,invalid_claims:invalidClaims.length,unsupported_claims:unsupportedClaims.length,links};
- if(!env.OPENAI_API_KEY)return {passed:false,score:0,feedback:'Unabhängige Kritikerprüfung ist nicht verfügbar.',deterministic,review_available:false};
+ const modelConfig=resolveMessinhoModelConfig(env);
+ if(!modelConfig.baseUrl||(!modelConfig.apiKey&&modelConfig.requiresApiKey))return {passed:false,score:0,feedback:'Unabhängige Kritikerprüfung ist nicht verfügbar.',deterministic,review_available:false};
  try{
-  const response=await fetchImpl('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(18000),headers:{Authorization:'Bearer '+env.OPENAI_API_KEY,'Content-Type':'application/json'},
-   body:JSON.stringify({model:env.OPENAI_MODEL||'gpt-4.1-mini',temperature:0,response_format:{type:'json_object'},messages:[
+  const completion=await requestMessinhoModelCompletion({
+   baseUrl:modelConfig.baseUrl,apiKey:modelConfig.apiKey,model:modelConfig.model,fetchImpl,timeoutMs:18000,
+   temperature:0,responseFormat:{type:'json_object'},
+   messages:[
     {role:'system',content:MESSINHO_CRITIC_SYSTEM_PROMPT},
     {role:'user',content:JSON.stringify({question:clean(question,700),draft:clean(draft,5000),sources:sources.slice(0,8).map(s=>({title:s.title,url:s.url,publisher:s.publisher,snippet:clean(s.snippet,900)})),deterministic_checks:deterministic})}
-   ]})});
-  if(!response.ok)throw new Error('critic_unavailable');
-  const data=await response.json(),parsed=JSON.parse(data.choices?.[0]?.message?.content||'{}');
+   ]
+  });
+  if(completion.status!=='completed')throw new Error('critic_unavailable');
+  const parsed=JSON.parse(completion.content||'{}');
   const score=Math.max(1,Math.min(10,Math.round(Number(parsed.score)||1)));
   return {passed:parsed.passed===true&&score>=8&&deterministic.passed,score,feedback:clean(parsed.feedback,1200),deterministic,review_available:true};
  }catch{return {passed:false,score:0,feedback:'Die unabhängige Qualitätsprüfung konnte nicht zuverlässig abgeschlossen werden.',deterministic,review_available:false};}
