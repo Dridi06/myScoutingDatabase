@@ -54,15 +54,19 @@ async function runCapabilityDiscovery(root){
  const graph=await buildMessinhoDependencyGraph({root,files:sourceFiles});
  const blockingGraphFindings=graph.findings.filter(item=>['critical','high'].includes(item.severity));
  const exportedSymbolCount=Object.values(graph.exported_symbols||{}).reduce((sum,names)=>sum+(Array.isArray(names)?names.length:0),0);
+ const discoveredSymbols=Object.values(graph.symbols_by_module||{}).reduce((summary,item)=>{
+  summary.functions+=(item?.functions?.length||0);summary.classes+=(item?.classes?.length||0);
+  summary.methods+=(item?.methods?.length||0);return summary;
+ },{functions:0,classes:0,methods:0});
  const ok=duplicates.length===0&&missing.length===0&&unexpected.length===0&&runtime.all_registered===true&&blockingGraphFindings.length===0;
  return check('Code- und Funktionsintrospektion','Code & Tools',ok,
   'Katalogfunktionen: '+declared.length+'; registrierte Handler: '+runtime.unique_handlers+
   '; Speziallogik: '+specialist.length+'; generische Fallbacks: '+fallback.length+
   '; nicht dispatchte Funktionen: '+runtime.undispatched_count+
-  '; doppelte IDs: '+duplicates.length+'; AST-geprüfte Module: '+graph.coverage.parsed+'; exportierte Symbole: '+exportedSymbolCount+'; blockierende Parser-/Importbefunde: '+blockingGraphFindings.length+'. Registrierung ist kein Beweis für End-to-End-Fertigstellung.',
+  '; doppelte IDs: '+duplicates.length+'; AST-geprüfte Module: '+graph.coverage.parsed+'; exportierte Symbole: '+exportedSymbolCount+'; AST-Funktionen: '+discoveredSymbols.functions+'; Klassen: '+discoveredSymbols.classes+'; Methoden: '+discoveredSymbols.methods+'; blockierende Parser-/Importbefunde: '+blockingGraphFindings.length+'. Registrierung ist kein Beweis für End-to-End-Fertigstellung.',
   ok?'info':'critical',{runtime,catalog_groups:catalog.map(group=>({id:group.id,total:group.total})),
    duplicate_ids:duplicates,missing_ids:missing,unexpected_ids:unexpected,
-   generic_fallback_ids:fallback.slice(0,100),specialist_logic_ids:specialist.slice(0,100),module_graph:{parser:graph.parser,coverage:graph.coverage,metrics:graph.metrics,cycles:graph.cycles,findings:graph.findings,exported_symbols:graph.exported_symbols}},
+   generic_fallback_ids:fallback.slice(0,100),specialist_logic_ids:specialist.slice(0,100),module_graph:{parser:graph.parser,coverage:graph.coverage,metrics:graph.metrics,cycles:graph.cycles,findings:graph.findings,exported_symbols:graph.exported_symbols,discovered_symbols:discoveredSymbols,symbols_by_module:graph.symbols_by_module}},
   'Capability-Katalog, Dispatcher und Handlerregistrierung abgleichen; generische Fallbacks nicht als vollständig implementierte Spezialfunktionen ausgeben.');
 }
 function runLinguisticSyntheticTests(){
