@@ -73,3 +73,16 @@ test('multi-language correction and assumption cues are recognized conservativel
  assert.equal(assumption.evidence_ledger.assumptions.length,1);
  assert.equal(assumption.evidence_ledger.hypotheses.length,1);
 });
+
+
+test('authenticated chat creates one reasoning plan and forwards it to both language-model turns',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const server=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+ const router=await readFile(new URL('../backend/messinho-conversational-intelligence.js',import.meta.url),'utf8');
+ const natural=await readFile(new URL('../backend/messinho-natural-conversation.js',import.meta.url),'utf8');
+ assert.ok(server.includes("import { buildMessinhoReasoningIntelligence } from './messinho-reasoning-intelligence.js';"));
+ assert.ok(server.includes('const reasoningIntelligenceContext=buildMessinhoReasoningIntelligence('));
+ assert.ok(server.includes('reasoningIntelligenceContext,'));
+ assert.ok(router.includes('reasoning_intelligence_context:reasoningIntelligenceContext||null'));
+ assert.ok(natural.includes('reasoning_intelligence_context: reasoningIntelligenceContext || null'));
+});
