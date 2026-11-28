@@ -2369,16 +2369,16 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
           processing_started_at:processingStartedAt,output_generated_at:outputGeneratedAt,output_persisted_at:storedAssistantMessage?.created_at||null},
         input_correction:correctionApplied?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:correction.changed?{applied:false,suggested:correction.corrected,confidence:correction.confidence}:{applied:false}});
     };
-    // Basic social conversation must remain available even when the language-model
-    // provider is unavailable. This deterministic path cannot dispatch tools/actions.
-    const socialReply=getMessinhoSocialReply(interpretedMessage,history,new Date());
-    if(socialReply)return respond({reply:socialReply,intent:'social_conversation',items:[],cognitive_routing:{status:'deterministic_social',actions_dispatched:false}});
     // Scouts may use MESSINHO for scouting and conversation, but cannot issue
     // commands that alter MESSINHO, its knowledge governance, operating mode,
     // model, sandbox, or platform-wide configuration. Enforce before routing.
     if(profile.role==='scout'&&isMessinhoAdminOnlyCommand(interpretedMessage)){
       return respond({reply:'Diese Anweisung ist aus Sicherheitsgründen Administratoren vorbehalten. Du kannst MESSINHO weiterhin uneingeschränkt für normale Scouting-Fragen, Spieleranalysen und Recherchen nutzen.',intent:'admin_command_denied',items:[],permission:{allowed:false,required_role:'admin'}});
     }
+    // Basic social conversation must remain available even when the language-model
+    // provider is unavailable. This deterministic path cannot dispatch tools/actions.
+    const socialReply=getMessinhoSocialReply(interpretedMessage,history,new Date());
+    if(socialReply)return respond({reply:socialReply,intent:'social_conversation',items:[],cognitive_routing:{status:'deterministic_social',actions_dispatched:false}});
     const actor={user:authData.user,profile};
     const agentMemory=await loadMessinhoAgentMemory(ownerId);
     const entityResolution=resolveMessinhoEntityReferences({
