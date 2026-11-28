@@ -7147,7 +7147,13 @@ Die hierarchische Wissensarchitektur und die Legacy-Domain-Wissensschicht waren 
 - Die Migration ist auf `myScoutingDatabase-staging` ausgeführt und durch Abfrage beider Check-Constraints verifiziert. Es wurden keine Wissensinhalte importiert oder verändert.
 - Es werden keine Wissensinhalte automatisch aktiviert oder importiert. Die bestehenden Rechte-, Quellen-, Evidenz- und Admin-Freigaben bleiben unverändert.
 - Keine Änderung an Scouting-Bewertungen, Modellgewichten, Rollen, RLS oder Produktionssystem.
-- Vor der Nutzung der neuen Domains in STAGING muss die Migration dort kontrolliert angewendet und anschließend die Datenbankintegration getestet werden.
+- Die Domain-Constraints sind auf STAGING erweitert und verifiziert. Die nächste Abnahme prüft nun die vollständige Runtime-Kette: Klassifikation → Rechte-/Quellenprüfung → Retrieval → fachliche Antwortgrenzen → Admin-Freigabe.
 
 ### Nächster Schritt
 Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen. Dazu gehören repräsentative Grundfragen, korrekte Domain-Zuordnung, Quellen-/Rechteprüfung, Retrieval-Treffer, fachliche Grenzen und ein kontrollierter Admin-Freigabepfad. Erst danach wird eine fachbezogene Wissensaufnahme erweitert.
+
+
+### Supabase advisor note — 2026-11-28
+- Nach der Domain-Migration wurden Security- und Performance-Advisors auf `myScoutingDatabase-staging` ausgeführt. Die Migration selbst hat keine RLS-, Grant-, Rollen- oder Funktionsänderung vorgenommen.
+- Vorbestehender Security-Hinweis: `public.admin_set_scout_approval(uuid, boolean)` ist als SECURITY DEFINER für `authenticated` ausführbar. Der Funktionskörper prüft zusätzlich `auth.uid()` und `private.is_admin()`; die tatsächliche Ausführungsnotwendigkeit und Grant-Beschränkung ist separat zu reviewen. Nicht Teil von Block 21 und nicht verändert.
+- Weitere Advisor-Informationen betreffen RLS-aktivierte, policy-freie serverseitige Tabellen sowie deaktivierten Schutz vor kompromittierten Passwörtern. Diese bestehenden Betriebs-/Sicherheitsbefunde bleiben separat offen; keine automatische Änderung im Rahmen dieser Domain-Erweiterung.
