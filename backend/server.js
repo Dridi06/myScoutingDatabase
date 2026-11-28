@@ -2275,9 +2275,21 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       conversation_id:conversationId,owner_id:ownerId,role:'user',content:message,metadata:{}
     });
     if(userMessageError)return res.status(503).json({error:'Deine Nachricht konnte nicht dauerhaft gespeichert werden. Bitte versuche es erneut.'});
-    const correction=correctMessinhoInput(message);
-    const interpretedMessage=correction.corrected;
-    const linguisticContext=buildMessinhoLinguisticContext(message,history);
+    const baseLinguisticContext=buildMessinhoLinguisticContext(message,history);
+    const correction=correctMessinhoInput(message,{language:baseLinguisticContext.primary_language});
+    const correctionApplied=correction.changed&&correction.confidence==='high'&&correction.language==='de';
+    const interpretedMessage=correctionApplied?correction.corrected:message;
+    const inputInterpretation={
+      original_message:message,
+      normalized_message:interpretedMessage,
+      correction_status:correctionApplied?'applied':correction.changed?'suggested':correction.skipped_reason?'skipped':'unchanged',
+      correction_confidence:correction.confidence,
+      correction_suggestions:correction.changed&&!correctionApplied?correction.corrections.slice(0,8).map(item=>({
+        from:String(item.from||'').slice(0,80),to:String(item.to||'').slice(0,80),kind:item.kind
+      })):[],
+      policy:'Only high-confidence German corrections are applied to routing and parsing. Medium-confidence matches are suggestions only. Other languages and mixed-language messages are preserved unchanged. Proper names and unknown words must not be guessed.'
+    };
+    const linguisticContext={...baseLinguisticContext,input_interpretation:inputInterpretation};
     let linguisticKnowledgeStatus='not_loaded';
     const respond=async payload=>{
       const researchContext=payload.researchContext||((payload.sources?.length||payload.profile||payload.player||payload.club||payload.team||payload.entities?.length)?{
@@ -2300,7 +2312,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       if(assistantSaveError)console.warn('MESSINHO assistant message persistence unavailable:',assistantSaveError.code||'unknown');
       const {error:touchError}=await db.from('messinho_conversations').update({updated_at:new Date().toISOString()}).eq('id',conversationId).eq('owner_id',ownerId);
       if(touchError)console.warn('MESSINHO conversation timestamp update unavailable:',touchError.code||'unknown');
-      return res.json({...payload,conversation_id:conversationId,linguistic_intelligence:clientLinguisticIntelligence,linguistic_knowledge:{status:linguisticKnowledgeStatus},input_correction:correction.changed?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:{applied:false}});
+      return res.json({...payload,conversation_id:conversationId,linguistic_intelligence:clientLinguisticIntelligence,linguistic_knowledge:{status:linguisticKnowledgeStatus},input_correction:correctionApplied?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:correction.changed?{applied:false,suggested:correction.corrected,confidence:correction.confidence}:{applied:false}});
     };
     // Scouts may use MESSINHO for scouting and conversation, but cannot issue
     // commands that alter MESSINHO, its knowledge governance, operating mode,
@@ -2313,7 +2325,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const entityResolution=resolveMessinhoEntityReferences({
       message:interpretedMessage,history,activeEntities:agentMemory.active_entities
     });
-    const dialogueState=buildMessinhoDialogueState({message,history,userRole:profile.role,linguisticContext});
+    const dialogueState=buildMessinhoDialogueState({message:interpretedMessage,history,userRole:profile.role,linguisticContext});
     const conversationContinuityContext=buildMessinhoConversationContinuityContext({message:interpretedMessage,history,dialogueState});
     dialogueState.entity_resolution=entityResolution;
     const clarificationContinuity=buildMessinhoClarificationContinuity({message:interpretedMessage,history,dialogueState});
@@ -2337,7 +2349,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const pragmaticContext=buildMessinhoPragmaticContext({message:interpretedMessage,linguisticContext});
     const responseCompositionContext=buildMessinhoResponseCompositionContext({message:interpretedMessage,dialogueState,clarificationContinuity,pragmaticContext});
     const cognitiveResult=await classifyMessinhoTurn({
-      message,
+      message:interpretedMessage,
       history,
       memory:agentMemory,
       linguisticContext:{...linguisticContext,dialogue_state:dialogueState},
