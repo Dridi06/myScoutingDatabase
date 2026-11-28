@@ -22,7 +22,7 @@ test('ethics questions classify in German and English as a distinct knowledge do
 });
 
 test('staging migration expands both legacy and canonical knowledge table constraints',async()=>{
- const sql=await readFile(new URL('../supabase/migrations/20261128190000_messinho_chemistry_ethics_domains.sql',import.meta.url),'utf8');
+ const sql=await readFile(new URL('../supabase/migrations/20261128042845_messinho_chemistry_ethics_domains.sql',import.meta.url),'utf8');
  assert.match(sql,/messinho_knowledge_concepts_domain_check/);
  assert.match(sql,/messinho_domain_knowledge_domain_check/);
  assert.match(sql,/'chemistry'/);
