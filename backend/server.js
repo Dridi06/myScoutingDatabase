@@ -53,6 +53,7 @@ import { buildMessinhoLinguisticContext, buildMessinhoLinguisticResponseMetadata
 import { classifyMessinhoTurn, appendMessinhoLongTermMemories } from './messinho-conversational-intelligence.js';
 import { generateMessinhoNaturalConversationReply } from './messinho-natural-conversation.js';
 import { buildMessinhoDialogueState } from './messinho-dialogue-engine.js';
+import { buildMessinhoDialogueAdaptationContext } from './messinho-dialogue-adaptation.js';
 import { buildMessinhoConversationContinuityContext } from './messinho-conversation-continuity.js';
 import { buildMessinhoClarificationContinuity } from './messinho-clarification-continuity.js';
 import { resolveMessinhoEntityReferences } from './messinho-entity-resolution.js';
@@ -2374,7 +2375,8 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       contextIntelligenceContext,
       responseIntelligenceContext,
       reasoningIntelligenceContext,
-      conversationContinuityContext,
+      dialogueAdaptationContext,
+       conversationContinuityContext,
       userRole:profile.role,
       apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
       baseUrl:process.env.MESSINHO_MODEL_BASE_URL||process.env.OPENAI_BASE_URL||'https://api.openai.com/v1',
@@ -2446,7 +2448,8 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         responseCompositionContext,
         responseIntelligenceContext,
         reasoningIntelligenceContext,
-        conversationContinuityContext,
+        dialogueAdaptationContext,
+       conversationContinuityContext,
         userRole:profile.role,
         apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
         baseUrl:process.env.MESSINHO_MODEL_BASE_URL||process.env.OPENAI_BASE_URL||'https://api.openai.com/v1',
