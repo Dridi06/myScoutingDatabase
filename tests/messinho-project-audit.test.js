@@ -276,6 +276,7 @@ test('provider scanner finds OpenAI runtime calls and config without reading sec
   "const apiKey = process.env.OPENAI_API_KEY;",
   "const baseUrl = process.env.MESSINHO_MODEL_BASE_URL;",
   "await fetch('https://api.openai.com/v1/chat/completions',{headers:{Authorization:'Bearer '+apiKey}});",
+  "await fetchWithTransientRetry(fetchImpl,'https://api.openai.com/v1/chat/completions',{});",
   "import OpenAI from 'openai';"
  ].join('\n');
  const result=scanMessinhoProviderReferences(source,'backend/chat.js');
@@ -283,6 +284,7 @@ test('provider scanner finds OpenAI runtime calls and config without reading sec
  assert.equal(result.references.some(item=>item.kind==='environment_variable_reference'&&item.detail==='MESSINHO_MODEL_BASE_URL'),true);
  assert.equal(result.references.some(item=>item.kind==='direct_http_provider_call'&&item.provider==='openai'),true);
  assert.equal(result.references.some(item=>item.kind==='provider_sdk_import'&&item.provider==='openai'),true);
+ assert.equal(result.references.some(item=>item.kind==='provider_url_call_argument'&&item.provider==='openai'),true);
  assert.equal(result.references.some(item=>item.kind==='provider_url_literal'&&item.detail.includes('api.openai.com')),true);
  assert.equal(result.references.some(item=>item.detail.includes('comment-only')),false);
  assert.equal(result.references.every(item=>!JSON.stringify(item).includes('secret-value')),true);
