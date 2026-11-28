@@ -3183,7 +3183,7 @@ input,select,textarea{
 .myki-dashboard .myki-monitor-plan article>small{color:var(--myki-gold-bright)}
 .myki-dashboard .myki-monitor-schedule-details{margin-top:12px;border:1px solid rgba(216,183,109,.15);border-radius:10px;background:rgba(0,0,0,.12)}
 .myki-dashboard .myki-monitor-schedule{margin:0;border:0;border-radius:0 0 10px 10px}
-.myki-dashboard .myki-layout{gap:12px}
+.myki-dashboard .myki-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
 .myki-dashboard .myki-inbox,
 .myki-dashboard .myki-detail{border-color:var(--myki-gold-line);background:linear-gradient(145deg,rgba(20,24,30,.98),rgba(9,12,17,.98))}
 .myki-dashboard .myki-section-title h2,
