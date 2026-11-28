@@ -28,7 +28,7 @@ test('model configuration audit does not claim a live provider check',async()=>{
  const audit=await runMessinhoFullStackIntelligenceAudit({env:{MESSINHO_MODEL_BASE_URL:'http://127.0.0.1:1234/v1'}});
  const model=audit.modules.find(item=>item.category==='LLM & Modellbindung');
  assert.equal(model.ok,true);
- assert.equal(model.evidence.live_provider_probe,'not_run');
+ assert.equal(model.evidence.live_provider_probe,'not_requested');
 });
 
 test('audit history is compared to the prior run rather than the current report',async()=>{
