@@ -27,7 +27,7 @@ async function listSourceFiles(root,relative){
  for(const entry of entries){
   if(entry.isDirectory()&&!['node_modules','.git','dist','build','coverage','.next'].includes(entry.name))
    found.push(...await listSourceFiles(root,path.join(relative,entry.name)));
-  else if(entry.isFile()&&/\\.(?:js|mjs|cjs|jsx|ts|tsx)$/.test(entry.name))
+  else if(entry.isFile()&&/\.(?:js|mjs|cjs|jsx|ts|tsx)$/.test(entry.name))
    found.push(path.posix.join(relative.split(path.sep).join('/'),entry.name));
  }
  return found;
