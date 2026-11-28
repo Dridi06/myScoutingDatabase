@@ -154,7 +154,7 @@ test('parser-backed dependency graph resolves internal imports, records packages
   await writeFile(path.join(root,'backend','alpha.js'),"import { beta } from './beta.js';\nimport express from 'express';\nexport const alpha=()=>beta+Boolean(express);");
   await writeFile(path.join(root,'backend','beta.js'),"import { alpha } from './alpha.js';\nexport const beta=()=>Boolean(alpha);");
   const graph=await buildMessinhoDependencyGraph({root,files:['backend/alpha.js','backend/beta.js']});
-  assert.equal(graph.parser,'vite/rollup');
+  assert.equal(graph.parser,'@babel/parser');
   assert.equal(graph.coverage.modules,2);
   assert.equal(graph.edges.length,2);
   assert.equal(graph.external_dependencies.includes('express'),true);
