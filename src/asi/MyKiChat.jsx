@@ -64,7 +64,7 @@ export default function MyKiChat({supabase}){
    const failed=checks.filter(item=>item.ok===false);
    const passed=payload.summary?.passed??checks.length-failed.length;
    const total=payload.summary?.total??checks.length;
-   const details=failed.slice(0,5).map((item,index)=>(index+1)+'. '+(item.name||'Prüfung')+': '+(item.detail||'Keine Detailbeschreibung verfügbar.')).join('\\n');
+   const details=failed.slice(0,5).map((item,index)=>(index+1)+'. '+(item.name||'Prüfung')+': '+(item.detail||'Keine Detailbeschreibung verfügbar.')).join('\n');
    const summary='Diagnose abgeschlossen und gespeichert.\\nErgebnis: '+(payload.status||'unbekannt').toUpperCase()+' · '+passed+'/'+total+' Prüfungen bestanden · '+failed.length+' Auffälligkeiten.'+(details?'\\n\\nGefundene Auffälligkeiten:\\n'+details:failed.length>5?'\\n\\nWeitere Auffälligkeiten stehen im Diagnose-Center.':'\\n\\nKeine Fehler gefunden.');
    setMessages(prev=>[...prev,{id:'diag-'+(payload.id||Date.now()),role:'assistant',text:summary}]);
   }catch(err){setError(err.message||'Die MESSINHO-Diagnose ist fehlgeschlagen.');}
