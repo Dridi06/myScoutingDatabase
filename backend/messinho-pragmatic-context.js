@@ -23,7 +23,7 @@ export function buildMessinhoPragmaticContext({message,linguisticContext=null}={
   const matches=[];
   for(const entry of PATTERNS){
     if(entry.pattern.test(text)){
-      matches.push({act:entry.act,signal_strength:entry.confidence,evidence:'explicit_surface_cue',response_guidance:entry.guidance});
+      matches.push({act:entry.act,signal_strength:entry.signal_strength,evidence:'explicit_surface_cue',response_guidance:entry.guidance});
       if(matches.length>=2)break;
     }
   }
