@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { correctMessinhoInput } from '../backend/messinho-input-correction.js';
+import { correctMessinhoInput, inferMessinhoCorrectionLanguage } from '../backend/messinho-input-correction.js';
 
 test('corrects common German spelling and split-word errors', () => {
   const result = correctMessinhoInput('Such mir ein sturmer der schnell ist und gut ab schlissen kann');
@@ -59,6 +59,7 @@ test('authenticated chat applies only high-confidence German corrections to sema
   const source = await readFile(new URL('../backend/server.js', import.meta.url), 'utf8');
   assert.match(source, /buildMessinhoLinguisticContext\(message,history\)/);
   assert.match(source, /hasNonGermanSegment=baseLinguisticContext\.segments\.some/);
+  assert.match(source, /inferMessinhoCorrectionLanguage\(message,detectedCorrectionLanguage\)/);
   assert.match(source, /correctMessinhoInput\(message,\{language:correctionLanguage\}\)/);
   assert.match(source, /correction\.changed&&correction\.confidence==='high'&&correction\.language==='de'/);
   assert.match(source, /message:interpretedMessage/);
@@ -83,4 +84,12 @@ test('semantic router treats medium corrections as suggestions and preserves ent
   assert.equal(payload.linguistic_context.input_interpretation.correction_status, 'suggested');
   assert.equal(payload.linguistic_context.input_interpretation.normalized_message, interpretation.original_message);
   assert.match(messages[0].content, /Medium-confidence spelling matches are suggestions/);
+});
+
+
+test('infers German correction conservatively when several known German typos obscure the language', () => {
+  assert.equal(inferMessinhoCorrectionLanguage('Suhce 5 spiler aus Deutchland'), 'de');
+  assert.equal(inferMessinhoCorrectionLanguage('Suhce bitte'), null);
+  assert.equal(inferMessinhoCorrectionLanguage('Chnowa rayek fel joueur hedha?', null), null);
+  assert.equal(inferMessinhoCorrectionLanguage('Suhce 5 spiler aus Deutchland', 'en'), 'en');
 });
