@@ -114,7 +114,26 @@ export async function buildMessinhoDependencyGraph({root=PROJECT_ROOT,files=[]}=
    outdir:path.join(root,'.messinho-diagnostic-output'),entryNames:'[dir]/[name]-[hash]',packages:'external',
    logLevel:'silent',color:false,legalComments:'none',sourcemap:false,treeShaking:false});
   metafile=result.metafile;
- }catch(error){buildErrors=Array.isArray(error?.errors)?error.errors:[{text:safe(error?.message||error,1800),location:null,notes:[]}];metafile=error?.metafile||null;}
+ }catch(error){
+  buildErrors=Array.isArray(error?.errors)?error.errors:[{text:safe(error?.message||error,1800),location:null,notes:[]}];
+  metafile=error?.metafile||null;
+  // Preserve the graph even when one edge is broken: parse all entry points again
+  // with imports externalized, then resolve local edges against the repository inventory.
+  if(!metafile){
+   try{
+    const parsed=await esbuildBuild({absWorkingDir:root,entryPoints:modules,bundle:true,write:false,metafile:true,
+     outdir:path.join(root,'.messinho-diagnostic-parse'),entryNames:'[dir]/[name]-[hash]',packages:'external',
+     logLevel:'silent',color:false,legalComments:'none',sourcemap:false,treeShaking:false,
+     plugins:[{name:'messinho-audit-externalize-imports',setup(build){
+      build.onResolve({filter:/.*/},args=>({path:args.path,external:true}));
+     }}]});
+    metafile=parsed.metafile;
+   }catch(parseError){
+    const parseErrors=Array.isArray(parseError?.errors)?parseError.errors:[];
+    for(const item of parseErrors)if(!buildErrors.some(existing=>existing.text===item.text&&existing.location?.file===item.location?.file))buildErrors.push(item);
+   }
+  }
+ }
  const inputNames=Object.keys(metafile?.inputs||{}).map(normalizeModulePath);
  const nodes=new Set(inputNames.length?inputNames:modules),edges=new Map([...nodes].map(node=>[node,new Set()]));
  const externalDependencies=new Set(),findings=[],edgeList=[];
@@ -124,10 +143,11 @@ export async function buildMessinhoDependencyGraph({root=PROJECT_ROOT,files=[]}=
   const from=normalizeModulePath(input);
   for(const item of meta.imports||[]){
    const target=normalizeModulePath(item.path);
-   if(item.external){externalDependencies.add(item.path);continue;}
-   if(nodes.has(target)){edges.get(from)?.add(target);
-    const ref=(referencesByFile.get(from)||[]).find(candidate=>candidate.specifier===item.original?.path||candidate.specifier===item.path);
-    edgeList.push({from,to:target,kind:item.kind||'import',line:ref?.line||null,column:ref?.column||null});
+   const ref=(referencesByFile.get(from)||[]).find(candidate=>candidate.specifier===item.original?.path||candidate.specifier===item.path);
+   const resolved=item.external&&String(item.path).startsWith('.')?resolveRelativeImport(from,item.path,nodes):target;
+   if(item.external&&!String(item.path).startsWith('.')){externalDependencies.add(item.path);continue;}
+   if(resolved&&nodes.has(resolved)){edges.get(from)?.add(resolved);
+    edgeList.push({from,to:resolved,kind:item.kind||'import',line:ref?.line||null,column:ref?.column||null});
    }
   }
  }
