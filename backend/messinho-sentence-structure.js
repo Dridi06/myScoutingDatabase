@@ -86,7 +86,7 @@ function classifyMarker(token, rules) {
 
 function analyzeClause(sentence, sentenceOffset, tokens, languageId, rules, index) {
   const verbLexicon = new Set(rules.verbs.split(/\s+/u));
-  const subjectLexicon = new Set(rules.subjects.split(/\\s+/u));
+  const subjectLexicon = new Set(rules.subjects.split(/\s+/u));
   const markerToken = tokens[0];
   const markerType = markerToken ? classifyMarker(markerToken.normalized, rules) : null;
   const verbCandidates = tokens.filter(token => verbLexicon.has(token.normalized));
