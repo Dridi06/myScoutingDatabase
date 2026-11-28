@@ -7741,3 +7741,33 @@ Die vier direkten OpenAI-HTTP-Aufrufstellen und die übrigen OpenAI-Referenzen e
 - Nächste Schritte: CI abschließend prüfen; Routen-/Worker-/Capability-Matrix vervollständigen; Migrationen inhaltlich vergleichen; danach weitere direkte Providerzugriffe hinter die neutrale Laufzeit ziehen; erst nach bestandener CI Staging-Deploy und authentifizierte Smoke-Tests.
 
 **Gate 0 bleibt OFFEN.** Keine Datenbankänderung, kein Staging-Deploy, kein Production-Eingriff.
+
+
+## 28.11.2026 — Providerentkopplung der Gesprächs- und Analysepfade
+
+- Branch: feature/messinho-conversation-engine.
+- Code-HEAD: 1a401c2a70d125a7db973cf522b78bb29d8d5936.
+- Der freie Gesprächspfad, die ASI-Spielersuche/Discovery, Spieleranalyse und Spieler-Folgefragen verwenden jetzt die providerneutrale Sprachlaufzeit.
+- Auch allgemeine Wissenssynthese, Qualitätskritik, Spielerprofil-Synthese und Marktwertanalyse wurden auf dieselbe Schnittstelle umgestellt.
+- Die Sprachlaufzeit bevorzugt MESSINHO_MODEL_BASE_URL / MESSINHO_MODEL_API_KEY / MESSINHO_MODEL_NAME. OPENAI_* bleibt als temporärer Kompatibilitäts-Fallback erhalten, damit die Übergangsphase nicht künstlich blockiert wird.
+- Tavily bleibt ein eigenständiger Rechercheanbieter. Keine Vermischung von Websuche und Sprachmodell.
+- Health-/Diagnoseanzeige meldet jetzt die providerneutrale Sprachdienst-Konfiguration.
+- Repository-Scan auf Code-HEAD: 64 Runtime-Referenzen, 28 OpenAI-Referenzen, 0 direkte OpenAI-HTTP-Aufrufstellen und 1 über Hilfsfunktion ausgeführte HTTP-URL-Aufrufstelle. Die verbleibenden OpenAI-Referenzen liegen in Scheduler, Modellkompatibilität, MyKi-Engineering und Legacy-Konfiguration. MyKi-Engineering ist noch nicht migriert.
+- CI: 812/812 Node-Tests bestanden; Backend-Syntax success; Staging-Branch-CI success.
+- Ein früherer CI-Lauf schlug fehl, weil ein Audit-Test ausschließlich direkte HTTP-Aufrufe erwartete. Der Test wurde korrekt auf die Erkennung von HTTP-URL-Aufrufstellen über Wrapper angepasst; die aktuelle CI auf dem genannten HEAD ist erfolgreich.
+- Supabase STAGING Advisor: 13 RLS-Tabellen ohne Policies haben nachweislich keine anon/authenticated SELECT-/INSERT-Grants; deny-by-default/service-role-only. Keine Policies ergänzen.
+- Supabase WARN: SECURITY DEFINER Funktion admin_set_scout_approval ist für authenticated ausführbar, prüft aber auth.uid() und private.is_admin(). Least-Privilege-Prüfung offen; vor Änderung Client-Nutzung ausschließen.
+- Supabase WARN: Leaked Password Protection deaktiviert; Auth-Konfiguration separat auf STAGING prüfen.
+- Vier unindizierte Fremdschlüssel, 42 als ungenutzt markierte Indizes. Keine Änderungen ohne Workload-/Migrationsprüfung.
+- Render Staging ist auf den richtigen Branch konfiguriert, autoDeploy aus. Live läuft noch auf altem Commit 46ddebed678b495d7575e8548ecf0c0369c3967a. Kein Deploy in diesem Schritt.
+- Staging-Log zeigt zuvor HTTP 429 / credit_balance_exhausted beim OpenAI-Anbieter. Ein erfolgreicher Code-Test ist kein Nachweis einer live funktionierenden Sprachantwort.
+- Keine Production-Änderung, keine Supabase-Änderung, keine Migration und kein Deploy.
+
+### Nächster verbindlicher Schritt
+1. Aktuellen Code-HEAD kontrolliert auf STAGING deployen, nachdem der Dokumentationscommit ebenfalls CI-geprüft ist.
+2. Authentifizierte Smoke-Tests: Hallo/Smalltalk, freie normale Frage, Folgefrage mit Kontext, providerneutraler Modellpfad, Recherchepfad und Quota-Fehler.
+3. MyKi-Engineering an die providerneutrale Laufzeit anbinden und Scheduler-Konfigurationsgate aktualisieren, ohne Retry-/Quota-Semantik zu verlieren.
+4. Supabase Least-Privilege-Funktion und Auth-Leaked-Password-WARN prüfen; Migrationen nur nach Inhaltsvergleich.
+5. Route-/Job-/Capability-/Schema-Matrix abschließen.
+
+**Gate 0 bleibt OFFEN.** Staging-only; Production unverändert.
