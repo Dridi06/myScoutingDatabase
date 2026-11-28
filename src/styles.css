@@ -3219,3 +3219,49 @@ input,select,textarea{
   .myki-dashboard .myki-summary strong{font-size:23px}
   .myki-dashboard .myki-summary article>span{font-size:8px}
 }
+
+/* myKI dashboard — sketch-aligned control and dual-ticket layout */
+.myki-dashboard .myki-maturity-top{margin:0 0 14px;padding:14px 16px;border:1px solid var(--myki-gold-line);border-radius:14px;background:linear-gradient(145deg,rgba(19,23,29,.98),rgba(8,12,17,.98))}
+.myki-dashboard .myki-maturity-top .myki-maturity-header h3{display:flex;align-items:center;gap:8px;margin:4px 0;color:var(--myki-gold-bright);font-size:15px}
+.myki-dashboard .myki-maturity-top .myki-maturity-score strong{font-size:28px}
+.myki-dashboard .myki-operations{margin:0 0 14px}
+.myki-dashboard .myki-ops-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.myki-dashboard .myki-ops-card{min-width:0;padding:14px;border:1px solid var(--myki-gold-line);border-radius:13px;background:linear-gradient(145deg,rgba(20,24,30,.98),rgba(9,12,17,.98));box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
+.myki-dashboard .myki-ops-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.myki-dashboard .myki-ops-card h2{display:flex;align-items:center;gap:7px;margin:5px 0 0;color:#eee5d2;font-size:15px}
+.myki-dashboard .myki-ops-card h2 svg{color:var(--myki-gold)}
+.myki-dashboard .myki-ops-state{max-width:48%;padding:5px 8px;border:1px solid rgba(216,183,109,.22);border-radius:20px;color:#c5b48c;font-size:9px;text-align:center}
+.myki-dashboard .myki-ops-state.running{border-color:rgba(95,180,132,.45);color:#9fe0b8}
+.myki-dashboard .myki-ops-actions{display:flex;flex-wrap:wrap;gap:7px;margin:13px 0 9px}
+.myki-dashboard .myki-ops-actions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:7px 10px;border:1px solid rgba(216,183,109,.3);border-radius:8px;background:linear-gradient(145deg,#e9d39b,#b58c48);color:#171a20;font-size:10px;font-weight:750}
+.myki-dashboard .myki-ops-actions button.secondary{background:rgba(216,183,109,.055)!important;color:#e7d8b4!important}
+.myki-dashboard .myki-ops-actions button.danger{background:rgba(125,43,47,.22)!important;border-color:rgba(213,91,91,.42)!important;color:#ffb4b4!important}
+.myki-dashboard .myki-ops-actions button:disabled{opacity:.42;cursor:not-allowed}
+.myki-dashboard .myki-ops-info{min-height:42px;margin:8px 0;color:#aab5c5;font-size:10px;line-height:1.55}
+.myki-dashboard .myki-ops-note{display:flex;align-items:center;gap:5px;margin:8px 0 0;color:#8290a3;font-size:9px;line-height:1.45}
+.myki-dashboard .myki-ops-error{display:flex;align-items:center;gap:8px;margin-top:10px;padding:9px 11px;border:1px solid rgba(213,91,91,.3);border-radius:9px;color:#ffb4b4;font-size:11px}
+.myki-dashboard .myki-ticket-boards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:0}
+.myki-dashboard .myki-ticket-board{min-width:0;margin:0;padding:13px;border:1px solid var(--myki-gold-line);background:linear-gradient(145deg,rgba(20,24,30,.98),rgba(9,12,17,.98))}
+.myki-dashboard .myki-ticket-board>header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.myki-dashboard .myki-ticket-board>header h2{display:flex;align-items:center;gap:7px;margin:4px 0 0;color:#eee5d2;font-size:14px}
+.myki-dashboard .myki-ticket-board>header h2 svg{color:var(--myki-gold)}
+.myki-dashboard .myki-ticket-count{color:#aab5c5;font-size:9px}
+.myki-dashboard .myki-board-list{display:grid;gap:7px}
+.myki-dashboard .myki-board-ticket{display:grid;gap:5px;width:100%;min-width:0;padding:10px;border:1px solid rgba(216,183,109,.16);border-radius:9px;background:rgba(0,0,0,.2);color:#dbe2eb;text-align:left;cursor:pointer}
+.myki-dashboard .myki-board-ticket>span{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.myki-dashboard .myki-board-ticket>span b{color:#d8bd80;font-size:9px}
+.myki-dashboard .myki-board-ticket>span i{font-style:normal}
+.myki-dashboard .myki-board-ticket strong{font-size:11px;line-height:1.4}
+.myki-dashboard .myki-board-ticket small{color:#8997a9;font-size:9px}
+.myki-dashboard .myki-board-ticket p{display:-webkit-box;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin:0;color:#aab5c5;font-size:9px;line-height:1.45}
+.myki-dashboard .myki-board-ticket.selected{border-color:rgba(216,183,109,.72)!important;background:rgba(216,183,109,.09)!important}
+.myki-dashboard .myki-board-empty{display:grid;justify-items:center;gap:6px;padding:22px 10px;text-align:center;color:#8f9caf}
+.myki-dashboard .myki-board-empty svg{color:var(--myki-gold)}
+.myki-dashboard .myki-board-empty strong{color:#d7c18f;font-size:11px}
+.myki-dashboard .myki-board-empty p{max-width:280px;margin:0;font-size:9px;line-height:1.5}
+.myki-dashboard .myki-board-pagination{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;color:#929fb0;font-size:9px}
+.myki-dashboard .myki-board-pagination>div{display:flex;gap:6px}
+.myki-dashboard .myki-board-pagination button{display:inline-flex;align-items:center;gap:3px;min-height:29px;padding:5px 8px;border:1px solid rgba(216,183,109,.25);border-radius:7px;background:rgba(216,183,109,.055);color:#e7d8b4;font-size:9px}
+.myki-dashboard .myki-detail{margin-top:12px}
+@media(max-width:850px){.myki-dashboard .myki-ops-grid,.myki-dashboard .myki-ticket-boards{grid-template-columns:1fr}}
+@media(max-width:560px){.myki-dashboard .myki-ops-card{padding:11px}.myki-dashboard .myki-ops-actions{display:grid;grid-template-columns:1fr}.myki-dashboard .myki-ops-actions button{width:100%}.myki-dashboard .myki-ticket-board{padding:11px}}
