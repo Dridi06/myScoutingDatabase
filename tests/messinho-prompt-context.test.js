@@ -18,7 +18,7 @@ test('MESSINHO system prompt does not force German when the user writes in anoth
 
 test('actual authenticated chat route loads and injects linguistic intelligence and approved language knowledge',async()=>{
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
-  const contextCall=source.indexOf('const linguisticContext=buildMessinhoLinguisticContext(message,history)');
+  const contextCall=source.indexOf('const baseLinguisticContext=buildMessinhoLinguisticContext(message,history)');
   const knowledgeCall=source.indexOf('await findMessinhoLanguageKnowledge(db,message,history)');
   const promptInjection=source.indexOf("Sprachdiagnose: '+JSON.stringify(linguisticContext)");
   const knowledgeInjection=source.indexOf("JSON.stringify(linguisticKnowledgeContext)");
