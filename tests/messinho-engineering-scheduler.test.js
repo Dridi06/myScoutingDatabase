@@ -57,6 +57,15 @@ test('claims one review per Berlin work window and records no-improvement result
  const result=await runMessinhoScheduledEngineeringReview({db,now:new Date('2026-11-27T02:00:00Z'),getCurrentTime:()=>new Date('2026-11-27T02:00:00Z'),generate:async()=>({ok:true,proposal:null,source_sha:'a'.repeat(40)})});
  assert.equal(result.status,'no_improvement');assert.equal(db.state.claim.review_date,'2026-11-27');assert.equal(db.state.claim.review_slot,'morning');assert.equal(db.state.update.status,'no_improvement');
 });
+test('preserves a safe upstream failure reason in the durable review result',async()=>{
+ const db=mockDb();
+ const result=await runMessinhoScheduledEngineeringReview({db,now:new Date('2026-11-27T18:00:00Z'),getCurrentTime:()=>new Date('2026-11-27T18:00:00Z'),
+  generate:async()=>({ok:false,code:'MYKI_ENGINEERING_REVIEW_FAILED',failure_stage:'provider',failure_reason:'provider_http_429'})});
+ assert.equal(result.ok,false);
+ assert.equal(result.failure_reason,'provider_http_429');
+ assert.equal(db.state.update.error_code,'MYKI_ENGINEERING_REVIEW_FAILED:provider_http_429');
+});
+
 test('does not duplicate an already claimed review window',async()=>{
  const db=mockDb({claimError:{code:'23505'}});
  const result=await runMessinhoScheduledEngineeringReview({db,now:new Date('2026-11-27T02:00:00Z')});
