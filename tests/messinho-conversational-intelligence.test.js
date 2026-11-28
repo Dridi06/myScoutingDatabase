@@ -245,7 +245,7 @@ test('authenticated chat builds intent evidence before semantic routing',async()
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
   assert.ok(source.includes("import { buildMessinhoIntentEvidence } from './messinho-intent-intelligence.js';"));
   assert.ok(source.includes('buildMessinhoIntentEvidence({message:interpretedMessage,userRole:profile.role,dialogueState,clarificationContinuity})'));
-  assert.ok(source.includes('intentEvidenceContext,\n      contextIntelligenceContext,\n      responseIntelligenceContext,\n      conversationContinuityContext,'));
+  assert.ok(source.includes('intentEvidenceContext,\n      contextIntelligenceContext,\n      responseIntelligenceContext,\n      reasoningIntelligenceContext,\n      conversationContinuityContext,'));
 });
 
 test('cognitive router receives semantic response plan as advisory context',()=>{
@@ -254,4 +254,15 @@ test('cognitive router receives semantic response plan as advisory context',()=>
  const payload=JSON.parse(messages[1].content);
  assert.equal(payload.response_intelligence_context.response_goal,'reassess_and_correct');
  assert.match(messages[0].content,/semantic answer plan/i);
+});
+
+
+test('cognitive router receives the bounded reasoning plan and keeps it advisory',()=>{
+ const plan={task:{kind:'comparison',complexity:'complex'},decomposition:{required:true,steps:[{id:'define_options'}]},evidence_ledger:{verified_facts:[],assumptions:['if X']},confidence_policy:'not_numerically_scored_without_calibrated_evidence'};
+ const messages=buildMessinhoCognitiveRouterMessages({message:'Vergleiche A und B.',reasoningIntelligenceContext:plan});
+ const payload=JSON.parse(messages[1].content);
+ assert.equal(payload.reasoning_intelligence_context.task.kind,'comparison');
+ assert.equal(payload.reasoning_intelligence_context.decomposition.required,true);
+ assert.match(messages[0].content,/bounded problem-solving plan/i);
+ assert.match(messages[0].content,/never private hidden chain-of-thought/i);
 });
