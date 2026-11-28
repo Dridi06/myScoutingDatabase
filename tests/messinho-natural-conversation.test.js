@@ -94,7 +94,7 @@ test('natural reply rejects JSON-shaped model output', async () => {
 });
 
 test('natural conversation module exposes an explicit version', () => {
-  assert.equal(MESSINHO_NATURAL_CONVERSATION_VERSION, '1.0.0');
+  assert.equal(MESSINHO_NATURAL_CONVERSATION_VERSION, '1.1.0');
 });
 
 test('natural replies preserve paragraph breaks and readable multiline formatting', async () => {
@@ -116,4 +116,11 @@ test('natural composer receives explicit continuity context without treating it 
  const payload=JSON.parse(buildMessinhoNaturalConversationMessages({message:'Und wie lösen wir das?',conversationContinuityContext:continuity})[1].content);
  assert.equal(payload.conversation_continuity_context.relation,'follow_up');
  assert.match(payload.conversation_continuity_context.evidence_policy,/extractive only/);
+});
+
+test('natural composer receives the semantic answer plan and uncertainty policy',()=>{
+ const responsePlan={response_goal:'answer_then_reason',response_sequence:['answer_the_actual_question_first_when_supportable'],uncertainty_policy:{mode:'do_not_present_unverified_details_as_facts'},follow_up_policy:{max_questions:1}};
+ const payload=JSON.parse(buildMessinhoNaturalConversationMessages({message:'Warum?',responseIntelligenceContext:responsePlan})[1].content);
+ assert.equal(payload.response_intelligence_context.response_goal,'answer_then_reason');
+ assert.equal(payload.response_intelligence_context.follow_up_policy.max_questions,1);
 });
