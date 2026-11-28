@@ -6647,3 +6647,12 @@ Eingaben sollen auch bei Tippfehlern, unvollständigen Formulierungen und mehrsp
 - STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
 - Render automatic deploy remains disabled; only the explicitly verified STAGING service was updated.
 - PR #58 remains open, Draft and unmerged. Production remains untouched.
+
+
+### Block 12 Phase A.1 — conservative language inference for heavily misspelled German
+- The correction language is now selected from the current language diagnosis or the recent conversation language hint.
+- If the current language is ambiguous, German is inferred only when at least two strong German correction signals (known typo aliases or fixed German phrase corrections) are present.
+- One isolated typo is not enough to infer German. A detected non-German or mixed-language segment always blocks the German dictionary.
+- Added regression coverage for multiple strong typo signals, a single typo, Derja text and an explicit non-German language.
+- Code commit 12d82f5cb94736ee6f0f4673fbbecdf8c1a86a02: Node tests, backend syntax and full STAGING CI/Vite build succeeded.
+- This remains a conservative fallback, not general multilingual spell correction.
