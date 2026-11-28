@@ -218,6 +218,9 @@ export async function runMessinhoFullStackIntelligenceAudit({root=DEFAULT_ROOT,e
   await runModelBindingAudit(env,probeProvider),
   runLinguisticSyntheticTests(),
   runCognitiveSafetyTests(),
+  runToolParameterFuzzing(),
+  runMemoryIntegrityAudit(),
+  runPromptInjectionBoundaryTest(),
   await runSandboxAudit(root,env)
  ];
  const previous=Array.isArray(history)?history.filter(item=>item&&item.status&&item.summary).slice(0,5):[];
