@@ -7333,12 +7333,12 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 
 ### Safety and release status
 - Changes are confined to `feature/messinho-conversation-engine` and the explicitly configured STAGING service. Production branch, Production Render service, and Production Supabase remain untouched.
-- The STAGING Render service has `autoDeploy=no`; after CI passes, a manual deployment must be triggered and its exact commit/health verified before this work can be called live.
-- Regression tests were expanded for the dashboard order, dual ticket classification, five-item pagination, combined diagnostics, and separated development controls. CI initially found three outdated tests still asserting that the controls lived inside the chat; those tests were migrated to the new component boundaries. The latest CI run must be checked before release.
+- The STAGING Render service has `autoDeploy=no`; manual deployment is required. Deployment `dep-dc59ulec6qcc7389pdjg` is now **LIVE** on commit `46e02b7420dea984fa23985b03e2f9394d38c64b`. Render logs confirm the API process started on port 10000, the Supabase Data API returned HTTP 200, and Render reported the service live.
+- Regression tests were expanded for the dashboard order, dual ticket classification, five-item pagination, combined diagnostics, and separated development controls. CI initially found outdated tests that still expected controls inside the chat and a diagnostic timestamp in the chat; those tests were migrated to the new component boundaries. Final verification on commit `46e02b7420dea984fa23985b03e2f9394d38c64b`: 753/753 Node tests passed, backend syntax passed, staging branch CI passed, and Vite production build passed (1,643 modules transformed).
 - STAGING Supabase migration `20261128092859_messinho_myki_ticket_retention_50` was applied successfully. A transactional rollback test inserted 51 temporary tickets into each category and verified 50 active records per category; the test transaction was rolled back. Follow-up query confirmed 2 existing active diagnostic tickets, 0 development tickets, and 0 leftover test rows. The retention trigger exists. Production Supabase was not changed.
 
 ### Next required steps
 1. Confirm all CI checks pass on the final feature-branch HEAD and complete the Vite build.
 2. Implement background diagnostic job state so pause and stop are real server-side operations.
 3. Recalculate the maturity score against the current branch and fresh tests/diagnostics.
-4. Manually deploy the verified commit to Render STAGING and test desktop/mobile UI plus both diagnostic paths and both ticket boards.
+4. Admin must visually verify desktop/mobile STAGING UI, run both diagnostic paths, and select tickets from both boards. Automated tests/build and Render startup are green, but authenticated visual end-to-end testing has not yet been performed.
