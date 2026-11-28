@@ -30,10 +30,10 @@ import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 import { planMessinhoAutonomously } from './messinho-autonomy.js';
 import { classifyMessinhoProviderFailure, resolveMessinhoLiveQuestion, buildMessinhoKnowledgeApplicationFollowUp, buildMessinhoVo2maxApplicationQuery, isMessinhoVo2maxApplicationDataReply } from './messinho-conversation.js';
 import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
-import { isMessinhoGeneralResearchQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
+import { isMessinhoGeneralResearchQuestion, isMessinhoTimeSensitiveQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
 import { findMessinhoDomainKnowledge } from './messinho-domain-knowledge.js';
-import { getMessinhoCoreKnowledgeContext, getMessinhoCoreKnowledgeManifest, MESSINHO_CORE_KNOWLEDGE_VERSION } from './messinho-core-knowledge.js';
+import { getMessinhoCoreKnowledgeContext, getMessinhoCoreKnowledgeManifest, formatMessinhoCoreKnowledgeFallback, MESSINHO_CORE_KNOWLEDGE_VERSION } from './messinho-core-knowledge.js';
 import { findMessinhoKnowledgeConcepts, getMessinhoCanonicalConceptKey, formatMessinhoKnowledgeValue, reviewMessinhoKnowledgeConcept } from './messinho-knowledge-graph.js';
 import { learnMessinhoKnowledgeFromResearch } from './messinho-knowledge-learning.js';
 
@@ -2762,6 +2762,8 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const structuredKnowledge=await findMessinhoKnowledgeConcepts(db,interpretedMessage,{limit:8});
     const coreKnowledge=getMessinhoCoreKnowledgeContext(interpretedMessage,{limit:6});
     const coreKnowledgeContext=(coreKnowledge.items||[]).map((item,index)=>({index:index+1,key:item.key,domain:item.domain,title:item.title,knowledge:item.definition,level:item.level,formula:item.formula,limitations:item.limitations,relevance:item.relevance,source_type:item.source_type,version:MESSINHO_CORE_KNOWLEDGE_VERSION}));
+    const coreKnowledgeFallback=formatMessinhoCoreKnowledgeFallback(interpretedMessage,{limit:3});
+    const canUseCoreKnowledgeFallback=coreKnowledgeFallback.status==='available'&&!isMessinhoTimeSensitiveQuestion(interpretedMessage);
     const structuredKnowledgeContext=(structuredKnowledge.items||[]).map((item,index)=>({index:index+1,domain:item.domain,topic:item.topic,title:item.title,knowledge:item.definition,level:item.knowledge_level,type:item.knowledge_type,formula:item.formula,variables:item.formula_variables,limitations:item.limitations,claims:item.claims,sources:item.sources,version:item.version,confidence:item.confidence}));
     const domainKnowledge=await findMessinhoDomainKnowledge(db,interpretedMessage,{limit:5});
     const domainKnowledgeContext=(domainKnowledge.items||[]).map((item,index)=>({index:index+1,domain:item.domain,knowledge:item.content,claims:item.claims,sources:item.sources,verified_at:item.verified_at,rights:item.rights,confidence:item.confidence}));
@@ -2827,6 +2829,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       try{research=await researchMessinhoGeneralQuestion(interpretedMessage,process.env,fetch,coreKnowledgeContext);}
       catch(researchError){
         console.warn('MESSINHO general research temporarily unavailable:',researchError.message);
+        if(canUseCoreKnowledgeFallback)return respond({reply:coreKnowledgeFallback.reply,intent:'core_knowledge_fallback',items:coreKnowledgeFallback.items.map((item,index)=>({id:'core-knowledge-'+index,name:item.title,kind:item.domain+' · Grundlagenwissen'})),sources:[],knowledge_memory:{reused:true,kind:'first_party_runtime_core',version:coreKnowledgeFallback.version,matched_entries:coreKnowledgeFallback.items.length},limitations:['Externe Recherche war nicht verfügbar; die Antwort verwendet ausschließlich internes Grundlagenwissen.']});
         return respond({reply:'Ich kann die externe Recherche gerade nicht zuverlässig erreichen. Ich möchte dir keine veralteten oder ungesicherten Informationen geben. Bitte versuche es gleich noch einmal.',intent:'general_knowledge_research_limited',items:[],sources:[],evidence:null,limitations:['Rechercheanbieter vorübergehend nicht erreichbar.']});
       }
       const sourceItems=(research.sources||[]).map((source,index)=>({id:'general-source-'+index,name:source.title||source.publisher||source.url,kind:'Recherchequelle',sources:[{url:source.url,publisher:source.publisher,title:source.title}]}));
@@ -2844,6 +2847,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
           learning:{...research.learning,...learning,reused:false,verification_status:learning.persisted?'corroborated':null},
           durable_knowledge:durableLearning,quality_control:research.quality_control||{passed:false,iterations:0,score:0}});
       }
+      if(canUseCoreKnowledgeFallback)return respond({reply:coreKnowledgeFallback.reply,intent:'core_knowledge_fallback',items:coreKnowledgeFallback.items.map((item,index)=>({id:'core-knowledge-'+index,name:item.title,kind:item.domain+' · Grundlagenwissen'})),sources:[],knowledge_memory:{reused:true,kind:'first_party_runtime_core',version:coreKnowledgeFallback.version,matched_entries:coreKnowledgeFallback.items.length},limitations:['Die externe Quellenlage reichte nicht für eine verlässliche Spezialantwort; ausgegeben wird nur internes Grundlagenwissen.']});
       return respond({reply:research.answer||research.message||'Ich kann diese Frage gerade nicht zuverlässig recherchieren. Bitte versuche es später erneut oder grenze die Frage etwas ein.',intent:'general_knowledge_research_limited',items:sourceItems,sources:research.sources||[],evidence:research.evidence||null,limitations:research.evidence?.limitations||[]});
     }
     const conversationalContext=history.map(item=>({role:item.role,content:item.text})).slice(-20);
