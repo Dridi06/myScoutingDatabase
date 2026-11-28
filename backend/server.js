@@ -70,6 +70,13 @@ import { buildMessinhoResponseIntelligence } from './messinho-response-intellige
 import { buildMessinhoReasoningIntelligence } from './messinho-reasoning-intelligence.js';
 import { buildMessinhoAnswerVerification } from './messinho-answer-verification.js';
 
+// Timestamp every backend log and every JSON response. Database event timestamps
+// remain the authoritative event time; this adds an explicit UTC response/log time.
+for (const method of ['log','info','warn','error','debug']) {
+  const write=console[method].bind(console);
+  console[method]=(...args)=>write(`[${new Date().toISOString()}]`,...args);
+}
+
 const app=express();
 app.set('trust proxy',1);
 const PORT=Number(process.env.PORT||3000);
@@ -173,12 +180,6 @@ async function diagnoseSupabase(){
 app.use(helmet({crossOriginResourcePolicy:{policy:'cross-origin'},contentSecurityPolicy:{directives:{connectSrc:["'self'",...(supabaseUrl?[new URL(supabaseUrl).origin]:[])],imgSrc:["'self'","data:","blob:",...(supabaseUrl?[new URL(supabaseUrl).origin]:[])]}}}));
 app.use(cors({origin:(process.env.APP_ORIGIN||'http://localhost:5173').split(',').map(x=>x.trim()),credentials:true}));
 app.use(express.json({limit:'1mb'}));
-// Timestamp every backend log and every JSON response. Database event timestamps
-// remain the authoritative event time; this adds an explicit UTC response/log time.
-for (const method of ['log','info','warn','error','debug']) {
-  const write=console[method].bind(console);
-  console[method]=(...args)=>write(`[${new Date().toISOString()}]`,...args);
-}
 app.use((req,res,next)=>{
   const json=res.json.bind(res);
   res.json=(body)=>{
