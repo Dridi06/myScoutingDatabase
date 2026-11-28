@@ -49,7 +49,7 @@ function safeKnowledge(entries) {
 export function buildMessinhoNaturalConversationMessages({
   message, history = [], linguisticContext = null, linguisticKnowledgeContext = [],
   conversationMemoryContext = null, reasoningContext = null, pragmaticContext = null,
-  responseCompositionContext = null, userRole = 'scout'
+  responseCompositionContext = null, conversationContinuityContext = null, userRole = 'scout'
 } = {}) {
   const system = [
     'You are MESSINHO, a thoughtful, natural conversation partner and professional scouting assistant.',
@@ -58,6 +58,7 @@ export function buildMessinhoNaturalConversationMessages({
     'Answer the actual point first. A short acknowledgement may be appropriate before the answer, but avoid empty filler, repetitive greetings, canned phrases, unnecessary summaries, and automatic follow-up questions.',
     'Do not ask a question merely to keep the conversation going. Ask at most one concise question only when a missing detail materially changes the answer or the next safe step.',
     'Use the full recent conversation to understand references, corrections, opinions, incomplete sentences, informal language, spelling mistakes and speech-to-text errors. If the user changes topic, follow the new topic without dragging the old one along.',
+    'Use conversation_continuity_context as a cautious hint for references such as “it”, “that”, “dazu” and short follow-ups. Prefer the immediately preceding exchange. A previous assistant suggestion is not a user decision or verified fact. Accept corrections, and do not transfer old filters or constraints after a topic change. If multiple referents remain plausible, ask one focused question.',
     'If the user corrects or challenges you, reconsider the previous answer honestly. Acknowledge a real mistake plainly, explain a disagreement respectfully, and never defend an answer merely because you gave it earlier.',
     'Preserve the user’s latest clearly detected language and dialect. Do not correct grammar or spelling unless asked. If the user mixes languages, respond in the dominant language while naturally retaining meaningful terms from the other language.',
     'Distinguish user statements, assistant statements, structured evidence and hypotheses. An earlier assistant answer is not independent proof. Never invent facts, research, measurements, actions, or memories.',
@@ -86,6 +87,7 @@ export function buildMessinhoNaturalConversationMessages({
     reasoning_evidence: reasoningContext || null,
     pragmatic_cues: pragmaticContext || null,
     response_guidance: responseCompositionContext || null,
+    conversation_continuity_context: conversationContinuityContext || null,
     user_role: userRole === 'admin' ? 'admin' : 'scout'
   };
   return [
@@ -97,7 +99,7 @@ export function buildMessinhoNaturalConversationMessages({
 export async function generateMessinhoNaturalConversationReply({
   message, history = [], linguisticContext = null, linguisticKnowledgeContext = [],
   conversationMemoryContext = null, reasoningContext = null, pragmaticContext = null,
-  responseCompositionContext = null, userRole = 'scout', apiKey, baseUrl, model,
+  responseCompositionContext = null, conversationContinuityContext = null, userRole = 'scout', apiKey, baseUrl, model,
   fetchImpl = fetch, timeoutMs = 18000
 } = {}) {
   const config = resolveMessinhoModelConfig({
@@ -110,7 +112,7 @@ export async function generateMessinhoNaturalConversationReply({
     messages: buildMessinhoNaturalConversationMessages({
       message, history, linguisticContext, linguisticKnowledgeContext,
       conversationMemoryContext, reasoningContext, pragmaticContext,
-      responseCompositionContext, userRole
+      responseCompositionContext, conversationContinuityContext, userRole
     }),
     model: config.model, apiKey: config.apiKey, baseUrl: config.baseUrl,
     fetchImpl, timeoutMs, temperature: 0.55
