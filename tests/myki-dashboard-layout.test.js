@@ -41,8 +41,11 @@ test('every MESSINHO chat entry receives and displays a Berlin-local timestamp',
  const chat=await read('src/asi/MyKiChat.jsx');
  assert.match(chat,/const timestampNow=\(\)=>new Date\(\)\.toISOString\(\)/);
  assert.match(chat,/timeZone:'Europe\/Berlin'/);
- assert.match(chat,/role:'user',timestamp:timestampNow\(\),text:value/);
- assert.match(chat,/role:'assistant',timestamp:timestampNow\(\),text:payload\.reply/);
+ assert.match(chat,/timestamp:clientSubmittedAt,text:value/);
+ assert.match(chat,/input_persisted_at/);
+ assert.match(chat,/output_persisted_at/);
+ assert.match(chat,/serverReceivedAt/);
+ assert.match(chat,/generatedAt/);
  assert.match(chat,/<time className="myki-chat-timestamp" dateTime=\{item\.timestamp\|\|undefined\}>/);
 });
 
