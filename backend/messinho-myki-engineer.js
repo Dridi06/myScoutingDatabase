@@ -5,6 +5,7 @@ import { buildMessinhoCodebaseIntelligence } from './messinho-code-intelligence.
 
 const REPOSITORY='Dridi06/myScoutingDatabase';
 const BRANCH='feature/messinho-unified-ai-integration';
+const MAX_SOURCE_FILE_CHARS=32000;
 const ALLOWED_FILES=[
   'backend/messinho-quality-control.js',
   'backend/messinho-input-correction.js',
@@ -95,7 +96,8 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
       const response=await fetchImpl('https://raw.githubusercontent.com/'+REPOSITORY+'/'+sourceSha+'/'+path,{signal:AbortSignal.timeout(10000)});
       if(!response.ok)throw new Error('source_unavailable');
       const content=await response.text();
-      if(!content||content.length>16000)throw new Error('source_size_invalid');
+      if(!content)throw new Error('source_empty:'+path);
+      if(content.length>MAX_SOURCE_FILE_CHARS)throw new Error('source_size_limit_exceeded:'+path);
       return {path,content};
     }));
     const learning=buildMessinhoProgrammingLearningContext();
@@ -124,7 +126,14 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
     const diffCheck=validateMessinhoEngineeringPatchAgainstSources(candidate.patch,files);
     if(!diffCheck.ok)return {ok:false,code:'MYKI_ENGINEERING_DIFF_CONTEXT_REJECTED',message:'Der Änderungsvorschlag passt nicht nachweisbar zum geprüften Quellcode. Es wurde kein Ticket erstellt.',reason:diffCheck.reason};
     return {ok:true,proposal:candidate,source_sha:sourceSha,files:paths,execution_mode:'proposal_only',tests_executed:false,curriculum_version:learning.curriculum_version};
-  }catch{
-    return {ok:false,code:'MYKI_ENGINEERING_REVIEW_FAILED',message:'Die technische Prüfung konnte nicht zuverlässig abgeschlossen werden. Es wurde kein Ticket erstellt.'};
+  }catch(error){
+    const failure=String(error?.message||'').slice(0,180);
+    const sourceLimit=failure.startsWith('source_size_limit_exceeded:');
+    return {
+      ok:false,
+      code:sourceLimit?'MYKI_ENGINEERING_SOURCE_SIZE_LIMIT':'MYKI_ENGINEERING_REVIEW_FAILED',
+      failure_reason:/^(?:source_size_limit_exceeded|source_empty):[a-zA-Z0-9_./-]+$/.test(failure)?failure:/^(?:upstream_unavailable|invalid_source_revision|source_unavailable)$/.test(failure)?failure:'engineering_review_unavailable',
+      message:sourceLimit?'Eine geprüfte Quelldatei überschreitet das zulässige Größenlimit. Es wurde kein Ticket erstellt.':'Die technische Prüfung konnte nicht zuverlässig abgeschlossen werden. Es wurde kein Ticket erstellt.'
+    };
   }
 }
