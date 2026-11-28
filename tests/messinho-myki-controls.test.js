@@ -8,7 +8,7 @@ test('manual project diagnosis runs both system and MESSINHO checks as separate 
   assert.match(component, /api\/admin\/system-diagnostics\/run/);
   assert.match(component, /api\/admin\/messinho-diagnostics\/run/);
   assert.match(component, /Diagnose starten/);
-  assert.match(component, /Gesamtprojekt und MESSINHO-Agent/);
+  assert.match(component, /Gesamtprojekt und den MESSINHO-Agenten/);
 });
 
 test('autonomous development controls remain distinct from diagnostic execution', () => {
