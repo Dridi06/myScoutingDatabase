@@ -53,6 +53,7 @@ import { buildMessinhoLinguisticContext, buildMessinhoLinguisticResponseMetadata
 import { classifyMessinhoTurn, appendMessinhoLongTermMemories } from './messinho-conversational-intelligence.js';
 import { generateMessinhoNaturalConversationReply } from './messinho-natural-conversation.js';
 import { buildMessinhoDialogueState } from './messinho-dialogue-engine.js';
+import { buildMessinhoConversationContinuityContext } from './messinho-conversation-continuity.js';
 import { buildMessinhoClarificationContinuity } from './messinho-clarification-continuity.js';
 import { resolveMessinhoEntityReferences } from './messinho-entity-resolution.js';
 import { guardMessinhoConversationReply } from './messinho-conversation-response-guard.js';
@@ -2313,6 +2314,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       message:interpretedMessage,history,activeEntities:agentMemory.active_entities
     });
     const dialogueState=buildMessinhoDialogueState({message,history,userRole:profile.role,linguisticContext});
+    const conversationContinuityContext=buildMessinhoConversationContinuityContext({message:interpretedMessage,history,dialogueState});
     dialogueState.entity_resolution=entityResolution;
     const clarificationContinuity=buildMessinhoClarificationContinuity({message:interpretedMessage,history,dialogueState});
     dialogueState.continuity.clarification_continuity=clarificationContinuity;
@@ -2344,6 +2346,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       reasoningContext,
       pragmaticContext,
       responseCompositionContext,
+      conversationContinuityContext,
       userRole:profile.role,
       apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
       baseUrl:process.env.MESSINHO_MODEL_BASE_URL||process.env.OPENAI_BASE_URL||'https://api.openai.com/v1',
@@ -2413,6 +2416,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         reasoningContext,
         pragmaticContext,
         responseCompositionContext,
+        conversationContinuityContext,
         userRole:profile.role,
         apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
         baseUrl:process.env.MESSINHO_MODEL_BASE_URL||process.env.OPENAI_BASE_URL||'https://api.openai.com/v1',
