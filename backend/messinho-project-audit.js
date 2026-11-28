@@ -427,11 +427,12 @@ export function scanMessinhoProviderReferences(source,file='unknown.js'){
   }
   if(node.type==='CallExpression'){
    const callee=memberPath(node.callee);
-   const first=node.arguments?.[0];
-   if(first?.type==='StringLiteral'&&/^https?:\/\//i.test(first.value)){
-    const provider=providerNameFromText(first.value);
-    if(provider)add(provider,/^(?:fetch|globalThis\.fetch)$/.test(callee)?'direct_http_provider_call':'provider_url_call_argument',node,first.value);
+   for(const [argumentIndex,argument] of (node.arguments||[]).entries()){
+    if(argument?.type!=='StringLiteral'||!/^https?:\/\//i.test(argument.value))continue;
+    const provider=providerNameFromText(argument.value);
+    if(provider)add(provider,argumentIndex===0&&/^(?:fetch|globalThis\.fetch)$/.test(callee)?'direct_http_provider_call':'provider_url_call_argument',node,argument.value);
    }
+   const first=node.arguments?.[0];
    if((callee==='require'||callee==='createRequire')&&first?.type==='StringLiteral'&&/^(?:openai|@anthropic-ai\/sdk|@google\/generative-ai|groq-sdk)$/i.test(first.value)){
     add(providerNameFromText(first.value),'provider_sdk_import',node,first.value);
    }
@@ -465,6 +466,8 @@ export function buildMessinhoProviderInventory(sourceFiles){
   }])),
   openai:{reference_count:openai.length,files:uniqueFiles(openai),
    direct_http_calls:openai.filter(item=>item.kind==='direct_http_provider_call').length,
+   wrapped_http_call_sites:openai.filter(item=>item.kind==='provider_url_call_argument').length,
+   http_url_call_sites:openai.filter(item=>['direct_http_provider_call','provider_url_call_argument'].includes(item.kind)).length,
    sdk_imports:openai.filter(item=>item.kind==='provider_sdk_import').length,
    environment_references:openai.filter(item=>item.kind==='environment_variable_reference').length,
    url_literals:openai.filter(item=>item.kind==='provider_url_literal').length},
