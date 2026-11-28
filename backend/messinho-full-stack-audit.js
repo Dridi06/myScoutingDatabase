@@ -15,11 +15,23 @@ import { scoreMessinhoKnowledgeSimilarity } from './messinho-knowledge-memory.js
 import { evaluateMessinhoConversationCase } from './messinho-conversation-evaluation.js';
 import { resolveMessinhoModelConfig, requestMessinhoModelCompletion } from './messinho-model-runtime.js';
 import { isMessinhoSandboxStagingAllowed } from './messinho-sandbox-dispatch.js';
+import { buildMessinhoDependencyGraph } from './messinho-project-audit.js';
 
 const DEFAULT_ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const safe=(value,max=1200)=>String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
 const SOURCE_DIRS=['backend','src','tests'];
 async function readOptional(root,file){try{return await readFile(path.join(root,file),'utf8');}catch{return '';}}
+async function listSourceFiles(root,relative){
+ let entries=[];try{entries=await readdir(path.join(root,relative),{withFileTypes:true});}catch{return [];}
+ const found=[];
+ for(const entry of entries){
+  if(entry.isDirectory()&&!['node_modules','.git','dist','build','coverage','.next'].includes(entry.name))
+   found.push(...await listSourceFiles(root,path.join(relative,entry.name)));
+  else if(entry.isFile()&&/\\.(?:js|mjs|cjs|jsx|ts|tsx)$/.test(entry.name))
+   found.push(path.posix.join(relative.split(path.sep).join('/'),entry.name));
+ }
+ return found;
+}
 async function countFiles(root,relative){
  let entries=[];try{entries=await readdir(path.join(root,relative),{withFileTypes:true});}catch{return 0;}
  let count=0;for(const entry of entries){if(entry.isDirectory()&&!['node_modules','.git','dist','build','coverage'].includes(entry.name))count+=await countFiles(root,path.join(relative,entry.name));else if(entry.isFile())count++;}return count;
@@ -29,7 +41,7 @@ function check(name,category,ok,detail,severity='warning',evidence={},recommenda
   recommendation:ok?'Keine Maßnahme erforderlich.':safe(recommendation||'Befund prüfen und nach Korrektur erneut testen.',700),
   checked_at:new Date().toISOString()};
 }
-function runCapabilityDiscovery(){
+async function runCapabilityDiscovery(root){
  const catalog=getMessinhoCapabilityCatalog(),executable=listExecutableMessinhoCapabilities(),runtime=getMessinhoRuntimeSummary();
  const declared=catalog.flatMap(group=>group.functions.map(item=>item.id));
  const executableIds=executable.flatMap(group=>group.functions.map(item=>item.id));
@@ -38,15 +50,19 @@ function runCapabilityDiscovery(){
  const unexpected=executableIds.filter(id=>!declared.includes(id));
  const fallback=executable.flatMap(group=>group.functions).filter(item=>item.implementation_level==='generic_fallback').map(item=>item.id);
  const specialist=executable.flatMap(group=>group.functions).filter(item=>item.implementation_level==='specialist_logic').map(item=>item.id);
- const ok=duplicates.length===0&&missing.length===0&&unexpected.length===0&&runtime.all_registered===true;
+ const sourceFiles=(await Promise.all(SOURCE_DIRS.map(dir=>listSourceFiles(root,dir)))).flat();
+ const graph=await buildMessinhoDependencyGraph({root,files:sourceFiles});
+ const blockingGraphFindings=graph.findings.filter(item=>['critical','high'].includes(item.severity));
+ const exportedSymbolCount=Object.values(graph.exported_symbols||{}).reduce((sum,names)=>sum+(Array.isArray(names)?names.length:0),0);
+ const ok=duplicates.length===0&&missing.length===0&&unexpected.length===0&&runtime.all_registered===true&&blockingGraphFindings.length===0;
  return check('Code- und Funktionsintrospektion','Code & Tools',ok,
   'Katalogfunktionen: '+declared.length+'; registrierte Handler: '+runtime.unique_handlers+
   '; Speziallogik: '+specialist.length+'; generische Fallbacks: '+fallback.length+
   '; nicht dispatchte Funktionen: '+runtime.undispatched_count+
-  '; doppelte IDs: '+duplicates.length+'. Registrierung ist kein Beweis für End-to-End-Fertigstellung.',
+  '; doppelte IDs: '+duplicates.length+'; AST-geprüfte Module: '+graph.coverage.parsed+'; exportierte Symbole: '+exportedSymbolCount+'; blockierende Parser-/Importbefunde: '+blockingGraphFindings.length+'. Registrierung ist kein Beweis für End-to-End-Fertigstellung.',
   ok?'info':'critical',{runtime,catalog_groups:catalog.map(group=>({id:group.id,total:group.total})),
    duplicate_ids:duplicates,missing_ids:missing,unexpected_ids:unexpected,
-   generic_fallback_ids:fallback.slice(0,100),specialist_logic_ids:specialist.slice(0,100)},
+   generic_fallback_ids:fallback.slice(0,100),specialist_logic_ids:specialist.slice(0,100),module_graph:{parser:graph.parser,coverage:graph.coverage,metrics:graph.metrics,cycles:graph.cycles,findings:graph.findings,exported_symbols:graph.exported_symbols}},
   'Capability-Katalog, Dispatcher und Handlerregistrierung abgleichen; generische Fallbacks nicht als vollständig implementierte Spezialfunktionen ausgeben.');
 }
 function runLinguisticSyntheticTests(){
@@ -216,7 +232,7 @@ export async function runMessinhoFullStackIntelligenceAudit({root=DEFAULT_ROOT,e
  const started=Date.now(),checkedAt=new Date().toISOString();
  const files=await Promise.all(SOURCE_DIRS.map(dir=>countFiles(root,dir)));
  const modules=[
-  runCapabilityDiscovery(),
+  await runCapabilityDiscovery(root),
   await runModelBindingAudit(env,probeProvider),
   runLinguisticSyntheticTests(),
   runCognitiveSafetyTests(),
