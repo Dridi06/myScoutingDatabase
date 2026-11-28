@@ -22,8 +22,7 @@
     "zod": "^4.1.5",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "express-rate-limit": "^8.1.0",
-    "esbuild": "^0.27.0"
+    "express-rate-limit": "^8.1.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.2",
