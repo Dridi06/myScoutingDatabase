@@ -213,7 +213,7 @@ test('dependency graph resolves TypeScript path aliases to real project modules'
   await mkdir(path.join(root,'src'),{recursive:true});
   await writeFile(path.join(root,'tsconfig.json'),JSON.stringify({compilerOptions:{baseUrl:'.',paths:{'@/*':['src/*']}}}));
   await writeFile(path.join(root,'src','util.js'),'export const util=true;');
-  await writeFile(path.join(root,'backend','consumer.js'),"import { util } from '@/util.js';\\nexport const value=util;");
+  await writeFile(path.join(root,'backend','consumer.js'),"import { util } from '@/util.js';\nexport const value=util;");
   const graph=await buildMessinhoDependencyGraph({root,files:['backend/consumer.js','src/util.js']});
   assert.equal(graph.coverage.parsed,2);
   assert.equal(graph.edges.length,1,JSON.stringify(graph.findings));
