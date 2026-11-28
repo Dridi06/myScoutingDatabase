@@ -25,3 +25,30 @@ test('returns the original request unchanged when no correction is needed', () =
   assert.equal(result.corrected, input);
   assert.equal(result.changed, false);
 });
+
+
+test('does not apply the German correction dictionary to other language profiles', () => {
+  for (const language of ['en', 'fr', 'es', 'ar', 'ar-tn', 'mixed', null]) {
+    const input = 'Chnowa rayek fel joueur hedha?';
+    const result = correctMessinhoInput(input, { language });
+    assert.equal(result.corrected, input, language);
+    assert.equal(result.changed, false, language);
+    assert.equal(result.skipped_reason, 'language_specific_correction_not_available', language);
+  }
+});
+
+test('high-confidence German corrections are marked separately from fuzzy suggestions', () => {
+  const exact = correctMessinhoInput('Suhce 5 spiler aus Deutchland', { language: 'de' });
+  assert.equal(exact.confidence, 'high');
+  const fuzzy = correctMessinhoInput('Suche einen spielr aus Deutchland', { language: 'de' });
+  assert.equal(fuzzy.confidence, 'medium');
+  assert.equal(fuzzy.changed, true);
+});
+
+test('preserves proper names and unknown words in German football requests', () => {
+  const input = 'Vergleiche Kylian Mbappé mit Lionel Messi und Xqzv.';
+  const result = correctMessinhoInput(input, { language: 'de' });
+  assert.match(result.corrected, /Kylian Mbappé/);
+  assert.match(result.corrected, /Lionel Messi/);
+  assert.match(result.corrected, /Xqzv/);
+});
