@@ -7139,11 +7139,12 @@ Die hierarchische Wissensarchitektur und die Legacy-Domain-Wissensschicht waren 
 - `backend/messinho-domain-knowledge.js`: `chemistry` und `ethics` als kanonische Wissensdomänen ergänzt.
 - Deutsche und englische Fachbegriffe für Chemie (Atome, Moleküle, Periodensystem, Reaktionen, Säuren/Basen, Stöchiometrie, Redox, pH) und Ethik (Deontologie, Utilitarismus, Tugendethik, Forschungsethik, KI-Ethik, Fairness) werden domänenspezifisch klassifiziert.
 - `docs/MESSINHO_KNOWLEDGE_FOUNDATION.md`: beide Domänen in die vierstufige Lernlandkarte aufgenommen; Branch-Metadaten aktualisiert.
-- Neue Migration `20261128190000_messinho_chemistry_ethics_domains.sql`: erweitert ausschließlich die Domain-Check-Constraints beider bestehenden Wissenstabellen. Sie legt keine Tabellen an, importiert keine Inhalte und ändert keine Berechtigungen.
+- Neue Migration `20261128042845_messinho_chemistry_ethics_domains.sql`: erweitert ausschließlich die Domain-Check-Constraints beider bestehenden Wissenstabellen. Sie legt keine Tabellen an, importiert keine Inhalte und ändert keine Berechtigungen.
+- Migration wurde auf dem dedizierten Supabase-Projekt `myScoutingDatabase-staging` (`nwqwnrhupbyhshsprxjt`) unter `messinho_chemistry_ethics_domains` erfolgreich angewendet. Die Datenbankabfrage bestätigt `chemistry` und `ethics` in beiden Constraints; die Tabelleninhalte blieben unverändert.
 - Neue Tests `tests/messinho-domain-coverage.test.js`: prüfen Domain-Allowlist, deutsche/englische Klassifikation und beide SQL-Constraints.
 
 ### Sicherheits- und Betriebsgrenzen
-- Die Migration ist nur als Datei vorbereitet und noch nicht auf Supabase ausgeführt.
+- Die Migration ist auf `myScoutingDatabase-staging` ausgeführt und durch Abfrage beider Check-Constraints verifiziert. Es wurden keine Wissensinhalte importiert oder verändert.
 - Es werden keine Wissensinhalte automatisch aktiviert oder importiert. Die bestehenden Rechte-, Quellen-, Evidenz- und Admin-Freigaben bleiben unverändert.
 - Keine Änderung an Scouting-Bewertungen, Modellgewichten, Rollen, RLS oder Produktionssystem.
 - Vor der Nutzung der neuen Domains in STAGING muss die Migration dort kontrolliert angewendet und anschließend die Datenbankintegration getestet werden.
