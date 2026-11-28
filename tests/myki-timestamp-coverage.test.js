@@ -33,10 +33,9 @@ test('primary Scout/Admin MESSINHO conversation displays one local clock timesta
  assert.match(chat,/input_persisted_at/);
  assert.match(chat,/output_persisted_at/);
  assert.match(chat,/serverReceivedAt/);
- assert.match(chat,/message\.persisted\?'Ausgabe gespeichert'/);
- assert.match(chat,/message\.persisted\?'Eingabe gespeichert'/);
  assert.match(chat,/formatMessinhoTimestamp\(message\.timestamp\)/);
- assert.match(chat,/timeZone:'Europe\/Berlin'/);
+ assert.match(chat,/hour:'2-digit',minute:'2-digit',timeZone:'Europe\/Berlin'/);
+ assert.doesNotMatch(chat,/Client gesendet|Servereingang|Ausgabe gespeichert|Eingabe gespeichert|Erzeugt ·/);
  assert.match(styles,/\.messinho-message-timestamp/);
  assert.match(main,/Client-side logs receive the same UTC audit prefix/);
  assert.match(main,/\['log','info','warn','error','debug'\]/);
