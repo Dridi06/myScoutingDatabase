@@ -168,7 +168,7 @@ test('uses MESSINHO model settings for engineering review without requiring Open
   calls.push({url,options});
   if(url.includes('/commits/'))return response({sha});
   if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=>sourceFor(url)};
-  if(url==='https://local-model.invalid/v1/chat/completions'){
+  if(url==='http://127.0.0.1:8080/v1/chat/completions'){
    assert.equal(options.headers.Authorization,undefined);
    const body=JSON.parse(options.body);
    assert.equal(body.model,'messinho-local');
@@ -177,10 +177,10 @@ test('uses MESSINHO model settings for engineering review without requiring Open
   }
   throw new Error('unexpected_url');
  };
- const result=await generateMessinhoEngineeringProposal({goal:'Prüfe MESSINHO auf konkrete sichere Verbesserungen',env:{MESSINHO_MODEL_BASE_URL:'https://local-model.invalid/v1',MESSINHO_MODEL_NAME:'messinho-local'},fetchImpl});
+ const result=await generateMessinhoEngineeringProposal({goal:'Prüfe MESSINHO auf konkrete sichere Verbesserungen',env:{MESSINHO_MODEL_BASE_URL:'http://127.0.0.1:8080/v1',MESSINHO_MODEL_NAME:'messinho-local'},fetchImpl});
  assert.equal(result.ok,true);
  assert.equal(result.proposal,null);
- assert.ok(calls.some(call=>call.url==='https://local-model.invalid/v1/chat/completions'));
+ assert.ok(calls.some(call=>call.url==='http://127.0.0.1:8080/v1/chat/completions'));
 });
 
 test('classifies exhausted provider credits without retrying the request',async()=>{
