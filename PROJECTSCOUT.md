@@ -7296,3 +7296,12 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Validation on commit b7db24a90b01ae94e061eeaade7ee490d809a461: 750/750 Node tests passed; backend syntax checks passed; Vite production build passed. Render deployment dep-dc597061egvs73b2tang is LIVE on STAGING.
 - Production was not modified. MESSINHO autonomy control was not changed by this UI task.
 - Next: visually verify the new myKI layout on desktop and mobile in STAGING, including the diagnostic, refresh, mode, ticket selection, pagination and destructive-action controls. Adjust only if an actual device/browser reproduction shows remaining movement.
+
+## 2026-11-28 — Per-message timestamps in MESSINHO chat
+- Every chat entry now receives its own ISO timestamp at creation: initial welcome message, each user submission, each completed MESSINHO response, and Admin-triggered diagnostic output.
+- Timestamps are rendered directly beneath the corresponding message using the Europe/Berlin time zone and German date/time formatting (date plus 24-hour time including seconds).
+- The timestamp is stored on the message object and remains stable while the chat component is open; it is not recalculated during re-render or auto-scroll.
+- Added a regression test covering timestamp creation for user messages, assistant replies and diagnostic output, plus the semantic HTML time element and Berlin timezone.
+- Validation on commit 791a91ffcc8d79780c91475241ec62837d83e4e9: 751/751 Node tests passed; backend syntax checks passed; Vite production build passed.
+- Render staging deployment: dep-dc59cul6e07s739ugkrg, commit 791a91ffcc8d79780c91475241ec62837d83e4e9. Deployment completion must be verified before calling this change live.
+- This change is presentation/session metadata only; it does not change chat model behavior, message persistence policy, autonomy settings, or Production.
