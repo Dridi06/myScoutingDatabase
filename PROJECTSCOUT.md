@@ -7205,3 +7205,13 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Added a regression test for the ACL example: the local foundation explains why there is no universal recovery timeline and does not invent a fixed number of weeks or months.
 - Commits: `2a044d41ee0d8b68b5609a207fe7377c98b9b7ce` (fallback formatter), `fdcb9437ce21e251401a995b49b46182e8d23cc0` (chat fallback), `d1cd9b07baad56fa9668c4cc1d4596dc05947893` (fallback test assertion).
 - The runtime pack now contains 23 concepts, including banking liquidity foundations. Automated test execution, CI status and STAGING deployment are still pending verification.
+
+
+## 2026-11-28 — Greeting regression reported from STAGING
+- User-provided screenshot confirms that the chat's initial welcome bubble is rendered, but the next plain user message `hallo` receives the cognitive-router-unavailable fallback instead of a conversational response.
+- Root cause in the request path: `/api/agent/chat` ran `classifyMessinhoTurn` before the normal conversation composer; when the semantic router returned unavailable, the route exited early. Plain greetings therefore depended unnecessarily on the semantic router.
+- Fix on `feature/messinho-conversation-engine`: import and invoke the existing deterministic `getMessinhoSocialReply` handler after authentication, message persistence, language interpretation and admin-command guard, but before cognitive routing. Plain social messages (including `Hallo`) now return a direct conversational response without requiring an AI provider round trip. Messages containing scouting/work intent are deliberately not intercepted.
+- Added `tests/messinho-social-greeting.test.js` covering German greeting classification, a non-empty reply, protection against intercepting a scouting request, and route ordering before `classifyMessinhoTurn`.
+- CI workflow `.github/workflows/messinho-tests.yml` is configured to run `npm test` and backend syntax checks on pushes to this branch.
+- Commits: route fix `ac48ac1b4fffec10f449c9c1fcb0b3c38e5e5fd6`; greeting regression test `51d846b8c3c41838e453399fc1e5d10e1bfe3804`; test assertion correction `50851bf35002e0137d23c0166f14615365bda81e`.
+- Status at documentation time: code and test are committed to the feature branch; CI result and Render STAGING deployment/runtime behavior still require verification. No production or `main` changes.
