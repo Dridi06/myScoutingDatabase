@@ -59,7 +59,7 @@ function moduleTokens(source){
  }
  return tokens;
 }
-function extractModuleSpecifiers(source){
+export function extractModuleSpecifiers(source){
  const tokens=moduleTokens(source),found=[];
  for(let i=0;i<tokens.length;i++){
   const token=tokens[i];
