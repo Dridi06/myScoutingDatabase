@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Activity,BrainCircuit,LoaderCircle,PauseCircle,Send,Sparkles,TrendingUp} from 'lucide-react';
+import {Activity,BrainCircuit,LoaderCircle,PauseCircle,Send,ShieldCheck,Sparkles,TrendingUp} from 'lucide-react';
 import './myki-chat.css';
 
 const welcome={id:'welcome',role:'assistant',text:'Hallo! Hier bin ich direkt in myKI. Du kannst mit mir über meine Entwicklung, meine Lernfortschritte, Verbesserungsvorschläge und die KI-Tickets sprechen. Ich erkläre dir meine Arbeit verständlich und sage offen, wenn ich etwas nicht sicher weiß.'};
@@ -11,6 +11,7 @@ export default function MyKiChat({supabase}){
  const [error,setError]=useState('');
  const [status,setStatus]=useState({scheduler_enabled:false,last_run:null,run_state:'paused',autonomy_mode:'paused'});
  const [controlBusy,setControlBusy]=useState(false);
+ const [diagnosticBusy,setDiagnosticBusy]=useState(false);
  const messagesRef=useRef(null);
 
  useEffect(()=>{const el=messagesRef.current;if(el)el.scrollTop=el.scrollHeight;},[messages,busy]);
@@ -49,6 +50,27 @@ export default function MyKiChat({supabase}){
   finally{setControlBusy(false);}
  }
 
+
+ async function runDiagnostic(){
+  if(diagnosticBusy)return;
+  setDiagnosticBusy(true);setError('');
+  try{
+   const {data:{session}}=await supabase.auth.getSession();
+   if(!session?.access_token)throw new Error('Deine Admin-Sitzung ist abgelaufen. Bitte melde dich erneut an.');
+   const response=await fetch('/api/admin/messinho-diagnostics/run',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token}});
+   const payload=await response.json().catch(()=>({}));
+   if(!response.ok)throw new Error(payload.error||payload.detail||'Die MESSINHO-Diagnose konnte nicht ausgeführt werden.');
+   const checks=Array.isArray(payload.checks)?payload.checks:[];
+   const failed=checks.filter(item=>item.ok===false);
+   const passed=payload.summary?.passed??checks.length-failed.length;
+   const total=payload.summary?.total??checks.length;
+   const details=failed.slice(0,5).map((item,index)=>(index+1)+'. '+(item.name||'Prüfung')+': '+(item.detail||'Keine Detailbeschreibung verfügbar.')).join('\\n');
+   const summary='Diagnose abgeschlossen und gespeichert.\\nErgebnis: '+(payload.status||'unbekannt').toUpperCase()+' · '+passed+'/'+total+' Prüfungen bestanden · '+failed.length+' Auffälligkeiten.'+(details?'\\n\\nGefundene Auffälligkeiten:\\n'+details:failed.length>5?'\\n\\nWeitere Auffälligkeiten stehen im Diagnose-Center.':'\\n\\nKeine Fehler gefunden.');
+   setMessages(prev=>[...prev,{id:'diag-'+(payload.id||Date.now()),role:'assistant',text:summary}]);
+  }catch(err){setError(err.message||'Die MESSINHO-Diagnose ist fehlgeschlagen.');}
+  finally{setDiagnosticBusy(false);}
+ }
+
  async function sendMessage(event){
   event?.preventDefault();
   const value=draft.trim();
@@ -81,14 +103,20 @@ export default function MyKiChat({supabase}){
    <div className={'myki-agent-state '+mode} role="status" aria-live="polite"><i/>{label}</div>
   </div>
   <div className="myki-control-panel" aria-label="Admin-Steuerung von MESSINHO">
-   <div className="myki-control-heading"><b>Betriebsmodus</b><span>Nur für Administratoren sichtbar</span></div>
-   <div className="myki-control-actions">
-    <button type="button" className={operatingMode==='paused'?'selected':''} onClick={()=>changeControl('set_mode','paused')} disabled={controlBusy}><PauseCircle size={15}/> Pause</button>
-    <button type="button" className={operatingMode==='working'?'selected':''} onClick={()=>changeControl('set_mode','working')} disabled={controlBusy}><Activity size={15}/> Arbeiten</button>
-    <button type="button" className={operatingMode==='developing'?'selected':''} onClick={()=>changeControl('set_mode','developing')} disabled={controlBusy}><TrendingUp size={15}/> Weiterentwickeln</button>
-    <button type="button" className="stop" onClick={()=>changeControl('stop')} disabled={controlBusy}><PauseCircle size={15}/> Stop</button>
+   <div className="myki-control-heading"><b>MESSINHO-Steuerung</b><span>Nur für Administratoren sichtbar</span></div>
+   <div className="myki-control-action-group">
+    <div className="myki-control-action-copy"><strong>Einmalige Systemprüfung</strong><small>Führt die MESSINHO-Diagnose sofort aus – auch im Pausenmodus. Ändert keinen Autonomie-Modus und startet keine Reparatur.</small></div>
+    <button type="button" className="myki-control-diagnostic" onClick={runDiagnostic} disabled={diagnosticBusy||controlBusy}>{diagnosticBusy?<LoaderCircle className="myki-chat-spin" size={15}/>:<ShieldCheck size={15}/>} {diagnosticBusy?'Diagnose läuft …':'Diagnose starten'}</button>
    </div>
-   <p className="myki-control-description">{status.control?.status_message||'Arbeiten startet die Systemfehlersuche mit Diagnose, Ticket und isolierter Reparaturprüfung. Weiterentwickeln sucht nach neuen Verbesserungen.'}</p>
+   <div className="myki-control-divider"/>
+   <div className="myki-control-heading"><b>Autonome Arbeitsweise</b><span>Steuert länger laufende Aufgaben</span></div>
+   <div className="myki-control-actions">
+    <button type="button" className={operatingMode==='paused'?'selected':''} onClick={()=>changeControl('set_mode','paused')} disabled={controlBusy||diagnosticBusy}><PauseCircle size={15}/> Autonomie pausieren</button>
+    <button type="button" className={operatingMode==='working'?'selected':''} onClick={()=>changeControl('set_mode','working')} disabled={controlBusy||diagnosticBusy}><Activity size={15}/> Fehleranalyse & Reparaturprüfung</button>
+    <button type="button" className={operatingMode==='developing'?'selected':''} onClick={()=>changeControl('set_mode','developing')} disabled={controlBusy||diagnosticBusy}><TrendingUp size={15}/> Weiterentwicklung</button>
+    <button type="button" className="stop" onClick={()=>changeControl('stop')} disabled={controlBusy||diagnosticBusy}><PauseCircle size={15}/> Stopp anfordern</button>
+   </div>
+   <p className="myki-control-description">{status.control?.status_message||'Diagnose startet eine einzelne Prüfung. Fehleranalyse führt Diagnose, Ursachenbewertung und – falls sicher möglich – einen Reparaturvorschlag aus. Weiterentwicklung sucht nach belegbaren Verbesserungen. Pause hält autonome Aufträge an; der Chat bleibt erreichbar.'}</p>
    {status.current_work&&<div className="myki-current-work"><b>Letzter Arbeitsauftrag</b><span>{status.current_work.goal}</span><small>Status: {status.current_work.status==='running'?'läuft':status.current_work.last_error||status.current_work.status} · offene Schritte: {status.current_work.pending_steps}</small></div>}
   </div>
   <div className="myki-agent-meta">
