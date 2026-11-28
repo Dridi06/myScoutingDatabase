@@ -111,7 +111,7 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
     const commitResponse=await fetchWithTransientRetry(fetchImpl,'https://api.github.com/repos/'+REPOSITORY+'/commits/'+encodeURIComponent(BRANCH),{
       headers:{Accept:'application/vnd.github+json','User-Agent':'myScoutingDatabase-MESSINHO-Engineering'},
       signal:AbortSignal.timeout(10000)
-    });
+    },'github');
     const commit=await responseJson(commitResponse,'github');
     const sourceSha=String(commit.sha||'');
     if(!/^[a-f0-9]{40}$/i.test(sourceSha))throw new Error('invalid_source_revision');
@@ -135,7 +135,7 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
           {role:'system',content:SYSTEM_PROMPT+'\n\nPROGRAMMIER-LERNBASIS: '+JSON.stringify(learning)+'\n\nSPRACHEN UND PRÜFPLAN DES TATSÄCHLICHEN QUELLCODE-AUSSCHNITTS: '+JSON.stringify(codebaseIntelligence)},
           {role:'user',content:JSON.stringify({goal:cleanGoal,repository:REPOSITORY,branch:BRANCH,source_commit:sourceSha,allowed_files:ALLOWED_FILES,source_files:files})}
         ]})
-    });
+    },'provider');
     const payload=await responseJson(completion,'provider');
     const parsed=JSON.parse(payload.choices?.[0]?.message?.content||'{}');
     if(!parsed.proposal)return {ok:true,proposal:null,reason:'no_reliable_improvement',source_sha:sourceSha,curriculum_version:learning.curriculum_version};
