@@ -7394,3 +7394,13 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - myKI Diagnose, Systemdiagnose, Status, Reifegrad, Ticketboards, Ticketverläufe, Sandbox-Prüfläufe und Programmiergedächtnis behalten ihre Zeitstempel-Anzeigen. Alle API-JSON-Antworten erhalten `server_timestamp` und den Header `X-Server-Timestamp`.
 - Regressionstests erweitert: primäre MESSINHO-Konversation, Browser-/Backend-Logs, Datenbankmigration und bisherige myKI-Ausgaben.
 - Änderungen bleiben ausschließlich auf `feature/messinho-conversation-engine` und STAGING. Die neue UI-/Backend-Version muss nach grüner CI erneut nach STAGING deployed und dort visuell geprüft werden; Production bleibt unangetastet.
+
+
+### Globale Zeitstempel-Erweiterung — STAGING-Deployment abgeschlossen
+- Neue Version auf Render STAGING erfolgreich LIVE: `dep-dc5amh61egvs73b84ov0`, Commit `00981bea4adcbe4232110109c70ec87d2b0a7feb`, Live-Zeit 2026-11-28 10:22:41 UTC.
+- Supabase STAGING-Migration `global_timestamp_coverage` erfolgreich angewendet. Verifiziert: 43/43 öffentliche Tabellen haben `created_at timestamptz NOT NULL DEFAULT now()`; `messinho_agent_memory` besitzt jetzt zusätzlich `created_at` und einen Update-Trigger für `updated_at`.
+- Primäre MESSINHO-Chatoberfläche (Scout/Admin) zeigt pro Nachricht den Zeitstempel, unterscheidet lokal gesendete von bestätigten/persistierten Eingaben und markiert nicht gespeicherte Ausgaben. Client-Sendezeit, Servereingang, Datenbank-Speicherzeit und Ausgabeerzeugung sind separat sichtbar. Fehlerausgaben haben ebenfalls einen Zeitstempel.
+- Browser- und Backend-Logs werden ab Beginn des jeweiligen Anwendungscodes mit ISO-UTC-Präfix ausgegeben; API-JSON-Antworten erhalten `server_timestamp` und `X-Server-Timestamp`.
+- CI auf Commit `00981bea4adcbe4232110109c70ec87d2b0a7feb`: 761/761 Tests bestanden, Backend-Syntax erfolgreich, Vite-Produktionsbuild erfolgreich.
+- Anzeige in der Oberfläche: Europe/Berlin mit Datum, Stunden, Minuten und Sekunden; Speicherung in der Datenbank bleibt UTC/timestamptz.
+- Production bleibt unverändert. Nächster Abnahmeschritt: visueller Live-Test im iPhone-Browser und Kontrolle, dass die sichtbaren Zeitangaben nach Reload aus den gespeicherten Daten wiederhergestellt werden.
