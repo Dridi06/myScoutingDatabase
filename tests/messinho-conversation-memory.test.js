@@ -28,7 +28,7 @@ test('active frame retains the latest user goal across more than 20 turns withou
     }))
   ];
   const memory = buildMessinhoConversationMemory({ history, currentMessage: 'Und wie setzen wir das um?' });
-  assert.match(memory.active_frame.active_topic_candidate, /Und wie setzen wir das um/);
+  assert.match(memory.active_frame.active_topic_candidate, /Spielerbewertung für U19-Talente verbessern/);\n  assert.match(memory.active_frame.current_message, /Und wie setzen wir das um/);\n  assert.equal(memory.active_frame.relation, 'follow_up');
   assert.equal(memory.active_frame.active_goal_authority, 'user_message_candidate_not_verified_fact');
   assert.deepEqual(memory.active_frame.confirmed_user_constraints, []);
   assert.equal(memory.active_frame.persistence, 'derived_per_request_not_persisted');
