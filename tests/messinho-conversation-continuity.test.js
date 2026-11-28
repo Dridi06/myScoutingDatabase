@@ -72,3 +72,12 @@ test('authenticated chat builds and forwards continuity context to both conversa
  assert.match(source,/buildMessinhoConversationContinuityContext\(\{message:interpretedMessage,history,dialogueState\}\)/);
  assert.match(source,/responseCompositionContext,\s*conversationContinuityContext,\s*userRole:profile\.role/);
 });
+
+test('ordinary German articles do not create false follow-up references',()=>{
+ const context=buildMessinhoConversationContinuityContext({message:'Der Spieler hat eine starke Saison gespielt.',history:[
+  {role:'user',text:'Wie funktioniert die Einkommensteuer?'},
+  {role:'assistant',text:'Ich erkläre dir das gern.'}
+ ]});
+ assert.equal(context.relation,'standalone');
+ assert.equal(context.referential_expression_detected,false);
+});
