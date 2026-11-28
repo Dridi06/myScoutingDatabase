@@ -90,3 +90,10 @@ test('diagnostic checks, runs, tickets and ticket audit events have authoritativ
  assert.match(migration,/created_at timestamptz not null default now\(\)/);
  assert.match(tickets,/created_at/);
 });
+
+test('durable agent memory has creation and update timestamps enforced by migration',async()=>{
+ const migration=await read('supabase/migrations/20261128100000_global_timestamp_coverage.sql');
+ assert.match(migration,/add column if not exists created_at timestamptz not null default now\(\)/);
+ assert.match(migration,/messinho_agent_memory_touch_updated_at/);
+ assert.match(migration,/public\.touch_updated_at\(\)/);
+});
