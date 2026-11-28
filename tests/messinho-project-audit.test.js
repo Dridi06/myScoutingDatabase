@@ -68,7 +68,7 @@ test('project audit ignores import examples in strings and comments and maps tes
   await writeFile(path.join(root,'backend','feature.js'),'export const feature=true;');
   await writeFile(path.join(root,'tests','feature-behavior.test.js'),[
    "import test from 'node:test';",
-   "import { feature } from '../backend/feature.js';",
+   "import '../backend/feature.js';",
    "test('feature is loaded',()=>assert.ok(feature));",
    "const example = \\\"import { fake } from './not-a-real-module.js';\\\";",
    "// import './also-not-a-real-module.js';"
