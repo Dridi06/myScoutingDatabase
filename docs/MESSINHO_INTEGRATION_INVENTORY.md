@@ -249,3 +249,20 @@ Diese Änderung entkoppelt nur die freie Unterhaltung vom direkten OpenAI-Aufruf
 - Staging-Logs meldeten zuvor OpenAI HTTP 429 / credit_balance_exhausted; die Codeänderung behebt kein Providerguthaben. Die Anwendung muss diese Störung sauber anzeigen, bis ein erreichbarer Modellanbieter konfiguriert ist.
 
 **Status:** Providerneutrale Chat-, Recherche-, Qualitäts- und Spieleranalysepfade sind integriert und CI-geprüft. Gate 0 bleibt OFFEN, da MyKi-Providerrest, Route-/Job-/Capability-Matrix, Migrationsinhaltsvergleich, Supabase-WARN-Befunde und Staging-Live-Smoke-Test noch ausstehen.
+
+
+## 12. STAGING-Deployment des providerneutralen Chat-/Recherche-Standes (28.11.2026)
+
+- GitHub CI für HEAD 71a14c31b9b91095f49ee5a2ebd848f57832eaad: 812/812 Node-Tests bestanden; Backend-Syntax und Staging-Branch-CI erfolgreich.
+- Render Staging-Deploy ausgelöst, da autoDeploy deaktiviert ist.
+- Deployment-ID: dep-dc5elih5efls73f8bk60.
+- Status: **live**.
+- Deploy-Commit: 71a14c31b9b91095f49ee5a2ebd848f57832eaad.
+- Service: myscoutingdatabase-messinho-staging.
+- Neue Instanz meldete API-Start, Supabase Data API HTTP 200 und vorhandene Tavily-/OpenAI-Konfiguration.
+- Das Deployment bestätigt Build/Start und Datenbank-Erreichbarkeit, aber noch keinen authentifizierten Chat-End-to-End-Test.
+- Die Logs zeigen, dass der Legacy-OpenAI-Fallback weiterhin aktiv konfiguriert ist. Das vorherige HTTP-429-/credit_balance_exhausted-Problem ist durch diesen Deploy nicht automatisch behoben.
+- Öffentliche /api/health-Abfrage war über die verfügbare Webansicht nicht abrufbar; daher keine Behauptung über den konkreten Health-HTTP-Response.
+- Keine Supabase-Migration, keine RLS-/Grant-Änderung und kein Production-Eingriff.
+
+**Nächster Test:** authentifizierter Chat-Smoke-Test (Hallo, Smalltalk, freie Frage, Folgefrage/Verlauf, Modellproviderfehler) mit bestätigtem Testkonto. Gate 0 bleibt OFFEN.
