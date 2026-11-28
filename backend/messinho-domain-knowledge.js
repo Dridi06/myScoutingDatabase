@@ -10,7 +10,7 @@ const clean=(v,max=1200)=>String(v??'').replace(/[\u0000-\u001f\u007f]/g,' ').re
 const normalize=v=>clean(v,1800).normalize('NFKC').toLocaleLowerCase('de-DE').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 const tokens=v=>[...new Set(normalize(v).split(' ').filter(x=>x.length>2))];
 const STOP=new Set(['aber','auch','auf','aus','bei','das','dass','dem','den','der','des','die','ein','eine','einem','einen','einer','eines','für','im','in','ist','mit','oder','und','von','warum','weshalb','wieso','wie','was','welche','welcher','welches','the','and','for','with','from','that','this']);
-export const MESSINHO_KNOWLEDGE_DOMAINS=Object.freeze(['mathematics','physics','biology','medicine','risk_management','banking','financial_markets','statistics','sports_science','football','computer_science','general']);
+export const MESSINHO_KNOWLEDGE_DOMAINS=Object.freeze(['mathematics','physics','chemistry','biology','medicine','ethics','risk_management','banking','financial_markets','statistics','sports_science','football','computer_science','general']);
 export function classifyMessinhoKnowledgeDomain(text=''){
  const q=normalize(text);
  const rules=[
