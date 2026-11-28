@@ -47,7 +47,7 @@ export default function MyKiChat({supabase}){
       serverReceivedAt:item.server_received_at||null,clientSubmittedAt:item.client_submitted_at||null,
       generatedAt:item.output_generated_at||null
     })));
-   }catch(err){if(active)setError(err.message||'Gesprächsverlauf konnte nicht geladen werden.');setErrorAt(timestampNow());}
+   }catch(err){if(active){setError(err.message||'Gesprächsverlauf konnte nicht geladen werden.');setErrorAt(timestampNow());}}
   };
   refresh();restore();const timer=setInterval(refresh,30000);
   return()=>{active=false;clearInterval(timer)};
@@ -85,7 +85,7 @@ export default function MyKiChat({supabase}){
  return <section className="myki-chat panel" aria-label="Direkter Chat mit MESSINHO">
   <div className="myki-chat-header">
    <div className="myki-chat-title"><span className="myki-eyebrow">DIREKTE KOMMUNIKATION</span><h2><BrainCircuit size={20}/> myKI Chat</h2><p>Direkte Unterhaltung mit MESSINHO.</p></div>
-   <div className={'myki-agent-state '+mode} role="status" aria-live="polite"><i/>{label}</div>
+   <div><div className={'myki-agent-state '+mode} role="status" aria-live="polite"><i/>{label}</div><small className="myki-chat-timestamp">Status aktualisiert: {formatTimestamp(status.generated_at||status.server_timestamp)}</small></div>
   </div>
   <div className="myki-chat-messages" ref={messagesRef} aria-live="polite">
    {messages.map(item=><article key={item.id} className={'myki-chat-message '+item.role}><div className="myki-chat-avatar">{item.role==='assistant'?<BrainCircuit size={16}/>:<span>DU</span>}</div><div className="myki-chat-bubble"><small>{item.role==='assistant'?'MESSINHO':'DU'}</small><p>{item.text}</p><time className="myki-chat-timestamp" dateTime={item.timestamp||undefined}>{item.role==='assistant'?'Ausgabe gespeichert':'Eingabe gespeichert'} · {formatTimestamp(item.timestamp)}</time>{item.serverReceivedAt&&<time className="myki-chat-timestamp" dateTime={item.serverReceivedAt}>Servereingang · {formatTimestamp(item.serverReceivedAt)}</time>}{item.generatedAt&&item.role==='assistant'&&<time className="myki-chat-timestamp" dateTime={item.generatedAt}>Erzeugt · {formatTimestamp(item.generatedAt)}</time>}</div></article>)}
