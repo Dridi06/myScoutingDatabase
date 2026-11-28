@@ -4,7 +4,7 @@ import './myki-chat.css';
 
 const timestampNow=()=>new Date().toISOString();
 const formatTimestamp=value=>value&&Number.isFinite(Date.parse(value))?new Intl.DateTimeFormat('de-DE',{dateStyle:'short',timeStyle:'medium',timeZone:'Europe/Berlin'}).format(new Date(value)):'Zeitstempel fehlt';
-const welcome={id:'welcome',role:'assistant',timestamp:timestampNow(),text:'Hallo! Hier bin ich direkt in myKI. Du kannst mit mir über meine Entwicklung, meine Lernfortschritte, Verbesserungsvorschläge und die KI-Tickets sprechen. Ich erkläre dir meine Arbeit verständlich und sage offen, wenn ich etwas nicht sicher weiß.'};
+const welcome={id:'welcome',role:'assistant',timestamp:timestampNow(),persisted:false,text:'Hallo! Hier bin ich direkt in myKI. Du kannst mit mir über meine Entwicklung, meine Lernfortschritte, Verbesserungsvorschläge und die KI-Tickets sprechen. Ich erkläre dir meine Arbeit verständlich und sage offen, wenn ich etwas nicht sicher weiß.'};
 
 export default function MyKiChat({supabase}){
  const [messages,setMessages]=useState([welcome]);
@@ -43,7 +43,7 @@ export default function MyKiChat({supabase}){
     if(!active)return;
     setConversationId(payload.conversation_id||null);
     if(Array.isArray(payload.messages)&&payload.messages.length)setMessages(payload.messages.map(item=>({
-      id:item.id,role:item.role,text:item.text,timestamp:item.created_at||item.output_generated_at||null,
+      id:item.id,role:item.role,text:item.text,timestamp:item.created_at||item.output_generated_at||null,persisted:true,
       serverReceivedAt:item.server_received_at||null,clientSubmittedAt:item.client_submitted_at||null,
       generatedAt:item.output_generated_at||null
     })));
@@ -61,7 +61,7 @@ export default function MyKiChat({supabase}){
   const alreadyBusy=busy,clientSubmittedAt=timestampNow(),userMessageId='u-'+Date.now();
   setDraft('');setError('');setErrorAt(null);
   const history=messages.slice(-20).map(item=>({role:item.role,text:item.text}));
-  setMessages(prev=>[...prev,{id:userMessageId,role:'user',timestamp:clientSubmittedAt,clientSubmittedAt,text:value}]);
+  setMessages(prev=>[...prev,{id:userMessageId,role:'user',timestamp:clientSubmittedAt,clientSubmittedAt,persisted:false,text:value}]);
   if(!alreadyBusy)setBusy(true);
   try{
    const {data:{session}}=await supabase.auth.getSession();
@@ -71,8 +71,8 @@ export default function MyKiChat({supabase}){
    if(!response.ok)throw new Error(payload.error||'MESSINHO konnte nicht antworten.');
    const times=payload.timestamps||{};
    setConversationId(payload.conversation_id||conversationId);
-   setMessages(prev=>[...prev.map(item=>item.id===userMessageId?{...item,timestamp:times.input_persisted_at||item.timestamp,serverReceivedAt:times.server_received_at||null,clientSubmittedAt:times.client_submitted_at||clientSubmittedAt}:item),
-    {id:'a-'+Date.now(),role:'assistant',timestamp:times.output_persisted_at||times.output_generated_at||payload.server_timestamp||null,
+   setMessages(prev=>[...prev.map(item=>item.id===userMessageId?{...item,timestamp:times.input_persisted_at||item.timestamp,persisted:!!times.input_persisted_at,serverReceivedAt:times.server_received_at||null,clientSubmittedAt:times.client_submitted_at||clientSubmittedAt}:item),
+    {id:'a-'+Date.now(),role:'assistant',timestamp:times.output_persisted_at||times.output_generated_at||payload.server_timestamp||null,persisted:!!times.output_persisted_at,
      generatedAt:times.output_generated_at||payload.server_timestamp||null,text:payload.reply||'Ich habe deine Nachricht verarbeitet.'}]);
   }catch(err){setError(err.message||'Die Verbindung zu MESSINHO ist fehlgeschlagen.');setErrorAt(timestampNow());setDraft(value);}
   finally{if(!alreadyBusy)setBusy(false);}
@@ -88,7 +88,7 @@ export default function MyKiChat({supabase}){
    <div><div className={'myki-agent-state '+mode} role="status" aria-live="polite"><i/>{label}</div><small className="myki-chat-timestamp">Status aktualisiert: {formatTimestamp(status.generated_at||status.server_timestamp)}</small></div>
   </div>
   <div className="myki-chat-messages" ref={messagesRef} aria-live="polite">
-   {messages.map(item=><article key={item.id} className={'myki-chat-message '+item.role}><div className="myki-chat-avatar">{item.role==='assistant'?<BrainCircuit size={16}/>:<span>DU</span>}</div><div className="myki-chat-bubble"><small>{item.role==='assistant'?'MESSINHO':'DU'}</small><p>{item.text}</p><time className="myki-chat-timestamp" dateTime={item.timestamp||undefined}>{item.role==='assistant'?'Ausgabe gespeichert':'Eingabe gespeichert'} · {formatTimestamp(item.timestamp)}</time>{item.serverReceivedAt&&<time className="myki-chat-timestamp" dateTime={item.serverReceivedAt}>Servereingang · {formatTimestamp(item.serverReceivedAt)}</time>}{item.generatedAt&&item.role==='assistant'&&<time className="myki-chat-timestamp" dateTime={item.generatedAt}>Erzeugt · {formatTimestamp(item.generatedAt)}</time>}</div></article>)}
+   {messages.map(item=><article key={item.id} className={'myki-chat-message '+item.role}><div className="myki-chat-avatar">{item.role==='assistant'?<BrainCircuit size={16}/>:<span>DU</span>}</div><div className="myki-chat-bubble"><small>{item.role==='assistant'?'MESSINHO':'DU'}</small><p>{item.text}</p><time className="myki-chat-timestamp" dateTime={item.timestamp||undefined}>{item.role==='assistant'?(item.persisted?'Ausgabe gespeichert':'Willkommensnachricht erzeugt'):(item.persisted?'Eingabe gespeichert':'Eingabe gesendet · lokale Erfassung')} · {formatTimestamp(item.timestamp)}</time>{item.serverReceivedAt&&<time className="myki-chat-timestamp" dateTime={item.serverReceivedAt}>Servereingang · {formatTimestamp(item.serverReceivedAt)}</time>}{item.generatedAt&&item.role==='assistant'&&<time className="myki-chat-timestamp" dateTime={item.generatedAt}>Erzeugt · {formatTimestamp(item.generatedAt)}</time>}</div></article>)}
    {busy&&<div className="myki-chat-thinking"><LoaderCircle className="myki-chat-spin" size={16}/> MESSINHO denkt nach und prüft deine Anfrage …</div>}
   </div>
   {error&&<p className="myki-chat-error" role="alert">{error}<time className="myki-chat-timestamp" dateTime={errorAt||undefined}>Fehlerzeitpunkt · {formatTimestamp(errorAt)}</time></p>}
