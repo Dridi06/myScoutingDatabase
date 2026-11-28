@@ -7684,3 +7684,22 @@ Dieser Entwicklungsweg ist ab sofort die maßgebliche und verbindliche Roadmap f
 - **Gate 0 bleibt OFFEN.** Noch ausstehend: vollständige repositoryweite Import-/Providerinventur, Datei-zu-Test-Zuordnung, vollständige Endpunkt-/Job-/Capability-Matrix, lesender Abgleich der tatsächlichen STAGING-Datenbankstruktur sowie Commit-/Deployment-/Health-Abgleich.
 - Nächster Schritt: vollständige automatisierte Quelltextinventur und Provideraufruf-Zuordnung über das gesamte Repository. Erst danach restliche Gate-0-Nachweise vervollständigen.
 - Ausschließlich Dokumentationsänderung; keine Datenbankmigration und kein Production-Eingriff.
+
+
+## Phase-0-Fortschritt — AST-Providerinventur (28.11.2026)
+
+- **Implementierung:** backend/messinho-project-audit.js ergänzt um scanMessinhoProviderReferences() und buildMessinhoProviderInventory(). AST-basierte Erkennung von Provider-URL-Literalen, direkten HTTP-Aufrufen, SDK-Imports und Provider-Environment-Referenzen mit Datei-/Zeilenangabe.
+- **Sicherheitsgrenzen:** Runtime-Quellcode und Testcode getrennt; keine Secret-Werte werden gelesen/ausgegeben; keine externen Provideraufrufe, keine Datenbankänderungen, keine Toolausführung.
+- **Projekt-Audit:** eigener Warnbefund „Direkte OpenAI-Laufzeitabhängigkeiten“; OpenAI-Referenzen werden nicht länger als optional oder providerunabhängig verharmlost.
+- **Verifizierter Scan-HEAD:** 7c074e29c5e9b227fb05d54f2a2788828c04fa30.
+- **Scan-Ergebnis:** 7 Runtime-Dateien mit Providerreferenzen; 105 Runtime-Referenzen; 69 OpenAI-Referenzen in 7 Dateien; 4 direkte OpenAI-HTTP-Aufrufstellen; 46 OPENAI_*-Environment-Referenzen; 15 OpenAI-URL-Literale; 15 providerneutrale Modellkonfigurationsreferenzen in messinho-model-runtime.js und server.js; 20 Tavily-Referenzen in 3 Dateien.
+- **OpenAI-betroffene Runtime-Dateien:** backend/messinho-engineering-scheduler.js, backend/messinho-general-research.js, backend/messinho-model-runtime.js, backend/messinho-myki-engineer.js, backend/messinho-quality-control.js, backend/messinho-research.js und backend/server.js.
+- **CI:** Node-Testlauf 46155954807 erfolgreich, 804/804 Tests; Backend-Syntax 46155958958 erfolgreich; Node-Testlauf 46155959018 erfolgreich; Staging-Branch-CI 46155958962 erfolgreich.
+- **Live-Staging:** Render-Service srv-dc3chlqjnfac73acd6ig; Deployment dep-dc5e1agu01pc738e0dr0 ist live, läuft aber auf Commit 46ddebed678b495d7575e8548ecf0c0369c3967a und ist damit älter als der Audit-HEAD. autoDeploy ist deaktiviert; ein neuer Staging-Deploy ist nach CI-Freigabe explizit auszulösen.
+- **Provider-Störung:** Staging-Log meldete am 28.11.2026 beim kognitiven Router HTTP 429 / credit_balance_exhausted. Vorhandene API-Konfiguration beweist keine nutzbare Modellantwort; fehlendes Provider-Guthaben kann nicht per Retry behoben werden.
+- **Wichtige Grenze:** Ein erkanntes local_or_self_hosted-URL-Literal ist kein Nachweis eines laufenden lokalen Inferenzdienstes. Kein solcher Dienst wurde in diesem Schritt bereitgestellt.
+- **Status:** Providerinventur implementiert und CI-geprüft. Gate 0 bleibt OFFEN; vollständige Route-/Job-/Capability-/Datenbankmatrix und lesender STAGING-Schemaabgleich fehlen noch.
+- **Production:** nicht verändert; keine Production-Deployments, Production-Secrets oder Production-Daten angefasst.
+
+### Nächster verbindlicher Schritt
+Die vier direkten OpenAI-HTTP-Aufrufstellen und die übrigen OpenAI-Referenzen einzeln einem konkreten Feature, Endpunkt, Hintergrundjob, Datenvertrag, Berechtigungsmodell und Regressionstest zuordnen. Danach Route-/Job-/Capability-/Schema-Matrix schließen und erst dann Gate 0 bewerten. Keine Provider-Migration vor Abschluss dieser Zuordnung.
