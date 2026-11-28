@@ -431,7 +431,9 @@ async function executeSystemDiagnostics(triggeredBy='automatic',actorProfileId=n
 
   // 9. Externe Schnittstellen
   add('Tavily-Recherche-Key','Externe Schnittstellen',Boolean(process.env.TAVILY_API_KEY),process.env.TAVILY_API_KEY?'Tavily-Key konfiguriert (Wert verborgen).':'TAVILY_API_KEY fehlt.','warning','TAVILY_API_KEY in Render konfigurieren und Deployment abwarten.');
-  add('Optionale OpenAI-Anbindung','Externe Schnittstellen',true,process.env.OPENAI_API_KEY?'OpenAI optional konfiguriert (Wert verborgen).':'Nicht konfiguriert; MESSINHO-Kern wird unabhängig getestet.','info');
+  const speechModelConfig=resolveMessinhoModelConfig(process.env);
+  const speechModelReady=Boolean(speechModelConfig.baseUrl)&&(!speechModelConfig.requiresApiKey||Boolean(speechModelConfig.apiKey));
+  add('Providerneutrale MESSINHO-Sprachlaufzeit','Externe Schnittstellen',true,speechModelReady?'Sprachdienst konfiguriert (Anbieter und Schlüsselwerte bleiben verborgen).':'Kein erreichbarer Sprachdienst konfiguriert; deterministische MESSINHO-Kernfunktionen bleiben verfügbar.','info');
   const mailProviderReady=Boolean((process.env.SMTP_HOST&&process.env.SMTP_USER&&process.env.SMTP_PASS)||process.env.RESEND_API_KEY||process.env.EMAIL_PROVIDER==='resend');
   // Email delivery is intentionally not integrated yet; keep this as an informational roadmap note, not a failed check.
   add('E-Mail-Provider-Konfiguration','Externe Schnittstellen',true,mailProviderReady?'Mindestens eine unterstützte E-Mail-Provider-Konfiguration ist vorhanden; es wurde keine Testmail versendet.':'Noch nicht angebunden – E-Mail-Versand ist als späteres Modul vorgesehen und wird bis zur Integration nicht als Fehler gewertet.','info');
@@ -782,9 +784,10 @@ app.get('/api/system-status',async(req,res)=>{
 
 app.get('/api/health',async(_req,res)=>{
   const tavilyReady=Boolean(process.env.TAVILY_API_KEY);
-  const openAiReady=Boolean(process.env.OPENAI_API_KEY);
+  const speechModelConfig=resolveMessinhoModelConfig(process.env);
+  const speechModelReady=Boolean(speechModelConfig.baseUrl)&&(!speechModelConfig.requiresApiKey||Boolean(speechModelConfig.apiKey));
   const authReady=Boolean(JWT_SECRET&&JWT_SECRET.length>=32&&(process.env.SUPABASE_PUBLISHABLE_KEY||process.env.VITE_SUPABASE_PUBLISHABLE_KEY));
-  const dependencies={database:'unavailable',authentication:authReady?'ready':'not_configured',messinhoCore:'provider_independent',externalResearch:tavilyReady?'ready':'not_configured',optionalAiAnalysis:openAiReady?'ready':'not_configured'};
+  const dependencies={database:'unavailable',authentication:authReady?'ready':'not_configured',messinhoCore:'provider_independent',externalResearch:tavilyReady?'ready':'not_configured',languageModel:speechModelReady?'ready':'not_configured'};
   if(!db)return res.status(503).json({ok:false,service:'myScoutingDatabase',dependencies});
   try{
     const {error}=await db.from('profiles').select('id',{head:true,count:'exact'}).limit(1);
