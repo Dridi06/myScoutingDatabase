@@ -16,11 +16,11 @@ function safeText(value, max = MAX_TURN_TEXT) {
 
 function safeReply(value, max = 5000) {
   return String(value ?? '')
-    .replace(/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/gu, ' ')
-    .split(/\\r?\\n/u)
-    .map(line => line.replace(/[ \\t]+/gu, ' ').trim())
-    .join('\\n')
-    .replace(/\\n{3,}/gu, '\\n\\n')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/gu, ' ')
+    .split(/\r?\n/u)
+    .map(line => line.replace(/[ \t]+/gu, ' ').trim())
+    .join('\n')
+    .replace(/\n{3,}/gu, '\n\n')
     .trim()
     .slice(0, max);
 }
