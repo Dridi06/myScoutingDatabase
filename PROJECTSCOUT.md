@@ -7375,3 +7375,11 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Sichtbar sind Client-Sendezeit, Servereingang, Datenbank-Speicherzeit, Verarbeitungsbeginn, Ausgabeerzeugung und Ausgabe-Speicherzeit.
 - Finale Regression: 759/759 Node-Tests bestanden; Backend-Syntax erfolgreich; vollständiger STAGING-Branch-CI-Lauf einschließlich Vite-Produktionsbuild erfolgreich auf Commit 9f196d2c40d3831b4160c5c0b9b48fe77a1c5ef4.
 - Render-Deployment dieses Commits wurde gestartet: dep-dc5abegu01pc73816f50. Status muss bis zur bestätigten LIVE-Meldung weiter geprüft werden.
+
+
+### STAGING-Deployment bestätigt
+- Render STAGING Deployment `dep-dc5abegu01pc73816f50` ist seit 2026-11-28 09:58:59 UTC erfolgreich `live`.
+- Ausgerollter Codecommit: `9f196d2c40d3831b4160c5c0b9b48fe77a1c5ef4`. Build erfolgreich; Backend meldet API listening auf Port 10000; Supabase Data API Health-Check HTTP 200.
+- Node-Regression: 759/759 bestanden; Backend-Syntax und vollständiger Vite-Produktionsbuild bestanden.
+- Render-Service bleibt auf `feature/messinho-conversation-engine`, `autoDeploy=no`. Production unverändert.
+- Sichtprüfung im Browser bleibt als abschließende Abnahme offen: Chat-Verlauf nach Reload, Client-/Server-/DB-Zeitpunkte, Ausgabezeitpunkte, Diagnose-/Entwicklungsstatus, Tickets, Ticketverlauf und Sandbox-Protokolle auf Desktop und Mobilgerät.
