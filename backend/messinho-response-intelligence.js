@@ -4,7 +4,7 @@
  */
 export const MESSINHO_RESPONSE_INTELLIGENCE_VERSION='1.0.0';
 
-const clean=(value,max=220)=>String(value??'').replace(/[\\u0000-\\u001f\\u007f]/gu,' ').replace(/\\s+/gu,' ').trim().slice(0,max);
+const clean=(value,max=220)=>String(value??'').replace(/[\u0000-\u001f\u007f]/gu,' ').replace(/\s+/gu,' ').trim().slice(0,max);
 const MOVES=new Set(['acknowledge_then_reassess','answer_directly_then_explain','engage_with_viewpoint','acknowledge_explicit_feeling','continue_pending_exchange','respond_naturally','clarify_one_material_gap']);
 
 export function buildMessinhoResponseIntelligence({
@@ -33,7 +33,7 @@ export function buildMessinhoResponseIntelligence({
  else if(requestedMove==='engage_with_viewpoint')goal='engage_with_viewpoint';
  else if(requestedMove==='acknowledge_explicit_feeling')goal='acknowledge_explicit_feeling';
  else if(relation==='follow_up'||requestedMove==='continue_pending_exchange')goal='continue_relevant_exchange';
- const mustClarify=goal==='clarify_one_material_gap'||entityStatus==='ambiguous'&&/(?:\\b(?:er|ihn|ihm|sein|der andere|dieser|diesen)\\b)/iu.test(text);
+ const mustClarify=goal==='clarify_one_material_gap'||entityStatus==='ambiguous'&&/(?:\b(?:er|ihn|ihm|sein|der andere|dieser|diesen)\b)/iu.test(text);
  const steps=mustClarify
   ?['state_briefly_what_is_unclear','ask_one_specific_clarifying_question','do_not_guess_or_start_dependent_action']
   :goal==='reassess_and_correct'
