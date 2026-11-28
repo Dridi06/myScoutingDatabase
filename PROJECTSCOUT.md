@@ -7305,3 +7305,41 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Validation on commit 791a91ffcc8d79780c91475241ec62837d83e4e9: 751/751 Node tests passed; backend syntax checks passed; Vite production build passed.
 - Render staging deployment: dep-dc59cul6e07s739ugkrg, commit 791a91ffcc8d79780c91475241ec62837d83e4e9. Deployment completion must be verified before calling this change live.
 - This change is presentation/session metadata only; it does not change chat model behavior, message persistence policy, autonomy settings, or Production.
+
+
+## 2026-11-28 — myKI dashboard aligned to owner sketch (implementation in STAGING branch)
+
+### Accepted dashboard structure
+- Top: myKI overall maturity/progress bar.
+- Next: the existing single MESSINHO conversation interface (no duplicate chat).
+- Separate operating panels: **myKI Diagnose** and **myKI Entwickler**.
+- Bottom: two independent ticket boards side by side — diagnostic tickets on the left and development tickets on the right — with a maximum of five visible entries per page and independent pagination.
+- Selecting either ticket opens its detail below the two boards. Diagnostic tickets show diagnosis-oriented headings and do not expose the development sandbox/integration controls.
+
+### Implemented in the feature branch
+- Added `src/asi/MyKiMaturity.jsx`: reads the existing evidence-based maturity report from the authenticated Admin status endpoint and displays the percentage, level, snapshot date, and expandable pillar evidence. The score is explicitly labelled with its verification snapshot; it is not represented as a live recalculation.
+- Added `src/asi/MyKiOperations.jsx`: separate diagnosis and development panels. The diagnosis action now runs both `/api/admin/system-diagnostics/run` and `/api/admin/messinho-diagnostics/run`, so the requested check covers the whole application and MESSINHO. Development start/pause/stop uses the existing Admin control endpoint.
+- Added `src/asi/MyKiTicketBoards.jsx`: splits existing myKI ticket records by the diagnostic finding marker and presents each type in its own five-item paginated board.
+- `src/asi/MyKiChat.jsx` is now focused on the conversation itself; duplicate operating controls were moved out of the chat.
+- `src/main.jsx` places the progress report before the chat and the two ticket boards after the operational panels/activity monitor. Diagnostic ticket details are distinguished from development proposals.
+- `src/styles.css` adds responsive black/anthracite/gold styling for the new controls and dual-board layout.
+
+### Verified database facts and explicit gaps
+- The connected STAGING Supabase project is `myScoutingDatabase-staging` (`nwqwnrhupbyhshsprxjt`). No Production Supabase project was changed.
+- At inspection time, STAGING contained 2 active rows in `messinho_myki_tickets` (both diagnostic findings) and 13 rows in `messinho_diagnostic_runs`.
+- Existing system and MESSINHO diagnostic-run retention functions already keep the latest 50 reports. The separate `messinho_myki_tickets` table does **not yet** have a verified 50-per-category retention rule. This remains open; do not claim the requested 51st-ticket cleanup is implemented until a reviewed STAGING migration and a rollback-safe 51-record test prove it.
+- The current diagnostic endpoints execute synchronously. The UI therefore shows the requested pause/end controls as disabled with an explanation instead of pretending they can interrupt a running diagnostic. A resumable/cancellable background diagnostic job API is still required to make those actions functional.
+- The maturity percentage comes from the existing report snapshot dated `2026-11-27`; it is shown with that date and must be recalculated from the newer branch baseline before treating it as a current score.
+
+### Safety and release status
+- Changes are confined to `feature/messinho-conversation-engine` and the explicitly configured STAGING service. Production branch, Production Render service, and Production Supabase remain untouched.
+- The STAGING Render service has `autoDeploy=no`; after CI passes, a manual deployment must be triggered and its exact commit/health verified before this work can be called live.
+- Regression tests were expanded for the dashboard order, dual ticket classification, five-item pagination, combined diagnostics, and separated development controls. CI initially found three outdated tests still asserting that the controls lived inside the chat; those tests were migrated to the new component boundaries. The latest CI run must be checked before release.
+- No Supabase schema migration was applied for ticket retention in this change.
+
+### Next required steps
+1. Confirm all CI checks pass on the final feature-branch HEAD and complete the Vite build.
+2. Review and implement the 50-active-ticket retention policy for each ticket category, preserving an audit tombstone and ticket event history; validate with a transactional 51-record test on STAGING.
+3. Implement background diagnostic job state so pause and stop are real server-side operations.
+4. Recalculate the maturity score against the current branch and fresh tests/diagnostics.
+5. Manually deploy the verified commit to Render STAGING and test desktop/mobile UI plus both diagnostic paths and both ticket boards.
