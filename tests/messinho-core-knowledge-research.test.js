@@ -2,20 +2,30 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {researchMessinhoGeneralQuestion} from '../backend/messinho-general-research.js';
 
-test('general research receives runtime foundation context without treating it as external evidence',async()=>{
+test('general research receives runtime foundation context for evidence-based synthesis',async()=>{
  const calls=[];
  const sources=[
-  {title:'Clinical overview of anterior cruciate ligament injury',url:'https://sports-medicine.example.org/acl',content:'An anterior cruciate ligament injury affects knee stability. Treatment and rehabilitation depend on associated injuries, clinical examination, functional progress and individual sporting demands. Recovery cannot be inferred from one variable alone.'},
-  {title:'Rehabilitation after anterior cruciate ligament injury',url:'https://orthopaedics.example.net/acl-rehabilitation',content:'Rehabilitation after anterior cruciate ligament injury is progressive and depends on symptoms, strength, movement quality, neuromuscular control and return-to-sport criteria. Individual assessment is important for safe decisions.'}
+  {title:'Kreuzbandverletzung und Kniegelenk',url:'https://sports-medicine.example.org/acl',content:'Eine Kreuzbandverletzung betrifft das Kniegelenk und kann die Stabilität beeinträchtigen. Behandlung und Rehabilitation hängen von Begleitverletzungen, klinischer Untersuchung, funktionellem Fortschritt und den sportlichen Anforderungen ab. Die Genesung lässt sich nicht aus einem einzelnen Merkmal ableiten.'},
+  {title:'Rehabilitation nach Kreuzbandverletzung',url:'https://orthopaedics.example.net/acl-rehabilitation',content:'Eine Kreuzbandverletzung betrifft das Kniegelenk. Die Behandlung und Rehabilitation verlaufen schrittweise und hängen von Symptomen, Kraft, Bewegungsqualität, neuromuskulärer Kontrolle und Kriterien für die Rückkehr zum Sport ab. Eine individuelle Beurteilung ist wichtig.'}
  ];
+ const core=[{key:'medicine.acl',title:'Vorderes Kreuzband und Rehabilitation',level:'foundational',definition:'Das vordere Kreuzband stabilisiert das Knie; Rehabilitation ist individuell.',limitations:['Keine pauschale Genesungsdauer.']}];
  const fetchImpl=async(url,options)=>{
-  calls.push({url,body:JSON.parse(options.body)});
-  return {ok:true,json:async()=>({results:sources})};
+  const body=JSON.parse(options.body);calls.push({url,body});
+  if(url.includes('tavily'))return {ok:true,json:async()=>({results:sources})};
+  const isCritic=body.messages?.[0]?.content?.includes('unabhängige Qualitätsprüfer');
+  const answer='Eine Kreuzbandverletzung betrifft das Kniegelenk. Belege: [Quelle 1](https://sports-medicine.example.org/acl) · [Quelle 2](https://orthopaedics.example.net/acl-rehabilitation).';
+  return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify(isCritic?{passed:true,score:9,feedback:'Keine Korrektur erforderlich.'}:{answer,claims:[{text:'Eine Kreuzbandverletzung betrifft das Kniegelenk.',source_urls:sources.map(source=>source.url)}]})}}]})};
  };
- const core=[{key:'medicine.acl',title:'Vorderes Kreuzband und Rehabilitation',level:'foundational',definition:'Kreuzband stabilisiert das Knie; Rehabilitation ist individuell.',limitations:['Keine pauschale Genesungsdauer.']}];
- const result=await researchMessinhoGeneralQuestion('Was ist eine Kreuzbandverletzung und wie wird sie behandelt?',{TAVILY_API_KEY:'test'},fetchImpl,core);
+ const result=await researchMessinhoGeneralQuestion(
+  'Was ist eine Kreuzbandverletzung und wie wird sie behandelt?',
+  {TAVILY_API_KEY:'test',OPENAI_API_KEY:'test'},
+  fetchImpl,
+  core
+ );
  assert.equal(result.status,'completed');
- assert.equal(calls.length,1);
- assert.equal(calls[0].body.query,'Was ist eine Kreuzbandverletzung und wie wird sie behandelt?');
- assert.equal(calls[0].body.core_foundation_context,undefined);
+ assert.equal(result.quality_control.passed,true);
+ const synthesis=calls.find(call=>call.url.includes('chat/completions')&&!call.body.messages?.[0]?.content?.includes('unabhängige Qualitätsprüfer'));
+ assert.ok(synthesis);
+ const userPayload=JSON.parse(synthesis.body.messages[1].content);
+ assert.deepEqual(userPayload.core_foundation_context,core);
 });
