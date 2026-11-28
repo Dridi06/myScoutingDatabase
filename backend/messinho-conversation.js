@@ -103,23 +103,23 @@ export function resolveMessinhoDeterministicFollowUp(message, history = []) {
   const previous = [...(Array.isArray(history) ? history : [])]
     .reverse().find(item => item?.role === 'assistant' && typeof item.text === 'string')?.text || '';
   const offered = normalizeSocialText(previous);
-  if (!offered || !/\\b(recherche|recherchieren|spieleranalyse|daten auswerten|weiterentwickeln)\\b/.test(offered)) return null;
+  if (!offered || !/\b(recherche|recherchieren|spieleranalyse|daten auswerten|weiterentwickeln)\b/.test(offered)) return null;
 
-  const acceptedResearch = /\\b(recherche hoert sich gut an|recherche klingt gut|gerne recherche|lass uns recherchieren|ich moechte recherchieren|recherchieren wir|recherche waehlen)\\b/.test(current);
-  const acceptedAnalysis = /\\b(spieleranalyse hoert sich gut an|analyse klingt gut|gerne analyse|spieler analysieren)\\b/.test(current);
-  const acceptedData = /\\b(daten auswerten hoert sich gut an|datenauswertung klingt gut|daten auswerten)\\b/.test(current);
-  const acceptedDevelopment = /\\b(weiterentwicklung hoert sich gut an|plattform weiterentwickeln|system weiterentwickeln)\\b/.test(current);
+  const acceptedResearch = /\b(recherche hoert sich gut an|recherche klingt gut|gerne recherche|lass uns recherchieren|ich moechte recherchieren|recherchieren wir|recherche waehlen)\b/.test(current);
+  const acceptedAnalysis = /\b(spieleranalyse hoert sich gut an|analyse klingt gut|gerne analyse|spieler analysieren)\b/.test(current);
+  const acceptedData = /\b(daten auswerten hoert sich gut an|datenauswertung klingt gut|daten auswerten)\b/.test(current);
+  const acceptedDevelopment = /\b(weiterentwicklung hoert sich gut an|plattform weiterentwickeln|system weiterentwickeln)\b/.test(current);
 
-  if (acceptedResearch && /\\brecherche\\b/.test(offered)) {
+  if (acceptedResearch && /\brecherche\b/.test(offered)) {
     return { intent: 'clarify_research_subject', reply: 'Gerne. Was möchtest du recherchieren – einen Spieler, einen Verein, eine Liga oder ein anderes Thema?' };
   }
-  if (acceptedAnalysis && /\\bspieleranalyse\\b/.test(offered)) {
+  if (acceptedAnalysis && /\bspieleranalyse\b/.test(offered)) {
     return { intent: 'clarify_player_analysis', reply: 'Gerne. Welchen Spieler sollen wir analysieren? Nenne mir bitte seinen Namen und – wenn möglich – seinen aktuellen Verein.' };
   }
-  if (acceptedData && /\\bdaten auswerten\\b/.test(offered)) {
+  if (acceptedData && /\bdaten auswerten\b/.test(offered)) {
     return { intent: 'clarify_data_analysis', reply: 'Gerne. Welche Daten möchtest du auswerten – Spielerdaten, Leistungswerte, Scouting-Berichte oder etwas anderes?' };
   }
-  if (acceptedDevelopment && /\\bweiterentwickeln\\b/.test(offered)) {
+  if (acceptedDevelopment && /\bweiterentwickeln\b/.test(offered)) {
     return { intent: 'clarify_development_goal', reply: 'Gerne. Welchen Bereich von myScoutingDatabase sollen wir als Nächstes verbessern?' };
   }
   return null;
