@@ -6851,3 +6851,54 @@ Die vorhandene semantische Analyse erkennt bereits begrenzte Konzepte und Diskur
 - No database/schema migration or persistent user/player/scout/learning data changes. No model training, model-weight changes, permission changes or external side effects.
 - Authenticated Admin/Scout conversation acceptance remains outstanding; deployment verifies automated tests, build and service startup, not full natural-dialogue quality.
 - PR #58 remains open, Draft and unmerged. Production branch, Render production service and production database remain untouched.
+
+## 37. Block 15 — Intent Intelligence: Bounded Intent Evidence — 2026-11-28
+
+### Ziel und Abgrenzung
+Block 15 ergänzt die bestehende modellbasierte kognitive Intent-Entscheidung um eine eigenständige, deterministische und begrenzte Evidenzschicht. Die Schicht sammelt sichtbare Handlungs-, Themen- und Gesprächssignale, entscheidet aber nicht selbst über die endgültige Absicht. Damit werden weder der vorhandene Cognitive Router noch Pragmatic Context, Response Composition oder Clarification Continuity dupliziert.
+
+### Implementierung
+- Neu: `backend/messinho-intent-intelligence.js`, Version `1.0.0`.
+- Neu: `tests/messinho-intent-intelligence.test.js`.
+- Die Analyse liefert vorsichtige Kandidaten für:
+  - `memory_save` und `memory_recall`,
+  - `scouting`,
+  - `general_research`,
+  - `engineering`,
+  - andernfalls den neutralen Gesprächsstandard `conversation`.
+- Zusätzlich werden begrenzte Themenhinweise (Fußball, Wissenschaft, Finanzen, Software), Frage-/Handlungsform, mögliche Gesprächsfortsetzung und offene Rückfragen als Metadaten übergeben.
+- Mehrere konkurrierende explizite Intent-Kandidaten führen zu `conflicting_candidates` und einer nicht gesetzten Empfehlung.
+- Eine noch offene/mehrdeutige Rückfrage führt zu `clarification_pending`; die Schicht erzwingt dann keine neue Aktion.
+- Der Text wird auf 1.600 Zeichen begrenzt; Kandidaten und Cue-Listen sind begrenzt.
+- Sprachsignale umfassen ausgewählte deutsche, englische, französische, spanische, arabische und tunesisch-derja Formulierungen. Dies ist ein gezielter Cue-Katalog, keine vollständige mehrsprachige Grammatik oder universelle Absichtserkennung.
+
+### Integration
+- `backend/server.js` erstellt die Intent-Evidenz nach Dialog-/Klärungskontext und vor dem Cognitive Router.
+- `backend/messinho-conversational-intelligence.js` nimmt `intentEvidenceContext` entgegen und übergibt es als `intent_evidence_context` im selben Modellturn.
+- Cognitive Router Version auf `1.2.0` erhöht.
+- Die Modellrichtlinie behandelt Hinweise ausdrücklich als Kandidaten. Das Modell muss die vollständige Nachricht und den Gesprächskontext interpretieren; ein vorgeschlagener Intent ist keine Entscheidung.
+- Rollenmetadaten sind keine Berechtigungen. Die bestehende serverseitige Admin-/Scout-Autorisierung und alle Freigabekontrollen bleiben maßgeblich. Die neue Komponente führt keine Tools aus und speichert keine Daten.
+
+### Test- und Korrekturverlauf
+- Die ersten STAGING-Testläufe deckten drei konkrete Integrations-/Erkennungsprobleme auf: bestehende Quelltexttests erwarteten die frühere Argumentreihenfolge, der Scouting-Cue erfasste beschreibende Positionskomposita zunächst nicht, und die Fußball-Domänenerkennung erkannte `Flügelspieler` nicht als Kompositum.
+- Diese Punkte wurden korrigiert und erneut gegen den vollständigen Build geprüft.
+- Finaler Runtime-/Testcommit: `12830ea3304f5dfa8758153484977508f353fab5`.
+- Finaler Render-Build `bld-dc55117f3r2c73di4320`: **succeeded**.
+- Node-Testausgabe: **683 bestanden, 0 fehlgeschlagen**.
+- Backend-Syntaxprüfung: erfolgreich (Teil des Render-Buildbefehls).
+- Vite-Produktionsbuild: erfolgreich.
+- Render-Deployment `dep-dc55117f3r2c73di4310`: **live**, abgeschlossen `2026-11-28T03:55:21.837265Z`.
+- Laufzeitlogs bestätigten `node backend/server.js`, API auf Port 10000, Supabase Data API HTTP 200 und Render-Meldung `Your service is live`.
+
+### Grenzen und offene Validierung
+- Intent-Kandidaten sind lexikalische Evidenz und können bei ungewöhnlicher Formulierung fehlen oder irreführen. Das ist beabsichtigt: sie dürfen nicht selbst Aktionen auslösen.
+- Der finale Intent bleibt Aufgabe des Cognitive Routers; niedrige Konfidenz, Mehrdeutigkeit und Berechtigungen werden weiterhin durch die vorhandenen Anwendungskontrollen behandelt.
+- Der automatisierte Testlauf belegt Regressionen, Datenfluss und Build. Ein echter, authentifizierter Admin-/Scout-Abnahmetest mit realen Dialogen und Provider bleibt noch durchzuführen.
+- Keine DB-Migration, keine Änderungen persistierter Nutzer-/Spieler-/Scoutdaten, keine Modellgewichtsänderung und kein automatisches Training.
+- STAGING-only; Produktion bleibt unangetastet.
+
+### Nächster Schritt — Block 16: Context Intelligence
+Vor Implementierung die bestehenden Dialogue-, Conversation-Memory-, Continuity-, Entity-Resolution- und Reasoning-Module erneut abgleichen. Block 16 soll einen kompakten, priorisierten Gesprächs-Kontextvertrag bereitstellen, der aktive Absicht, offene Fragen, bestätigte Einschränkungen, Korrekturen und Themenwechsel sauber trennt. Bereits vorhandene Funktionen nicht parallel neu bauen und keine unbestätigten Assistenten-Aussagen als Nutzerfakten speichern.
+
+### Change & Decision Log — Ergänzung
+| 2026-11-28 | Intent Intelligence als Evidenzschicht vor dem modellbasierten Cognitive Router ergänzen; keine starre Keyword-Routing-Engine. | Implemented — Block 15 | Kandidaten, Konflikte, Domänenhinweise und Klärungsstatus werden im selben Modellturn übergeben; endgültige Absicht und Autorisierung bleiben getrennt. |
