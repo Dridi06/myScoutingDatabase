@@ -18,6 +18,7 @@ import { persistMessinhoMyKiProposal } from './messinho-myki-bridge.js';
 import { generateMessinhoEngineeringProposal, isMessinhoEngineeringRequest } from './messinho-myki-engineer.js';
 import { startMessinhoEngineeringReviewScheduler, runMessinhoScheduledEngineeringReview, getMessinhoEngineeringReviewSchedule, isMessinhoEngineeringAutoReviewEnabled, isMessinhoEngineeringStagingService, buildMessinhoSelfRepairGoal } from './messinho-engineering-scheduler.js';
 import { runMessinhoProjectAudit } from './messinho-project-audit.js';
+import { runMessinhoFullStackIntelligenceAudit } from './messinho-full-stack-audit.js';
 
 import { assessMessinhoSource, assessMessinhoEvidence, evaluateMessinhoTacticalFit, validateMessinhoCandidateEvidence, messinhoValueSupported, messinhoMetricSupported } from './messinho-intelligence.js';
 import { scopeMessinhoOwner } from './messinho-access.js';
@@ -564,13 +565,23 @@ async function executeMessinhoDiagnostics(actorProfileId){
     const ok=Number.isFinite(result.score)&&result.engine_version&&typeof buildMessinhoLearningProposal==='function';
     return {ok,detail:`Lokaler deterministischer Kern arbeitet ohne externe KI-Aufrufe; Engine ${result.engine_version}; Lernmodul ${typeof buildMessinhoLearningProposal}.`};
   });
+  const {data:priorAuditRuns}=await db.from('messinho_diagnostic_runs').select('status,summary,created_at').order('created_at',{ascending:false}).limit(5);
+  const fullStackAudit=await runMessinhoFullStackIntelligenceAudit({root:process.cwd(),env:process.env,history:priorAuditRuns||[]});
+  for(const item of fullStackAudit.modules){
+    checks.push({name:'Full-Stack · '+item.name,category:item.category,ok:item.ok,detail:item.detail,severity:item.severity,
+      severity_label:item.severity==='critical'?'Kritisch':item.severity==='warning'?'Mittel':'Niedrig',
+      recommendation:item.recommendation,root_cause:item.ok?null:item.detail,
+      impact:item.ok?null:'Die geprüfte Intelligenz- oder Sandbox-Schicht kann eingeschränkt sein.',
+      next_action:item.ok?null:item.recommendation,repair_class:item.ok?'none':'admin_approval',
+      evidence:item.evidence,checkedAt:item.checked_at});
+  }
   const projectAudit=await runMessinhoProjectAudit();
   checks.push(...projectAudit.checks);
   const critical=checks.some(x=>!x.ok&&x.severity==='critical');
   const warning=checks.some(x=>!x.ok&&x.severity==='warning');
   const status=critical?'critical':warning?'warning':'healthy';
   const finishedAt=new Date().toISOString();
-  const record={triggered_by:'admin',actor_profile_id:actorProfileId,status,started_at:startedAt,finished_at:finishedAt,duration_ms:Date.now()-started,summary:{total:checks.length,passed:checks.filter(x=>x.ok).length,failed:checks.filter(x=>!x.ok).length,critical_failed:checks.filter(x=>!x.ok&&x.severity==='critical').length,warnings:checks.filter(x=>!x.ok&&x.severity==='warning').length,categories:[...new Set(checks.map(x=>x.category))].length},checks};
+  const record={triggered_by:'admin',actor_profile_id:actorProfileId,status,started_at:startedAt,finished_at:finishedAt,duration_ms:Date.now()-started,full_stack_audit:fullStackAudit,summary:{total:checks.length,passed:checks.filter(x=>x.ok).length,failed:checks.filter(x=>!x.ok).length,critical_failed:checks.filter(x=>!x.ok&&x.severity==='critical').length,warnings:checks.filter(x=>!x.ok&&x.severity==='warning').length,categories:[...new Set(checks.map(x=>x.category))].length},checks};
   const {data,error}=await db.rpc('save_messinho_diagnostic_run',{p_record:record});
   if(error)throw new Error('MESSINHO-Bericht konnte nicht gespeichert werden: '+error.message);
   return {...record,id:data?.id||data?.run_id||null,persisted:true};
