@@ -6666,3 +6666,35 @@ Eingaben sollen auch bei Tippfehlern, unvollständigen Formulierungen und mehrsp
 - Runtime confirmed API listening on port 10000, Supabase Data API HTTP 200 and Render “Your service is live”.
 - STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
 - No database migration or persistent user/player/scout/learning data changes. PR #58 remains Draft and unmerged. Production untouched.
+
+
+## 34. Block 13 — Linguistic Intelligence: Sentence Structure — 2026-11-28
+
+### Ziel
+MESSINHO soll nicht nur Sprachprofile und einzelne grammatische Signale erkennen, sondern nachvollziehbare Kandidaten für Satzgrenzen, Satzteile, Subjekt-/Verbbeziehungen und Wortstellungsmerkmale ableiten. Die Analyse bleibt konservativ: Kandidaten sind keine bestätigten grammatischen Abhängigkeiten und führen niemals zu einer automatischen Umschreibung.
+
+### Implementierung auf dem Feature-Branch
+- Neu: `backend/messinho-sentence-structure.js` als eigenständige, deterministische und begrenzte Analysekomponente.
+- Unterstützt die sechs vorhandenen Profile Deutsch, Englisch, Französisch, Spanisch, Hocharabisch und tunesische Derja.
+- Erkennt Satzgrenzen sowie begrenzte Haupt-/Neben-/Koordinationsmarker.
+- Liefert Subjekt- und finite Verbkandidaten, zusätzliche Verbkandidaten und vorsichtige Wortstellungsindikatoren.
+- Bewahrt Quelltext und Zeichenbereiche; die Originalnachricht wird nicht verändert.
+- `backend/messinho-grammar-engine.js` integriert die Satzstrukturanalyse in das bestehende Grammar-Ergebnis und aktualisiert seine Versionsnummer auf 0.2.0.
+- Ergänzt Tests in `tests/messinho-sentence-structure.test.js` und erweitert `tests/messinho-grammar-engine.test.js`.
+
+### Grenzen und Qualitätssicherung
+- Die Komponente ist ein lexikalischer Heuristik-Parser, kein vollständiger Dependency-/Constituency-Parser.
+- Subjekt und Verb sind Kandidaten aus begrenzten Wortlisten; Flexion, unregelmäßige Formen, Ellipsen und freie Wortstellung können unvollständig erkannt werden.
+- Ein erkannter Wortstellungshinweis ist kein Urteil über grammatische Richtigkeit.
+- Keine Datenbankmigration, keine persistenten Nutzer-/Spieler-/Scout-Datenänderungen, keine Modellgewichtsänderung und keine Produktionsänderung.
+- CI, vollständige Tests und Build müssen für den exakten Branch-HEAD noch verifiziert werden. Bis dahin gilt Block 13 als implementiert, aber nicht verifiziert oder live.
+
+### Nächste Schritte
+1. Exakten Branch-HEAD und GitHub Actions prüfen; alle Tests, Backend-Syntax und Vite-Build müssen erfolgreich sein.
+2. Fehler anhand der tatsächlichen CI-Ausgabe beheben und erneut auf dem exakten HEAD prüfen.
+3. Nur nach erfolgreicher Prüfung den ausdrücklich vereinbarten STAGING-Service aktualisieren und Deployment-SHA/Health verifizieren.
+4. Mehrsprachige Benchmarkfälle mit realistischen Haupt-/Nebensätzen, Ellipsen, Arabizi, Derja, Code-Switching und mehrdeutiger Wortstellung ergänzen.
+5. Danach semantische Rollen und Beziehungen auf Basis verlässlicherer Satzstruktursignale entwickeln.
+
+### Change & Decision Log
+| 2026-11-28 | Satzstruktur-Analyse als nächste Linguistic-Intelligence-Stufe integrieren; keine parallele Chatoberfläche und keine automatische Textkorrektur. | In progress | Block 13; Feature-Branch und STAGING-only. |
