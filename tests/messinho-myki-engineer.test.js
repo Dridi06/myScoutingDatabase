@@ -66,6 +66,34 @@ test('fails closed when provider, source or patch validation is unavailable',asy
  assert.equal(unsafe.ok,false);
 });
 
+
+test('accepts a real allowlisted source file larger than the former 16k limit',async()=>{
+ const fetchImpl=async url=>{
+  if(url.includes('/commits/'))return response({sha});
+  if(url.endsWith('/backend/messinho-development.js'))return {ok:true,text:async()=>'x'.repeat(24000)};
+  if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=>sourceFor(url)};
+  if(url.includes('api.openai.com'))return response({choices:[{message:{content:JSON.stringify({proposal:candidate})}}]});
+  throw new Error('unexpected_url');
+ };
+ const result=await generateMessinhoEngineeringProposal({goal:'Prüfe MESSINHO auf konkrete sichere Verbesserungen',env:{OPENAI_API_KEY:'test-key'},fetchImpl});
+ assert.equal(result.ok,true);
+ assert.equal(result.proposal.title,candidate.title);
+ assert.equal(result.execution_mode,'proposal_only');
+});
+
+test('reports an oversized source file with a safe file-specific reason',async()=>{
+ const fetchImpl=async url=>{
+  if(url.includes('/commits/'))return response({sha});
+  if(url.endsWith('/backend/messinho-development.js'))return {ok:true,text:async()=>'x'.repeat(32001)};
+  if(url.includes('raw.githubusercontent.com'))return {ok:true,text:async()=>sourceFor(url)};
+  throw new Error('unexpected_url');
+ };
+ const result=await generateMessinhoEngineeringProposal({goal:'Prüfe MESSINHO auf konkrete sichere Verbesserungen',env:{OPENAI_API_KEY:'test-key'},fetchImpl});
+ assert.equal(result.ok,false);
+ assert.equal(result.code,'MYKI_ENGINEERING_SOURCE_SIZE_LIMIT');
+ assert.equal(result.failure_reason,'source_size_limit_exceeded:backend/messinho-development.js');
+});
+
 test('rejects a model patch whose old lines do not exist in the pinned source',()=>{
  const result=validateMessinhoEngineeringPatchAgainstSources(patch,[{path:'backend/messinho-input-correction.js',content:'const actual = 1;\n'}]);
  assert.equal(result.ok,false);
