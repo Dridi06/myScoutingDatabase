@@ -2331,7 +2331,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     // Approved, first-party language knowledge is part of the same cognitive turn.
     // Semantic cognitive routing runs before all deterministic feature routing.
     // It interprets meaning, context, spelling/dictation variants and memory intent.
-    const conversationMemory=buildMessinhoConversationMemory({history,conversationId});
+    const conversationMemory=buildMessinhoConversationMemory({history,conversationId,currentMessage:interpretedMessage,dialogueState,continuityContext:conversationContinuityContext});
     const conversationMemoryContext=formatMessinhoConversationMemory(conversationMemory);
     const reasoningContext=buildMessinhoReasoningContext({history,dialogueState,entityResolution});
     const pragmaticContext=buildMessinhoPragmaticContext({message:interpretedMessage,linguisticContext});
