@@ -18,6 +18,10 @@
 - Added `tests/session-persistence.test.js` for persisted auth configuration, focus/visibility restoration, and stale-read protection.
 
 ## Validation / deployment
-- CI runs started for each file commit and the latest branch commit. Record final Node test, backend syntax, production build and isolated sandbox conclusions here after the workflows complete.
-- Render staging deployment must be triggered only after successful validation because the service has auto-deploy disabled.
-- Do not deploy to Production.
+- Latest candidate commit: `9436908a164787bfdf234b25835b3900116674dc`.
+- Node regression suite: **786 tests passed**.
+- Backend syntax workflow: **passed**.
+- Staging branch CI, including Vite production build: **passed**.
+- Render STAGING deployment `dep-dc5c5hmi0phs73d7beu0`: **live** on the candidate commit; API startup confirmed in service logs.
+- Isolated engineering sandbox workflow `46142590158` remained in the Docker compiler-image build phase at the time of this checkpoint; do not mark it passed until its workflow reports success.
+- Production was not deployed or modified.
