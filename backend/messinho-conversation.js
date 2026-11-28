@@ -59,6 +59,11 @@ const SOCIAL_POOLS = {
     (hour, weekday) => weekday >= 4 ? 'Spieltag-Stimmung! Hast du ein Spiel besonders im Blick?' : 'Ein guter Zeitpunkt, um die Spiele vom Wochenende auszuwerten. Hast du etwas Interessantes gesehen?',
     () => 'Fußball bietet immer Gesprächsstoff. Welches Spiel hast du verfolgt?'
   ],
+  open_question: [
+    () => 'Wir können gemeinsam Spieler recherchieren und bewerten, Scouting-Berichte prüfen, Talente vergleichen oder die Plattform weiterentwickeln. Was möchtest du als Erstes angehen?',
+    () => 'Es gibt einiges: Wir können eine Spieleranalyse starten, Daten auswerten, eine Recherche durchführen oder an myScoutingDatabase weiterarbeiten. Womit sollen wir beginnen?',
+    () => 'Wir können direkt ins Scouting einsteigen, eine konkrete Frage klären oder gemeinsam einen Entwicklungsschritt planen. Was ist dir gerade am wichtigsten?'
+  ],
   bot_identity: [
     () => 'Ich bin MESSINHO – dein digitaler Scouting- und Analysepartner. Ich bin eine KI, die dich bei Recherche, Bewertung und Transferentscheidungen unterstützt.',
     () => 'Ich bin MESSINHO, eine KI für professionelles Fußballscouting. Ich verbinde deine Gesprächsziele mit den Daten und Analysefunktionen der Plattform.'
@@ -66,6 +71,7 @@ const SOCIAL_POOLS = {
 };
 
 const INTENT_PATTERNS = [
+  ['open_question', /\\b(was koennen wir machen|was koennen wir tun|womit koennen wir anfangen|was machen wir jetzt)\\b/],
   ['bot_identity', /\b(wer bist du|wie heisst du|bist du ein mensch|bist du eine ki)\b/],
   ['goodbye', /\b(tschuess|tschuss|ciao|bis dann|bis spaeter|schoenen abend|schoenes wochenende|feierabend|mach es gut|machs gut|haut rein)\b/],
   ['apology', /\b(sorry|entschuldigung|tut mir leid|mein fehler|ups)\b/],
