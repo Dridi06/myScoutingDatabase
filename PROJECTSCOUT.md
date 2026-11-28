@@ -6400,7 +6400,7 @@ All three workflows completed successfully on exact head `08dd035d2edabebdcf7b8c
 - Render service verified: `myscoutingdatabase-messinho-staging`, service ID `srv-dc3chlqjnfac73acd6ig`.
 - Service branch: `feature/messinho-conversation-engine`; automatic deployment is disabled (`autoDeploy=no`), so deployment must be manually triggered after checks.
 - Workspace: `tea-dboagk9srm7s73bdor10`.
-- At this checkpoint, the cue-strength correction has not yet been deployed. Deploy only the exact CI-verified feature-branch head, then verify deployment status and deployed commit.
+- Deployed to STAGING: Render deployment `dep-dc51onmc6qcc73fd44sg`, status **live**, finished `2026-11-28T00:12:59.518506Z`; deployed branch head `c6fbaa3b5cd8c0eafa1c3dcad096d64e80f41a76` (documentation-only commit on top of CI-verified runtime code/test commit `08dd035d2edabebdcf7b8c51a6bfc5527871da98`).
 - Authenticated Admin/Scout end-to-end tests remain outstanding, including multi-turn continuity, correction, disagreement, follow-up constraints, ambiguous references, explicit emotion and topic changes.
 - PR #58 remains open, Draft and unmerged. Production branch, service and database remain untouched.
 
@@ -6409,3 +6409,11 @@ All three workflows completed successfully on exact head `08dd035d2edabebdcf7b8c
 2. Confirm deployment is live and reports the expected commit SHA; inspect startup logs and staging health.
 3. Run authenticated dialogue acceptance tests and record observed responses separately from automated CI.
 4. Continue with the next conversational-engine block only after the staging acceptance baseline is recorded.
+
+
+### Deployment verification addendum
+- Render STAGING deployment `dep-dc51onmc6qcc73fd44sg` completed with status **live** at `2026-11-28T00:12:59.518506Z`.
+- Deployed commit: `c6fbaa3b5cd8c0eafa1c3dcad096d64e80f41a76` (documentation-only checkpoint commit); runtime code and tests are the already CI-verified commit `08dd035d2edabebdcf7b8c51a6bfc5527871da98`.
+- Render build log: all 630 Node tests passed, 0 failed; Vite production build transformed 1,640 modules and completed successfully.
+- Runtime startup log: `npm start` launched `node backend/server.js`; API reported listening on port 10000; Supabase Data API check returned HTTP 200.
+- This verifies build, deployment and startup connectivity. It does not replace authenticated Admin/Scout end-to-end conversational acceptance tests.
