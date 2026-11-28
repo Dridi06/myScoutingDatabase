@@ -6533,3 +6533,43 @@ Improve natural multi-turn dialogue so short follow-ups, pronouns, corrections a
 - No production branch/service/database changes; no schema migration or user/player data changes.
 - Authenticated Admin/Scout conversation acceptance and latency measurements are still outstanding. Deployment/startup success does not prove subjective dialogue quality.
 - PR #58 remains open, Draft and unmerged.
+
+
+## 32. Block 11 — Long-Horizon Conversation Memory and Active Frame — 2026-11-28
+
+### Ziel
+MESSINHO soll den Gesprächsfaden über längere Dialoge halten, ohne alte Aufgaben blind weiterzuführen, Assistentenvorschläge als Nutzerentscheidungen zu speichern oder ungeprüfte Annahmen zu Tatsachen zu machen.
+
+### Implementierung auf dem Feature-Branch
+- backend/messinho-conversation-memory.js wurde auf Version 1.1.0 erweitert.
+- Das bestehende begrenzte Gesprächsgedächtnis (maximal acht unterschiedliche Nachrichten, maximal 1.600 Zeichen) bleibt erhalten.
+- Neu wird pro Chat-Anfrage ein strukturierter, extraktiver active_frame abgeleitet:
+  - aktueller Themen-/Zielkandidat mit Quelle und Autorität;
+  - expliziter Themenwechsel als Kontextgrenze;
+  - Korrektur als vorrangiger Nutzerhinweis, der die widersprochene Interpretation ersetzt;
+  - offene Rückfrage mit Status awaiting_user_reply, answer_candidate_received oder needs_clarification;
+  - mögliche Referenten getrennt nach Nutzer- und Assistentenquelle;
+  - keine automatische Übernahme von Nutzerrestriktionen aus Assistentenvorschlägen.
+- Der Frame wird aus dem owner-geprüften Gesprächsverlauf abgeleitet und an den aktuellen Modellturn übergeben. Er wird nicht als neue dauerhafte Datenbank-Memory gespeichert.
+- backend/server.js übergibt die aktuelle interpretierte Nachricht, den Dialogzustand und die Kontinuitätshinweise an den bestehenden Memory Builder.
+- Die Formatierung gibt den Active Frame zusammen mit den begrenzten jüngsten Nachrichten an Cognitive Routing und Natural Response Composition weiter.
+
+### Sicherheits- und Datenregeln
+- Kein Datenbankschema, keine Migration und keine Änderung persistierter Nutzer-, Spieler-, Scout- oder Lerndaten.
+- Kein neues globales oder organisationsübergreifendes Gedächtnis; der bestehende owner-/conversation-gefilterte Verlauf bleibt die Quelle.
+- Sensible Texte werden vor Aufnahme in den Active Frame gefiltert; die Filterung ist eine defensive Heuristik und kein Ersatz für Zugriffskontrolle.
+- Der Active Frame ist pro Anfrage abgeleitet, begrenzt und nicht persistent.
+- Bestätigte Nutzerrestriktionen bleiben bis zu einer semantischen Prüfung leer; Vorschläge des Assistenten werden nicht zu Nutzerentscheidungen hochgestuft.
+- Ein mehrdeutiger Referent wird nicht durch Memory entschieden. Bei konkurrierenden Kandidaten muss die bestehende Gesprächs-/Entity-Auflösung klären.
+
+### Tests und Verifikation
+- Neue Regressionstests decken 20+ Turns, Priorisierung des aktuellen Nutzerziels, Themenwechsel, Korrekturen, offene/mehrdeutige Rückfragen, sensible Inhalte und die Nicht-Persistenz des Active Frames ab.
+- Die Änderung ist auf dem Feature-Branch vorbereitet. CI, Backend-Syntax, Build und STAGING-Deployment werden erst nach Ausführung der entsprechenden Prüfungen als bestanden bzw. live dokumentiert.
+- Authentifizierte Admin-/Scout-Dialogtests bleiben erforderlich; reine Unit-Tests beweisen nicht die subjektive Natürlichkeit des Gesprächs.
+
+### Nächste Schritte
+1. Exakte Feature-Branch-CI für Memory-Tests, vollständige Node-Suite, Backend-Syntax und STAGING-Build ausführen.
+2. Fehler beheben und CI erneut auf dem exakten Branch-HEAD prüfen.
+3. Nur den CI-geprüften Feature-Branch auf den vereinbarten STAGING-Service deployen und Commit/Status/Health verifizieren.
+4. Mit Admin und Scout jeweils längere Dialoge testen: 20+ Turns, Themenwechsel, Korrektur, Rückfrage/Antwort, mehrdeutiges Pronomen.
+5. Antwortqualität und Latenz messen; PR #58 Draft/unmerged halten, Produktion unangetastet lassen.
