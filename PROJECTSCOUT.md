@@ -6839,3 +6839,15 @@ Die vorhandene semantische Analyse erkennt bereits begrenzte Konzepte und Diskur
 3. STAGING-Health und Laufzeitlogs prüfen.
 4. Semantische Fälle mit Mehrdeutigkeit, negierter Bewertung, Unsicherheit, Kontrast, Code-Switching und neutralen Sätzen ergänzen.
 5. Danach Block 15 — Intent Intelligence — nur nach Audit der bereits vorhandenen Intent-/Router-Komponenten planen und Überschneidungen vermeiden.
+
+### Block 14 STAGING deployment verification — 2026-11-28
+- Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`); configured branch `feature/messinho-conversation-engine`; automatic deployment remains disabled.
+- Deployed runtime commit: `b4f04768b1e89c04377d71d199053a625d016b13`.
+- Render deployment: `dep-dc54t7p7lnhs73alda8g` — status **live**, finished `2026-11-28T03:47:17.854285Z`.
+- Render build `bld-dc54t7p7lnhs73alda90`: **succeeded**; npm test **672 passed, 0 failed**; backend syntax checks passed; Vite production build succeeded.
+- Runtime logs confirmed `node backend/server.js`, API listening on port 10000, Supabase Data API HTTP 200, and Render reported “Your service is live”.
+- STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- The documentation-only follow-up commit is separate from the deployed runtime commit; it does not change application code and was not redeployed.
+- No database/schema migration or persistent user/player/scout/learning data changes. No model training, model-weight changes, permission changes or external side effects.
+- Authenticated Admin/Scout conversation acceptance remains outstanding; deployment verifies automated tests, build and service startup, not full natural-dialogue quality.
+- PR #58 remains open, Draft and unmerged. Production branch, Render production service and production database remain untouched.
