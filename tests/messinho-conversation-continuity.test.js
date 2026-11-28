@@ -52,3 +52,23 @@ test('standalone messages do not inherit an earlier task merely because history 
  assert.equal(context.relation,'standalone');
  assert.equal(context.referent_candidates.length,0);
 });
+
+test('continuity context reaches the cognitive model request as bounded context',async()=>{
+ const {buildMessinhoCognitiveRouterMessages}=await import('../backend/messinho-conversational-intelligence.js');
+ const context=buildMessinhoConversationContinuityContext({message:'Und wie würdest du das lösen?',history:[
+  {role:'user',text:'Wir müssen die Spielerbewertung verbessern.'},
+  {role:'assistant',text:'Meinst du die Datenbasis oder die Bewertungslogik?'}
+ ]});
+ const messages=buildMessinhoCognitiveRouterMessages({message:'Und wie würdest du das lösen?',conversationContinuityContext:context});
+ const payload=JSON.parse(messages[1].content);
+ assert.equal(payload.conversation_continuity_context.relation,'follow_up');
+ assert.match(messages[0].content,/conversation_continuity_context/);
+});
+
+test('authenticated chat builds and forwards continuity context to both conversation turns',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+ assert.ok(source.includes("import { buildMessinhoConversationContinuityContext } from './messinho-conversation-continuity.js';"));
+ assert.match(source,/buildMessinhoConversationContinuityContext\(\{message:interpretedMessage,history,dialogueState\}\)/);
+ assert.match(source,/responseCompositionContext,\s*conversationContinuityContext,\s*userRole:profile\.role/);
+});
