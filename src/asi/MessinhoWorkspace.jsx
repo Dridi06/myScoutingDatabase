@@ -21,7 +21,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
   const [conversationId,setConversationId]=useState(null);
   const [draft,setDraft]=useState('');
   const [busy,setBusy]=useState(false);
-  const [error,setError]=useState('');
+  const [error,setError]=useState(''),[errorAt,setErrorAt]=useState(null);
   const [learningPlayers,setLearningPlayers]=useState([]);
   const [selectedLearningPlayer,setSelectedLearningPlayer]=useState('');
   const [calibrationDrafts,setCalibrationDrafts]=useState({});
@@ -73,7 +73,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
     const value=String(text||'').trim();
     if(!value||busy)return;
     const clientSubmittedAt=new Date().toISOString(),userMessageId='u-'+Date.now();
-    setDraft(current=>current===text||current===draft?'':current);setError('');
+    setDraft(current=>current===text||current===draft?'':current);setError('');setErrorAt(null);
     setMessages(prev=>[...prev,{id:userMessageId,role:'user',text:value,timestamp:clientSubmittedAt,clientSubmittedAt,persisted:false}]);
     setBusy(true);
     try{
@@ -89,7 +89,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
       setMessages(prev=>[...prev,next]);
     }catch(e){
       setDraft(current=>current.trim()?current:value);
-      setError(e.message||'Verbindung zu Messinho fehlgeschlagen.');
+      setError(e.message||'Verbindung zu Messinho fehlgeschlagen.');setErrorAt(new Date().toISOString());
     }
     finally{setBusy(false);}
   }
@@ -329,7 +329,7 @@ export default function MessinhoWorkspace({supabase,profile,onNotice=()=>{},comp
         {messages.map((message,index)=><article key={message.id} className={'messinho-message '+message.role}><div className="messinho-avatar">{message.role==='assistant'?<BrainCircuit size={17}/>:<MessageCircle size={16}/>}</div><div className="messinho-bubble"><small>{message.role==='assistant'?'MESSINHO':'DU'}</small><p lang={message.linguisticIntelligence?.response_language==='ar-tn'?'ar-TN':message.linguisticIntelligence?.response_language||undefined} dir={message.linguisticIntelligence?.response_language?.startsWith('ar')?'rtl':'auto'}>{message.text}</p><time className="messinho-message-timestamp" dateTime={message.timestamp||undefined}>{message.role==='assistant'?(message.persisted?'Ausgabe gespeichert':'Ausgabe erzeugt · nicht gespeichert'):(message.persisted?'Eingabe gespeichert':'Eingabe gesendet · noch nicht bestätigt')} · {formatMessinhoTimestamp(message.timestamp)}</time>{message.clientSubmittedAt&&<time className="messinho-message-timestamp" dateTime={message.clientSubmittedAt}>Client gesendet · {formatMessinhoTimestamp(message.clientSubmittedAt)}</time>}{message.serverReceivedAt&&<time className="messinho-message-timestamp" dateTime={message.serverReceivedAt}>Servereingang · {formatMessinhoTimestamp(message.serverReceivedAt)}</time>}{message.generatedAt&&message.role==='assistant'&&<time className="messinho-message-timestamp" dateTime={message.generatedAt}>Erzeugt · {formatMessinhoTimestamp(message.generatedAt)}</time>}{message.role==='assistant'&&message.linguisticIntelligence?.response_language&&<small className="messinho-language-note">Antwortsprache: {getMessinhoLanguageLabel(message.linguisticIntelligence.response_language)}</small>}{profile?.role==='admin'&&getMessinhoSemanticCueLabels(message.linguisticIntelligence).length>0&&<small className="messinho-semantic-note">Sprachliche Hinweise: {getMessinhoSemanticCueLabels(message.linguisticIntelligence).join(' · ')}</small>}{message.correction?.corrected&&<small className="messinho-correction-note">Sprachlich verstanden als: „{message.correction.corrected}“</small>}{message.metrics&&<div className="messinho-metrics"><span>{message.metrics.players} Spieler im Katalog</span><span>{message.metrics.candidates} eigene Kandidaten</span></div>}{renderItems(message.items)}{message.role==='assistant'&&message.id.startsWith('a-')&&<div className="messinho-feedback"><div className="messinho-feedback-actions">{message.feedbackSubmitted?<small>{feedbackNotices[message.id]||'Feedback gespeichert.'}</small>:<><span>War diese Antwort hilfreich?</span><button type="button" aria-label="Antwort hilfreich" title="Hilfreich" onClick={()=>submitMessageFeedback(message,index,5,'quality_rating')}><ThumbsUp size={15}/></button><button type="button" aria-label="Antwort nicht hilfreich" title="Nicht hilfreich" onClick={()=>openMessageFeedback(message)}><ThumbsDown size={15}/></button></>}</div>{feedbackOpenId===message.id&&!message.feedbackSubmitted&&<div className="messinho-feedback-form"><label>Art des Feedbacks<select value={feedbackDrafts[message.id]?.feedback_type||'quality_rating'} onChange={e=>setFeedbackDraft(message.id,'feedback_type',e.target.value)}><option value="quality_rating">Antwortqualität</option><option value="factual_correction">Fachliche Korrektur</option><option value="bug_report">Fehler melden</option><option value="feature_request">Verbesserung vorschlagen</option></select></label><textarea rows={2} maxLength={1200} value={feedbackDrafts[message.id]?.comment||''} onChange={e=>setFeedbackDraft(message.id,'comment',e.target.value)} placeholder="Was war falsch oder könnte besser sein? (optional bei Antwortqualität)"/><div><button type="button" disabled={feedbackDrafts[message.id]?.feedback_type!=='quality_rating'&&String(feedbackDrafts[message.id]?.comment||'').trim().length<8} onClick={()=>submitMessageFeedback(message,index,1,feedbackDrafts[message.id]?.feedback_type||'quality_rating')}>Feedback senden</button><button type="button" className="secondary" onClick={()=>{setFeedbackOpenId(null);setFeedbackError('');}}>Abbrechen</button></div>{feedbackError&&<small role="alert">{feedbackError}</small>}</div>}</div>}</div></article>)}
         {busy&&<div className="messinho-thinking"><LoaderCircle className="messinho-spin" size={17}/> Messinho verarbeitet deine Anfrage …</div>}
       </div>
-      {error&&<p className="messinho-error" role="alert">{error}</p>}
+      {error&&<p className="messinho-error" role="alert">{error}<time className="messinho-message-timestamp" dateTime={errorAt||undefined}>Fehlerzeitpunkt · {formatMessinhoTimestamp(errorAt)}</time></p>}
       <div className="messinho-composer">
         <textarea
           value={draft}
