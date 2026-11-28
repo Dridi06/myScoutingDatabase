@@ -6986,3 +6986,52 @@ MESSINHO soll nicht nur Gesprächsabsicht und Kontext erkennen, sondern die Antw
 - No DB/schema migration, persistent user/player/scout/learning data mutation, model training, model-weight change or permission change. Production remains untouched.
 - Authenticated Admin/Scout conversation acceptance remains outstanding; build and tests do not establish human-level dialogue quality.
 - The initial build found stale source-wiring assertions after the new response-plan argument was inserted; those tests were updated and the final full build passed.
+
+
+## 40. Block 18 — Reasoning Intelligence: Explainable Problem Planning — 2026-11-28
+
+### Ziel und Abgrenzung
+MESSINHO erhält eine allgemeine, begrenzte Reasoning-Planungsschicht. Sie strukturiert mehrteilige Aufgaben, hält einfache Fragen bewusst einfach, erkennt relevante Vergleichs- und Rechenaufgaben und trennt Belege, Nutzeraussagen, frühere Assistentenaussagen, Annahmen, Hypothesen, Unbekanntes und mögliche Widersprüche.
+Die Komponente erzeugt eine kurze, nutzerorientierte Begründungsstruktur. Sie speichert oder offenbart keine private interne Gedankenkette, vergibt keine künstlichen Konfidenzwerte und ersetzt keine deterministischen Validierungs- oder Berechtigungskontrollen.
+
+### Implementierung
+- Neu: backend/messinho-reasoning-intelligence.js, Version 1.0.0.
+- Neu: tests/messinho-reasoning-intelligence.test.js.
+- Aufgabenarten: Vergleich, Berechnung, Planung, Verifikation, Erklärung und allgemeine Aufgaben.
+- Komplexitätsstufen: simple, multi_part, complex; einfache Anfragen erhalten genau einen Antwortschritt, mehrteilige Aufgaben maximal vier begrenzte Planungsschritte.
+- Vergleichsplanung benennt relevante Kriterien wie Kosten, Risiko, Zeit und Qualität, ohne Optionen oder Ergebnisse zu erfinden.
+- Rechenplanung prüft Eingaben, Formelannahmen, Einheiten, Arithmetik und Ergebnisinterpretation.
+- Evidenz-Ledger trennt verifizierte, ausdrücklich übergebene Evidenz von Nutzerbehauptungen, früheren Assistentenaussagen, Annahmen, Hypothesen, Unbekanntem und Korrektur-/Widerspruchskandidaten.
+- Eine Korrektur wird als Prüfauftrag behandelt, nicht als automatischer Beweis, dass eine der Aussagen wahr oder falsch ist.
+- Ausgabe ist begrenzt; numerische Konfidenz wird ohne kalibrierte Evidenz ausdrücklich nicht berechnet.
+
+### Integration
+- backend/server.js erstellt pro Chat-Turn einen einzigen Reasoning-Plan auf Basis der aktuellen Nachricht, des Gesprächsverlaufs sowie der vorhandenen Reasoning-, Kontext- und Antwortverträge.
+- backend/messinho-conversational-intelligence.js erhält reasoning_intelligence_context bereits im semantischen Router-Turn.
+- backend/messinho-natural-conversation.js erhält denselben Plan für die eigentliche natürlichsprachliche Antwort.
+- Die vorhandene messinho-reasoning-validation.js bleibt als deterministische Schutzschicht erhalten; Block 18 ersetzt sie nicht.
+- Keine neue Aktion, Toolausführung, Berechtigung, Persistenz oder Datenbankoperation wird durch die neue Planungsschicht freigegeben.
+
+### Tests
+- Mehrteilige Aufgabenzerlegung und Begrenzung.
+- Einfache Frage ohne unnötige Zerlegung.
+- Rechenplanung mit Einheiten-/Arithmetikprüfung.
+- Getrennte Attribution von Nutzer- und Assistentenaussagen.
+- Annahmen/Hypothesen getrennt von verifizierter Evidenz.
+- Mehrdeutige Referenzen und fehlende strukturierte Evidenz als Unbekanntes.
+- Korrekturen als Widerspruchskandidaten statt als Wahrheitsentscheidung.
+- Begrenzung, fehlende künstliche Konfidenz sowie ausgewählte mehrsprachige Signale.
+- Übergabe desselben Plans an Cognitive Router und Natural Conversation Composer.
+
+### Sicherheits- und Datenumfang
+- Keine DB-/Schema-Migration.
+- Keine Änderung persistierter Nutzer-, Spieler-, Scout-, Organisations- oder Lerndaten.
+- Keine Modellgewichtsänderung und kein automatisches Training.
+- Bestehende serverseitige Admin-/Scout-Autorisierung bleibt unverändert.
+- STAGING-only; Produktion bleibt unangetastet.
+
+### Verifikation
+- Implementierung und Quelltextintegration sind erfolgt.
+- Vollständige Node-Tests, Syntaxprüfung, Vite-Build und Render-STAGING-Deployment stehen bis zum Verifikationsnachtrag aus.
+- Authentifizierte Admin-/Scout-End-to-End-Abnahme bleibt separat erforderlich.
+
