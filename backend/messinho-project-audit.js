@@ -175,7 +175,7 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
  const scripts=packageData?.scripts||{};
  const buildScript=String(scripts.build||''),testScript=String(scripts.test||'');
  const runsTestsBeforeBuild=/(?:^|&&)\s*(?:npm|pnpm|yarn)\s+(?:run\s+)?test(?:\s|$)/.test(buildScript);
- const invokesViteBuild=/\bvite\s+build\b/.test(buildScript)||/\bnode\s+\S*\/vite(?:\.js)?\s+build\b/.test(buildScript);
+ const invokesViteBuild=/\bvite\s+build\b/.test(buildScript)||/\bnode\s+\S*\/vite(?:\/bin)?\/vite\.js\s+build\b/.test(buildScript);
  const buildOk=Boolean(packageData&&testScript&&runsTestsBeforeBuild&&invokesViteBuild);
  add(checks,'Produktions-Build und Testskripte','Build-Pipeline',buildOk,
   'npm test: '+(testScript||'fehlt')+'; build: '+(buildScript||'fehlt')+'.',
