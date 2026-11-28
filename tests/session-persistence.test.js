@@ -13,7 +13,7 @@ test('returning to the browser tab rehydrates the existing session without forci
  assert.match(main,/window\.addEventListener\('focus',handleResume\)/);
  assert.match(main,/document\.addEventListener\('visibilitychange',handleResume\)/);
  assert.match(main,/if\(document\.visibilityState==='visible'\)/);
- assert.match(main,/if\(data\.session\)\{S\(\{user:data\.session\.user\}\)/);
+ assert.match(main,/if\(data\.session\)S\(current=>current\?\.user\?\.id===data\.session\.user\.id\?current:\{user:data\.session\.user\}\)/);
  assert.match(main,/else if\(event==='SIGNED_OUT'\)\{/);
  assert.doesNotMatch(main,/\}\)\{S\(null\);P\(null\);D\(\[\]\);setMyTickets/);
 });
