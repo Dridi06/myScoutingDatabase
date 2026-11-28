@@ -158,6 +158,7 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
       ]
     }));
     const parsed=JSON.parse(completion.content||'{}');
+    if(!parsed.proposal)return {ok:true,proposal:null,reason:'no_reliable_improvement',source_sha:sourceSha,curriculum_version:learning.curriculum_version};
     const candidate={
       id:randomUUID(),title:parsed.proposal.title,rationale:parsed.proposal.rationale,
       patch:parsed.proposal.patch,test_plan:parsed.proposal.test_plan,
