@@ -31,7 +31,7 @@ export async function runMessinhoMemoryPersistenceAudit({db,ownerId,store=storeM
    try{
     const {data,error}=await db.from('messinho_knowledge_memory').delete()
       .eq('owner_id',ownerId).eq('question_fingerprint',fingerprint).select('id');
-    cleanup.confirmed=!error&&Array.isArray(data)&&data.length<=1;
+    cleanup.confirmed=!error&&Array.isArray(data)&&data.length===1;
     cleanup.error=error?clean(error.message||error.code||'delete_failed',180):null;
    }catch(error){cleanup.error=clean(error?.message||'cleanup_failed',180);}
   }
