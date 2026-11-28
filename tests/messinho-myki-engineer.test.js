@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {generateMessinhoEngineeringProposal,isMessinhoEngineeringRequest,validateMessinhoEngineeringPatchAgainstSources} from '../backend/messinho-myki-engineer.js';
 
 const sha='a'.repeat(40);
@@ -14,6 +15,12 @@ index 1111111..2222222 100644
 const response=payload=>({ok:true,json:async()=>payload});
 const candidate={title:'Verbesserte Eingabe-Normalisierung',rationale:'Ein konkreter Grenzfall in der Normalisierung wird nicht konsistent behandelt und kann sicher vereinheitlicht werden.',patch,test_plan:['Grenzfall und Normalfall prüfen','Regression für bestehende Korrekturen prüfen'],rollback_plan:'Vorherigen Commit wiederherstellen und beide Regressionstests erneut ausführen.'};
 const sourceFor=url=>url.endsWith('/backend/messinho-input-correction.js')?'const value = 1;\n':'export const safe = true;\n';
+
+test('renders chat timestamps without a stray JSX brace after the time element',async()=>{
+ const source=await readFile(new URL('../src/asi/MyKiChat.jsx',import.meta.url),'utf8');
+ assert.equal(source.includes('</time>}</div>'),false);
+ assert.match(source,/<time className="myki-chat-timestamp" dateTime=\{item\.timestamp\|\|undefined\}>\{formatTimestamp\(item\.timestamp\)\}<\/time><\/div>/);
+});
 
 test('recognizes explicit Admin self-review requests',()=>{
  assert.equal(isMessinhoEngineeringRequest('MESSINHO, entwickle eine Verbesserung für dich selbst'),true);
