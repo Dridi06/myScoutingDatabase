@@ -7438,3 +7438,18 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Das Deployment umfasst den Diagnosekern mit strukturierten, positionsgenauen Importbefunden und die Admin-Oberfläche zur Anzeige dieser Fundstellen. Die neue Darstellung erscheint bei einem neu gestarteten Diagnose-Lauf; bereits gespeicherte Altberichte werden nicht rückwirkend verändert.
 - Kein Produktionsservice und keine Produktionsdatenbank wurden geändert. Keine automatische Reparatur und keine Änderung am Live-Code außerhalb des STAGING-Deployments.
 - Noch offen: Admin-Login in STAGING und ein neuer MESSINHO-Diagnoselauf zur Sichtprüfung der gespeicherten `findings`-Details. Die Engine ist weiterhin eine erste statische Prüfebene; echte Parser-/Compiler-/Test-/Coverage-Ausführung und Laufzeitkorrelation sind die nächsten Entwicklungsblöcke.
+
+
+## 2026-11-28 — MESSINHO Full-Stack Intelligence & Sandbox Audit (Block 2)
+- Vorschlag geprüft und als mehrschichtige Diagnose umgesetzt; der Python-Prototyp wurde nicht blind übernommen. MESSINHO läuft als Node.js-Anwendung, daher wurde die Prüfung an vorhandene JavaScript-/TypeScript-, Capability-, Linguistik-, Reasoning-, Modell- und Sandbox-Module angepasst.
+- Neue Engine: `backend/messinho-full-stack-audit.js`; Integration in den Admin-Diagnoseablauf in `backend/server.js`. Die Ergebnisse werden als strukturierte Prüfungen in der bestehenden MESSINHO-Diagnosehistorie persistiert.
+- Code-Introspektion: Abgleich Capability-Katalog/Handler, Speziallogik vs. generischer Fallback sowie AST-basierte Projektmodul-/Export-/Importgraph-Erfassung.
+- Linguistik/Reasoning: synthetische Sprachtests für Deutsch, Englisch, Französisch und tunesisches Arabisch; Aufgabenzerlegung, Quellenattribution und Nicht-Ausführungsregeln.
+- LLM: Standarddiagnose prüft Modellkonfiguration ohne externen Aufruf. Admin kann eine optionale Live-Probe aktivieren: 8-Sekunden-Timeout, JSON-Antwort, angeforderte Obergrenze 64 Ausgabetoken, Latenz und Provider-Usage-Metriken. Secrets und Rohantworten werden nicht gespeichert.
+- Sandbox: tatsächliche Docker-/GitHub-Actions-Definition wird auf Netzwerkabschaltung, Read-only, 3-GiB-/2-vCPU-/128-PID-Limits, Capability-Drop, no-new-privileges, unprivilegierten Benutzer, Quellcode-Mount und Zeitlimits geprüft. Die Gate-Logik wird gegen Staging- und abweichende Production-Identität getestet; kein Job wird aus dem Audit heraus gestartet.
+- Weitere Checks: Parameter-Fuzzing an reinen Capability-Validierungen, Memory-Dubletten-/Sensitivitäts-/Vertrauensfilter, lexikalische Ähnlichkeitssuche und Prompt-Injection-Datenkanalgrenze.
+- Grenzen explizit: kein Zugriff auf private Chain-of-Thought; kein automatisches Patchen; kein echter Provideraufruf im Standardlauf; kein behaupteter Vektorindex; echte Container-Ressourcenwerte und unabhängige semantische Bewertung bleiben offen.
+- Regressionstests ergänzt: `tests/messinho-full-stack-audit.test.js`, `tests/messinho-model-runtime.test.js`, Erweiterungen in `tests/messinho-project-audit.test.js`.
+- Korrektur: Das Backend-Syntax-Workflow-YAML wurde repariert und installiert nun die Abhängigkeiten vor dem Testlauf.
+- Arbeitsbereich bleibt `feature/messinho-conversation-engine`; STAGING-only. Kein Production-Deployment und keine Production-Datenänderung.
+- CI-Abnahme des endgültigen Commits steht noch aus; bis dahin kein Render-STAGING-Deployment.
