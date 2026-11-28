@@ -96,7 +96,7 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
  try{packageData=JSON.parse(await readFile(packageFile,'utf8'));}catch{}
  const scripts=packageData?.scripts||{};
  const buildScript=String(scripts.build||''),testScript=String(scripts.test||'');
- const buildOk=Boolean(packageData&&testScript&&buildScript.includes('npm test')&&buildScript.includes('vite build'));
+ const runsTestsBeforeBuild=/(?:^|&&)\\s*(?:npm|pnpm|yarn)\\s+(?:run\\s+)?test(?:\\s|$)/.test(buildScript);\n const invokesViteBuild=/\\bvite\\s+build\\b/.test(buildScript)||/\\bnode\\s+\\S*\\/vite(?:\\.js)?\\s+build\\b/.test(buildScript);\n const buildOk=Boolean(packageData&&testScript&&runsTestsBeforeBuild&&invokesViteBuild);
  add(checks,'Produktions-Build und Testskripte','Build-Pipeline',buildOk,
   'npm test: '+(testScript||'fehlt')+'; build: '+(buildScript||'fehlt')+'.',
   'critical','Build-Pipeline so konfigurieren, dass Tests vor dem Produktionsbuild ausgeführt werden.');
