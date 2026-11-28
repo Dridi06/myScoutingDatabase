@@ -9,7 +9,7 @@ test('plain German greetings are recognized as social conversation',()=>{
  assert.equal(classifyMessinhoSocialIntent('Hi!'),'greeting');
 });
 
-test('natural conversation engine is the safe fallback when semantic routing fails',async()=>{
+test('simple social greetings bypass provider routing while admin authorization remains first',async()=>{
  const server=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
  const failure=server.indexOf("if(cognitiveResult.status!=='completed'||!cognitiveResult.decision){");
  const fallback=server.indexOf('const conversationalFallback=await generateMessinhoNaturalConversationReply({',failure);
