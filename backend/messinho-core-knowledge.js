@@ -44,6 +44,18 @@ export function getMessinhoCoreKnowledgeManifest() {
   return Object.freeze({version:MESSINHO_CORE_KNOWLEDGE_VERSION,updated_at:MESSINHO_CORE_KNOWLEDGE_UPDATED_AT,loaded:true,entry_count:PACK.length,domains,levels:['foundational'],source_type:'first_party_curated',external_research_required_for_current_or_specialist_facts:true});
 }
 
+export function formatMessinhoCoreKnowledgeFallback(question,{limit=3}={}) {
+ const context=getMessinhoCoreKnowledgeContext(question,{limit});
+ if(context.status!=='hit')return {status:'miss',reply:'',items:[]};
+ const explanation=context.items.slice(0,Math.max(1,Math.min(4,limit))).map(item=>item.title+': '+item.definition+(item.formula?' Formel: '+item.formula:'')+(item.limitations?.length?' Grenzen: '+item.limitations.join('; '):'')).join('\\n\\n');
+ return {
+  status:'available',
+  version:MESSINHO_CORE_KNOWLEDGE_VERSION,
+  reply:'Aus meinem intern geladenen Grundlagenwissen kann ich Folgendes einordnen:\\n\\n'+explanation+'\\n\\nDas ist eine fachliche Grundlage, keine vollständige Expertenbewertung. Aktuelle, spezialisierte oder individuelle Aussagen müssen zusätzlich anhand geeigneter Belege geprüft werden.',
+  items:context.items.slice(0,Math.max(1,Math.min(4,limit)))
+ };
+}
+
 export function getMessinhoCoreKnowledgeContext(question,{limit=6}={}) {
   const q = new Set(normalize(question).split(' ').filter(token => token.length>2 && !STOP.has(token)));
   if (!q.size) return {status:'miss',version:MESSINHO_CORE_KNOWLEDGE_VERSION,items:[]};
