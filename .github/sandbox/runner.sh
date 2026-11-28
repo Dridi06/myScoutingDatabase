@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 PROJECT=/work/project
+report_resources(){
+  local phase="${1:-snapshot}"
+  local memory_current memory_max pids_current pids_max cpu_usage cpu_throttled
+  memory_current="$(cat /sys/fs/cgroup/memory.current 2>/dev/null || echo unavailable)"
+  memory_max="$(cat /sys/fs/cgroup/memory.max 2>/dev/null || echo unavailable)"
+  pids_current="$(cat /sys/fs/cgroup/pids.current 2>/dev/null || echo unavailable)"
+  pids_max="$(cat /sys/fs/cgroup/pids.max 2>/dev/null || echo unavailable)"
+  cpu_usage="$(awk '$1=="usage_usec"{print $2}' /sys/fs/cgroup/cpu.stat 2>/dev/null || true)"
+  cpu_throttled="$(awk '$1=="nr_throttled"{print $2}' /sys/fs/cgroup/cpu.stat 2>/dev/null || true)"
+  echo "MESSINHO_SANDBOX_RESOURCE_METRICS phase=$phase memory_current_bytes=$memory_current memory_limit_bytes=$memory_max pids_current=$pids_current pids_limit=$pids_max cpu_usage_usec=${cpu_usage:-unavailable} cpu_throttled_periods=${cpu_throttled:-unavailable}"
+}
 mkdir -p "$PROJECT" /tmp/messinho-home
 tar --exclude=.git --exclude=node_modules --exclude='.env*' --exclude='**/.env*' --exclude='*.pem' --exclude='*.key' --exclude='secrets' --exclude='credentials' -C /src -cf - . | tar --no-same-owner --no-same-permissions --no-overwrite-dir -C "$PROJECT" -xf -
 mkdir -p "$PROJECT/node_modules"
@@ -27,6 +38,7 @@ git config user.email sandbox@messinho.invalid
 git config user.name MESSINHO-Sandbox
 git add -A
 git -c commit.gpgsign=false commit -qm baseline
+report_resources before_validation
 echo "MESSINHO_SANDBOX_SOURCE_SHA=$MESSINHO_SOURCE_SHA"
 echo "MESSINHO_SANDBOX_TOOLCHAIN=node24-python3-java17-go-rust-c-cpp-php-dotnet10-postgresql"
 echo "=== BASELINE: npm run build ==="
@@ -34,7 +46,8 @@ set +e
 timeout 8m npm run build 2>&1
 baseline=$?
 set -e
-echo "MESSINHO_BASELINE_EXIT=$baseline"
+report_resources after_baseline
+ echo "MESSINHO_BASELINE_EXIT=$baseline"
 if [[ "$baseline" -ne 0 ]]; then echo "MESSINHO_SANDBOX_OUTCOME=inconclusive_baseline_failed"; exit 20; fi
 if [[ -n "${MESSINHO_PATCH_PATH:-}" ]]; then
   [[ -f "$MESSINHO_PATCH_PATH" ]] || { echo "MESSINHO_SANDBOX_OUTCOME=inconclusive_patch_missing"; exit 22; }
@@ -47,6 +60,7 @@ if [[ -n "${MESSINHO_PATCH_PATH:-}" ]]; then
   timeout 8m npm run build 2>&1
   candidate=$?
   set -e
+  report_resources after_candidate_build
   echo "MESSINHO_CANDIDATE_BUILD_EXIT=$candidate"
   if [[ "$candidate" -ne 0 ]]; then echo "MESSINHO_SANDBOX_OUTCOME=candidate_failed"; exit 21; fi
   echo "=== LANGUAGE-SPECIFIC CHECKS ==="
@@ -74,10 +88,12 @@ if [[ -n "${MESSINHO_PATCH_PATH:-}" ]]; then
     if [[ "$check_status" -ne 0 && "$language_status" -eq 0 ]]; then language_status=$check_status; fi
   done <<< "$changed_files"
   set -e
+  report_resources after_candidate_language_checks
   if [[ "$language_status" -ne 0 ]]; then echo "MESSINHO_SANDBOX_OUTCOME=candidate_language_check_failed"; exit 21; fi
   echo "MESSINHO_SANDBOX_OUTCOME=passed"
   exit 0
 fi
+report_resources after_baseline_complete
 echo "=== TOOLCHAIN SMOKE CHECKS ==="
 node --version; python3 --version; javac -version; go version; rustc --version
 gcc --version; clang --version; php --version
