@@ -31,7 +31,7 @@ export default function MyKiChat({supabase}){
    if(!active)return;
    await refreshStatus();
   };
-  refresh();const timer=setInterval(refresh,10000);
+  refresh();const timer=setInterval(refresh,30000);
   return()=>{active=false;clearInterval(timer)};
  },[supabase]);
 
@@ -119,7 +119,7 @@ export default function MyKiChat({supabase}){
    <p className="myki-control-description">{status.control?.status_message||'Diagnose startet eine einzelne Prüfung. Fehleranalyse führt Diagnose, Ursachenbewertung und – falls sicher möglich – einen Reparaturvorschlag aus. Weiterentwicklung sucht nach belegbaren Verbesserungen. Pause hält autonome Aufträge an; der Chat bleibt erreichbar.'}</p>
    {status.current_work&&<div className="myki-current-work"><b>Letzter Arbeitsauftrag</b><span>{status.current_work.goal}</span><small>Status: {status.current_work.status==='running'?'läuft':status.current_work.last_error||status.current_work.status} · offene Schritte: {status.current_work.pending_steps}</small></div>}
   </div>
-  <div className="myki-agent-meta">
+  <details className="myki-agent-details"><summary><Activity size={14}/> Technische Statusdetails anzeigen</summary><div className="myki-agent-meta">
    <span><Activity size={14}/> Selbstprüfung: {(status.self_repair_enabled||status.self_development_enabled||status.scheduler_enabled)?'aktiviert':'derzeit deaktiviert'}</span>
    <span>Autonomie: {operatingMode==='developing'?'autonome Entwicklungsprüfungen':operatingMode==='working'?'Systemfehlersuche und Reparaturprüfung':'pausiert'}</span>
    <span>Programmier-Sandbox: {status.sandbox?.state==='configured_not_yet_end_to_end_verified'?'Zugangsdaten konfiguriert – E2E-Prüfung offen':status.sandbox?.state==='credential_missing'?'GitHub-Zugangsdaten fehlen':'derzeit gesperrt'}</span>
@@ -129,7 +129,7 @@ export default function MyKiChat({supabase}){
    <span>Chat und Fragen bleiben unabhängig vom Entwicklungsmodus erreichbar.</span>
    <span>Letzte Prüfung: {lastRun?.finished_at?new Date(lastRun.finished_at).toLocaleString('de-DE'):lastRun?.started_at?new Date(lastRun.started_at).toLocaleString('de-DE'):'Noch kein Lauf gespeichert'}</span>
    {lastRun?.status&&<span>Ergebnis: {lastRun.error_code==='ADMIN_STOP_REQUESTED'?'Kontrolliert gestoppt':lastRun.error_code==='WORK_WINDOW_ENDED'?'Zeitfenster beendet':({ticket_created:'Ticket erstellt',no_improvement:'Keine sichere Verbesserung gefunden',duplicate:'Vorschlag bereits vorhanden',failed:'Prüfung fehlgeschlagen',running:'Läuft'})[lastRun.status]||lastRun.status}</span>}
-  </div>
+  </div></details>
   {status.maturity&&<section className="myki-maturity" aria-label="MESSINHO Entwicklungsstand">
    <div className="myki-maturity-header">
     <div><span className="myki-eyebrow">ENTWICKLUNGSSTAND</span><h3><TrendingUp size={17}/> MESSINHO-Reifegrad</h3></div>
