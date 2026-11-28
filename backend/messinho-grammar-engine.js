@@ -5,7 +5,9 @@
  * grammar checker or a claim of native-level fluency. It preserves source text,
  * reports evidence and confidence, and never silently rewrites a sentence.
  */
-export const MESSINHO_GRAMMAR_ENGINE_VERSION = '0.1.0';
+import { analyzeMessinhoSentenceStructure, getMessinhoSentenceStructureSummary } from './messinho-sentence-structure.js';
+
+export const MESSINHO_GRAMMAR_ENGINE_VERSION = '0.2.0';
 
 export const MESSINHO_GRAMMAR_LANGUAGES = Object.freeze([
   'de', 'en', 'fr', 'es', 'ar', 'ar-tn'
@@ -148,6 +150,7 @@ export function analyzeMessinhoGrammar(input, languageId) {
       finite_verb_candidates:structural.finite_verb_candidates,
       conjunction_count:structural.conjunction_count
     },
+    sentence_structure: analyzeMessinhoSentenceStructure(text, languageId),
     findings:structural.findings,
     confidence:Math.min(0.85,Number((0.25+coverage*0.6+(structural.findings.length?0.08:0)).toFixed(3))),
     source_preserved:true,
@@ -159,7 +162,8 @@ export function getMessinhoGrammarEngineSummary() {
   return {
     version:MESSINHO_GRAMMAR_ENGINE_VERSION,
     languages:MESSINHO_GRAMMAR_LANGUAGES,
-    dimensions:['sentence_type','articles','pronouns','finite_verb_candidates','conjunctions','selected_language_specific_rules'],
+    dimensions:['sentence_type','articles','pronouns','finite_verb_candidates','conjunctions','selected_language_specific_rules','clause_candidates','subject_candidates','word_order_evidence'],
+    sentence_structure: getMessinhoSentenceStructureSummary(),
     mode:'read_only_explainable_analysis',
     automatic_rewriting:false,
     fluency_claim:false
