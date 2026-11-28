@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {runMessinhoProjectAudit,buildMessinhoDependencyGraph,extractModuleSpecifiers,extractModuleReferences} from '../backend/messinho-project-audit.js';
+import {runMessinhoProjectAudit,buildMessinhoDependencyGraph,extractModuleSpecifiers,extractModuleReferences,isNodeBuiltinSpecifier} from '../backend/messinho-project-audit.js';
 
 test('project audit inventories project areas and build/test pipeline without executing code',async()=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'messinho-audit-'));
@@ -220,5 +220,50 @@ test('dependency graph resolves TypeScript path aliases to real project modules'
   assert.equal(graph.edges.length,1,JSON.stringify(graph.findings));
   assert.equal(graph.edges[0].to,'src/util.js');
   assert.equal(graph.findings.length,0);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('Node.js core modules with node: prefixes are never reported as undeclared npm packages',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'messinho-dependency-builtins-'));
+ try{
+  await mkdir(path.join(root,'backend'),{recursive:true});
+  await writeFile(path.join(root,'backend','consumer.js'),"import crypto from 'node:crypto';\nimport fs from 'node:fs';\nimport {readFile} from 'node:fs/promises';\nimport path from 'path';\nexport const run=()=>Boolean(crypto&&fs&&readFile&&path);");
+  const graph=await buildMessinhoDependencyGraph({root,files:['backend/consumer.js']});
+  assert.equal(isNodeBuiltinSpecifier('node:crypto'),true);
+  assert.equal(isNodeBuiltinSpecifier('node:fs/promises'),true);
+  assert.equal(isNodeBuiltinSpecifier('path'),true);
+  assert.equal(graph.external_dependencies.length,0,JSON.stringify(graph.findings));
+  assert.equal(graph.findings.some(item=>item.category==='undeclared_dependency'),false);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('dependency graph resolves existing static image assets without treating them as npm dependencies',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'messinho-dependency-assets-'));
+ try{
+  await mkdir(path.join(root,'src','assets'),{recursive:true});
+  await writeFile(path.join(root,'src','main.jsx'),"import portrait from './assets/scout-portrait-hd.webp';\nimport stadium from './assets/scout-stadium-panel.webp';\nexport const assets=[portrait,stadium];");
+  await writeFile(path.join(root,'src','assets','scout-portrait-hd.webp'),'asset');
+  await writeFile(path.join(root,'src','assets','scout-stadium-panel.webp'),'asset');
+  const graph=await buildMessinhoDependencyGraph({root,files:['src/main.jsx','src/assets/scout-portrait-hd.webp','src/assets/scout-stadium-panel.webp']});
+  assert.equal(graph.findings.length,0,JSON.stringify(graph.findings));
+  assert.equal(graph.edges.length,2);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('full project audit includes static assets in the parser dependency inventory',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'messinho-project-audit-assets-'));
+ try{
+  for(const folder of ['backend','src/assets','tests','supabase/migrations'])await mkdir(path.join(root,folder),{recursive:true});
+  await writeFile(path.join(root,'package.json'),JSON.stringify({scripts:{test:'node --test',build:'npm test && vite build'}}));
+  await writeFile(path.join(root,'backend','server.js'),'export const ready=true;');
+  await writeFile(path.join(root,'src','main.jsx'),"import portrait from './assets/scout-portrait-hd.webp';\nimport stadium from './assets/scout-stadium-panel.webp';\nexport const assets=[portrait,stadium];");
+  await writeFile(path.join(root,'src','assets','scout-portrait-hd.webp'),'asset');
+  await writeFile(path.join(root,'src','assets','scout-stadium-panel.webp'),'asset');
+  await writeFile(path.join(root,'tests','audit.test.js'),"import test from 'node:test';");
+  await writeFile(path.join(root,'supabase','migrations','001.sql'),'select 1;');
+  const result=await runMessinhoProjectAudit({root});
+  const graph=result.checks.find(item=>item.name==='Parsergestützter Modul- und Abhängigkeitsgraph');
+  assert.equal(graph.ok,true,graph.detail);
+  assert.equal(graph.findings.length,0,JSON.stringify(graph.findings));
  }finally{await rm(root,{recursive:true,force:true});}
 });
