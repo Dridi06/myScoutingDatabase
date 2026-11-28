@@ -61,7 +61,7 @@ test('module import tokenizer finds side-effect and named imports but ignores st
   "import { other } from '../backend/other.js';",
   "const example = \\\"import { fake } from './not-real.js';\\\";",
   "// import './comment.js';"
- ].join('\\n');
+ ].join('\n');
  assert.deepEqual(extractModuleSpecifiers(source),['node:test','../backend/feature.js','../backend/other.js']);
 });
 
@@ -75,7 +75,7 @@ test('project audit ignores import examples in strings and comments and maps tes
    "// import './comment-only-missing.js';",
    "const example = \\\"import { fake } from './string-only-missing.js';\\\";",
    "export { feature };"
-  ].join('\\n'));
+  ].join('\n'));
   await writeFile(path.join(root,'backend','feature.js'),'export const feature=true;');
   await writeFile(path.join(root,'tests','feature-behavior.test.js'),[
    "import test from 'node:test';",
@@ -83,7 +83,7 @@ test('project audit ignores import examples in strings and comments and maps tes
    "test('feature is loaded',()=>assert.ok(feature));",
    "const example = \\\"import { fake } from './not-a-real-module.js';\\\";",
    "// import './also-not-a-real-module.js';"
-  ].join('\\n'));
+  ].join('\n'));
   const result=await runMessinhoProjectAudit({root});
   const imports=result.checks.find(item=>item.name==='Relative Modulimporte');
   const coverage=result.checks.find(item=>item.name==='Backend-Testzuordnung');
