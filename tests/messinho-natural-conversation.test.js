@@ -31,7 +31,7 @@ test('natural composer bounds history and drops invalid speaker roles', () => {
   ];
   const payload = JSON.parse(buildMessinhoNaturalConversationMessages({ message: 'weiter', history })[1].content);
   assert.equal(payload.recent_conversation.length, 12);
-  assert.equal(payload.recent_conversation[0].text, 'turn 8');
+  assert.equal(payload.recent_conversation[0].content, 'turn 8');
   assert.ok(payload.recent_conversation.every(item => ['user', 'assistant'].includes(item.role)));
 });
 
