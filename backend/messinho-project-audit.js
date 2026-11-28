@@ -1,4 +1,5 @@
-import { build as viteBuild } from 'vite';
+import { parse as babelParse } from '@babel/parser';
+import { builtinModules } from 'node:module';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -111,85 +112,227 @@ function stronglyConnectedComponents(nodes,edges){
  return components;
 }
 
+
+function declaredNames(node,result=new Set()){
+ if(!node)return result;
+ if(node.type==='Identifier')result.add(node.name);
+ else if(node.type==='RestElement')declaredNames(node.argument,result);
+ else if(node.type==='AssignmentPattern')declaredNames(node.left,result);
+ else if(node.type==='ArrayPattern')for(const item of node.elements||[])declaredNames(item,result);
+ else if(node.type==='ObjectPattern')for(const item of node.properties||[])declaredNames(item.type==='RestElement'?item.argument:item.value,result);
+ return result;
+}
+function visitAst(node,visitor){
+ if(!node||typeof node!=='object')return;
+ if(Array.isArray(node)){for(const item of node)visitAst(item,visitor);return;}
+ if(typeof node.type==='string')visitor(node);
+ for(const [key,value] of Object.entries(node)){
+  if(key==='loc'||key==='start'||key==='end'||key==='extra'||key==='comments'||key==='tokens')continue;
+  if(value&&typeof value==='object')visitAst(value,visitor);
+ }
+}
+function parseModuleRecord(source,file){
+ const ast=babelParse(source,{sourceType:'unambiguous',allowAwaitOutsideFunction:true,allowReturnOutsideFunction:true,
+  plugins:['jsx','typescript','decorators-legacy','importAttributes','topLevelAwait']});
+ const imports=[],exports=new Set(),reexports=[];
+ visitAst(ast,node=>{
+  if(node.type==='ImportDeclaration'){
+   imports.push({specifier:node.source.value,kind:'static',line:node.loc?.start.line||null,column:node.loc?.start.column==null?null:node.loc.start.column+1,
+    names:(node.specifiers||[]).map(item=>({imported:item.type==='ImportDefaultSpecifier'?'default':item.type==='ImportNamespaceSpecifier'?'*':item.imported?.name||item.imported?.value||'default',local:item.local?.name||null}))});
+  }else if(node.type==='ExportNamedDeclaration'){
+   if(node.source){reexports.push({specifier:node.source.value,names:(node.specifiers||[]).map(item=>({imported:item.local?.name||item.local?.value||'default',exported:item.exported?.name||item.exported?.value||'default'})),line:node.loc?.start.line||null,column:node.loc?.start.column==null?null:node.loc.start.column+1});}
+   else{
+    if(node.declaration){
+     const d=node.declaration;
+     if(d.id?.name)exports.add(d.id.name);
+     if(d.type==='VariableDeclaration')for(const item of d.declarations||[])for(const name of declaredNames(item.id))exports.add(name);
+     if(['TSInterfaceDeclaration','TSTypeAliasDeclaration','ClassDeclaration','FunctionDeclaration','EnumDeclaration'].includes(d.type)&&d.id?.name)exports.add(d.id.name);
+    }
+    for(const item of node.specifiers||[])exports.add(item.exported?.name||item.exported?.value||'default');
+   }
+  }else if(node.type==='ExportDefaultDeclaration')exports.add('default');
+  else if(node.type==='ExportAllDeclaration'){
+   reexports.push({specifier:node.source.value,names:node.exported?[{imported:'*',exported:node.exported.name||node.exported.value}]:[],all:!node.exported,line:node.loc?.start.line||null,column:node.loc?.start.column==null?null:node.loc.start.column+1});
+  }else if(node.type==='ImportExpression'&&node.source?.type==='StringLiteral'){
+   imports.push({specifier:node.source.value,kind:'dynamic',line:node.loc?.start.line||null,column:node.loc?.start.column==null?null:node.loc.start.column+1,names:[]});
+  }else if(node.type==='CallExpression'&&node.callee?.type==='Import'&&node.arguments?.[0]?.type==='StringLiteral'){
+   imports.push({specifier:node.arguments[0].value,kind:'dynamic',line:node.loc?.start.line||null,column:node.loc?.start.column==null?null:node.loc.start.column+1,names:[]});
+  }else if(node.type==='CallExpression'&&node.callee?.type==='Identifier'&&node.callee.name==='require'&&node.arguments?.[0]?.type==='StringLiteral'){
+   imports.push({specifier:node.arguments[0].value,kind:'commonjs',line:node.loc?.start.line||null,column:node.loc?.start.column==null?null:node.loc.start.column+1,names:[]});
+  }
+ });
+ return {file,imports,exports,reexports};
+}
+function loadPathAliases(root){
+ const aliases=[];
+ try{
+  const config=JSON.parse(requireText(path.join(root,'tsconfig.json')));
+  const base=config.compilerOptions?.baseUrl||'.';
+  for(const [pattern,targets] of Object.entries(config.compilerOptions?.paths||{})){
+   for(const target of targets||[])aliases.push({find:pattern.replace(/\\*$/,''),replacement:path.resolve(root,base,target.replace(/\\*$/,''))});
+  }
+ }catch{}
+ try{
+  const vite=requireText(path.join(root,'vite.config.js'));
+  for(const match of vite.matchAll(/['"]([^'"]+)['"]\\s*:\\s*['"]([^'"]+)['"]/g)){
+   const find=match[1],replacement=match[2];
+   if(find.length<=12&&(replacement.startsWith('./')||replacement.startsWith('/')))aliases.push({find,replacement:path.resolve(root,replacement)});
+  }
+ }catch{}
+ return aliases;
+}
+function requireText(file){
+ // Synchronous file reads are intentionally avoided; alias parsing is supplied
+ // by the already loaded source inventory in the caller.
+ return '';
+}
+function resolveGraphImport(from,specifier,known,aliases,root){
+ let candidate=String(specifier||'');
+ if(candidate.startsWith('.'))return resolveRelativeImport(from,candidate,known);
+ for(const alias of aliases){
+  if(candidate===alias.find||candidate.startsWith(alias.find)){
+   const suffix=candidate.slice(alias.find.length);
+   const base=path.relative(root,path.join(alias.replacement,suffix));
+   return resolveRelativeImport(from,'/'+base,known)||resolveKnownPath(base,known);
+  }
+ }
+ if(candidate.startsWith('/'))return resolveKnownPath(candidate.slice(1),known);
+ return null;
+}
+function resolveKnownPath(value,known){
+ const base=path.posix.normalize(String(value||'').replace(/^\\//,''));
+ const candidates=path.posix.extname(base)?[base]:[base,...JS_EXTENSIONS.map(ext=>base+ext),...JS_EXTENSIONS.map(ext=>path.posix.join(base,'index'+ext))];
+ return candidates.find(candidate=>known.has(candidate))||null;
+}
 export async function buildMessinhoDependencyGraph({root=PROJECT_ROOT,files=[]}={}){
  const modules=files.filter(file=>/\\.(?:js|mjs|cjs|jsx|ts|tsx)$/.test(file)).map(normalizeModulePath);
- const checkedAt=new Date().toISOString();
- if(!modules.length)return {ok:false,checked_at:checkedAt,parser:'vite/rollup',nodes:[],edges:[],cycles:[],external_dependencies:[],findings:[],
+ const checkedAt=new Date().toISOString(),known=new Set(files.map(normalizeModulePath));
+ if(!modules.length)return {ok:false,checked_at:checkedAt,parser:'babel',nodes:[],edges:[],cycles:[],external_dependencies:[],findings:[],
   coverage:{modules:0,parsed:0,excluded:files.length},metrics:{nodes:0,edges:0,cycles:0,external_dependencies:0,findings:0}};
- const nodes=new Set(),edges=new Map(),externalDependencies=new Set(),findings=[],edgeList=[];
- const sourceRefs=new Map();
- for(const file of modules){try{sourceRefs.set(file,extractModuleReferences(await readFile(path.join(root,file),'utf8')));}catch{sourceRefs.set(file,[]);}}
- const collector={name:'messinho-dependency-graph-collector',buildEnd(_error){
-  for(const id of this.getModuleIds()){
-   const info=this.getModuleInfo(id);if(!info||info.isExternal)continue;
-   const relative=projectRelativeModulePath(id,root);
-   if(!relative)continue;
-   nodes.add(relative);if(!edges.has(relative))edges.set(relative,new Set());
+ const records=new Map(),edges=new Map(),externalDependencies=new Set(),findings=[];
+ const packageFile=path.join(root,'package.json');let packageData={};
+ try{packageData=JSON.parse(await readFile(packageFile,'utf8'));}catch{}
+ const declaredPackages=new Set(['dependencies','devDependencies','optionalDependencies'].flatMap(key=>Object.keys(packageData[key]||{})));
+ const builtins=new Set(builtinModules.flatMap(item=>[item,item.replace(/^node:/,'')]));
+ const aliases=[];
+ try{
+  const tsconfig=JSON.parse(await readFile(path.join(root,'tsconfig.json'),'utf8'));
+  const base=path.resolve(root,tsconfig.compilerOptions?.baseUrl||'.');
+  for(const [pattern,targets] of Object.entries(tsconfig.compilerOptions?.paths||{}))for(const target of targets||[]){
+   const star=pattern.indexOf('*'),find=star<0?pattern:pattern.slice(0,star);
+   const targetStar=target.indexOf('*'),replacement=path.resolve(base,targetStar<0?target:target.slice(0,targetStar));
+   aliases.push({find,replacement});
   }
-  for(const id of this.getModuleIds()){
-   const info=this.getModuleInfo(id);if(!info||info.isExternal)continue;
-   const from=projectRelativeModulePath(id,root);
-   if(!from||!nodes.has(from))continue;
-   const imports=[...(info.importedIds||[]).map(value=>({value,kind:'static'})),...(info.dynamicallyImportedIds||[]).map(value=>({value,kind:'dynamic'}))];
-   for(const item of imports){
-    const targetId=item.value;
-    if(this.getModuleInfo(targetId)?.isExternal){externalDependencies.add(targetId);continue;}
-    const target=projectRelativeModulePath(targetId,root);
-    if(!target||!nodes.has(target))continue;
-    edges.get(from).add(target);
-    const ref=(sourceRefs.get(from)||[]).find(candidate=>candidate.specifier===targetId||candidate.specifier===item.value);
-    edgeList.push({from,to:target,kind:item.kind,line:ref?.line||null,column:ref?.column||null});
+ }catch{}
+ try{
+  const vite=await readFile(path.join(root,'vite.config.js'),'utf8');
+  for(const match of vite.matchAll(/['"]([^'"]+)['"]\\s*:\\s*['"]([^'"]+)['"]/g)){
+   const find=match[1],replacement=match[2];
+   if(find.length<=12&&(replacement.startsWith('./')||replacement.startsWith('/')))aliases.push({find,replacement:path.resolve(root,replacement)});
+  }
+ }catch{}
+ for(const file of modules){
+  try{
+   const source=await readFile(path.join(root,file),'utf8');
+   records.set(file,parseModuleRecord(source,file));
+  }catch(error){
+   const loc=error.loc||error.location||{};
+   findings.push({finding_id:'PARSE-'+String(findings.length+1).padStart(4,'0'),status:'unverified',severity:'critical',
+    category:'parser_or_module_error',component:file.startsWith('backend/')?'Backend':file.startsWith('src/')?'Frontend':'Project',
+    title:'Quelldatei kann nicht geparst werden',file,line:loc.line||null,column:loc.column==null?null:loc.column+1,
+    error_message:safe(error.message||error,1800),root_cause:'Der Babel-Parser konnte die Datei mit den konfigurierten JS-/JSX-/TypeScript-Syntaxregeln nicht lesen.',
+    evidence:{tool:'@babel/parser',message:safe(error.message||error,1800)},
+    reproduction:{check:'babel_parse',source_file:file},recommendation:'Syntax und Dateiendung prüfen; nicht unterstützte Syntax gezielt als Parserlücke dokumentieren.',
+    checked_at:checkedAt});
+  }
+ }
+ for(const file of records.keys())edges.set(file,new Set());
+ const resolve=(from,specifier)=>resolveGraphImport(from,specifier,known,aliases,root);
+ const importsByFile=new Map();
+ for(const [file,record] of records){
+  const imports=[];
+  for(const item of [...record.imports,...record.reexports]){
+   const local=resolve(file,item.specifier);
+   if(local){edges.get(file).add(local);imports.push({...item,target:local});continue;}
+   if(item.specifier.startsWith('.')||item.specifier.startsWith('/')){
+    findings.push({finding_id:'IMPORT-'+String(findings.length+1).padStart(4,'0'),status:'unverified',severity:'high',
+     category:'unresolved_import',component:file.startsWith('backend/')?'Backend':file.startsWith('src/')?'Frontend':'Tests',
+     title:'Importziel nicht auflösbar',file,line:item.line,column:item.column,dependency:item.specifier,
+     root_cause:'Das Importziel ist weder über den relativen Pfad noch über eine erkannte Alias-Regel im Projektinventar vorhanden.',
+     evidence:{specifier:item.specifier,import_kind:item.kind||'re_export'},
+     reproduction:{check:'module_resolution',source_file:file,specifier:item.specifier},
+     recommendation:'Pfad, Groß-/Kleinschreibung, Endung und tsconfig-/Vite-Aliasregeln prüfen.',checked_at:checkedAt});
+    continue;
+   }
+   const packageName=item.specifier.startsWith('@')?item.specifier.split('/').slice(0,2).join('/'):item.specifier.split('/')[0];
+   if(builtins.has(item.specifier)||builtins.has(packageName))continue;
+   externalDependencies.add(packageName);
+   if(!declaredPackages.has(packageName)){
+    findings.push({finding_id:'PACKAGE-'+String(findings.length+1).padStart(4,'0'),status:'unverified',severity:'high',
+     category:'undeclared_dependency',component:'Dependencies',title:'Externe Abhängigkeit nicht deklariert',
+     file,line:item.line,column:item.column,dependency:packageName,
+     root_cause:'Das importierte Paket ist weder als Projektabhängigkeit noch als Node.js-Builtin deklariert.',
+     evidence:{specifier:item.specifier},reproduction:{check:'package_manifest_dependency',source_file:file,specifier:item.specifier},
+     recommendation:'Prüfen, ob das Paket absichtlich extern bereitgestellt wird; andernfalls als Abhängigkeit deklarieren.',
+     checked_at:checkedAt});
+   }
+   imports.push({...item,target:null,external:true});
+  }
+  importsByFile.set(file,imports);
+ }
+ // Resolve named re-exports to a fixed point before validating import bindings.
+ for(let pass=0;pass<records.size;pass++){
+  let changed=false;
+  for(const [file,record] of records)for(const item of record.reexports){
+   const target=resolve(file,item.specifier),targetRecord=records.get(target);
+   if(!targetRecord)continue;
+   const names=item.all?[...targetRecord.exports].filter(name=>name!=='default'):item.names.map(name=>name.imported);
+   for(const name of names){const exported=item.all?name:(item.names.find(value=>value.imported===name)?.exported||name);
+    if(!record.exports.has(exported)){record.exports.add(exported);changed=true;}
    }
   }
- }};
- let buildError=null;
- try{
-  const configExists=await stat(path.join(root,'vite.config.js')).then(value=>value.isFile()).catch(()=>false);
-  await viteBuild({root,configFile:configExists?undefined:false,logLevel:'silent',mode:'production',
-   build:{write:false,emptyOutDir:false,manifest:false,rollupOptions:{
-    input:modules,external:id=>!id.startsWith('.')&&!path.isAbsolute(id)&&!id.startsWith('\\0'),
-    plugins:[collector],output:{entryFileNames:'[name]-[hash].js',chunkFileNames:'chunks/[name]-[hash].js'}
-   }}});
- }catch(error){buildError=error;}
- if(buildError){
-  const rawFile=buildError.loc?.file||buildError.id||null;
-  const file=rawFile?normalizeModulePath(path.relative(root,path.isAbsolute(rawFile)?rawFile:path.resolve(root,rawFile))):null;
-  const line=buildError.loc?.line||null,column=buildError.loc?.column==null?null:buildError.loc.column+1;
-  const message=safe(buildError.message||buildError.code||'Parser-/Modulauflösungsfehler',1800);
-  const missingExport=/not exported by|is not exported|does not provide an export|not exported/i.test(message);
-  const unresolved=/Could not resolve|failed to resolve|cannot find|not found/i.test(message);
-  const syntax=/Parse failure|Unexpected token|Expected|Unexpected character|Expression expected|SyntaxError/i.test(message);
-  const category=missingExport?'missing_export':unresolved?'unresolved_import':syntax?'parser_or_module_error':'module_graph_error';
-  findings.push({finding_id:'GRAPH-0001',status:'unverified',severity:missingExport||unresolved?'high':'critical',category,
-   component:file?.startsWith('backend/')?'Backend':file?.startsWith('src/')?'Frontend':'Project',
-   title:missingExport?'Importiertes Export-Symbol fehlt':unresolved?'Modulziel kann nicht aufgelöst werden':syntax?'Parserfehler':'Modulgraph konnte nicht vollständig erstellt werden',
-   file,line,column,symbol:null,dependency:null,error_message:message,
-   root_cause:'Vite/Rollup hat beim isolierten, schreibfreien Modulgraph-Aufbau einen Parser- oder Resolverfehler gemeldet.',
-   evidence:{tool:'vite/rollup',message,frame:safe(buildError.frame||'',1200),plugin:buildError.plugin||null},
-   reproduction:{check:'vite_dependency_graph',source_file:file,command:'vite build (write:false, external package imports)'},
-   recommendation:'Originalmeldung und Quellstelle prüfen; Importpfad, Exportdefinition, Dateiendung, JSX-/TypeScript-Syntax und Vite-Konfiguration kontrollieren.',
-   checked_at:checkedAt});
+  if(!changed)break;
  }
- const cycles=stronglyConnectedComponents(nodes,edges);
- for(const component of cycles)findings.push({finding_id:'CYCLE-'+String(findings.length+1).padStart(4,'0'),
-  status:'unverified',severity:'medium',category:'circular_dependency',component:'Module',
-  title:'Zyklische Modulabhängigkeit',file:component[0],line:null,column:null,dependency:component.join(' → '),
+ for(const [file,record] of records)for(const item of importsByFile.get(file)||[]){
+  if(!item.target||item.external||!item.names?.length)continue;
+  const targetRecord=records.get(item.target);
+  if(!targetRecord)continue;
+  for(const name of item.names){
+   if(name.imported==='*'||targetRecord.exports.has(name.imported))continue;
+   findings.push({finding_id:'EXPORT-'+String(findings.length+1).padStart(4,'0'),status:'unverified',severity:'high',
+    category:'missing_export',component:file.startsWith('backend/')?'Backend':'Frontend',
+    title:'Importiertes Export-Symbol fehlt',file,line:item.line,column:item.column,symbol:name.imported,dependency:item.specifier,
+    root_cause:'Das lokale Modul exportiert das angeforderte Symbol nicht.',
+    evidence:{imported_symbol:name.imported,target_file:item.target,available_exports:[...targetRecord.exports].slice(0,40)},
+    reproduction:{check:'named_export_contract',source_file:file,target_file:item.target,symbol:name.imported},
+    recommendation:'Exportname, Importname und Re-Export-Kette abgleichen.',checked_at:checkedAt});
+  }
+ }
+ const cycles=stronglyConnectedComponents(new Set(records.keys()),edges);
+ for(const component of cycles)findings.push({finding_id:'CYCLE-'+String(findings.length+1).padStart(4,'0'),status:'unverified',
+  severity:'medium',category:'circular_dependency',component:'Module',title:'Zyklische Modulabhängigkeit',
+  file:component[0],line:null,column:null,dependency:component.join(' → '),
   root_cause:'Die Module bilden einen gerichteten Abhängigkeitszyklus.',evidence:{nodes:component},
   reproduction:{check:'strongly_connected_components',modules:component},
   recommendation:'Zyklus auflösen oder bewusst dokumentieren; gemeinsame Verträge gegebenenfalls in ein unabhängiges Modul verschieben.',
   checked_at:checkedAt});
- const graphEdges=edgeList.sort((a,b)=>a.from.localeCompare(b.from)||a.to.localeCompare(b.to));
- const incoming=new Map([...nodes].map(node=>[node,0]));
+ const edgeList=[];
+ for(const [from,targets] of edges)for(const to of targets){
+  const reference=(records.get(from)?.imports||[]).find(item=>resolve(from,item.specifier)===to);
+  edgeList.push({from,to,kind:reference?.kind||'static',line:reference?.line||null,column:reference?.column||null});
+ }
+ const incoming=new Map([...records.keys()].map(node=>[node,0]));
  for(const targets of edges.values())for(const target of targets)incoming.set(target,(incoming.get(target)||0)+1);
- return {ok:findings.length===0,checked_at:checkedAt,parser:'vite/rollup',nodes:[...nodes].sort(),edges:graphEdges,cycles,
-  external_dependencies:[...externalDependencies].sort(),findings,
-  coverage:{modules:modules.length,parsed:nodes.size,excluded:files.length-modules.length,
+ const graphEdges=edgeList.sort((a,b)=>a.from.localeCompare(b.from)||a.to.localeCompare(b.to));
+ return {ok:findings.length===0,checked_at:checkedAt,parser:'@babel/parser',nodes:[...records.keys()].sort(),edges:graphEdges,
+  cycles,external_dependencies:[...externalDependencies].sort(),findings,
+  coverage:{modules:modules.length,parsed:records.size,excluded:files.length-modules.length,
    external_dependencies:externalDependencies.size,internal_edges:graphEdges.length},
-  metrics:{nodes:nodes.size,edges:graphEdges.length,cycles:cycles.length,external_dependencies:externalDependencies.size,
-   findings:findings.length,isolated_modules:[...nodes].filter(node=>(edges.get(node)?.size||0)===0&&(incoming.get(node)||0)===0).length},
-  limitations:['Vite/Rollup parst und löst den statischen Modulgraphen einschließlich relativer Imports und benannter Exporte; Anwendungscode wird nicht ausgeführt.',
-   'Paketimporte werden als externe Abhängigkeiten erfasst; Version und Laufzeitverfügbarkeit werden hier nicht bewiesen.',
-   'Dynamische, zur Laufzeit zusammengesetzte Importpfade können statisch nicht vollständig aufgelöst werden.',
+  metrics:{nodes:records.size,edges:graphEdges.length,cycles:cycles.length,external_dependencies:externalDependencies.size,
+   findings:findings.length,isolated_modules:[...records.keys()].filter(node=>(edges.get(node)?.size||0)===0&&(incoming.get(node)||0)===0).length},
+  limitations:['Babel parst JS-/JSX-/TypeScript-Module und prüft lokale Import-/Exportverträge; Anwendungscode wird nicht ausgeführt.',
+   'Paketimporte werden anhand des package.json-Manifests als externe Abhängigkeiten erfasst; installierte Version und Laufzeitverfügbarkeit werden hier nicht bewiesen.',
+   'Dynamische, zur Laufzeit zusammengesetzte Importpfade und CommonJS-Exports können statisch nicht vollständig aufgelöst werden.',
    'Zyklische Importe sind Hinweise, nicht automatisch Laufzeitfehler.','CSS-/SQL-Semantik und Backend-Laufzeitverhalten sind nicht Gegenstand dieses Modulgraphen.']};
 }
 
@@ -262,7 +405,7 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
  checks[checks.length-1].findings=findings.filter(item=>item.category==='dependency_resolution');
  const dependencyGraph=await buildMessinhoDependencyGraph({root,files:sourceFiles});
  add(checks,'Parsergestützter Modul- und Abhängigkeitsgraph','Abhängigkeiten',dependencyGraph.ok,
-  'Parser: Vite/Rollup; Module: '+dependencyGraph.coverage.modules+'; interne Kanten: '+dependencyGraph.metrics.edges+
+  'Parser: Babel; Module: '+dependencyGraph.coverage.modules+'; interne Kanten: '+dependencyGraph.metrics.edges+
   '; externe Pakete: '+dependencyGraph.metrics.external_dependencies+'; Zyklen: '+dependencyGraph.metrics.cycles+
   '; Parser-/Auflösungsbefunde: '+dependencyGraph.findings.length+
   (dependencyGraph.findings.length?'; '+dependencyGraph.findings.slice(0,12).map(item=>(item.file||'Projekt')+(item.line?':'+item.line:'')+' '+(item.error_message||item.title)).join(' | '):''),
@@ -334,5 +477,5 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
  return {ok:checks.every(item=>item.ok),checks,findings:[...findings,...dependencyGraph.findings],dependency_graph:dependencyGraph,summary:totals,scope:'backend, frontend, tests, SQL migrations, relative imports, build scripts and API route surface',
   audit_metadata:{mode:'parser_backed_static',parser:'vite/rollup',source_file_count:sourceFiles.length,inventory_roots:ROOTS,checked_at:new Date().toISOString(),
    finding_count:findings.length,confirmed_runtime_failures:0,unverified_static_findings:findings.length},
-  limitations:['Read-only parser-backed inspection; no application code or shell command is executed.','The Vite/Rollup parser and resolver run in-memory with write:false; no live database mutation, external request or application runtime is started.','A static unresolved-import candidate is not a confirmed runtime failure until the build/runtime resolver independently reproduces it.','No direct test import is not proof of missing behavioral coverage; coverage and integration results are required.','Static route-guard hints do not prove authorization; authenticated integration tests remain necessary.']};
+  limitations:['Read-only parser-backed inspection; no application code or shell command is executed.','The Babel parser and static module resolver run read-only; no live database mutation, external request or application runtime is started.','A static unresolved-import candidate is not a confirmed runtime failure until the build/runtime resolver independently reproduces it.','No direct test import is not proof of missing behavioral coverage; coverage and integration results are required.','Static route-guard hints do not prove authorization; authenticated integration tests remain necessary.']};
 }
