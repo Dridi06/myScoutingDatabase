@@ -314,6 +314,9 @@ test('full project audit exposes provider inventory with runtime and test refere
   const result=await runMessinhoProjectAudit({root});
   assert.equal(result.provider_inventory.openai.files.includes('backend/server.js'),true);
   assert.equal(result.provider_inventory.openai.direct_http_calls,1);
+  const providerCheck=result.checks.find(item=>item.name==='Direkte OpenAI-Laufzeitabhängigkeiten');
+  assert.equal(providerCheck.ok,false);
+  assert.match(providerCheck.detail,/direkte HTTP-Aufrufe: 1/);
   assert.equal(result.provider_inventory.references.filter(item=>item.scope==='test_only').length,1);
  }finally{await rm(root,{recursive:true,force:true});}
 });
