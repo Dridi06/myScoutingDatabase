@@ -7215,3 +7215,13 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - CI workflow `.github/workflows/messinho-tests.yml` is configured to run `npm test` and backend syntax checks on pushes to this branch.
 - Commits: route fix `ac48ac1b4fffec10f449c9c1fcb0b3c38e5e5fd6`; greeting regression test `51d846b8c3c41838e453399fc1e5d10e1bfe3804`; test assertion correction `50851bf35002e0137d23c0166f14615365bda81e`.
 - Status at documentation time: code and test are committed to the feature branch; CI result and Render STAGING deployment/runtime behavior still require verification. No production or `main` changes.
+
+
+## 2026-11-28 — Conversation-engine architecture correction
+- The user correctly rejected canned greeting templates as inconsistent with the intended ChatGPT-like MESSINHO conversation experience.
+- The deterministic greeting shortcut was removed from the live chat route. Greeting detection remains a small intent utility, but it no longer generates the user-facing answer.
+- The route now treats the semantic cognitive router as an intent/action planner, not as a hard prerequisite for ordinary dialogue. If that router fails, the request attempts the existing generative `generateMessinhoNaturalConversationReply` engine with the same bounded dialogue, linguistic, memory, reasoning and continuity context.
+- This fallback is explicitly non-executing: it dispatches no scouting, memory or engineering actions. If the language provider itself is unavailable, the route returns a truthful provider-unavailable response rather than pretending to converse.
+- Updated regression test checks that the generative conversation engine is used as the router-failure fallback and that no canned greeting handler is wired into the route.
+- Commits: architecture correction `33d5ac2ef99fd95239a238abfca77015e8d8df27`; route regression test `40ade372c06b928fb4dd142c4f7bc69fbc59c90d`; removed canned-response expectations `aa5b923f3263f04f590f7b31e0117e90ca3f38d7`.
+- CI and STAGING deployment/runtime verification remain pending. This change does not touch `main` or production.
