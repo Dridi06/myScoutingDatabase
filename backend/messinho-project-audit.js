@@ -112,8 +112,7 @@ export async function buildMessinhoDependencyGraph({root=PROJECT_ROOT,files=[]}=
  const nodes=new Set(),edges=new Map(),externalDependencies=new Set(),findings=[],edgeList=[];
  const sourceRefs=new Map();
  for(const file of modules){try{sourceRefs.set(file,extractModuleReferences(await readFile(path.join(root,file),'utf8')));}catch{sourceRefs.set(file,[]);}}
- const collector={name:'messinho-dependency-graph-collector',buildEnd(error){
-  if(error)return;
+ const collector={name:'messinho-dependency-graph-collector',buildEnd(_error){
   for(const id of this.getModuleIds()){
    const info=this.getModuleInfo(id);if(!info||info.isExternal)continue;
    const relative=normalizeModulePath(path.relative(root,id));
