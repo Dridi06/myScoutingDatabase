@@ -71,7 +71,7 @@ const SOCIAL_POOLS = {
 };
 
 const INTENT_PATTERNS = [
-  ['open_question', /\\b(was koennen wir machen|was koennen wir tun|womit koennen wir anfangen|was machen wir jetzt)\\b/],
+  ['open_question', /\b(was koennen wir machen|was koennen wir tun|womit koennen wir anfangen|was machen wir jetzt)\b/],
   ['bot_identity', /\b(wer bist du|wie heisst du|bist du ein mensch|bist du eine ki)\b/],
   ['goodbye', /\b(tschuess|tschuss|ciao|bis dann|bis spaeter|schoenen abend|schoenes wochenende|feierabend|mach es gut|machs gut|haut rein)\b/],
   ['apology', /\b(sorry|entschuldigung|tut mir leid|mein fehler|ups)\b/],
