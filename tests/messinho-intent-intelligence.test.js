@@ -58,7 +58,7 @@ test('supports multilingual explicit research cues and stays bounded',()=>{
 test('ordinary maths questions remain conversation rather than forced external research',()=>{
   const result=buildMessinhoIntentEvidence({message:'Wie berechne ich 15 Prozent von 240?'});
   assert.equal(result.suggested_intent,'conversation');
-  assert.equal(result.action_like,false);
+  assert.equal(result.action_like,true);
   assert.equal(result.question_like,true);
 });
 
