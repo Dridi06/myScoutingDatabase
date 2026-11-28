@@ -130,7 +130,7 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
        category:'dependency_resolution',component:relative.startsWith('backend/')?'Backend':relative.startsWith('src/')?'Frontend':'Tests',
        title:'Relativer Import nicht auflösbar',file:relative,line:reference.line,column:reference.column,
        dependency:specifier,root_cause:'Das Importziel konnte anhand des vorhandenen Projektinventars nicht aufgelöst werden.',
-       evidence:{source_line:content.split(/\\r?\\n/)[reference.line-1]?.trim()||'',import_kind:reference.kind},
+       evidence:{source_line:content.split(/\r?\n/)[reference.line-1]?.trim()||'',import_kind:reference.kind},
        reproduction:{check:'static_import_resolution',source_file:relative,specifier},
        recommendation:'Dateipfad, Groß-/Kleinschreibung, Export-/Dateiendung und Build-Alias-Konfiguration prüfen.',
        checked_at:new Date().toISOString()});
@@ -170,6 +170,8 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
   'Backend-Module: '+backendJs.length+'; Testdateien: '+testFiles.length+'; Module ohne direkten Testimport: '+missingTests.length+
   (missingTests.length?'; '+missingTests.slice(0,30).join(', '):''),
   'info','Die Zuordnung ist nicht abschließend: fehlender direkter Import beweist keine fehlende Testabdeckung. Coverage- und Integrationsnachweise ausführen.');
+ checks[checks.length-1].recommendation='Die Zuordnung ist nicht abschließend: fehlender direkter Import beweist keine fehlende Testabdeckung. Coverage- und Integrationsnachweise ausführen.';
+ checks[checks.length-1].next_action=checks[checks.length-1].recommendation;
  const packageFile=path.join(root,'package.json');
  let packageData=null;
  try{packageData=JSON.parse(await readFile(packageFile,'utf8'));}catch{}
