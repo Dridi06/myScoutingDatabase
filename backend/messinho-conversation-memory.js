@@ -8,7 +8,7 @@ const MAX_FRAME_TEXT = 360;
 const TOPIC_CHANGE = /\b(?:anderes thema|unabhängig davon|unabhaengig davon|jetzt etwas anderes|neues thema|by the way|unrelated|new topic|autre sujet|por cierto|موضوع آخر|سؤال آخر)\b/iu;
 const CORRECTION = /\b(?:nein[, ]+(?:ich meinte|nicht)|ich meinte|gemeint habe ich|das stimmt nicht|nicht den|nicht die|nicht das|sondern|i meant|not that|that's not what|je voulais dire|no quise decir|موش هذا|موش هكا)\b/iu;
 const SHORT_REPLY = /^(?:(?:ja|nein|ok|okay|genau|weiter|stimmt|richtig|yes|no|more|again|continue|right|exactly|oui|non|encore|sí|vale|إي|لا|باهي)|und weiter|und wie|wie geht(?:'|’)s weiter)[.!؟?]*$/iu;
-const CONTINUATION = /^\s*(?:und|aber|also|dann|danach|davon|dazu|damit|darauf|deshalb|außerdem|zudem|weiter|nochmal|and|but|then|also|what about|how about|et|mais|alors|ensuite|en plus|y|pero|entonces|adem[aá]s|وبعد|وزيد|أما|شنوة|شنو|علاش|توا)\b/iu;
+const CONTINUATION = /^\s*(?:und|aber|also|dann|danach|davon|dazu|damit|darauf|deshalb|außerdem|zudem|weiter|nochmal|and|but|then|what about|how about|et|mais|alors|ensuite|en plus|y|pero|entonces|adem[aá]s|وبعد|وزيد|أما|شنوة|شنو|علاش|توا)\b/iu;
 
 function clean(value, max = MAX_FRAME_TEXT) {
   return String(value ?? '').replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim().slice(0, max);
@@ -31,14 +31,19 @@ function buildActiveFrame({ history, currentMessage, dialogueState, continuityCo
   }
   const inScope = turns.slice(boundary + 1);
   const priorGoal = [...inScope].reverse().find(item => item.role === 'user' && item.text.length > 12 && !SHORT_REPLY.test(item.text))?.text || null;
+  const isFollowUp = Boolean(current && (SHORT_REPLY.test(current) || CONTINUATION.test(current)));
   const activeTopic = currentIsTopicChange
     ? current
     : currentIsCorrection
       ? current
-      : current && !SHORT_REPLY.test(current) && !CONTINUATION.test(current)
-        ? current
-        : priorGoal;
-  const isFollowUp = Boolean(current && (SHORT_REPLY.test(current) || FOLLOW_UP.test(current)));\n  const relation = currentIsTopicChange ? 'new_topic' : currentIsCorrection ? 'correction' : isFollowUp ? 'follow_up' : current ? 'current_turn' : 'history_only';
+      : isFollowUp
+        ? priorGoal
+        : current || priorGoal;
+  const relation = currentIsTopicChange ? 'new_topic'
+    : currentIsCorrection ? 'correction'
+      : isFollowUp ? 'follow_up'
+        : current ? 'current_turn' : 'history_only';
+
   const clarification = dialogueState?.continuity?.clarification_reply;
   const pending = dialogueState?.continuity?.pending_question;
   let pendingQuestion = null;
@@ -68,7 +73,10 @@ function buildActiveFrame({ history, currentMessage, dialogueState, continuityCo
     scope: 'owner_conversation',
     source: 'bounded_extractive_active_frame',
     relation,
+    supersedes_previous_interpretation: currentIsCorrection,
     active_topic_candidate: activeTopic,
+    prior_user_goal_candidate: priorGoal,
+    current_message: current,
     active_goal_authority: activeTopic ? 'user_message_candidate_not_verified_fact' : 'none',
     pending_question: pendingQuestion,
     referent_candidates: needsReferentClarification ? referents : [],
