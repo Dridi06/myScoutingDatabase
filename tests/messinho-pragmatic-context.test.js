@@ -6,15 +6,19 @@ import {buildMessinhoCognitiveRouterMessages,classifyMessinhoTurn} from '../back
 test('pragmatic context recognizes explicit conversational acts without replacing semantic intent',()=>{
   const correction=buildMessinhoPragmaticContext({message:'Nein, ich meinte den anderen Spieler.'});
   assert.equal(correction.cues[0].act,'correction');
+  assert.equal(correction.cues[0].signal_strength,0.94);
   assert.ok(correction.cues[0].response_guidance.includes('reassess_previous_interpretation'));
   const disagreement=buildMessinhoPragmaticContext({message:'Da bin ich anderer Meinung.'});
   assert.equal(disagreement.cues[0].act,'disagreement');
+  assert.equal(disagreement.cues[0].signal_strength,0.9);
   const opinion=buildMessinhoPragmaticContext({message:'Meiner Meinung nach ist er technisch stärker.'});
   assert.equal(opinion.cues[0].act,'opinion');
+  assert.equal(opinion.cues[0].signal_strength,0.87);
 });
 
 test('recognizes explicit emotion only from direct self-report wording',()=>{
   assert.equal(buildMessinhoPragmaticContext({message:'Ich bin gerade frustriert.'}).cues[0].act,'explicit_emotion');
+  assert.equal(buildMessinhoPragmaticContext({message:'Ich bin gerade frustriert.'}).cues[0].signal_strength,0.86);
   assert.equal(buildMessinhoPragmaticContext({message:'Das war ein schwieriger Spielzug.'}).cues[0].act,'statement_or_open_contribution');
 });
 
