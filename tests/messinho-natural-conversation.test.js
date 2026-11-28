@@ -104,9 +104,9 @@ test('natural replies preserve paragraph breaks and readable multiline formattin
     baseUrl: 'https://example.test/v1',
     model: 'test-model',
     fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({
-      choices: [{ message: { content: 'Erster Absatz.\\n\\nZweiter Absatz.' } }]
+      choices: [{ message: { content: 'Erster Absatz.\n\nZweiter Absatz.' } }]
     }) })
   });
   assert.equal(result.status, 'completed');
-  assert.equal(result.reply, 'Erster Absatz.\\n\\nZweiter Absatz.');
+  assert.equal(result.reply, 'Erster Absatz.\n\nZweiter Absatz.');
 });
