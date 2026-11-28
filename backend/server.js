@@ -66,6 +66,7 @@ import { buildMessinhoIntentEvidence } from './messinho-intent-intelligence.js';
 import { buildMessinhoContextIntelligence } from './messinho-context-intelligence.js';
 import { buildMessinhoResponseIntelligence } from './messinho-response-intelligence.js';
 import { buildMessinhoReasoningIntelligence } from './messinho-reasoning-intelligence.js';
+import { buildMessinhoAnswerVerification } from './messinho-answer-verification.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -2451,15 +2452,49 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         baseUrl:process.env.MESSINHO_MODEL_BASE_URL||process.env.OPENAI_BASE_URL||'https://api.openai.com/v1',
         model:process.env.MESSINHO_MODEL_NAME||process.env.OPENAI_MODEL||'gpt-4.1-mini'
       });
-      const replyDecision={...cognitive,reply:naturalReply.status==='completed'?naturalReply.reply:cognitive.reply};
+      let finalReply=naturalReply.status==='completed'?naturalReply.reply:cognitive.reply;
+      let answerVerification=buildMessinhoAnswerVerification({message:interpretedMessage,reply:finalReply,reasoningContext,reasoningIntelligenceContext,contextIntelligenceContext,intent:'conversation'});
+      let verificationRevisionAttempted=false;
+      let verificationFallback=false;
+      if(answerVerification.status==='revision_required'){
+        verificationRevisionAttempted=true;
+        const revisedReply=await generateMessinhoNaturalConversationReply({
+          message:interpretedMessage,history,
+          linguisticContext:{...linguisticContext,dialogue_state:dialogueState},
+          linguisticKnowledgeContext,conversationMemoryContext,reasoningContext,pragmaticContext,
+          responseCompositionContext,responseIntelligenceContext,reasoningIntelligenceContext,
+          verificationFeedback:{draft_reply:finalReply,findings:answerVerification.findings,correction:answerVerification.correction},
+          conversationContinuityContext,userRole:profile.role,
+          apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
+          baseUrl:process.env.MESSINHO_MODEL_BASE_URL||process.env.OPENAI_BASE_URL||'https://api.openai.com/v1',
+          model:process.env.MESSINHO_MODEL_NAME||process.env.OPENAI_MODEL||'gpt-4.1-mini'
+        });
+        if(revisedReply.status==='completed'){
+          const revisedAudit=buildMessinhoAnswerVerification({message:interpretedMessage,reply:revisedReply.reply,reasoningContext,reasoningIntelligenceContext,contextIntelligenceContext,intent:'conversation'});
+          if(revisedAudit.status!=='revision_required'){
+            finalReply=revisedReply.reply;
+            answerVerification=revisedAudit;
+          }else{
+            const safeFinding=answerVerification.correction.instructions.find(item=>item.safe_reply);
+            finalReply=safeFinding?.safe_reply||'Bei meiner Antwortprüfung ist mir ein möglicher Fehler aufgefallen. Ich möchte dir keine falsche Angabe nennen. Mit den vorliegenden Informationen kann ich das Ergebnis nicht zuverlässig bestätigen.';
+            verificationFallback=true;
+            answerVerification=revisedAudit;
+          }
+        }else{
+          const safeFinding=answerVerification.correction.instructions.find(item=>item.safe_reply);
+          finalReply=safeFinding?.safe_reply||'Bei meiner Antwortprüfung ist mir ein möglicher Fehler aufgefallen. Ich möchte dir keine falsche Angabe nennen. Mit den vorliegenden Informationen kann ich das Ergebnis nicht zuverlässig bestätigen.';
+          verificationFallback=true;
+        }
+      }
+      const replyDecision={...cognitive,reply:finalReply};
       const guardedReply=guardMessinhoConversationReply(replyDecision);
       if(!guardedReply.ok){
-        return respond({reply:guardedReply.reply,intent:'conversation',items:[],pending:guardedReply.code==='empty_reply',conversation_composition:{status:naturalReply.status||'unavailable',fallback:true}});
+        return respond({reply:guardedReply.reply,intent:'conversation',items:[],pending:guardedReply.code==='empty_reply',conversation_composition:{status:naturalReply.status||'unavailable',fallback:true,answer_verification:{status:answerVerification.status,revision_attempted:verificationRevisionAttempted,revision_fallback:verificationFallback}}});
       }
       return respond({
         reply:guardedReply.reply,intent:'conversation',items:[],
         memory:{updated:cognitive.memory_items.length>0,persisted:cognitiveMemoryPersisted},
-        conversation_composition:{status:naturalReply.status==='completed'?'completed':'fallback',model:naturalReply.model||null}
+        conversation_composition:{status:naturalReply.status==='completed'?'completed':'fallback',model:naturalReply.model||null,answer_verification:{status:answerVerification.status,revision_attempted:verificationRevisionAttempted,revision_fallback:verificationFallback,findings:answerVerification.findings}}
       });
     }
     if(cognitive.intent==='engineering'&&profile.role!=='admin'){
