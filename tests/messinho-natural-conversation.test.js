@@ -96,3 +96,17 @@ test('natural reply rejects JSON-shaped model output', async () => {
 test('natural conversation module exposes an explicit version', () => {
   assert.equal(MESSINHO_NATURAL_CONVERSATION_VERSION, '1.0.0');
 });
+
+test('natural replies preserve paragraph breaks and readable multiline formatting', async () => {
+  const result = await generateMessinhoNaturalConversationReply({
+    message: 'Erkläre es mir kurz.',
+    apiKey: 'test-key',
+    baseUrl: 'https://example.test/v1',
+    model: 'test-model',
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({
+      choices: [{ message: { content: 'Erster Absatz.\\n\\nZweiter Absatz.' } }]
+    }) })
+  });
+  assert.equal(result.status, 'completed');
+  assert.equal(result.reply, 'Erster Absatz.\\n\\nZweiter Absatz.');
+});
