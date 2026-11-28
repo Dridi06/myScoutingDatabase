@@ -34,6 +34,27 @@ const SYSTEM_PROMPT='Du bist MESSINHOs vorsichtiger Software-Reviewer und Verbes
 'Wenn kein klarer, begrenzter und sicherer Gewinn nachweisbar ist, gib proposal:null zurück.\n'+
 'Antworte ausschließlich als JSON mit {"proposal":null} oder mit proposal:{"title":"...","rationale":"...","patch":"...","test_plan":["...","..."],"rollback_plan":"..."} .';
 
+const wait=(ms)=>new Promise(resolve=>setTimeout(resolve,ms));
+async function fetchWithTransientRetry(fetchImpl,url,options,stage,sleepImpl=wait){
+  for(let attempt=0;attempt<3;attempt++){
+    const response=await fetchImpl(url,options);
+    if(response?.ok)return response;
+    const status=Number(response?.status)||0;
+    if(status===429&&stage==='provider'){
+      let payload={};
+      try{payload=typeof response.clone==='function'?await response.clone().json():await response.json();}catch{}
+      const code=String(payload?.error?.code||payload?.error?.type||'').toLowerCase();
+      if(/insufficient_quota|billing_hard_limit|quota_exceeded/.test(code))
+        throw new Error('provider_quota_exceeded');
+    }
+    const retryable=[429,502,503,504].includes(status);
+    if(!retryable||attempt===2)throw new Error(stage+'_http_'+status);
+    const retryAfter=Number(response?.headers?.get?.('retry-after'));
+    const delay=Number.isFinite(retryAfter)&&retryAfter>0?Math.min(2000,retryAfter*1000):250*(attempt+1);
+    await sleepImpl(delay);
+  }
+  throw new Error(stage+'_unavailable');
+}
 const responseJson=async(response,source='upstream')=>{
   if(!response?.ok)throw new Error(source+'_http_'+String(Number(response?.status)||0));
   try{return await response.json();}
@@ -87,7 +108,7 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
   const cleanGoal=String(goal||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,700);
   if(cleanGoal.length<8)return {ok:false,code:'MYKI_ENGINEERING_GOAL_REQUIRED',message:'Bitte beschreibe kurz, was MESSINHO prüfen soll.'};
   try{
-    const commitResponse=await fetchImpl('https://api.github.com/repos/'+REPOSITORY+'/commits/'+encodeURIComponent(BRANCH),{
+    const commitResponse=await fetchWithTransientRetry(fetchImpl,'https://api.github.com/repos/'+REPOSITORY+'/commits/'+encodeURIComponent(BRANCH),{
       headers:{Accept:'application/vnd.github+json','User-Agent':'myScoutingDatabase-MESSINHO-Engineering'},
       signal:AbortSignal.timeout(10000)
     });
@@ -96,7 +117,7 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
     if(!/^[a-f0-9]{40}$/i.test(sourceSha))throw new Error('invalid_source_revision');
     stage='github_sources';
     const files=await Promise.all(ALLOWED_FILES.map(async path=>{
-      const response=await fetchImpl('https://raw.githubusercontent.com/'+REPOSITORY+'/'+sourceSha+'/'+path,{signal:AbortSignal.timeout(10000)});
+      const response=await fetchWithTransientRetry(fetchImpl,'https://raw.githubusercontent.com/'+REPOSITORY+'/'+sourceSha+'/'+path,{signal:AbortSignal.timeout(10000)},'github_source');
       if(!response.ok)throw new Error('github_source_http_'+String(Number(response.status)||0)+':'+path);
       const content=await response.text();
       if(!content)throw new Error('source_empty:'+path);
@@ -106,7 +127,7 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
     const learning=buildMessinhoProgrammingLearningContext();
     const codebaseIntelligence=buildMessinhoCodebaseIntelligence({files});
     stage='provider';
-    const completion=await fetchImpl('https://api.openai.com/v1/chat/completions',{
+    const completion=await fetchWithTransientRetry(fetchImpl,'https://api.openai.com/v1/chat/completions',{
       method:'POST',signal:AbortSignal.timeout(25000),
       headers:{Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},
       body:JSON.stringify({model:env.OPENAI_MODEL||'gpt-4.1-mini',temperature:0.1,response_format:{type:'json_object'},max_tokens:4500,
@@ -138,7 +159,7 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
     if(sourceLimit||sourceEmpty)failureReason=raw.slice(0,180);
     else if(/^(?:github|provider)_http_\d{3}$/.test(raw))failureReason=raw;
     else if(/^github_source_http_\d{3}:[a-zA-Z0-9_./-]+$/.test(raw))failureReason=raw.slice(0,180);
-    else if(/^(?:github|provider)_invalid_json$/.test(raw))failureReason=raw;
+    else if(/^(?:github|provider)_invalid_json$/.test(raw)||raw==='provider_quota_exceeded')failureReason=raw;
     else if(error?.name==='AbortError'||error?.name==='TimeoutError')failureReason=stage+'_timeout';
     else if(error instanceof TypeError)failureReason=stage+'_network_unavailable';
     else if(raw==='invalid_source_revision')failureReason=raw;
