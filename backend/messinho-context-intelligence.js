@@ -9,7 +9,7 @@ const MAX_TEXT = 260;
 const MAX_TURNS = 12;
 const MAX_CANDIDATES = 5;
 const clean = (value, max = MAX_TEXT) => String(value ?? '')
-  .replace(/[\\u0000-\\u001f\\u007f]/gu, ' ').replace(/\\s+/gu, ' ').trim().slice(0, max);
+  .replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim().slice(0, max);
 const safeRole = role => role === 'assistant' ? 'assistant' : role === 'user' ? 'user' : null;
 const safeTurn = item => {
   const role = safeRole(item?.role);
