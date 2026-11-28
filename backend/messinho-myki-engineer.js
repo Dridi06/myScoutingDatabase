@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { normalizeMessinhoEngineeringProposal } from './messinho-engineering-proposals.js';
 import { buildMessinhoProgrammingLearningContext } from './messinho-programming-learning.js';
 import { buildMessinhoCodebaseIntelligence } from './messinho-code-intelligence.js';
+import { resolveMessinhoModelConfig, requestMessinhoModelCompletion } from './messinho-model-runtime.js';
 
 const REPOSITORY='Dridi06/myScoutingDatabase';
 const BRANCH='feature/messinho-conversation-engine';
@@ -55,6 +56,26 @@ async function fetchWithTransientRetry(fetchImpl,url,options,stage,sleepImpl=wai
   }
   throw new Error(stage+'_unavailable');
 }
+async function requestProviderWithTransientRetry(request,sleepImpl=wait){
+  for(let attempt=0;attempt<3;attempt++){
+    const result=await request();
+    if(result?.status==='completed')return result;
+    if(result?.status==='provider_error'){
+      const status=Number(result.http_status)||0;
+      const code=String(result.error_code||'').toLowerCase();
+      if(status===429&&/(?:insufficient_quota|billing_hard_limit|quota_exceeded|credit_balance_exhausted)/.test(code))
+        throw new Error('provider_quota_exceeded');
+      if(![429,502,503,504].includes(status)||attempt===2)throw new Error('provider_http_'+status);
+      const delay=Number(result.retry_after_ms);
+      await sleepImpl(Number.isFinite(delay)&&delay>0?Math.min(2000,delay):250*(attempt+1));
+      continue;
+    }
+    const code=String(result?.error_code||'provider_unavailable').toLowerCase();
+    throw new Error(code==='timeout'?'provider_timeout':code==='provider_request_failed'?'provider_network_unavailable':'provider_'+code.replace(/[^a-z0-9_]/g,'').slice(0,80));
+  }
+  throw new Error('provider_unavailable');
+}
+
 const responseJson=async(response,source='upstream')=>{
   if(!response?.ok)throw new Error(source+'_http_'+String(Number(response?.status)||0));
   try{return await response.json();}
@@ -103,8 +124,9 @@ export function validateMessinhoEngineeringPatchAgainstSources(patch,sources=[])
 
 export async function generateMessinhoEngineeringProposal({goal,env=process.env,fetchImpl=fetch}={}){
   let stage='github_commit';
-  const apiKey=String(env.OPENAI_API_KEY||'');
-  if(!apiKey)return {ok:false,code:'MYKI_ENGINEERING_PROVIDER_UNAVAILABLE',message:'Die technische Vorschlagsprüfung ist derzeit nicht verfügbar.'};
+  const modelConfig=resolveMessinhoModelConfig(env);
+  if(!modelConfig.model||(modelConfig.requiresApiKey&&!modelConfig.apiKey))
+    return {ok:false,code:'MYKI_ENGINEERING_PROVIDER_UNAVAILABLE',message:'Die technische Vorschlagsprüfung ist derzeit nicht verfügbar.'};
   const cleanGoal=String(goal||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,700);
   if(cleanGoal.length<8)return {ok:false,code:'MYKI_ENGINEERING_GOAL_REQUIRED',message:'Bitte beschreibe kurz, was MESSINHO prüfen soll.'};
   try{
@@ -127,18 +149,15 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
     const learning=buildMessinhoProgrammingLearningContext();
     const codebaseIntelligence=buildMessinhoCodebaseIntelligence({files});
     stage='provider';
-    const completion=await fetchWithTransientRetry(fetchImpl,'https://api.openai.com/v1/chat/completions',{
-      method:'POST',signal:AbortSignal.timeout(25000),
-      headers:{Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},
-      body:JSON.stringify({model:env.OPENAI_MODEL||'gpt-4.1-mini',temperature:0.1,response_format:{type:'json_object'},max_tokens:4500,
-        messages:[
-          {role:'system',content:SYSTEM_PROMPT+'\n\nPROGRAMMIER-LERNBASIS: '+JSON.stringify(learning)+'\n\nSPRACHEN UND PRÜFPLAN DES TATSÄCHLICHEN QUELLCODE-AUSSCHNITTS: '+JSON.stringify(codebaseIntelligence)},
-          {role:'user',content:JSON.stringify({goal:cleanGoal,repository:REPOSITORY,branch:BRANCH,source_commit:sourceSha,allowed_files:ALLOWED_FILES,source_files:files})}
-        ]})
-    },'provider');
-    const payload=await responseJson(completion,'provider');
-    const parsed=JSON.parse(payload.choices?.[0]?.message?.content||'{}');
-    if(!parsed.proposal)return {ok:true,proposal:null,reason:'no_reliable_improvement',source_sha:sourceSha,curriculum_version:learning.curriculum_version};
+    const completion=await requestProviderWithTransientRetry(()=>requestMessinhoModelCompletion({
+      model:modelConfig.model,apiKey:modelConfig.apiKey,baseUrl:modelConfig.baseUrl,fetchImpl,timeoutMs:25000,
+      temperature:0.1,responseFormat:{type:'json_object'},maxTokens:4500,maxTokensLimit:4500,
+      messages:[
+        {role:'system',content:SYSTEM_PROMPT+'\n\nPROGRAMMIER-LERNBASIS: '+JSON.stringify(learning)+'\n\nSPRACHEN UND PRÜFPLAN DES TATSÄCHLICHEN QUELLCODE-AUSSCHNITTS: '+JSON.stringify(codebaseIntelligence)},
+        {role:'user',content:JSON.stringify({goal:cleanGoal,repository:REPOSITORY,branch:BRANCH,source_commit:sourceSha,allowed_files:ALLOWED_FILES,source_files:files})}
+      ]
+    }));
+    const parsed=JSON.parse(completion.content||'{}');
     const candidate={
       id:randomUUID(),title:parsed.proposal.title,rationale:parsed.proposal.rationale,
       patch:parsed.proposal.patch,test_plan:parsed.proposal.test_plan,
