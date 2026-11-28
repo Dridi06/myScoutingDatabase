@@ -51,6 +51,7 @@ import { buildMessinhoForecastContext } from './messinho-forecast-context.js';
 import { isMessinhoAdminOnlyCommand } from './messinho-command-access.js';
 import { buildMessinhoLinguisticContext, buildMessinhoLinguisticResponseMetadata } from './messinho-linguistic-intelligence.js';
 import { classifyMessinhoTurn, appendMessinhoLongTermMemories } from './messinho-conversational-intelligence.js';
+import { generateMessinhoNaturalConversationReply } from './messinho-natural-conversation.js';
 import { buildMessinhoDialogueState } from './messinho-dialogue-engine.js';
 import { buildMessinhoClarificationContinuity } from './messinho-clarification-continuity.js';
 import { resolveMessinhoEntityReferences } from './messinho-entity-resolution.js';
@@ -2401,13 +2402,31 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       });
     }
     if(cognitive.intent==='conversation'){
-      const guardedReply=guardMessinhoConversationReply(cognitive);
+      // Intent routing and natural-language composition are separate model turns.
+      // If the free-form composer is unavailable, retain the already validated router reply.
+      const naturalReply=await generateMessinhoNaturalConversationReply({
+        message:interpretedMessage,
+        history,
+        linguisticContext:{...linguisticContext,dialogue_state:dialogueState},
+        linguisticKnowledgeContext,
+        conversationMemoryContext,
+        reasoningContext,
+        pragmaticContext,
+        responseCompositionContext,
+        userRole:profile.role,
+        apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
+        baseUrl:process.env.MESSINHO_MODEL_BASE_URL||process.env.OPENAI_BASE_URL||'https://api.openai.com/v1',
+        model:process.env.MESSINHO_MODEL_NAME||process.env.OPENAI_MODEL||'gpt-4.1-mini'
+      });
+      const replyDecision={...cognitive,reply:naturalReply.status==='completed'?naturalReply.reply:cognitive.reply};
+      const guardedReply=guardMessinhoConversationReply(replyDecision);
       if(!guardedReply.ok){
-        return respond({reply:guardedReply.reply,intent:'conversation',items:[],pending:guardedReply.code==='empty_reply'});
+        return respond({reply:guardedReply.reply,intent:'conversation',items:[],pending:guardedReply.code==='empty_reply',conversation_composition:{status:naturalReply.status||'unavailable',fallback:true}});
       }
       return respond({
         reply:guardedReply.reply,intent:'conversation',items:[],
-        memory:{updated:cognitive.memory_items.length>0,persisted:cognitiveMemoryPersisted}
+        memory:{updated:cognitive.memory_items.length>0,persisted:cognitiveMemoryPersisted},
+        conversation_composition:{status:naturalReply.status==='completed'?'completed':'fallback',model:naturalReply.model||null}
       });
     }
     if(cognitive.intent==='engineering'&&profile.role!=='admin'){
