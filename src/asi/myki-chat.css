@@ -79,3 +79,17 @@
 .myki-current-work span{color:#c7d0dc;line-height:1.5}
 .myki-current-work small{color:#8e9bae;font-size:9px}
 @media(max-width:650px){.myki-control-action-group{align-items:stretch;flex-direction:column}.myki-control-diagnostic{width:100%}.myki-control-actions{display:grid;grid-template-columns:1fr 1fr}.myki-control-actions button{min-width:0}.myki-control-actions button.stop{margin-left:0}}
+
+/* Per-message timestamp: local Berlin date and time */
+.myki-chat-timestamp{
+ display:block;
+ margin-top:7px;
+ color:#9aa7b8;
+ font-size:9px;
+ line-height:1.35;
+ font-variant-numeric:tabular-nums;
+ letter-spacing:.015em;
+ text-align:right;
+ white-space:nowrap;
+}
+.myki-chat-message.user .myki-chat-timestamp{color:#b4c0cf}
