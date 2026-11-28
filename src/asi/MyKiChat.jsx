@@ -1,6 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {BrainCircuit,Send,Sparkles,LoaderCircle} from 'lucide-react';
 import './myki-chat.css';
+import {cleanMyKiMessageText} from './myki-chat-utils.js';
 
 const timestampNow=()=>new Date().toISOString();
 const formatTimestamp=value=>value&&Number.isFinite(Date.parse(value))?new Intl.DateTimeFormat('de-DE',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Berlin'}).format(new Date(value)):'--:--';
@@ -43,7 +44,7 @@ export default function MyKiChat({supabase}){
     if(!active)return;
     setConversationId(payload.conversation_id||null);
     if(Array.isArray(payload.messages)&&payload.messages.length)setMessages(payload.messages.map(item=>({
-      id:item.id,role:item.role,text:item.text,timestamp:item.created_at||item.output_generated_at||null,persisted:true,
+      id:item.id,role:item.role,text:cleanMyKiMessageText(item.text),timestamp:item.created_at||item.output_generated_at||null,persisted:true,
       serverReceivedAt:item.server_received_at||null,clientSubmittedAt:item.client_submitted_at||null,
       generatedAt:item.output_generated_at||null
     })));
@@ -61,7 +62,7 @@ export default function MyKiChat({supabase}){
   const alreadyBusy=busy,clientSubmittedAt=timestampNow(),userMessageId='u-'+Date.now();
   setDraft('');setError('');setErrorAt(null);
   const history=messages.slice(-20).map(item=>({role:item.role,text:item.text}));
-  setMessages(prev=>[...prev,{id:userMessageId,role:'user',timestamp:clientSubmittedAt,clientSubmittedAt,persisted:false,text:value}]);
+  setMessages(prev=>[...prev,{id:userMessageId,role:'user',timestamp:clientSubmittedAt,clientSubmittedAt,persisted:false,text:cleanMyKiMessageText(value)}]);
   if(!alreadyBusy)setBusy(true);
   try{
    const {data:{session}}=await supabase.auth.getSession();
@@ -73,7 +74,7 @@ export default function MyKiChat({supabase}){
    setConversationId(payload.conversation_id||conversationId);
    setMessages(prev=>[...prev.map(item=>item.id===userMessageId?{...item,timestamp:times.input_persisted_at||item.timestamp,persisted:!!times.input_persisted_at,serverReceivedAt:times.server_received_at||null,clientSubmittedAt:times.client_submitted_at||clientSubmittedAt}:item),
     {id:'a-'+Date.now(),role:'assistant',timestamp:times.output_persisted_at||times.output_generated_at||payload.server_timestamp||null,persisted:!!times.output_persisted_at,
-     generatedAt:times.output_generated_at||payload.server_timestamp||null,text:payload.reply||'Ich habe deine Nachricht verarbeitet.'}]);
+     generatedAt:times.output_generated_at||payload.server_timestamp||null,text:cleanMyKiMessageText(payload.reply||'Ich habe deine Nachricht verarbeitet.')}]);
   }catch(err){setError(err.message||'Die Verbindung zu MESSINHO ist fehlgeschlagen.');setErrorAt(timestampNow());setDraft(value);}
   finally{if(!alreadyBusy)setBusy(false);}
  }
