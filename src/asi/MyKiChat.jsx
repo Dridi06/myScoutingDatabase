@@ -88,7 +88,7 @@ export default function MyKiChat({supabase}){
    <div><div className={'myki-agent-state '+mode} role="status" aria-live="polite"><i/>{label}</div><small className="myki-chat-timestamp">Status aktualisiert: {formatTimestamp(status.generated_at||status.server_timestamp)}</small></div>
   </div>
   <div className="myki-chat-messages" ref={messagesRef} aria-live="polite">
-   {messages.map(item=><article key={item.id} className={'myki-chat-message '+item.role}><div className="myki-chat-avatar">{item.role==='assistant'?<BrainCircuit size={16}/>:<span>DU</span>}</div><div className="myki-chat-bubble"><small>{item.role==='assistant'?'MESSINHO':'DU'}</small><p>{item.text}</p><time className="myki-chat-timestamp" dateTime={item.timestamp||undefined}>{formatTimestamp(item.timestamp)}</time>}</div></article>)}
+   {messages.map(item=><article key={item.id} className={'myki-chat-message '+item.role}><div className="myki-chat-avatar">{item.role==='assistant'?<BrainCircuit size={16}/>:<span>DU</span>}</div><div className="myki-chat-bubble"><small>{item.role==='assistant'?'MESSINHO':'DU'}</small><p>{item.text}</p><time className="myki-chat-timestamp" dateTime={item.timestamp||undefined}>{formatTimestamp(item.timestamp)}</time></div></article>)}
    {busy&&<div className="myki-chat-thinking"><LoaderCircle className="myki-chat-spin" size={16}/> MESSINHO denkt nach und prüft deine Anfrage …</div>}
   </div>
   {error&&<p className="myki-chat-error" role="alert">{error}<time className="myki-chat-timestamp" dateTime={errorAt||undefined}>Fehlerzeitpunkt · {formatTimestamp(errorAt)}</time></p>}
