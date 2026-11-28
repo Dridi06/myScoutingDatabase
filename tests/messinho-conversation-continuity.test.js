@@ -70,7 +70,7 @@ test('authenticated chat builds and forwards continuity context to both conversa
  const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
  assert.ok(source.includes("import { buildMessinhoConversationContinuityContext } from './messinho-conversation-continuity.js';"));
  assert.match(source,/buildMessinhoConversationContinuityContext\(\{message:interpretedMessage,history,dialogueState\}\)/);
- assert.match(source,/responseCompositionContext,\s*responseIntelligenceContext,\s*conversationContinuityContext,\s*userRole:profile\.role/);
+ assert.match(source,/responseCompositionContext,\s*responseIntelligenceContext,\s*reasoningIntelligenceContext,\s*conversationContinuityContext,\s*userRole:profile\.role/);
 });
 
 test('ordinary German articles do not create false follow-up references',()=>{
