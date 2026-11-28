@@ -60,7 +60,7 @@ test('correction becomes the active user candidate and supersedes the earlier in
   });
   assert.equal(memory.active_frame.relation, 'correction');
   assert.match(memory.active_frame.active_topic_candidate, /Bewertung/);
-  assert.doesNotMatch(memory.active_frame.active_topic_candidate, /Suchfilter/);
+  assert.equal(memory.active_frame.active_topic_candidate, 'Nein, ich meinte nicht die Suchfilter, sondern die Bewertung.');
 });
 
 test('pending clarification is represented as awaiting, candidate answer, or ambiguous without silently resolving it', () => {
