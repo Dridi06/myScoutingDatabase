@@ -89,7 +89,7 @@ export async function runMessinhoScheduledEngineeringReview({db,now=new Date(),g
      sandboxAllowed(env)&&env.MESSINHO_SANDBOX_GITHUB_TOKEN&&postPersistControl.updated_by){
     const {data:ticket,error:ticketError}=await db.from('messinho_myki_tickets').select('id,diff,baseline_id')
       .eq('ticket_id',saved.ticket_id).maybeSingle();
-    const match=String(ticket?.baseline_id||'').match(/^feature\/messinho-unified-ai-integration@([a-f0-9]{40})$/i);
+    const match=String(ticket?.baseline_id||'').match(/^feature\/messinho-conversation-engine@([a-f0-9]{40})$/i);
     if(!ticketError&&ticket?.id&&typeof ticket.diff==='string'&&match){
       sandboxJobId=makeJobId();
       const patchSha=hashPatch(ticket.diff);
