@@ -7157,3 +7157,33 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Nach der Domain-Migration wurden Security- und Performance-Advisors auf `myScoutingDatabase-staging` ausgeführt. Die Migration selbst hat keine RLS-, Grant-, Rollen- oder Funktionsänderung vorgenommen.
 - Vorbestehender Security-Hinweis: `public.admin_set_scout_approval(uuid, boolean)` ist als SECURITY DEFINER für `authenticated` ausführbar. Der Funktionskörper prüft zusätzlich `auth.uid()` und `private.is_admin()`; die tatsächliche Ausführungsnotwendigkeit und Grant-Beschränkung ist separat zu reviewen. Nicht Teil von Block 21 und nicht verändert.
 - Weitere Advisor-Informationen betreffen RLS-aktivierte, policy-freie serverseitige Tabellen sowie deaktivierten Schutz vor kompromittierten Passwörtern. Diese bestehenden Betriebs-/Sicherheitsbefunde bleiben separat offen; keine automatische Änderung im Rahmen dieser Domain-Erweiterung.
+
+
+## 2026-11-28 — Block 21, part 1: Versioned runtime core knowledge
+
+### Implemented on the feature branch
+- Added `backend/messinho-core-knowledge.js` as a first-party, immutable, versioned runtime knowledge pack (`1.0.0`). It is loaded by the Node.js module system at server startup and is available without a database query or external research call.
+- Initial curriculum contains 21 compact foundational concepts across mathematics, statistics, physics, chemistry, biology, medicine, sports science, financial markets, risk management, ethics, computer science, football scouting and general systems thinking.
+- Concepts include a stable key, domain, title, definition, optional formula, applicability keywords and explicit limitations. The ACL/ruptured anterior cruciate ligament foundation explicitly rejects a universal recovery timeline and requires individual, criterion-based return-to-sport assessment.
+- Added deterministic, bounded lexical retrieval and a runtime manifest with version, load state, entry count and domain coverage.
+- Integrated the runtime pack into the authenticated chat's active knowledge context and system prompt. It is distinguished from approved graph knowledge and source-backed research; it is not represented as a rights-cleared external-source corpus or specialist-level coverage.
+- Added `tests/messinho-core-knowledge.test.js` for runtime loading/versioning, domain coverage, ACL retrieval, maths/chemistry/finance/football retrieval, empty-input behavior and foundational-level limitations.
+
+### Boundaries
+- This is the first runtime foundation, not complete expertise in all listed fields. The pack must grow through reviewed curriculum releases with domain experts, explicit assumptions, formulas, evidence grades, limitations and regression tests.
+- Time-sensitive market data, current medical guidelines, player-specific facts, specialist conclusions and individual diagnoses still require current, permitted evidence and suitable validation.
+- Runtime core concepts are first-party authored material. They are not falsely labelled as independently corroborated external research. The existing source-rights registry, candidate workflow, graph versioning and admin approval remain unchanged.
+- No automatic activation of learning candidates, no player rating/model-weight changes, no privileged execution rights and no production changes are introduced by this block.
+
+### Verification and release status
+- Initial commits: `e0a278b6ab8ec12877670d9befa3f07e03554ea6` (runtime pack), `a69cabe9856e9f553c15ac54ceacedc76a74df95` (tests), `3a6261989314497c5e841394b84fbe41a1dd3322` (chat integration).
+- GitHub CI for the integrated HEAD is pending verification at the time of this record.
+- Render STAGING has not been deployed or verified for Block 21. The branch commits must not be described as live.
+- Production branch, production service, production database and existing user/player data remain untouched.
+
+### Next steps
+1. Verify the complete CI suite and fix any regression on this branch.
+2. Expand tests for retrieval collisions, multilingual synonyms, domain ambiguity and chat-context behavior.
+3. Improve the runtime loader so approved, versioned knowledge packs can be loaded once per process with safe refresh/invalidation, while retaining fail-closed behavior.
+4. Build Block 22 curriculum packages in dependency order, then Block 23 calculation engines and Block 24 cross-domain reasoning. Keep each domain's confidence, evidence and limitations explicit.
+5. Deploy only the verified feature commit to the dedicated STAGING service after confirming the exact Render workspace/service and deployment target.
