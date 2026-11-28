@@ -46,9 +46,18 @@ test('audit history is compared to the prior run rather than the current report'
 
 test('tool fuzzing, memory integrity and prompt injection boundaries pass safely',async()=>{
  const audit=await runMessinhoFullStackIntelligenceAudit({env:{MESSINHO_MODEL_BASE_URL:'http://127.0.0.1:1234/v1'}});
- for(const category of ['Tool-Fuzzing','Memory-Integrität','Sicherheit']){
+ for(const category of ['Tool-Fuzzing','Sicherheit']){
   const item=audit.modules.find(module=>module.category===category);
   assert.ok(item,category);
   assert.equal(item.ok,true,item.detail+' '+JSON.stringify(item.evidence));
  }
+});
+
+test('memory audit does not claim database persistence without an authenticated DB context',async()=>{
+ const audit=await runMessinhoFullStackIntelligenceAudit({env:{MESSINHO_MODEL_BASE_URL:'http://127.0.0.1:1234/v1'}});
+ const memory=audit.modules.find(module=>module.category==='Memory-Integrität');
+ assert.equal(memory.ok,false);
+ assert.equal(memory.evidence.persistence.status,'NOT_VERIFIED');
+ assert.equal(memory.evidence.persistence.evidence.database_write,false);
+ assert.equal(audit.scope.database_mutations,0);
 });
