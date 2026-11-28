@@ -107,7 +107,7 @@ test('diagnostic import findings identify exact file, line, column and evidence'
   assert.equal(finding.column,8);
   assert.equal(finding.dependency,'./missing.js');
   assert.equal(finding.status,'unverified');
-  assert.match(finding.evidence.source_line,/missing\\.js/);
+  assert.match(finding.evidence.source_line,/missing\.js/);
  }finally{await rm(root,{recursive:true,force:true});}
 });
 
