@@ -14,8 +14,8 @@ test('full-stack audit covers all implemented diagnostic layers and records safe
  assert.equal(audit.scope.database_mutations,0);
  assert.equal(audit.scope.production_access,false);
  const discovery=audit.modules.find(item=>item.category==='Code & Tools');
- assert.ok(discovery.evidence.discovered_symbols.functions>0);
- assert.ok(discovery.evidence.discovered_symbols.methods>0);
+ assert.ok(discovery.evidence.module_graph.discovered_symbols.functions>0);
+ assert.ok(discovery.evidence.module_graph.discovered_symbols.methods>0);
  assert.ok(discovery.evidence.module_graph.metrics.nodes>0);
 });
 
