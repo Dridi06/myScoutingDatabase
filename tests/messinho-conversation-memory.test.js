@@ -4,3 +4,15 @@ import { buildMessinhoConversationMemory, formatMessinhoConversationMemory } fro
 test('conversation memory is bounded and scoped to one owner conversation',()=>{const history=Array.from({length:60},(_,i)=>({role:i%2?'assistant':'user',text:`Message number ${i}`}));const m=buildMessinhoConversationMemory({history,conversationId:'conversation-alpha'});assert.equal(m.scope,'owner_conversation');assert.equal(m.conversation_id,'conversation-alpha');assert.equal(m.message_count,40);assert.ok(m.items.length<=8);assert.ok(m.items.reduce((n,x)=>n+x.text.length,0)<=1600);assert.equal(m.persisted_summary,false);});
 test('conversation memory filters sensitive text and duplicates',()=>{const m=buildMessinhoConversationMemory({history:[{role:'user',text:'Wir arbeiten am Projekt Alpha.'},{role:'assistant',text:'Wir arbeiten am Projekt Alpha.'},{role:'user',text:'Mein Passwort lautet Geheim123.'},{role:'user',text:'Der nächste Schritt ist die Testphase.'}]});assert.equal(m.items.length,2);assert.equal(m.items.some(x=>x.text.includes('Geheim123')),false);});
 test('formatter returns only compact context fields',()=>{const m=buildMessinhoConversationMemory({history:[{role:'user',text:'Bitte vergleiche die zwei Spieler.'}]});assert.deepEqual(Object.keys(formatMessinhoConversationMemory(m)).sort(),['items','message_count','scope','source']);assert.equal(formatMessinhoConversationMemory({items:[]}),null);});
+
+test('conversation memory keeps the newest distinct turns and preserves their chronological order',()=>{
+ const m=buildMessinhoConversationMemory({history:[
+  {role:'user',text:'Ältere Aufgabe eins.'},
+  {role:'assistant',text:'Ältere Antwort eins.'},
+  {role:'user',text:'Ältere Aufgabe zwei.'},
+  ...Array.from({length:12},(_,i)=>({role:i%2?'assistant':'user',text:'Aktueller Gesprächsschritt '+i}))
+ ]});
+ assert.equal(m.items.length,8);
+ assert.equal(m.items[0].text,'Aktueller Gesprächsschritt 4');
+ assert.equal(m.items.at(-1).text,'Aktueller Gesprächsschritt 11');
+});
