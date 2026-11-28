@@ -2264,6 +2264,7 @@ app.get('/api/agent/conversation',async(req,res)=>{
   }catch(error){console.error('MESSINHO conversation restore failed:',error.message);return res.status(500).json({error:'Der Gesprächsverlauf konnte nicht wiederhergestellt werden.'});}
 });
 app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
+  const requestReceivedAt=new Date().toISOString();
   try{
     if(!db)return res.status(503).json({error:'Datenbankverbindung ist nicht verfügbar.'});
     const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
@@ -2300,7 +2301,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const history=sanitizeMessinhoHistory((storedHistory||[]).reverse().map(row=>({
       role:row.role,text:row.content,researchContext:row.metadata?.researchContext||null
     })),{limit:60});
-    const serverReceivedAt=new Date().toISOString();
+    const serverReceivedAt=requestReceivedAt;
     const clientSubmittedAt=typeof req.body?.client_submitted_at==='string'&&Number.isFinite(Date.parse(req.body.client_submitted_at))
       ?new Date(req.body.client_submitted_at).toISOString():null;
     const {data:storedUserMessage,error:userMessageError}=await db.from('messinho_conversation_messages').insert({
