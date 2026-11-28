@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {cleanMyKiMessageText} from '../src/asi/myki-chat-utils.js';
-import { classifyMessinhoProviderFailure, classifyMessinhoSocialIntent, getMessinhoSocialReply } from '../backend/messinho-conversation.js';
+import { classifyMessinhoProviderFailure, classifyMessinhoSocialIntent, getMessinhoSocialReply, resolveMessinhoDeterministicFollowUp } from '../backend/messinho-conversation.js';
 
 const fixedMorning = new Date('2026-11-26T08:00:00');
 const history = [];
@@ -215,4 +215,21 @@ test('answers open-ended what-can-we-do questions without an external language p
  assert.equal(typeof reply,'string');
  assert.match(reply,/Spieler|Scouting|Recherche|Plattform/);
  assert.equal(getMessinhoSocialReply('Was können wir machen, um einen U19-Stürmer zu finden?'),null);
+});
+
+
+test('MESSINHO resolves accepted research suggestions from conversation context without a provider', async () => {
+  const prior = [{role:'assistant',text:'Wir können gemeinsam eine Spieleranalyse starten, Daten auswerten, eine Recherche durchführen oder die Plattform weiterentwickeln. Womit sollen wir beginnen?'}];
+  const result = resolveMessinhoDeterministicFollowUp('Recherche hört sich gut an', prior);
+  assert.equal(result.intent, 'clarify_research_subject');
+  assert.match(result.reply, /Was möchtest du recherchieren/);
+  assert.match(result.reply, /Spieler.*Verein.*Liga/);
+  assert.equal(resolveMessinhoDeterministicFollowUp('Recherche hört sich gut an', []), null);
+  assert.equal(resolveMessinhoDeterministicFollowUp('Ich finde Recherche nicht gut', prior), null);
+});
+
+test('MESSINHO asks a focused follow-up for other explicitly accepted suggestions', () => {
+  const prior = [{role:'assistant',text:'Wir können eine Spieleranalyse starten oder Daten auswerten.'}];
+  assert.equal(resolveMessinhoDeterministicFollowUp('Spieleranalyse hört sich gut an', prior).intent, 'clarify_player_analysis');
+  assert.equal(resolveMessinhoDeterministicFollowUp('Daten auswerten', prior).intent, 'clarify_data_analysis');
 });
