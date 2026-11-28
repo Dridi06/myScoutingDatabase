@@ -12,7 +12,7 @@ import {
 } from '../backend/messinho-linguistic-intelligence.js';
 
 test('registers six separate language profiles including Tunisian Derja',()=>{
-  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.4.0');
+  assert.equal(MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION,'1.5.0');
   assert.deepEqual(MESSINHO_LANGUAGE_PROFILES.map(item=>item.id),['de','en','fr','ar','ar-tn','es']);
   assert.equal(getMessinhoLanguageProfile('ar-tn').name,'تونسي / Derja');
   assert.equal(getMessinhoLanguageProfile('ar').name,'العربية الفصحى');
@@ -526,4 +526,25 @@ test('does not invent semantic frames for neutral or empty content',()=>{
   assert.deepEqual(neutral.semantic_frames,[]);
   assert.equal(neutral.semantic_summary.cross_language,false);
   assert.equal(buildMessinhoLinguisticResponseMetadata(null),null);
+});
+
+test('builds explicit bounded semantic relation candidates in the conversation context',()=>{
+  const context=buildMessinhoLinguisticContext('The player is not bad, but perhaps not ready yet.',[]);
+  assert.equal(context.semantic_relations.status,'candidate_relations_found');
+  assert.ok(context.semantic_relations.relations.some(item=>item.type==='qualification_candidate'));
+  assert.equal(context.semantic_relations.source_text_preserved,true);
+  assert.ok(context.semantic_relations.limitations.some(item=>item.includes('scope remain unresolved')));
+});
+
+test('publishes semantic relation analysis in stable chat response metadata',()=>{
+  const context=buildMessinhoLinguisticContext('Der Spieler ist nicht schlecht, aber vielleicht noch nicht bereit.',[]);
+  const metadata=buildMessinhoLinguisticResponseMetadata(context);
+  assert.deepEqual(metadata.semantic_relations,context.semantic_relations);
+  assert.ok(metadata.semantic_relations.relation_count>=1);
+});
+
+test('keeps semantic relation output empty and explicit for neutral messages',()=>{
+  const context=buildMessinhoLinguisticContext('Hallo zusammen.',[]);
+  assert.equal(context.semantic_relations.status,'no_supported_relations');
+  assert.equal(context.semantic_relations.relation_count,0);
 });
