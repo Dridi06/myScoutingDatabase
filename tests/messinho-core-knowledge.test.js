@@ -8,6 +8,7 @@ test('core knowledge is loaded and versioned at runtime',()=>{
  assert.equal(manifest.version,MESSINHO_CORE_KNOWLEDGE_VERSION);
  assert.ok(manifest.entry_count>=20);
  assert.ok(manifest.domains.includes('medicine'));
+ assert.ok(manifest.domains.includes('banking'));
  assert.ok(manifest.domains.includes('chemistry'));
 });
 
@@ -22,6 +23,7 @@ test('retrieves mathematical, scientific, financial and football foundations',()
  assert.ok(getMessinhoCoreKnowledgeContext('Wie berechne ich Prozent?').items.some(item=>item.key==='math.percentage'));
  assert.ok(getMessinhoCoreKnowledgeContext('Was bedeutet pH-Wert?').items.some(item=>item.key==='chemistry.ph'));
  assert.ok(getMessinhoCoreKnowledgeContext('Wie funktioniert Zinseszins?').items.some(item=>item.key==='finance.compounding'));
+ assert.ok(getMessinhoCoreKnowledgeContext('Was bedeutet Liquidität bei einer Bank?').items.some(item=>item.key==='banking.liquidity'));
  assert.ok(getMessinhoCoreKnowledgeContext('Wie bewerte ich einen Fußballspieler?').items.some(item=>item.key==='football.scouting-context'));
 });
 
