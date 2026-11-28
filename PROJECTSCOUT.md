@@ -6902,3 +6902,34 @@ Vor Implementierung die bestehenden Dialogue-, Conversation-Memory-, Continuity-
 
 ### Change & Decision Log — Ergänzung
 | 2026-11-28 | Intent Intelligence als Evidenzschicht vor dem modellbasierten Cognitive Router ergänzen; keine starre Keyword-Routing-Engine. | Implemented — Block 15 | Kandidaten, Konflikte, Domänenhinweise und Klärungsstatus werden im selben Modellturn übergeben; endgültige Absicht und Autorisierung bleiben getrennt. |
+
+
+## 38. Block 16 — Context Intelligence: Prioritized Conversation Context — 2026-11-28
+
+### Ziel und Abgrenzung
+Block 16 bündelt vorhandene Dialogue-, Clarification-, Conversation-Continuity-, Conversation-Memory-, Entity-Resolution-, Reasoning- und Intent-Evidenz in einen kleinen, priorisierten Kontextvertrag. Die vorhandenen Spezialmodule bleiben für ihre jeweilige Aufgabe zuständig; die neue Schicht dupliziert weder Pronomenauflösung noch Frageklassifikation oder Gedächtnisspeicherung.
+
+### Implementierung
+- Neu: `backend/messinho-context-intelligence.js`, Version `1.0.0`.
+- Neu: `tests/messinho-context-intelligence.test.js`.
+- Kontextpriorität: aktuelle Nutzernachricht, explizite Korrektur/Themenwechsel, offene Klärung, serverseitige Autorisierung, belegte Entity-Auflösung, jüngerer Nutzerkontext, Assistentenbeiträge nur als Hypothese/Frage.
+- Trennt Nutzeräußerungen (zugeschrieben, nicht verifiziert) von Assistentenaussagen (niemals Nutzerfakten).
+- Führt aktive Themenkandidaten, Intent-Kandidaten, offene Rückfragen, Korrekturen, Themenwechsel, Entity-Mehrdeutigkeit und Antwortkandidaten in einem begrenzten Vertrag zusammen.
+- `confirmed_user_constraints` bleibt bewusst leer, solange keine dedizierte Bestätigungsquelle eine Einschränkung explizit bestätigt. Antworten auf Rückfragen bleiben als Kandidaten gekennzeichnet.
+- Korrekturen überschreiben nur die widersprochene Interpretation. Bei Themenwechsel werden alte Filter nicht übernommen.
+- Die Schicht ist rein ableitend pro Request; keine neue Persistenz, keine DB-Migration, kein Training und keine Modellgewichtsänderung.
+
+### Integration
+- `backend/server.js` erstellt den Kontextvertrag nach den vorhandenen Dialog-, Klärungs-, Entity-, Reasoning- und Intent-Komponenten und übergibt ihn im selben Chat-Turn.
+- `backend/messinho-conversational-intelligence.js` übergibt `context_intelligence_context` an den Cognitive Router; Version auf `1.3.0` erhöht.
+- Der Modellprompt behandelt den Vertrag als beratende Evidenz, nicht als Autorisierung oder verifizierte Wissensquelle.
+- Die bestehenden serverseitigen Admin-/Scout-Berechtigungen bleiben unverändert.
+
+### Verifikation und Grenzen
+- Neue Tests decken Quellenzuordnung, Korrekturen, Themenwechsel, offene Klärungen, mehrdeutige Entity-Referenzen und Begrenzung ab.
+- Die endgültige Testzahl, Syntaxprüfung, Vite-Build und Render-LIVE-Bestätigung werden nach dem STAGING-Build ergänzt.
+- Authentifizierte Admin-/Scout-End-to-End-Abnahme bleibt separat erforderlich; ein erfolgreicher Build allein beweist keine menschenähnliche Gesprächsqualität.
+- STAGING-only; Produktion bleibt unangetastet.
+
+### Nächster Schritt — Block 17
+Vorhandene Antwortkomposition, Reasoning-Validierung, Conversation-Response-Guard und Natural-Conversation-Fallback abgleichen. Darauf aufbauend die semantische Antwortplanung verbessern: direkte Antwort, Begründung, Unsicherheitsmarkierung und eine gezielte Rückfrage — ohne starre Antwortschablonen und ohne erfundene Tatsachen.
