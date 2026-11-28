@@ -371,6 +371,112 @@ function add(checks,name,category,ok,detail,severity='warning',recommendation=''
   checkedAt:new Date().toISOString()});
 }
 
+
+function memberPath(node){
+ if(!node)return '';
+ if(node.type==='Identifier')return node.name;
+ if(node.type==='MemberExpression'){
+  const left=memberPath(node.object);
+  const right=node.computed?(node.property?.value??''):(node.property?.name||'');
+  return [left,right].filter(Boolean).join('.');
+ }
+ return '';
+}
+function providerNameFromText(value){
+ const text=String(value||'').toLowerCase();
+ if(/openai|chatgpt/.test(text))return 'openai';
+ if(/anthropic|claude/.test(text))return 'anthropic';
+ if(/google|gemini|generativelanguage/.test(text))return 'google';
+ if(/tavily/.test(text))return 'tavily';
+ if(/groq/.test(text))return 'groq';
+ if(/mistral/.test(text))return 'mistral';
+ if(/cohere/.test(text))return 'cohere';
+ if(/ollama|localhost|127\.0\.0\.1/.test(text))return 'local_or_self_hosted';
+ return null;
+}
+export function scanMessinhoProviderReferences(source,file='unknown.js'){
+ let ast;
+ try{ast=babelParse(String(source||''),{sourceType:'unambiguous',allowAwaitOutsideFunction:true,allowReturnOutsideFunction:true,plugins:['jsx','typescript','decorators-legacy','importAttributes','topLevelAwait']});}
+ catch(error){return {file,parse_error:safe(error.message||error,500),references:[]};}
+ const references=[];
+ const add=(provider,kind,node,detail)=>{
+  references.push({provider,kind,file,line:node?.loc?.start.line||null,column:node?.loc?.start.column==null?null:node.loc.start.column+1,detail:safe(detail,180)});
+ };
+ visitAst(ast,node=>{
+  if(node.type==='MemberExpression'){
+   const value=memberPath(node);
+   const envKey=value.match(/(?:process\.env|import\.meta\.env)\.([A-Z][A-Z0-9_]*)$/)?.[1];
+   if(envKey&&/^(?:OPENAI_|ANTHROPIC_|GOOGLE_|GEMINI_|TAVILY_|GROQ_|MISTRAL_|COHERE_|MESSINHO_MODEL_)/.test(envKey)){
+    const provider=envKey.startsWith('MESSINHO_MODEL_')?'provider_neutral_model_config':
+     envKey.startsWith('TAVILY_')?'tavily':envKey.startsWith('OPENAI_')?'openai':
+     envKey.startsWith('ANTHROPIC_')?'anthropic':envKey.startsWith('GOOGLE_')||envKey.startsWith('GEMINI_')?'google':
+     envKey.startsWith('GROQ_')?'groq':envKey.startsWith('MISTRAL_')?'mistral':'cohere';
+    add(provider,'environment_variable_reference',node,envKey);
+   }
+  }
+  if(node.type==='StringLiteral'||node.type==='TemplateLiteral'){
+   const value=node.type==='StringLiteral'?node.value:(node.expressions?.length?null:node.quasis?.map(q=>q.value?.cooked||'').join(''));
+   if(typeof value==='string'&&/^https?:\/\//i.test(value)){
+    const provider=providerNameFromText(value);
+    if(provider)add(provider,'provider_url_literal',node,value);
+   }
+  }
+  if(node.type==='ImportDeclaration'&&typeof node.source?.value==='string'&&/^(?:openai|@anthropic-ai\/sdk|@google\/generative-ai|groq-sdk|@mistralai\/mistralai)$/i.test(node.source.value)){
+   const provider=providerNameFromText(node.source.value);
+   add(provider,'provider_sdk_import',node,node.source.value);
+  }
+  if(node.type==='CallExpression'){
+   const callee=memberPath(node.callee);
+   const first=node.arguments?.[0];
+   if(first?.type==='StringLiteral'&&/^https?:\/\//i.test(first.value)){
+    const provider=providerNameFromText(first.value);
+    if(provider)add(provider,/^(?:fetch|globalThis\.fetch)$/.test(callee)?'direct_http_provider_call':'provider_url_call_argument',node,first.value);
+   }
+   if((callee==='require'||callee==='createRequire')&&first?.type==='StringLiteral'&&/^(?:openai|@anthropic-ai\/sdk|@google\/generative-ai|groq-sdk)$/i.test(first.value)){
+    add(providerNameFromText(first.value),'provider_sdk_import',node,first.value);
+   }
+  }
+ });
+ const unique=new Map();
+ for(const item of references){const key=[item.provider,item.kind,item.file,item.line,item.detail].join('|');if(!unique.has(key))unique.set(key,item);}
+ return {file,references:[...unique.values()]};
+}
+export function buildMessinhoProviderInventory(sourceFiles){
+ const references=[];
+ for(const item of Array.isArray(sourceFiles)?sourceFiles:[]){
+  const file=String(item?.file||'');
+  const source=String(item?.source||'');
+  if(!/^(?:backend|src|tests)\//.test(file)||!/\.(?:js|mjs|cjs|jsx|ts|tsx)$/i.test(file))continue;
+  const scanned=scanMessinhoProviderReferences(source,file);
+  for(const reference of scanned.references){
+   references.push({...reference,scope:file.startsWith('tests/')?'test_only':'runtime_source'});
+  }
+ }
+ const runtime=references.filter(item=>item.scope==='runtime_source');
+ const openai=runtime.filter(item=>item.provider==='openai');
+ const groupByProvider={};
+ for(const item of runtime)(groupByProvider[item.provider]??=[]).push(item);
+ const uniqueFiles=items=>[...new Set(items.map(item=>item.file))].sort();
+ return {
+  scanned_runtime_files:uniqueFiles(runtime).length,
+  runtime_reference_count:runtime.length,
+  providers:Object.fromEntries(Object.entries(groupByProvider).sort(([a],[b])=>a.localeCompare(b)).map(([provider,items])=>[provider,{
+   references:items.length,files:uniqueFiles(items),kinds:[...new Set(items.map(item=>item.kind))].sort()
+  }])),
+  openai:{reference_count:openai.length,files:uniqueFiles(openai),
+   direct_http_calls:openai.filter(item=>item.kind==='direct_http_provider_call').length,
+   sdk_imports:openai.filter(item=>item.kind==='provider_sdk_import').length,
+   environment_references:openai.filter(item=>item.kind==='environment_variable_reference').length,
+   url_literals:openai.filter(item=>item.kind==='provider_url_literal').length},
+  provider_neutral_model_config_files:uniqueFiles(runtime.filter(item=>item.provider==='provider_neutral_model_config')),
+  references:references.sort((a,b)=>a.file.localeCompare(b.file)||(a.line||0)-(b.line||0)||a.kind.localeCompare(b.kind)),
+  limitations:['AST-basierte statische Referenzsuche; dynamisch zusammengesetzte URLs, zur Laufzeit geladene Provider und externe Dienste ohne erkennbare Providerkennung können fehlen.',
+   'Ein Environment-Variablenverweis oder URL-Literal beweist allein keinen ausgeführten Provideraufruf. Direkte HTTP-Aufrufe werden separat markiert.',
+   'Tests werden getrennt von Runtime-Quellcode klassifiziert; Kommentare werden nicht als AST-Referenzen gezählt.',
+   'Die Inventur liest keine Secret-Werte und führt keine externen Provideraufrufe aus.']
+ };
+}
+
 /**
  * Read-only inventory and static consistency audit of the deployed project.
  * It never executes project code, tests, migrations, shell commands or generated patches.
@@ -429,6 +535,7 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
   (unresolved.length?'; '+unresolved.slice(0,30).map(item=>item.file+':'+item.line+':'+item.column+' → '+item.dependency).join(' | '):''),
   'critical','Importpfade, Dateinamen und Build-Auflösung im betroffenen Modul korrigieren.');
  checks[checks.length-1].findings=findings.filter(item=>item.category==='dependency_resolution');
+ const providerInventory=buildMessinhoProviderInventory([...sourceContents.entries()].map(([file,source])=>({file,source})));
  const dependencyGraph=await buildMessinhoDependencyGraph({root,files:allFiles});
  add(checks,'Parsergestützter Modul- und Abhängigkeitsgraph','Abhängigkeiten',dependencyGraph.ok,
   'Parser: Babel; Module: '+dependencyGraph.coverage.modules+'; interne Kanten: '+dependencyGraph.metrics.edges+
@@ -500,7 +607,7 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
   api_routes:routes.length,admin_routes:adminRoutes.length,checks:checks.length,
   failed:checks.filter(item=>!item.ok).length
  };
- return {ok:checks.every(item=>item.ok),checks,findings:[...findings,...dependencyGraph.findings],dependency_graph:dependencyGraph,summary:totals,scope:'backend, frontend, tests, SQL migrations, relative imports, build scripts and API route surface',
+ return {ok:checks.every(item=>item.ok),checks,findings:[...findings,...dependencyGraph.findings],dependency_graph:dependencyGraph,provider_inventory:providerInventory,summary:totals,scope:'backend, frontend, tests, SQL migrations, relative imports, build scripts and API route surface',
   audit_metadata:{mode:'parser_backed_static',parser:'vite/rollup',source_file_count:sourceFiles.length,inventory_roots:ROOTS,checked_at:new Date().toISOString(),
    finding_count:findings.length,confirmed_runtime_failures:0,unverified_static_findings:findings.length},
   limitations:['Read-only parser-backed inspection; no application code or shell command is executed.','The Babel parser and static module resolver run read-only; no live database mutation, external request or application runtime is started.','A static unresolved-import candidate is not a confirmed runtime failure until the build/runtime resolver independently reproduces it.','No direct test import is not proof of missing behavioral coverage; coverage and integration results are required.','Static route-guard hints do not prove authorization; authenticated integration tests remain necessary.']};
