@@ -52,3 +52,32 @@ test('project audit accepts the direct Vite CLI build used by the staging packag
   assert.equal(build.ok,true,build.detail);
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+
+test('project audit ignores import examples in strings and comments and maps tests by real imports',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'messinho-audit-import-graph-'));
+ try{
+  for(const folder of ['backend','src','tests','supabase/migrations'])await mkdir(path.join(root,folder),{recursive:true});
+  await writeFile(path.join(root,'package.json'),JSON.stringify({scripts:{test:'node --test',build:'npm test && vite build'}}));
+  await writeFile(path.join(root,'backend','server.js'),[
+   "import { feature } from './feature.js';",
+   "// import './comment-only-missing.js';",
+   "const example = \\\"import { fake } from './string-only-missing.js';\\\";",
+   "export { feature };"
+  ].join('\\n'));
+  await writeFile(path.join(root,'backend','feature.js'),'export const feature=true;');
+  await writeFile(path.join(root,'tests','feature-behavior.test.js'),[
+   "import test from 'node:test';",
+   "import { feature } from '../backend/feature.js';",
+   "test('feature is loaded',()=>assert.ok(feature));",
+   "const example = \\\"import { fake } from './not-a-real-module.js';\\\";",
+   "// import './also-not-a-real-module.js';"
+  ].join('\\n'));
+  const result=await runMessinhoProjectAudit({root});
+  const imports=result.checks.find(item=>item.name==='Relative Modulimporte');
+  const coverage=result.checks.find(item=>item.name==='Backend-Testzuordnung');
+  assert.equal(imports.ok,true,imports.detail);
+  assert.equal(coverage.ok,true,coverage.detail);
+  assert.match(coverage.detail,/Module ohne direkten Testimport: 0/);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
