@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {runMessinhoProjectAudit,extractModuleSpecifiers} from '../backend/messinho-project-audit.js';
+import {runMessinhoProjectAudit,extractModuleSpecifiers,extractModuleReferences} from '../backend/messinho-project-audit.js';
 
 test('project audit inventories project areas and build/test pipeline without executing code',async()=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'messinho-audit-'));
@@ -91,4 +91,57 @@ test('project audit ignores import examples in strings and comments and maps tes
   assert.equal(coverage.ok,true,coverage.detail);
   assert.match(coverage.detail,/Module ohne direkten Testimport: 0/);
  }finally{await rm(root,{recursive:true,force:true});}
+});
+
+
+test('diagnostic import findings identify exact file, line, column and evidence',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'messinho-audit-location-'));
+ try{
+  for(const folder of ['backend','src','tests','supabase/migrations'])await mkdir(path.join(root,folder),{recursive:true});
+  await writeFile(path.join(root,'package.json'),JSON.stringify({scripts:{test:'node --test',build:'npm test && vite build'}}));
+  await writeFile(path.join(root,'backend','broken.js'),"export const ok=true;\\nimport './missing.js';\\n");
+  const result=await runMessinhoProjectAudit({root});
+  const finding=result.findings.find(item=>item.category==='dependency_resolution');
+  assert.equal(finding.file,'backend/broken.js');
+  assert.equal(finding.line,2);
+  assert.equal(finding.column,8);
+  assert.equal(finding.dependency,'./missing.js');
+  assert.equal(finding.status,'unverified');
+  assert.match(finding.evidence.source_line,/missing\\.js/);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('Vite CLI path used by package build script is recognized',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'messinho-audit-vite-cli-path-'));
+ try{
+  for(const folder of ['backend','src','tests','supabase/migrations'])await mkdir(path.join(root,folder),{recursive:true});
+  await writeFile(path.join(root,'package.json'),JSON.stringify({
+   scripts:{test:'node --test',build:'npm test && node ./node_modules/vite/bin/vite.js build'}
+  }));
+  const result=await runMessinhoProjectAudit({root});
+  const build=result.checks.find(item=>item.name==='Produktions-Build und Testskripte');
+  assert.equal(build.ok,true,build.detail);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('missing direct test imports are informational and not asserted as missing behavioral coverage',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'messinho-audit-coverage-unknown-'));
+ try{
+  for(const folder of ['backend','src','tests','supabase/migrations'])await mkdir(path.join(root,folder),{recursive:true});
+  await writeFile(path.join(root,'package.json'),JSON.stringify({scripts:{test:'node --test',build:'npm test && vite build'}}));
+  await writeFile(path.join(root,'backend','service.js'),'export const run=()=>true;');
+  const result=await runMessinhoProjectAudit({root});
+  const coverage=result.checks.find(item=>item.name==='Backend-Testzuordnung');
+  assert.equal(coverage.severity,'info');
+  assert.equal(coverage.ok,true);
+  assert.match(coverage.recommendation,/nicht abschließend/);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('module references preserve source line and column for imports',()=>{
+ const source="const x=1;\\nimport './missing.js';";
+ const refs=extractModuleReferences(source);
+ assert.deepEqual(refs.map(({specifier,line,column})=>({specifier,line,column})),[
+  {specifier:'./missing.js',line:2,column:8}
+ ]);
 });
