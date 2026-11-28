@@ -151,6 +151,7 @@ test('parser-backed dependency graph resolves internal imports, records packages
  const root=await mkdtemp(path.join(os.tmpdir(),'messinho-dependency-graph-'));
  try{
   for(const folder of ['backend','src','tests','supabase/migrations'])await mkdir(path.join(root,folder),{recursive:true});
+  await writeFile(path.join(root,'package.json'),JSON.stringify({dependencies:{express:'^5.1.0'}}));
   await writeFile(path.join(root,'backend','alpha.js'),"import { beta } from './beta.js';\nimport express from 'express';\nexport const alpha=()=>beta+Boolean(express);");
   await writeFile(path.join(root,'backend','beta.js'),"import { alpha } from './alpha.js';\nexport const beta=()=>Boolean(alpha);");
   const graph=await buildMessinhoDependencyGraph({root,files:['backend/alpha.js','backend/beta.js']});
@@ -173,7 +174,7 @@ test('parser-backed graph identifies unresolved imports with exact source locati
   assert.ok(finding);
   assert.equal(finding.file,'backend/consumer.js');
   assert.equal(finding.line,2);
-  assert.match(finding.error_message,/missing\.js/);
+  assert.equal(finding.dependency,'./missing.js');
  }finally{await rm(root,{recursive:true,force:true});}
 });
 
