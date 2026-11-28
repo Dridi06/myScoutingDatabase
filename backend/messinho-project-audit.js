@@ -335,7 +335,7 @@ export async function buildMessinhoDependencyGraph({root=PROJECT_ROOT,files=[]}=
  const incoming=new Map([...records.keys()].map(node=>[node,0]));
  for(const targets of edges.values())for(const target of targets)incoming.set(target,(incoming.get(target)||0)+1);
  const graphEdges=edgeList.sort((a,b)=>a.from.localeCompare(b.from)||a.to.localeCompare(b.to));
- return {ok:findings.length===0,checked_at:checkedAt,parser:'@babel/parser',nodes:[...records.keys()].sort(),edges:graphEdges,
+ return {ok:findings.length===0,checked_at:checkedAt,parser:'@babel/parser',nodes:[...records.keys()].sort(),exported_symbols:Object.fromEntries([...records].map(([file,record])=>[file,[...record.exports].sort()])),edges:graphEdges,
   cycles,external_dependencies:[...externalDependencies].sort(),findings,
   coverage:{modules:modules.length,parsed:records.size,excluded:files.length-modules.length,
    external_dependencies:externalDependencies.size,internal_edges:graphEdges.length},
