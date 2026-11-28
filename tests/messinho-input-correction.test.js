@@ -52,3 +52,34 @@ test('preserves proper names and unknown words in German football requests', () 
   assert.match(result.corrected, /Lionel Messi/);
   assert.match(result.corrected, /Xqzv/);
 });
+
+
+test('authenticated chat applies only high-confidence German corrections to semantic routing', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../backend/server.js', import.meta.url), 'utf8');
+  assert.match(source, /buildMessinhoLinguisticContext\(message,history\)/);
+  assert.match(source, /correctMessinhoInput\(message,\{language:baseLinguisticContext\.primary_language\}\)/);
+  assert.match(source, /correction\.changed&&correction\.confidence==='high'&&correction\.language==='de'/);
+  assert.match(source, /message:interpretedMessage/);
+  assert.match(source, /input_interpretation:inputInterpretation/);
+  assert.match(source, /suggested:correction\.corrected/);
+});
+
+test('semantic router treats medium corrections as suggestions and preserves entities', async () => {
+  const { buildMessinhoCognitiveRouterMessages } = await import('../backend/messinho-conversational-intelligence.js');
+  const interpretation = {
+    original_message: 'Suche einen spielr aus Deutchland',
+    normalized_message: 'Suche einen spielr aus Deutchland',
+    correction_status: 'suggested',
+    correction_confidence: 'medium',
+    correction_suggestions: [{ from: 'spielr', to: 'spieler', kind: 'contextual_spelling' }]
+  };
+  const messages = buildMessinhoCognitiveRouterMessages({
+    message: interpretation.normalized_message,
+    linguisticContext: { input_interpretation: interpretation }
+  });
+  const payload = JSON.parse(messages[1].content);
+  assert.equal(payload.linguistic_context.input_interpretation.correction_status, 'suggested');
+  assert.equal(payload.linguistic_context.input_interpretation.normalized_message, interpretation.original_message);
+  assert.match(messages[0].content, /Medium-confidence spelling matches are suggestions/);
+});
