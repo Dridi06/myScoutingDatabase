@@ -32,7 +32,7 @@ function resolveRelativeImport(fromFile,specifier,known){
 // literals are opaque, so import examples embedded in tests are not dependencies.
 function moduleTokens(source){
  const tokens=[];let i=0,line=1;const text=String(source||'');
- const push=(type,value,startLine,offset)=>tokens.push({type,value,line:startLine,column:offset-text.lastIndexOf('\\n',offset-1),offset});
+ const push=(type,value,startLine,offset)=>tokens.push({type,value,line:startLine,column:offset-text.lastIndexOf('\n',offset-1),offset});
  const isStartRegex=()=>{const p=tokens[tokens.length-1];return !p||(p.type==='punct'&&['(','[','{',',',':','=','!','?',';','=>'].includes(p.value))||(p.type==='identifier'&&['return','throw','case','delete','void','typeof','instanceof','in','of','yield','await'].includes(p.value));};
  while(i<text.length){
   const ch=text[i],next=text[i+1];
@@ -46,9 +46,9 @@ function moduleTokens(source){
    continue;
   }
   if(ch==='"'||ch==="'"||ch==='`'){
-   const quote=ch,startLine=line;i++;let value='';
+   const quote=ch,startLine=line,start=i;i++;let value='';
    while(i<text.length){const current=text[i++];if(current==='\n')line++;if(current===quote)break;if(current==='\\'&&i<text.length){const escaped=text[i++];if(escaped==='\n')line++;value+=escaped;}else value+=current;}
-   if(quote!=='`')push('string',value,startLine,i-value.length-1);
+   if(quote!=='`')push('string',value,startLine,start);
    continue;
   }
   if(/[A-Za-z_$]/.test(ch)){
