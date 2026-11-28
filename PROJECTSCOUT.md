@@ -7418,3 +7418,13 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Commits auf `feature/messinho-conversation-engine`: Diagnosekern `baf2e9089689f2d8ac8995fd0f3384672c64305f`; Positions-/Build-Erkennung `66e92fe66c243d066dd0750d8841c5483f42a6db`; Regressionstests `cf2f02e426c3d84cb73a6b97ce7bb22c6c1276a8`; anschließende Korrekturen `5b210e24d16fe3cbc706796b787089bc7b3c73d3`, `77008786b1bcc554b0e27c423f26492b0a7b0c0f`, `88628b2117df9859874922dd02935c2675f78d5a`, `2d12c2e5bba644dfc0174631b22110862bab430a`.
 - **Noch nicht abgenommen:** Die nachfolgenden Korrekturen besitzen in diesem Prüfschritt keinen bestätigten grünen CI-Nachweis. Deshalb kein Render-STAGING-Deployment ausgelöst. Die bisherige Produktiv-/STAGING-Laufversion wurde nicht verändert; Production bleibt unangetastet.
 - Nächster Schritt: aktuellen Branch-Stand mit vollständigem Node-Testlauf, Backend-Syntaxprüfung und Vite-Produktionsbuild verifizieren; danach den Importresolver gegen die tatsächlichen sieben Diagnosekandidaten prüfen und erst bei grüner CI Block 2/3 weiterführen.
+
+
+### Diagnose-Engine — CI-Nachprüfung und STAGING-Freigabe
+- Nach Korrektur der Regression-Fixtures wurde der aktuelle Branch-Commit `ad02c4acad3a4ba83b313d8f0d34abb30abbe5a8` geprüft.
+- GitHub Actions für exakt diesen Commit: Node-Tests erfolgreich (765/765 bestanden), Backend-Syntaxprüfung erfolgreich und vollständige STAGING-Branch-CI einschließlich Regressionstests und Vite-Produktionsbuild erfolgreich. Die zugehörigen Push- und Pull-Request-Prüfläufe wurden erfolgreich abgeschlossen.
+- Die Diagnosebefunde werden in `checks[].findings` mitgespeichert, damit die vorhandene JSONB-Diagnosehistorie die exakten Fundstellen nicht verliert. Die Admin-Diagnoseoberfläche zeigt Datei, Zeile, Spalte, Importziel und den Hinweis „Statischer Hinweis – noch nicht zur Laufzeit bestätigt“.
+- Die Testzuordnung ohne direkten Import wird nicht als fehlgeschlagene Prüfung gewertet. Die Diagnose macht ausdrücklich kenntlich, dass dies keine vollständige Coverage-Messung ersetzt.
+- Vite-CLI-Erkennung deckt jetzt den tatsächlich verwendeten Pfad `node ./node_modules/vite/bin/vite.js build` ab.
+- Render-Service geprüft: `myscoutingdatabase-messinho-staging`, Branch `feature/messinho-conversation-engine`, `autoDeploy=no`. Letzte Live-Version vor diesem Diagnoserelease blieb Commit `00981bea4adcbe4232110109c70ec87d2b0a7feb`.
+- Nächster Schritt: manuelles STAGING-Deployment des geprüften Branch-Stands; danach Health-Check und Prüfung des Diagnoseendpunkts. Production-Service und Production-Datenbank bleiben unangetastet.
