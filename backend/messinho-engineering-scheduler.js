@@ -3,6 +3,7 @@ import { generateMessinhoEngineeringProposal } from './messinho-myki-engineer.js
 import { persistMessinhoMyKiProposal } from './messinho-myki-bridge.js';
 import { dispatchMessinhoSandboxJob, isMessinhoSandboxStagingAllowed } from './messinho-sandbox-dispatch.js';
 import { hashMessinhoEngineeringPatch } from './messinho-engineering-memory.js';
+import { resolveMessinhoModelConfig } from './messinho-model-runtime.js';
 
 export const MESSINHO_ENGINEERING_REVIEW_TIME_ZONE='Europe/Berlin';
 export const MESSINHO_ENGINEERING_WORK_WINDOWS=Object.freeze([{key:'morning',start:3,end:8},{key:'daytime',start:10,end:23}]);
@@ -12,10 +13,13 @@ export function isMessinhoEngineeringStagingService(env=process.env){
  return env.RENDER==='true'&&Boolean(env.RENDER_SERVICE_ID)&&env.RENDER_SERVICE_ID===env.MESSINHO_STAGING_RENDER_SERVICE_ID;
 }
 export function isMessinhoEngineeringAutoReviewEnabled(env=process.env){
+ const model=resolveMessinhoModelConfig(env);
+ const modelReady=Boolean(model.model)&&(!model.requiresApiKey||Boolean(model.apiKey));
  return env.MESSINHO_ENGINEERING_AUTOREVIEW_ENABLED==='true'&&env.RENDER==='true'&&
   Boolean(env.RENDER_SERVICE_ID)&&env.RENDER_SERVICE_ID===env.MESSINHO_STAGING_RENDER_SERVICE_ID&&
-  Boolean(env.OPENAI_API_KEY)&&Boolean(env.SUPABASE_URL)&&Boolean(env.SUPABASE_SECRET_KEY||env.SUPABASE_SERVICE_ROLE_KEY);
+  modelReady&&Boolean(env.SUPABASE_URL)&&Boolean(env.SUPABASE_SECRET_KEY||env.SUPABASE_SERVICE_ROLE_KEY);
 }
+
 export function getMessinhoEngineeringReviewSchedule(now=new Date()){
  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:MESSINHO_ENGINEERING_REVIEW_TIME_ZONE,
   year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(now);
