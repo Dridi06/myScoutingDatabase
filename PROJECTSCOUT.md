@@ -6794,3 +6794,40 @@ Die geplante **MESSINHO Knowledge Intelligence** wird als eigener, mit Conversat
 
 ### Change & Decision Log — Ergänzung
 | 2026-11-28 | MESSINHO als universellen Wissens- und Problemlösungsagenten mit Biologie, Physik, Chemie, Mathematik, Statistik/Prognosen, Medizin, Sportmedizin, Sportwissenschaft, Informatik/KI, Börse/quantitativen Finanzen, Ethik, Ethnologie, Ingenieur- und weiteren Wissenschaften ausbauen; Fußball/Scouting bleibt Spezialisierung. | Accepted — target architecture | Neuer Knowledge-Intelligence-Strang; evidenzbasiert, rechnerisch anwendbar, risikobewusst und kontrolliert lernend; Feature-Branch/STAGING-only. |
+
+## 36. Block 14 — Semantic Intelligence: Relation Candidates — 2026-11-28
+
+### Ziel
+Die vorhandene semantische Analyse erkennt bereits begrenzte Konzepte und Diskursmerkmale. Block 14 ergänzt eine getrennte, nachvollziehbare Ebene, die aus diesen vorhandenen Signalen vorsichtige Beziehungen als Kandidaten ableitet. Es wird kein vollständiges Sprachverständnis behauptet.
+
+### Implementierung auf dem Feature-Branch
+- Neu: `backend/messinho-semantic-relations.js`.
+- Die Komponente verarbeitet die bestehenden semantischen Frames und erzeugt drei begrenzte Kandidatentypen:
+  - `qualification_candidate`: Negations-/Unsicherheitshinweise bei erkannten Konzepten; der genaue Geltungsbereich bleibt ausdrücklich ungeklärt.
+  - `contrast_candidate`: expliziter Kontrast zwischen benachbarten semantischen Segmenten.
+  - `concept_recurrence_candidate`: wiederkehrende Konzepte als möglicher thematischer Zusammenhang zwischen Segmenten.
+- Unbekannte Konzepte werden verworfen; Eingabe und Ausgabe sind auf 12 Frames, 8 Konzepte je Frame und 30 Beziehungen begrenzt.
+- `backend/messinho-linguistic-intelligence.js` integriert die Relation Candidates in den Gesprächskontext und in die stabile Chat-Metadatenantwort; Version auf 1.5.0 erhöht.
+- Die Gesprächsrichtlinie bezeichnet diese Ausgaben ausdrücklich als begrenzte Kandidaten und untersagt vollständige semantische Parse-Claims, ungelöste Referenzauflösung und unbelegte Kausalität.
+- Neue Tests: `tests/messinho-semantic-relations.test.js`; Integrationstests in `tests/messinho-linguistic-intelligence.test.js`.
+
+### Grenzen
+- Die Kandidaten beruhen auf vorhandenen lexikalischen und Diskurssignalen. Sie sind keine verifizierten Bedeutungsrelationen.
+- Negations- und Unsicherheitsbereich, Pronomen-/Entitätsauflösung, Ironie, implizite Bedeutung und Kausalität werden nicht vollständig erkannt.
+- Keine automatische Textumschreibung, keine Modellgewichtsänderung und kein selbstständiges Modelltraining.
+- Die neue universelle Wissensarchitektur aus Abschnitt 35 wird dadurch noch nicht als implementiert betrachtet.
+
+### Tests, Build und Deployment
+- Implementierungs-/Integrationscommit: `7e0b223f9243b59b7d42efa2d064c641bd8f659b`.
+- Render STAGING-Build/Deploy: `dep-dc54smp7lnhs73albhqg` — zum Zeitpunkt dieses Eintrags in Bearbeitung; keine Live-Aussage vor erfolgreicher Abschluss- und Health-Prüfung.
+- GitHub Actions Status für diesen Commit: noch kein PR-Workflow-Ergebnis über die verfügbaren Commit-Abfragen sichtbar.
+- Vollständige Node-Testzahl, Backend-Syntax, Vite-Build und Live-Status werden erst nach tatsächlichem Abschluss ergänzt.
+- Keine Datenbankmigration und keine Änderung persistierter Nutzer-, Spieler-, Scout- oder Lerndaten.
+- Ausschließlich `feature/messinho-conversation-engine` und der vereinbarte STAGING-Service; Produktion bleibt unangetastet.
+
+### Nächste Schritte
+1. Render-Buildabschluss und Testausgabe prüfen; bei Fehlern anhand des konkreten Logs korrigieren.
+2. Exakten deployten Commit und Status `live` bestätigen.
+3. STAGING-Health und Laufzeitlogs prüfen.
+4. Semantische Fälle mit Mehrdeutigkeit, negierter Bewertung, Unsicherheit, Kontrast, Code-Switching und neutralen Sätzen ergänzen.
+5. Danach Block 15 — Intent Intelligence — nur nach Audit der bereits vorhandenen Intent-/Router-Komponenten planen und Überschneidungen vermeiden.
