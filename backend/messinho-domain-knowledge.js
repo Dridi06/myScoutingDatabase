@@ -16,8 +16,10 @@ export function classifyMessinhoKnowledgeDomain(text=''){
  const rules=[
   ['mathematics',/\b(mathematik|mathematisch|gleichung|algebra|geometrie|integral|ableitung|prozentrechnung|wahrscheinlichkeit)\b/],
   ['physics',/\b(physik|physikal|kraft|energie|bewegung|geschwindigkeit|beschleunigung|druck|welle|newton)\b/],
+  ['chemistry',/\b(chemie|chemisch|chemistry|chemical|atom(?:e|ar|ic)?|molek[uü]l(?:e|ar)?|periodensystem|elemente?|verbindung(?:en)?|reaktion(?:en)?|stoichiometrie|stöchiometrie|s[aä]ure(?:n)?|basen?|oxidation|reduktion|redox|ph[- ]?wert|pka|molare masse)\b/],
   ['biology',/\b(biologie|biologisch|zelle|genetik|stoffwechsel|photosynthese|organismus|evolution)\b/],
   ['medicine',/\b(medizin|medizinisch|orthopädie|verletzung|anatomie|sportmedizin|rehabilitation|diagnose)\b/],
+  ['ethics',/\b(ethik|ethisch|ethics|ethical|moralphilosophie|moralisch|deontologie|deontology|utilitarismus|utilitarianism|tugendethik|virtue ethics|menschenw[uü]rde|gerechtigkeitstheorie|forschungsethik|ki[- ]?ethik|ai ethics)\b/],
   ['risk_management',/\b(risikomanagement|risikoanalyse|stresstest|value at risk|expected shortfall|risikoappetit)\b/],
   ['banking',/\b(bank|banken|kredit|einlage|liquidität|eigenkapital|zentralbank|bonität)\b/],
   ['financial_markets',/\b(börse|börse|aktie|aktien|anleihe|etf|orderbuch|volatilität|derivat|börse|finanzmarkt|börse)\b/],
