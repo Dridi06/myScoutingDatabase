@@ -7327,7 +7327,7 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 ### Verified database facts and explicit gaps
 - The connected STAGING Supabase project is `myScoutingDatabase-staging` (`nwqwnrhupbyhshsprxjt`). No Production Supabase project was changed.
 - At inspection time, STAGING contained 2 active rows in `messinho_myki_tickets` (both diagnostic findings) and 13 rows in `messinho_diagnostic_runs`.
-- Existing system and MESSINHO diagnostic-run retention functions already keep the latest 50 reports. The separate `messinho_myki_tickets` table does **not yet** have a verified 50-per-category retention rule. This remains open; do not claim the requested 51st-ticket cleanup is implemented until a reviewed STAGING migration and a rollback-safe 51-record test prove it.
+- Existing system and MESSINHO diagnostic-run retention functions keep the latest 50 reports. New STAGING migration `20261128092859_messinho_myki_ticket_retention_50.sql` now keeps at most 50 active diagnostic tickets and 50 active development tickets. On the 51st insert in a category, the oldest active ticket is soft-deleted from the inbox and an append-only `retention_pruned` event records the reason/fingerprint. The ticket row and event history remain as an audit tombstone; this is intentional, so the active inbox is capped without destroying audit history.
 - The current diagnostic endpoints execute synchronously. The UI therefore shows the requested pause/end controls as disabled with an explanation instead of pretending they can interrupt a running diagnostic. A resumable/cancellable background diagnostic job API is still required to make those actions functional.
 - The maturity percentage comes from the existing report snapshot dated `2026-11-27`; it is shown with that date and must be recalculated from the newer branch baseline before treating it as a current score.
 
@@ -7335,11 +7335,10 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Changes are confined to `feature/messinho-conversation-engine` and the explicitly configured STAGING service. Production branch, Production Render service, and Production Supabase remain untouched.
 - The STAGING Render service has `autoDeploy=no`; after CI passes, a manual deployment must be triggered and its exact commit/health verified before this work can be called live.
 - Regression tests were expanded for the dashboard order, dual ticket classification, five-item pagination, combined diagnostics, and separated development controls. CI initially found three outdated tests still asserting that the controls lived inside the chat; those tests were migrated to the new component boundaries. The latest CI run must be checked before release.
-- No Supabase schema migration was applied for ticket retention in this change.
+- STAGING Supabase migration `20261128092859_messinho_myki_ticket_retention_50` was applied successfully. A transactional rollback test inserted 51 temporary tickets into each category and verified 50 active records per category; the test transaction was rolled back. Follow-up query confirmed 2 existing active diagnostic tickets, 0 development tickets, and 0 leftover test rows. The retention trigger exists. Production Supabase was not changed.
 
 ### Next required steps
 1. Confirm all CI checks pass on the final feature-branch HEAD and complete the Vite build.
-2. Review and implement the 50-active-ticket retention policy for each ticket category, preserving an audit tombstone and ticket event history; validate with a transactional 51-record test on STAGING.
-3. Implement background diagnostic job state so pause and stop are real server-side operations.
-4. Recalculate the maturity score against the current branch and fresh tests/diagnostics.
-5. Manually deploy the verified commit to Render STAGING and test desktop/mobile UI plus both diagnostic paths and both ticket boards.
+2. Implement background diagnostic job state so pause and stop are real server-side operations.
+3. Recalculate the maturity score against the current branch and fresh tests/diagnostics.
+4. Manually deploy the verified commit to Render STAGING and test desktop/mobile UI plus both diagnostic paths and both ticket boards.
