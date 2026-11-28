@@ -7196,3 +7196,12 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Added an integration test that checks the core context reaches the synthesis request and that the resulting answer still passes the independent evidence review.
 - Commits for this refinement: `fae2610867bd8537837afd2bd62dc631407cf6d8` (research handoff), `774f01dfaf612e26055e964eeea0ece3d05a86dc` (chat handoff), `c8ea58a94d3ff05e2afaa9f6aab2c58481013aad` (integration test).
 - CI and STAGING deployment remain to be verified for the final branch HEAD.
+
+
+### Block 21 integration refinement — bounded local fallback
+- Added `formatMessinhoCoreKnowledgeFallback` to produce a clear answer from matched runtime foundations when external research is unavailable or the evidence gate is not met.
+- The chat uses this fallback only for non-time-sensitive questions. It labels the answer as foundational, includes the concept limitations, does not invent sources, and does not present internal foundations as externally corroborated evidence.
+- Time-sensitive questions continue to fail closed rather than using potentially stale runtime knowledge.
+- Added a regression test for the ACL example: the local foundation explains why there is no universal recovery timeline and does not invent a fixed number of weeks or months.
+- Commits: `2a044d41ee0d8b68b5609a207fe7377c98b9b7ce` (fallback formatter), `fdcb9437ce21e251401a995b49b46182e8d23cc0` (chat fallback), `d1cd9b07baad56fa9668c4cc1d4596dc05947893` (fallback test assertion).
+- The runtime pack now contains 23 concepts, including banking liquidity foundations. Automated test execution, CI status and STAGING deployment are still pending verification.
