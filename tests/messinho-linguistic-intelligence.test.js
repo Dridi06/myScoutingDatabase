@@ -333,7 +333,7 @@ test('does not let a mixed-language aggregate score override the last clear user
 test('publishes the selected response language in stable chat metadata',()=>{
   const context=buildMessinhoLinguisticContext('The player is not ready, mais le joueur est prêt.',[]);
   const metadata=buildMessinhoLinguisticResponseMetadata(context);
-  assert.equal(metadata.version,'1.4.0');
+  assert.equal(metadata.version,'1.5.0');
   assert.equal(metadata.primary_language,context.primary_language);
   assert.equal(metadata.response_language,'fr');
   assert.equal(metadata.latest_segment_language,'fr');
