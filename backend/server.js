@@ -2713,10 +2713,12 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       const secondEvidence=evidence(secondResearch);
       const isComparison=Boolean(secondName);
       let reply='';
-      if(process.env.OPENAI_API_KEY){
+      const followUpModel=resolveMessinhoModelConfig(process.env);
+      if(followUpModel.baseUrl&&(!followUpModel.requiresApiKey||followUpModel.apiKey)){
         try{
-          const analysis=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(35000),headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({
-            model:process.env.OPENAI_MODEL||'gpt-4.1-mini',temperature:0.2,
+          const completion=await requestMessinhoModelCompletion({
+            baseUrl:followUpModel.baseUrl,apiKey:followUpModel.apiKey,model:followUpModel.model,fetchImpl:fetch,timeoutMs:35000,
+            temperature:0.2,
             messages:[
               {role:'system',content:isComparison
                 ? 'Du bist MESSINHO, ein professioneller Fußball-Scouting-Assistent. Vergleiche die beiden genannten Spieler konkret und fair anhand ausschließlich der bereitgestellten Quellen. Gliedere nach Position/Rolle, Spielstil, belegten Leistungsdaten, Stärken, Grenzen und Datenqualität. Erfinde keine Zahlen und behaupte keine Gleichwertigkeit, wenn Daten fehlen. Weise ausdrücklich auf unterschiedliche Wettbewerbe, Saisons oder Datenstände hin. Keine erneute Recherche-Quellenliste und keine Selbstvorstellung. Schreibe verständlich auf Deutsch.'
@@ -2725,9 +2727,9 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
                 ? {question:message,player_a:{name:context.player?.name||rememberedPlayer,profile:context.profile||null,evidence:firstEvidence},player_b:{name:secondResearch?.player?.name||secondName,profile:secondResearch?.profile||null,evidence:secondEvidence}}
                 : {player:context.player?.name||rememberedPlayer,question:message,existing_profile:context.profile||null,evidence:firstEvidence})}
             ]
-          })});
-          if(analysis.ok){const data=await analysis.json();reply=data.choices?.[0]?.message?.content?.trim()||'';}
-          else console.error('MESSINHO follow-up analysis provider status:',analysis.status);
+          });
+          if(completion.status==='completed')reply=completion.content?.trim()||'';
+          else console.error('MESSINHO follow-up analysis provider status:',completion.http_status||completion.error_code);
         }catch(error){console.error('MESSINHO evidence follow-up failed:',error.message);}
       }
       if(!reply){
