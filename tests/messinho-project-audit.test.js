@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {runMessinhoProjectAudit,extractModuleSpecifiers,extractModuleReferences} from '../backend/messinho-project-audit.js';
+import {runMessinhoProjectAudit,buildMessinhoDependencyGraph,extractModuleSpecifiers,extractModuleReferences} from '../backend/messinho-project-audit.js';
 
 test('project audit inventories project areas and build/test pipeline without executing code',async()=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'messinho-audit-'));
@@ -144,4 +144,62 @@ test('module references preserve source line and column for imports',()=>{
  assert.deepEqual(refs.map(({specifier,line,column})=>({specifier,line,column})),[
   {specifier:'./missing.js',line:2,column:8}
  ]);
+});
+
+
+test('parser-backed dependency graph resolves internal imports, records packages and detects cycles',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'messinho-dependency-graph-'));
+ try{
+  for(const folder of ['backend','src','tests','supabase/migrations'])await mkdir(path.join(root,folder),{recursive:true});
+  await writeFile(path.join(root,'backend','alpha.js'),"import { beta } from './beta.js';\\nimport express from 'express';\\nexport const alpha=()=>beta+Boolean(express);");
+  await writeFile(path.join(root,'backend','beta.js'),"import { alpha } from './alpha.js';\\nexport const beta=()=>Boolean(alpha);");
+  const graph=await buildMessinhoDependencyGraph({root,files:['backend/alpha.js','backend/beta.js']});
+  assert.equal(graph.parser,'esbuild');
+  assert.equal(graph.coverage.modules,2);
+  assert.equal(graph.edges.length,2);
+  assert.equal(graph.external_dependencies.includes('express'),true);
+  assert.equal(graph.cycles.length,1);
+  assert.equal(graph.findings[0].category,'circular_dependency');
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('parser-backed graph identifies unresolved imports with exact source locations',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'messinho-dependency-unresolved-'));
+ try{
+  await mkdir(path.join(root,'backend'),{recursive:true});
+  await writeFile(path.join(root,'backend','consumer.js'),"export const value=1;\\nimport './missing.js';\\n");
+  const graph=await buildMessinhoDependencyGraph({root,files:['backend/consumer.js']});
+  const finding=graph.findings.find(item=>item.category==='unresolved_import');
+  assert.ok(finding);
+  assert.equal(finding.file,'backend/consumer.js');
+  assert.equal(finding.line,2);
+  assert.match(finding.error_message,/missing\\.js/);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('parser-backed graph catches missing named exports rather than only checking file existence',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'messinho-dependency-export-'));
+ try{
+  await mkdir(path.join(root,'backend'),{recursive:true});
+  await writeFile(path.join(root,'backend','provider.js'),'export const actual=true;');
+  await writeFile(path.join(root,'backend','consumer.js'),"import { missing } from './provider.js';\\nexport const result=missing;");
+  const graph=await buildMessinhoDependencyGraph({root,files:['backend/provider.js','backend/consumer.js']});
+  const finding=graph.findings.find(item=>item.category==='missing_export');
+  assert.ok(finding,JSON.stringify(graph.findings));
+  assert.equal(finding.file,'backend/consumer.js');
+  assert.ok(finding.line);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('parser-backed graph catches JavaScript syntax errors with parser evidence',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'messinho-dependency-syntax-'));
+ try{
+  await mkdir(path.join(root,'backend'),{recursive:true});
+  await writeFile(path.join(root,'backend','broken.js'),'export const = ;');
+  const graph=await buildMessinhoDependencyGraph({root,files:['backend/broken.js']});
+  assert.equal(graph.findings.length,1);
+  assert.equal(graph.findings[0].category,'parser_or_module_error');
+  assert.equal(graph.findings[0].file,'backend/broken.js');
+  assert.ok(graph.findings[0].line);
+ }finally{await rm(root,{recursive:true,force:true});}
 });
