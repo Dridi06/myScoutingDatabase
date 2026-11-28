@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {runMessinhoProjectAudit,buildMessinhoDependencyGraph,extractModuleSpecifiers,extractModuleReferences,isNodeBuiltinSpecifier} from '../backend/messinho-project-audit.js';
+import {runMessinhoProjectAudit,buildMessinhoDependencyGraph,extractModuleSpecifiers,extractModuleReferences,isNodeBuiltinSpecifier,scanMessinhoProviderReferences,buildMessinhoProviderInventory} from '../backend/messinho-project-audit.js';
 
 test('project audit inventories project areas and build/test pipeline without executing code',async()=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'messinho-audit-'));
@@ -265,5 +265,55 @@ test('full project audit includes static assets in the parser dependency invento
   const graph=result.checks.find(item=>item.name==='Parsergestützter Modul- und Abhängigkeitsgraph');
   assert.equal(graph.ok,true,graph.detail);
   assert.equal(graph.findings.length,0,JSON.stringify(graph.findings));
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+
+
+test('provider scanner finds OpenAI runtime calls and config without reading secret values',()=>{
+ const source=[
+  "// fetch('https://api.openai.com/v1/chat/completions')",
+  "const documentation = 'https://api.openai.com/v1/chat/completions';",
+  "const apiKey = process.env.OPENAI_API_KEY;",
+  "const baseUrl = process.env.MESSINHO_MODEL_BASE_URL;",
+  "await fetch('https://api.openai.com/v1/chat/completions',{headers:{Authorization:'Bearer '+apiKey}});",
+  "import OpenAI from 'openai';"
+ ].join('\n');
+ const result=scanMessinhoProviderReferences(source,'backend/chat.js');
+ assert.equal(result.references.some(item=>item.kind==='environment_variable_reference'&&item.detail==='OPENAI_API_KEY'),true);
+ assert.equal(result.references.some(item=>item.kind==='environment_variable_reference'&&item.detail==='MESSINHO_MODEL_BASE_URL'),true);
+ assert.equal(result.references.some(item=>item.kind==='direct_http_provider_call'&&item.provider==='openai'),true);
+ assert.equal(result.references.some(item=>item.kind==='provider_sdk_import'&&item.provider==='openai'),true);
+ assert.equal(result.references.some(item=>item.kind==='provider_url_literal'&&item.detail.includes('api.openai.com')),true);
+ assert.equal(result.references.some(item=>item.detail.includes('comment-only')),false);
+ assert.equal(result.references.every(item=>!JSON.stringify(item).includes('secret-value')),true);
+});
+
+test('provider inventory separates runtime references from test-only references',()=>{
+ const inventory=buildMessinhoProviderInventory([
+  {file:'backend/server.js',source:"const key=process.env.OPENAI_API_KEY; fetch('https://api.openai.com/v1/chat/completions');"},
+  {file:'backend/model.js',source:"const base=process.env.MESSINHO_MODEL_BASE_URL;"},
+  {file:'tests/server.test.js',source:"const key=process.env.OPENAI_API_KEY;"},
+  {file:'docs/example.js',source:"const key=process.env.OPENAI_API_KEY;"}
+ ]);
+ assert.equal(inventory.openai.files.includes('backend/server.js'),true);
+ assert.equal(inventory.openai.files.includes('tests/server.test.js'),false);
+ assert.equal(inventory.provider_neutral_model_config_files.includes('backend/model.js'),true);
+ assert.equal(inventory.references.filter(item=>item.scope==='test_only').length,1);
+ assert.equal(inventory.references.some(item=>item.file==='docs/example.js'),false);
+});
+
+test('full project audit exposes provider inventory with runtime and test references separated',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'messinho-provider-audit-'));
+ try{
+  for(const folder of ['backend','src','tests','supabase/migrations'])await mkdir(path.join(root,folder),{recursive:true});
+  await writeFile(path.join(root,'package.json'),JSON.stringify({scripts:{test:'node --test',build:'npm test && vite build'}}));
+  await writeFile(path.join(root,'backend','server.js'),"const key=process.env.OPENAI_API_KEY; await fetch('https://api.openai.com/v1/chat/completions');");
+  await writeFile(path.join(root,'src','main.js'),"export const app=true;");
+  await writeFile(path.join(root,'tests','server.test.js'),"const key=process.env.OPENAI_API_KEY;");
+  await writeFile(path.join(root,'supabase','migrations','001.sql'),'select 1;');
+  const result=await runMessinhoProjectAudit({root});
+  assert.equal(result.provider_inventory.openai.files.includes('backend/server.js'),true);
+  assert.equal(result.provider_inventory.openai.direct_http_calls,1);
+  assert.equal(result.provider_inventory.references.filter(item=>item.scope==='test_only').length,1);
  }finally{await rm(root,{recursive:true,force:true});}
 });
