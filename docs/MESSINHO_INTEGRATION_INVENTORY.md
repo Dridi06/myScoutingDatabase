@@ -266,3 +266,16 @@ Diese Änderung entkoppelt nur die freie Unterhaltung vom direkten OpenAI-Aufruf
 - Keine Supabase-Migration, keine RLS-/Grant-Änderung und kein Production-Eingriff.
 
 **Nächster Test:** authentifizierter Chat-Smoke-Test (Hallo, Smalltalk, freie Frage, Folgefrage/Verlauf, Modellproviderfehler) mit bestätigtem Testkonto. Gate 0 bleibt OFFEN.
+
+
+## 28.11.2026 — MyKi Engineering provider-neutral completion
+
+- MyKi Engineering now calls the shared provider-neutral model runtime; it no longer constructs an OpenAI URL or Authorization header itself.
+- Model selection priority is `MESSINHO_MODEL_BASE_URL`, `MESSINHO_MODEL_API_KEY`, `MESSINHO_MODEL_NAME`, with `OPENAI_*` retained only through the shared compatibility resolver.
+- Localhost/self-hosted endpoints without hosted credentials are supported when the configured URL is recognized as local.
+- The 4,500-token engineering review budget is preserved with an explicit per-call cap; the runtime default remains 128 tokens for other callers.
+- Provider retries remain limited to three attempts for transient 429/502/503/504 responses. Quota exhaustion (including `credit_balance_exhausted`) fails immediately. A bounded `Retry-After` hint is retained.
+- Scheduler readiness now checks provider-neutral model readiness and retains the explicit Render STAGING identity and Supabase service-credential gates.
+- The repository-wide provider audit now expects zero direct/wrapped OpenAI HTTP call sites. Remaining OpenAI references are the compatibility environment variables/default URL in the shared runtime and legacy health/config reporting, not direct MyKi provider calls.
+- CI for code candidate `e0581f47dfb403ec00dafe4bd32ea48c0c21ec5f`: Node tests 817 passed, 0 failed; backend syntax success; staging branch CI success. Isolated engineering sandbox workflow was still building its dedicated compiler image at the time of this record; its final outcome remains to be checked.
+- No Render deployment, database mutation, migration, secret change or Production action was performed for this provider migration.
