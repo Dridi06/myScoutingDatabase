@@ -7187,3 +7187,12 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 3. Improve the runtime loader so approved, versioned knowledge packs can be loaded once per process with safe refresh/invalidation, while retaining fail-closed behavior.
 4. Build Block 22 curriculum packages in dependency order, then Block 23 calculation engines and Block 24 cross-domain reasoning. Keep each domain's confidence, evidence and limitations explicit.
 5. Deploy only the verified feature commit to the dedicated STAGING service after confirming the exact Render workspace/service and deployment target.
+
+
+### Block 21 integration refinement — evidence research handoff
+- Extended `researchMessinhoGeneralQuestion` with an optional, bounded runtime-foundation context parameter.
+- The evidence-synthesis request now receives up to six matched first-party foundation concepts as conceptual context. External, current or specialist factual claims must still be supported by the independently retrieved source set; internal foundations do not count as external evidence or bypass the two-domain evidence gate.
+- The chat route passes the request-matched runtime concepts into general research. This closes the earlier gap where the runtime pack was only attached to the ordinary conversation fallback and not to the evidence-research synthesis path.
+- Added an integration test that checks the core context reaches the synthesis request and that the resulting answer still passes the independent evidence review.
+- Commits for this refinement: `fae2610867bd8537837afd2bd62dc631407cf6d8` (research handoff), `774f01dfaf612e26055e964eeea0ece3d05a86dc` (chat handoff), `c8ea58a94d3ff05e2afaa9f6aab2c58481013aad` (integration test).
+- CI and STAGING deployment remain to be verified for the final branch HEAD.
