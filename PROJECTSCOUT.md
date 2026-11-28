@@ -6712,3 +6712,16 @@ MESSINHO soll nicht nur Sprachprofile und einzelne grammatische Signale erkennen
 - Block 13 is **implemented and CI-verified**, but not yet deployed or live. Render STAGING deployment verification is pending.
 - No database migration, persistent user/player/scout/learning data change, model training, model-weight update, permission change, or production resource change.
 - PR #58 remains Draft and unmerged; production remains untouched.
+
+
+### Block 13 STAGING deployment verification — 2026-11-28
+- Render service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`); configured branch `feature/messinho-conversation-engine`; automatic deployment remains disabled.
+- Deployed branch commit: `69acf81a6a4d175acd90bcccb1cb992cb142de74` (documentation-only commit after the tested runtime code commit `8a615ff31a46dcbff44b544eb50ac369aa89f3c8`).
+- Runtime code is identical to the exact code commit that passed the 664-test suite, backend syntax and full CI/build checks.
+- Render deployment: `dep-dc54nbe1egvs73aiqo8g` — status **live**, finished `2026-11-28T03:34:51.188475Z`.
+- Render build succeeded; npm test reported **664 passed, 0 failed**; Vite production build completed successfully.
+- Runtime logs confirmed API listening on port 10000, Supabase Data API HTTP 200, and Render reported “Your service is live”.
+- STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- No database/schema migration or persistent user/player/scout/learning data changes. No model training, model-weight changes, permission changes or external side effects.
+- Authenticated Admin/Scout conversation acceptance remains outstanding. This deployment verifies build/startup and service health, not the quality of real user conversations.
+- PR #58 remains open, Draft and unmerged. Production branch, Render production service and production database remain untouched.
