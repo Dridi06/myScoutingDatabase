@@ -83,6 +83,12 @@ export function extractModuleReferences(source){
  }
  return found;
 }
+export function isNodeBuiltinSpecifier(specifier){
+ const value=String(specifier||'');
+ if(value.startsWith('node:'))return true;
+ return builtinModules.includes(value)||builtinModules.includes('node:'+value);
+}
+
 export function extractModuleSpecifiers(source){
  return [...new Set(extractModuleReferences(source).map(item=>item.specifier))];
 }
@@ -285,7 +291,7 @@ export async function buildMessinhoDependencyGraph({root=PROJECT_ROOT,files=[]}=
     continue;
    }
    const packageName=item.specifier.startsWith('@')?item.specifier.split('/').slice(0,2).join('/'):item.specifier.split('/')[0];
-   if(builtins.has(item.specifier)||builtins.has(packageName))continue;
+   if(isNodeBuiltinSpecifier(item.specifier)||builtins.has(item.specifier)||builtins.has(packageName))continue;
    externalDependencies.add(packageName);
    if(!declaredPackages.has(packageName)){
     findings.push({finding_id:'PACKAGE-'+String(findings.length+1).padStart(4,'0'),status:'unverified',severity:'high',
@@ -423,7 +429,7 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
   (unresolved.length?'; '+unresolved.slice(0,30).map(item=>item.file+':'+item.line+':'+item.column+' → '+item.dependency).join(' | '):''),
   'critical','Importpfade, Dateinamen und Build-Auflösung im betroffenen Modul korrigieren.');
  checks[checks.length-1].findings=findings.filter(item=>item.category==='dependency_resolution');
- const dependencyGraph=await buildMessinhoDependencyGraph({root,files:sourceFiles});
+ const dependencyGraph=await buildMessinhoDependencyGraph({root,files:allFiles});
  add(checks,'Parsergestützter Modul- und Abhängigkeitsgraph','Abhängigkeiten',dependencyGraph.ok,
   'Parser: Babel; Module: '+dependencyGraph.coverage.modules+'; interne Kanten: '+dependencyGraph.metrics.edges+
   '; externe Pakete: '+dependencyGraph.metrics.external_dependencies+'; Zyklen: '+dependencyGraph.metrics.cycles+
