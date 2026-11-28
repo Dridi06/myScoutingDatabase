@@ -467,3 +467,9 @@
   padding-top:5px;
   border-top:1px solid rgba(212,175,55,.18);
 }
+
+/* Consistent, explicit timestamps on the primary MESSINHO conversation */
+.messinho-workspace .messinho-message-timestamp{
+  display:block;margin-top:6px;color:#aab8ca;font-size:10px;line-height:1.45;
+  font-variant-numeric:tabular-nums;letter-spacing:.01em
+}
