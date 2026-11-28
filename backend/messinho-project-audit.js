@@ -202,6 +202,40 @@ export async function buildMessinhoDependencyGraph({root=PROJECT_ROOT,files=[]}=
   }
  }catch{}
  try{
+  const configSource=await readFile(path.join(root,'vite.config.js'),'utf8');
+  const configAst=babelParse(configSource,{sourceType:'unambiguous',plugins:['jsx','typescript']});
+  const staticValue=value=>{
+   if(value?.type==='StringLiteral')return value.value;
+   if(value?.type==='TemplateLiteral'&&value.expressions.length===0)return value.quasis[0]?.value?.cooked||null;
+   if(value?.type==='CallExpression'){
+    const last=[...(value.arguments||[])].reverse().find(item=>item?.type==='StringLiteral');
+    return last?.value||null;
+   }
+   return null;
+  };
+  visitAst(configAst,node=>{
+   if(node.type!=='ObjectProperty'||(node.key?.name||node.key?.value)!=='alias')return;
+   const value=node.value;
+   const addAlias=(findNode,replacementNode)=>{
+    const find=staticValue(findNode),replacement=staticValue(replacementNode);
+    if(find&&replacement)aliases.push({find,replacement:path.isAbsolute(replacement)?replacement:path.resolve(root,replacement)});
+   };
+   if(value?.type==='ObjectExpression')for(const property of value.properties||[]){
+    if(property.type==='ObjectProperty')addAlias(property.key,property.value);
+   }
+   if(value?.type==='ArrayExpression')for(const entry of value.elements||[]){
+    if(entry?.type!=='ObjectExpression')continue;
+    let findNode=null,replacementNode=null;
+    for(const property of entry.properties||[]){
+     const key=property.key?.name||property.key?.value;
+     if(key==='find')findNode=property.value;
+     if(key==='replacement')replacementNode=property.value;
+    }
+    addAlias(findNode,replacementNode);
+   }
+  });
+ }catch{}
+ try{
   const vite=await readFile(path.join(root,'vite.config.js'),'utf8');
   for(const match of vite.matchAll(/['"]([^'"]+)['"]\\s*:\\s*['"]([^'"]+)['"]/g)){
    const find=match[1],replacement=match[2];
