@@ -25,3 +25,12 @@ test('session restoration ignores stale reads after a newer auth event',async()=
  assert.match(main,/version!==authEventVersion/);
  assert.match(main,/authEventVersion\+\+/);
 });
+
+test('resuming a tab does not replay the welcome login animation',async()=>{
+ const main=await readFile(new URL('../src/main.jsx',import.meta.url),'utf8');
+ assert.match(main,/event==='SIGNED_IN'&&loginRequestedRef\.current/);
+ assert.match(main,/loginRequestedRef\.current=true;const\{error\}=await sb\.auth\.setSession/);
+ assert.match(main,/if\(event==='INITIAL_SESSION'\)setAuthReady\(true\)/);
+ assert.match(main,/if\(!authReady&&!session&&!ticketAccess\)/);
+ assert.match(main,/current\?\.user\?\.id===data\.session\.user\.id\?current/);
+});
