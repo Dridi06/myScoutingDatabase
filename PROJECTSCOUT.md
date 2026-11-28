@@ -6504,3 +6504,19 @@ Improve natural multi-turn dialogue so short follow-ups, pronouns, corrections a
 3. Deploy only the exact CI-verified head to the named STAGING service; confirm deployment SHA, live status and startup health.
 4. Test natural multi-turn dialogue with authenticated Admin/Scout accounts, including follow-up references, corrections, topic changes, ambiguous pronouns and preserved/cleared task filters.
 5. Measure the additional context and response latency; keep PR #58 Draft and unmerged.
+
+
+### Block 10 verification addendum — 2026-11-28
+- The first exact-head CI exposed three regressions:
+  1. The transient continuity filter did not yet recognize the German spelling `Passwort`; the sensitive-text pattern now covers both `Passwort` and `password`.
+  2. Existing pragmatic-context and response-composition integration tests asserted the old server argument adjacency; both were updated to verify the additional continuity context argument.
+- The corrected implementation is at code/test commit `805a9131b841c922c509962fc8b16c8ef8a8e1d1`.
+- Exact-commit GitHub Actions results:
+  - MESSINHO Node tests run `46089011829`: **success; 648 passed, 0 failed**.
+  - Backend syntax run `46089011768`: **success**.
+  - Full STAGING branch CI run `46089011717`: **success**, including regression suite, backend syntax checks and Vite production build.
+  - The push-triggered full STAGING CI run `46089007059` also completed successfully on the same code commit.
+- These results verify automated tests and build only; authenticated Admin/Scout live dialogue acceptance is still outstanding.
+- Render STAGING has not yet been updated. The existing deployment `dep-dc51sv56e07s7393msng` remains the last verified live deployment on runtime commit `d39e8e3a0cb0cf4863ddc7082b0a391693c432ed`.
+- The first failing CI runs were `46088875566` (Node tests) and `46088875565` (full STAGING CI); all three identified regressions were corrected before the successful exact-commit runs above.
+- No database/schema or user/player data changes. PR #58 remains open, Draft and unmerged; production remains untouched.
