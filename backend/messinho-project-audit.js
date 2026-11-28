@@ -135,7 +135,8 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
  const directlyTested=new Set();
  for(const testFile of testFiles){
   const relative='tests/'+testFile;
-  const content=sourceContents.get(relative)||'';
+  let content='';
+  try{content=await readFile(path.join(root,relative),'utf8');}catch{}
   for(const specifier of extractModuleSpecifiers(content)){
    if(!specifier.startsWith('.'))continue;
    const target=resolveRelativeImport(relative,specifier,known);
