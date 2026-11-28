@@ -54,3 +54,17 @@ test('verification output is bounded and does not create actions or permissions'
  assert.equal(Object.hasOwn(result,'actions'),false);
  assert.equal(Object.hasOwn(result,'permissions'),false);
 });
+
+
+test('authenticated conversation audits the draft, permits one correction and rechecks the revised answer',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const server=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+ const composer=await readFile(new URL('../backend/messinho-natural-conversation.js',import.meta.url),'utf8');
+ assert.ok(server.includes("import { buildMessinhoAnswerVerification } from './messinho-answer-verification.js';"));
+ assert.ok(server.includes('let answerVerification=buildMessinhoAnswerVerification('));
+ assert.ok(server.includes("if(answerVerification.status==='revision_required')"));
+ assert.ok(server.includes('verificationFeedback:{draft_reply:finalReply,findings:answerVerification.findings,correction:answerVerification.correction}'));
+ assert.ok(server.includes('const revisedAudit=buildMessinhoAnswerVerification('));
+ assert.ok(server.includes('verificationRevisionAttempted=true;'));
+ assert.ok(composer.includes('answer_verification_feedback: safeVerificationFeedback(verificationFeedback)'));
+});
