@@ -117,24 +117,44 @@ async function runSandboxAudit(root,env){
     sandbox_job_dispatched:false,production_access:false}},
   'Isolationsworkflow, Runner und Docker-Limits reparieren. Ressourcenwerte nur innerhalb des Containers messen; keine Hostwerte als Sandboxwerte ausgeben.');
 }
-function runModelBindingAudit(env){
+async function runModelBindingAudit(env,probeProvider){
  const config=resolveMessinhoModelConfig(env);
- const keyPresent=Boolean(config.apiKey),localEndpoint=/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/|$)/iu.test(config.baseUrl);
+ const keyPresent=Boolean(config.apiKey),localEndpoint=/(?:localhost|127\\.0\\.1|\\[::1\\])(?::\\d+)?(?:\\/|$)/iu.test(config.baseUrl);
  const ready=Boolean(config.model&&config.baseUrl&&(!config.requiresApiKey||keyPresent));
- return check('LLM-Anbindung und Modellkonfiguration','LLM & Modellbindung',ready,
+ if(!probeProvider)return check('LLM-Anbindung und Modellkonfiguration','LLM & Modellbindung',ready,
   'Modell konfiguriert: '+Boolean(config.model)+'; Endpoint konfiguriert: '+Boolean(config.baseUrl)+
   '; API-Schlüssel vorhanden: '+keyPresent+'; lokaler Endpoint: '+localEndpoint+
-  '; Live-Provider-Probe: nicht ausgeführt. Diese Prüfung bestätigt Konfiguration, nicht Provider-Erreichbarkeit, Tokenlimit oder tatsächliche Antwortlatenz.',
+  '; Live-Provider-Probe: nicht angefordert. Diese Prüfung bestätigt Konfiguration, nicht Provider-Erreichbarkeit, Tokenlimit oder tatsächliche Antwortlatenz.',
   ready?'info':'warning',{model:config.model,base_url:config.baseUrl,api_key_present:keyPresent,
-   requires_api_key:config.requiresApiKey,live_provider_probe:'not_run',token_limit:'not_discovered'},
-  'Modellendpunkt und Secret-Konfiguration prüfen. Für reale Latenz-, Token- und JSON-Ausgabe-Tests eine explizit gestartete, zeit- und tokenbegrenzte Provider-Probe verwenden.');
+   requires_api_key:config.requiresApiKey,live_provider_probe:'not_requested',token_limit:'not_discovered'},
+  'Modellendpunkt und Secret-Konfiguration prüfen. Für reale Latenz-, Token- und JSON-Ausgabe-Tests die optionale Live-Probe starten.');
+ if(!ready)return check('LLM-Live-Probe','LLM & Modellbindung',false,'Live-Probe nicht möglich: Modell- oder API-Konfiguration fehlt.','warning',
+  {model:config.model,base_url:config.baseUrl,api_key_present:keyPresent,live_provider_probe:'blocked'},
+  'Modellendpunkt und Secret-Konfiguration prüfen; keine Zugangsdaten im Diagnosebericht hinterlegen.');
+ const started=Date.now();
+ const result=await requestMessinhoModelCompletion({model:config.model,apiKey:config.apiKey,baseUrl:config.baseUrl,
+  timeoutMs:8000,temperature:0,maxTokens:64,responseFormat:{type:'json_object'},
+  messages:[{role:'system',content:'Return only a valid JSON object with exactly the keys status and minutes. No markdown.'},
+   {role:'user',content:'Set status to VERSTANDEN. A train travels 42 km at 60 km/h. Return minutes as a number.'}]});
+ const latencyMs=Date.now()-started;
+ let parsed=null;try{parsed=JSON.parse(result.content||'');}catch{}
+ const passed=result.status==='completed'&&parsed?.status==='VERSTANDEN'&&parsed?.minutes===42;
+ return check('LLM-Live-Probe','LLM & Modellbindung',passed,
+  'Providerstatus: '+result.status+'; Latenz: '+latencyMs+' ms; JSON-Format: '+Boolean(parsed)+
+  '; Instruktionstreue: '+passed+'; beobachtete Tokens: '+(result.usage?.total_tokens??'nicht gemeldet')+
+  '; angeforderte Ausgabetoken-Obergrenze: 64.',
+  passed?'info':'warning',{model:result.model||config.model,latency_ms:latencyMs,status:result.status,
+   error_code:result.error_code||null,usage:result.usage||null,json_valid:Boolean(parsed),
+   instruction_following:passed,token_budget:{max_completion_tokens_requested:64,provider_reported:result.usage||null},
+   response_format:'json_object',response_content_stored:false},
+  'Providerverbindung, Modellkompatibilität, Timeout und Structured-Output-Unterstützung prüfen. Rohantworten und API-Schlüssel werden nicht gespeichert.');
 }
-export async function runMessinhoFullStackIntelligenceAudit({root=DEFAULT_ROOT,env=process.env,history=[]}={}){
+export async function runMessinhoFullStackIntelligenceAudit({root=DEFAULT_ROOT,env=process.env,history=[],probeProvider=false}={}){
  const started=Date.now(),checkedAt=new Date().toISOString();
  const files=await Promise.all(SOURCE_DIRS.map(dir=>countFiles(root,dir)));
  const modules=[
   runCapabilityDiscovery(),
-  runModelBindingAudit(env),
+  await runModelBindingAudit(env,probeProvider),
   runLinguisticSyntheticTests(),
   runCognitiveSafetyTests(),
   await runSandboxAudit(root,env)
@@ -158,11 +178,11 @@ export async function runMessinhoFullStackIntelligenceAudit({root=DEFAULT_ROOT,e
  return {audit_type:'full_stack_intelligence_sandbox_audit',version:'1.0.0',status,
   started_at:checkedAt,finished_at:new Date().toISOString(),duration_ms:Date.now()-started,
   scope:{source_directories:SOURCE_DIRS,source_file_counts:files.reduce((sum,n)=>sum+n,0),
-   external_provider_calls:0,tool_executions:0,sandbox_jobs_dispatched:0,database_mutations:0,
+   external_provider_calls:probeProvider?1:0,tool_executions:0,sandbox_jobs_dispatched:0,database_mutations:0,
    memory_mutations:0,model_weight_changes:0,production_access:false},
   modules,summary:{total:modules.length,passed:modules.length-failed.length,failed:failed.length,
    critical_failed:critical.length,warnings:failed.length-critical.length},
-  limitations:['Provider-Live-Latenz, Tokenlimits und Antwortformat werden nur mit einer separat autorisierten Live-Probe verifiziert.',
+  limitations:['Die optionale Live-Probe misst einen begrenzten JSON-Aufruf und gemeldete Tokenverwendung; das vollständige Kontextfenster des Providers wird dadurch nicht ermittelt.',
    'CPU/RAM-Werte des tatsächlichen Sandbox-Containers müssen innerhalb des Containers oder aus dessen Jobmetriken erhoben werden.',
    'Subjektive Natürlichkeit, Ironie und semantische Qualität erfordern menschliche oder unabhängige Modellbewertung.',
    'Der Audit führt keine Toolfunktionen, Netzwerkaktionen, Sandbox-Jobs, Lernwrites oder automatischen Codekorrekturen aus.']};
