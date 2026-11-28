@@ -7093,3 +7093,38 @@ Diese Schicht ist kein allgemeiner Faktenprüfer und kein Beweisgenerator. Ein M
 - Service remains myscoutingdatabase-messinho-staging on feature/messinho-conversation-engine; autoDeploy remains disabled and deployment was manually triggered.
 - No DB/schema migration, persistent user/player/scout/organization/learning data mutation, model training, model-weight change or permission change. Production remains untouched.
 - The checks cover explicit percentage arithmetic and existing allowlisted player speed metrics, plus the bounded one-retry flow. They do not prove general factual correctness; authenticated Admin/Scout end-to-end acceptance remains outstanding.
+
+
+## 42. Block 20 — Dialogue Adaptation & Conversation Maturity — 2026-11-28
+
+### Verbindliche Wissensbreite — Ergänzung der Produktvision
+MESSINHO ist im Fußball-Scouting spezialisiert, aber nicht auf Fußballwissen begrenzt. Das Grundlagenwissen soll perspektivisch fachübergreifend aufgebaut und kontrolliert erweitert werden: Biologie, Physik, Mathematik, Chemie, Medizin, Ethik, Börse/Finanzen, Prognoseberechnungen, Sportmedizin, Informatik und Sportwissenschaft. Die Wissensarchitektur muss fachliche Begriffe, Grundprinzipien, Formeln, Statistik, Einheiten, Berechnungsmethoden, Modelle und deren Anwendungsgrenzen abbilden. Bei Prognosen sind Datenqualität, Annahmen, Unsicherheit, Validierung und nachvollziehbare Ergebnisse verpflichtend. Medizinische, ethische und finanzielle Aussagen benötigen domänengerechte Grenzen und dürfen nicht als individuelle Diagnose, verbindliche Anlageberatung oder moralische Autorisierung ausgegeben werden. Fußball bleibt die Spezialisierung und ein wichtiger Anwendungsfall, nicht die Grenze des allgemeinen Wissens.
+
+### Ziel und Abgrenzung
+Block 20 verbindet die vorhandenen Dialog-, Kontinuitäts-, Klärungs-, Gedächtnis-, Pragmatik-, Antwortplanungs-, Sprach- und Reasoning-Signale zu einem kompakten, request-lokalen Anpassungsvertrag. Die Schicht steuert keine Aktionen und ersetzt keine bestehenden Spezialmodule. Sie soll MESSINHO dabei unterstützen, natürliche Gespräche fortzuführen, Korrekturen aufzunehmen, die Antwortlänge an explizite Wünsche anzupassen, bereits behandelte Punkte nicht unnötig zu wiederholen und Mehrdeutigkeiten mit höchstens einer gezielten Rückfrage zu klären.
+
+### Implementierung
+- Neu: `backend/messinho-dialogue-adaptation.js`, Version `1.0.0`.
+- Neu: `tests/messinho-dialogue-adaptation.test.js`.
+- Der Vertrag unterscheidet Themenwechsel, Korrektur, Follow-up, offene Klärung und eigenständige Nachricht.
+- Antwortlänge wird nur anhand expliziter aktueller Formulierungen angepasst (kurz/knapp vs. ausführlich/Schritt für Schritt); sonst bleibt sie ausgewogen.
+- Die jüngsten Assistentenbeiträge werden begrenzt als bereits behandelte Gesprächspunkte übergeben, damit MESSINHO nicht unnötig wiederholt. Assistentenaussagen werden dadurch nicht zu Fakten.
+- Korrekturen lösen erneute Bewertung aus; ein Themenwechsel verwirft alte Filter und offene Rückfragen.
+- Mehrdeutige Referenten und offene Klärungen führen höchstens zu einer fokussierten Rückfrage.
+- Keine Emotionen, dauerhaften Stilpräferenzen oder Identitätsmerkmale werden aus dem Kontext abgeleitet.
+- Der Vertrag wird pro Request berechnet und nicht als Nutzerprofil persistiert.
+
+### Integration
+- `backend/server.js` erstellt den Anpassungsvertrag aus den bereits vorhandenen Dialog-, Kontinuitäts-, Klärungs-, Gedächtnis-, Pragmatik-, Antwort- und Sprachkontexten.
+- Der Cognitive Router erhält `dialogue_adaptation_context` als beratenden Kontext; Intent-Entscheidung, Autorisierung und Aktionsausführung bleiben unverändert.
+- Der Natural Conversation Composer erhält denselben Vertrag für die tatsächliche Antwortformulierung.
+- Die einmalige Antwortkorrektur aus Block 19 und der bestehende Conversation Response Guard bleiben aktiv.
+
+### Tests und Grenzen
+- Tests prüfen Follow-up-Kontinuität, Korrekturen, explizite Antwortlänge, Themenwechsel, Mehrdeutigkeit, Begrenzung, sensible Kontextfilterung und Integration in beide Modellturns.
+- Kein Datenbank-Schemawechsel, keine neue Persistenz, kein Training und keine Modellgewichtsänderung.
+- Die Komponente verbessert Steuerungshinweise, garantiert aber keine menschenähnliche Gesprächsqualität. Authentifizierte Admin-/Scout-Dialogtests bleiben erforderlich.
+- STAGING-only; Produktion und `main` bleiben unangetastet.
+
+### Nächster Schritt
+Block 21: integrierte Gesprächs- und Wissensabnahme mit realistischen mehrsprachigen Admin-/Scout-Dialogen, fachübergreifenden Fragen, Korrekturen, Themenwechseln, Berechtigungsgrenzen und Fehlerfällen. Anschließend die Wissensdomänen als eigenständige, belegte und versionierte Wissenspakete planen, ohne unkontrolliertes automatisches Lernen.
