@@ -35,3 +35,20 @@ test('project audit detects unresolved relative imports',async()=>{
   assert.match(imports.detail,/missing\.js/);
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('project audit accepts the direct Vite CLI build used by the staging package script',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'messinho-audit-vite-cli-'));
+ try{
+  for(const folder of ['backend','src','tests','supabase/migrations'])await mkdir(path.join(root,folder),{recursive:true});
+  await writeFile(path.join(root,'package.json'),JSON.stringify({
+   scripts:{test:'node --test tests/*.test.js',build:"npm test && find backend -maxdepth 1 -type f -name '*.js' -print0 | xargs -0 -n1 node --check && node ./node_modules/vite/bin/vite.js build"}
+  }));
+  await writeFile(path.join(root,'backend','server.js'),"export const server=true;");
+  await writeFile(path.join(root,'src','main.js'),"export const app=true;");
+  await writeFile(path.join(root,'tests','main.test.js'),"import test from 'node:test'; test('ok',()=>{});");
+  await writeFile(path.join(root,'supabase','migrations','001.sql'),'select 1;');
+  const result=await runMessinhoProjectAudit({root});
+  const build=result.checks.find(item=>item.name==='Produktions-Build und Testskripte');
+  assert.equal(build.ok,true,build.detail);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
