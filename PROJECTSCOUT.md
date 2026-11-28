@@ -6818,6 +6818,14 @@ Die vorhandene semantische Analyse erkennt bereits begrenzte Konzepte und Diskur
 - Die neue universelle Wissensarchitektur aus Abschnitt 35 wird dadurch noch nicht als implementiert betrachtet.
 
 ### Tests, Build und Deployment
+### Verification addendum — 2026-11-28
+- Der erste STAGING-Build auf Commit `7e0b223f9243b59b7d42efa2d064c641bd8f659b` deckte einen veralteten Versionserwartungswert in einem bestehenden Metadatentest auf (`1.4.0` statt `1.5.0`). Der Test wurde korrigiert; keine Laufzeitlogik musste dafür zurückgenommen werden.
+- Korrigierter exakter Code-/Testcommit: `b4f04768b1e89c04377d71d199053a625d016b13`.
+- Render STAGING Build `bld-dc54t7p7lnhs73alda90`: **succeeded**.
+- Vollständige Node-Testausgabe: **672 bestanden, 0 fehlgeschlagen**.
+- Backend-Syntaxprüfung ist Teil des Render-Buildbefehls und wurde nach der Testsuite ausgeführt; Vite-Produktionsbuild: **erfolgreich**, 1.640 Module transformiert.
+- Render-Deployment `dep-dc54t7p7lnhs73alda8g`: Build erfolgreich; Service-Update/LIVE-Bestätigung zum Zeitpunkt dieses Addendums noch in Bearbeitung.
+- GitHub Actions Commit-Abfrage lieferte für diesen Commit keine PR-Workflow-Läufe; die hier dokumentierte Test-/Build-Evidenz stammt aus dem exakten Render-Build.
 - Implementierungs-/Integrationscommit: `7e0b223f9243b59b7d42efa2d064c641bd8f659b`.
 - Render STAGING-Build/Deploy: `dep-dc54smp7lnhs73albhqg` — zum Zeitpunkt dieses Eintrags in Bearbeitung; keine Live-Aussage vor erfolgreicher Abschluss- und Health-Prüfung.
 - GitHub Actions Status für diesen Commit: noch kein PR-Workflow-Ergebnis über die verfügbaren Commit-Abfragen sichtbar.
