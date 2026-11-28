@@ -7163,7 +7163,7 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 
 ### Implemented on the feature branch
 - Added `backend/messinho-core-knowledge.js` as a first-party, immutable, versioned runtime knowledge pack (`1.0.0`). It is loaded by the Node.js module system at server startup and is available without a database query or external research call.
-- Initial curriculum contains 21 compact foundational concepts across mathematics, statistics, physics, chemistry, biology, medicine, sports science, financial markets, risk management, ethics, computer science, football scouting and general systems thinking.
+- Initial curriculum contains 23 compact foundational concepts across mathematics, statistics, physics, chemistry, biology, medicine, sports science, banking, financial markets, risk management, ethics, computer science, football scouting and general systems thinking.
 - Concepts include a stable key, domain, title, definition, optional formula, applicability keywords and explicit limitations. The ACL/ruptured anterior cruciate ligament foundation explicitly rejects a universal recovery timeline and requires individual, criterion-based return-to-sport assessment.
 - Added deterministic, bounded lexical retrieval and a runtime manifest with version, load state, entry count and domain coverage.
 - Integrated the runtime pack into the authenticated chat's active knowledge context and system prompt. It is distinguished from approved graph knowledge and source-backed research; it is not represented as a rights-cleared external-source corpus or specialist-level coverage.
