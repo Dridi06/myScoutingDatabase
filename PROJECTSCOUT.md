@@ -6933,3 +6933,16 @@ Block 16 bündelt vorhandene Dialogue-, Clarification-, Conversation-Continuity-
 
 ### Nächster Schritt — Block 17
 Vorhandene Antwortkomposition, Reasoning-Validierung, Conversation-Response-Guard und Natural-Conversation-Fallback abgleichen. Darauf aufbauend die semantische Antwortplanung verbessern: direkte Antwort, Begründung, Unsicherheitsmarkierung und eine gezielte Rückfrage — ohne starre Antwortschablonen und ohne erfundene Tatsachen.
+
+
+### Block 16 STAGING verification addendum — 2026-11-28
+- Initial build exposed three stale source-wiring assertions after the new context argument was added to the chat router. The assertions were updated to verify the additional context contract; no runtime behavior was rolled back.
+- Final runtime/test commit: `b1906f21ae116b5efcd9ee9508fb0eb5c798a801`.
+- Render build: `bld-dc553cuc6qcc73fp15o0` — **succeeded**.
+- Full Node test suite: **689 passed, 0 failed**.
+- Backend syntax checks completed as part of `npm run build`; Vite production build completed successfully (`built in 2.54s`).
+- Render deployment: `dep-dc553cuc6qcc73fp15ng`; service startup logs confirmed `node backend/server.js`, API listening on port 10000, Supabase Data API HTTP 200 and Render `Your service is live`.
+- Configured service remains `myscoutingdatabase-messinho-staging`, branch `feature/messinho-conversation-engine`, `autoDeploy: no`; deployment was manually triggered.
+- Documentation follow-up is separate from the deployed runtime commit and does not change application code.
+- No DB/schema migration, persistent user/player/scout/learning data mutation, model training, model-weight change or permission change. Production remains untouched.
+- Authenticated Admin/Scout real-dialogue acceptance remains outstanding; automated tests and service startup do not establish human-level conversation quality.
