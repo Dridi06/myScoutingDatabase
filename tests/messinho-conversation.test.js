@@ -1,9 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {cleanMyKiMessageText} from '../src/asi/myki-chat-utils.js';
 import { classifyMessinhoProviderFailure, classifyMessinhoSocialIntent, getMessinhoSocialReply } from '../backend/messinho-conversation.js';
 
 const fixedMorning = new Date('2026-11-26T08:00:00');
 const history = [];
+
+
+test('chat display removes an orphan closing brace but preserves code with balanced braces',()=>{
+ assert.equal(cleanMyKiMessageText('Hallo\\n}'),'Hallo');
+ assert.equal(cleanMyKiMessageText('Antwort\\n  }  '),'Antwort');
+ assert.equal(cleanMyKiMessageText('const value = { ok: true };'),'const value = { ok: true };');
+ assert.equal(cleanMyKiMessageText('```js\\nif (ok) {\\n  run();\\n}\\n```'),'```js\\nif (ok) {\\n  run();\\n}\\n```');
+});
+
+test('server routes simple greetings through deterministic conversation before provider calls',async()=>{
+ const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
+ assert.match(source,/getMessinhoSocialReply\\(interpretedMessage,history,new Date\\(\\)\\)/);
+ assert.ok(source.indexOf('const socialReply=getMessinhoSocialReply')<source.indexOf('const cognitiveResult=await classifyMessinhoTurn'));
+});
 
 test('MESSINHO recognizes greetings and answers naturally without an AI provider', () => {
   assert.equal(classifyMessinhoSocialIntent('Hallo'), 'greeting');
