@@ -2361,6 +2361,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const contextIntelligenceContext=buildMessinhoContextIntelligence({message:interpretedMessage,history,dialogueState,clarificationContinuity,conversationContinuityContext,conversationMemoryContext,entityResolution,reasoningContext,intentEvidenceContext});
     const responseIntelligenceContext=buildMessinhoResponseIntelligence({message:interpretedMessage,responseCompositionContext,contextIntelligenceContext,reasoningContext,clarificationContinuity,conversationContinuityContext,linguisticContext});
     const reasoningIntelligenceContext=buildMessinhoReasoningIntelligence({message:interpretedMessage,history,reasoningContext,contextIntelligenceContext,responseIntelligenceContext});
+    const dialogueAdaptationContext=buildMessinhoDialogueAdaptationContext({message:interpretedMessage,history,dialogueState,continuityContext:conversationContinuityContext,clarificationContinuity,conversationMemoryContext,pragmaticContext,responseIntelligenceContext,linguisticContext});
     const cognitiveResult=await classifyMessinhoTurn({
       message:interpretedMessage,
       history,
