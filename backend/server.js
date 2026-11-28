@@ -2466,7 +2466,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
           message:interpretedMessage,history,
           linguisticContext:{...linguisticContext,dialogue_state:dialogueState},
           linguisticKnowledgeContext,conversationMemoryContext,reasoningContext,pragmaticContext,
-          responseCompositionContext,responseIntelligenceContext,reasoningIntelligenceContext,
+          responseCompositionContext,responseIntelligenceContext,reasoningIntelligenceContext,dialogueAdaptationContext,
           verificationFeedback:{draft_reply:finalReply,findings:answerVerification.findings,correction:answerVerification.correction},
           conversationContinuityContext,userRole:profile.role,
           apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
