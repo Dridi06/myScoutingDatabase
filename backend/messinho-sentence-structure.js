@@ -8,25 +8,25 @@ export const MESSINHO_SENTENCE_STRUCTURE_VERSION = '0.1.0';
 const RULES = Object.freeze({
   de: {
     verbs: 'bin bist ist sind seid war waren habe hast hat haben hatte hatten werde wirst wird werden kann kannst können muss müssen spielt spielen geht gehen macht machen trainiert trainieren arbeitet arbeiten läuft laufen',
-    subjects: 'ich du er sie es wir ihr man der die das ein eine spieler spielerin team trainer verein',
+    subjects: 'ich du er sie es wir ihr man spieler spielerin team trainer verein',
     subordinate: ['weil','dass','wenn','obwohl','während','damit','bevor','nachdem'],
     coordinate: ['und','oder','aber','sondern']
   },
   en: {
-    verbs: 'am is are was were be been being have has had do does did can could will would should plays play goes go makes make trains train works work runs run',
-    subjects: 'i you he she it we they the a an player team coach club',
+    verbs: 'am is are was were be been being have has had do does did can could will would should plays play goes go makes make trains trains train works work runs run',
+    subjects: 'i you he she it we they player team coach club',
     subordinate: ['because','that','if','although','while','when','before','after'],
     coordinate: ['and','or','but','yet']
   },
   fr: {
     verbs: 'suis es est sommes êtes sont étais était être avoir ai as a avons avez ont joue jouent joues vais va vont fait font peux peut entraîne entrainent travaille travaillent court',
-    subjects: 'je tu il elle on nous vous ils elles le la les un une joueur joueuse équipe equipe entraîneur entraineur club',
+    subjects: 'je tu il elle on nous vous ils elles joueur joueuse équipe equipe entraîneur entraineur club',
     subordinate: ['parce','que','si','lorsque','quand','bien','avant'],
     coordinate: ['et','ou','mais','pourtant']
   },
   es: {
     verbs: 'soy eres es somos sois son fui fue ser estar estoy estás está estamos están tener tengo tiene tienen jugar juega juegan voy va vamos hacen hace puede pueden entrena entren trabaja trabajan corre',
-    subjects: 'yo tú él ella usted nosotros nosotras vosotros vosotras ellos ellas el la los las un una jugador jugadora equipo entrenador club',
+    subjects: 'yo tú él ella usted nosotros nosotras vosotros vosotras ellos ellas jugador jugadora equipo entrenador club',
     subordinate: ['porque','que','si','aunque','cuando','mientras','antes'],
     coordinate: ['y','o','pero']
   },
