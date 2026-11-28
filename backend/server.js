@@ -173,6 +173,27 @@ async function diagnoseSupabase(){
 app.use(helmet({crossOriginResourcePolicy:{policy:'cross-origin'},contentSecurityPolicy:{directives:{connectSrc:["'self'",...(supabaseUrl?[new URL(supabaseUrl).origin]:[])],imgSrc:["'self'","data:","blob:",...(supabaseUrl?[new URL(supabaseUrl).origin]:[])]}}}));
 app.use(cors({origin:(process.env.APP_ORIGIN||'http://localhost:5173').split(',').map(x=>x.trim()),credentials:true}));
 app.use(express.json({limit:'1mb'}));
+// Timestamp every backend log and every JSON response. Database event timestamps
+// remain the authoritative event time; this adds an explicit UTC response/log time.
+for (const method of ['log','info','warn','error','debug']) {
+  const write=console[method].bind(console);
+  console[method]=(...args)=>write(`[${new Date().toISOString()}]`,...args);
+}
+app.use((req,res,next)=>{
+  const json=res.json.bind(res);
+  res.json=(body)=>{
+    const serverTimestamp=new Date().toISOString();
+    res.setHeader('X-Server-Timestamp',serverTimestamp);
+    if(Array.isArray(body)){
+      body=body.map(item=>item&&typeof item==='object'&&!Array.isArray(item)
+        ?{...item,server_timestamp:item.server_timestamp||serverTimestamp}:item);
+    }else if(body&&typeof body==='object'){
+      body={...body,server_timestamp:body.server_timestamp||serverTimestamp};
+    }
+    return json(body);
+  };
+  next();
+});
 const authLimiter=rateLimit({windowMs:15*60*1000,limit:12,standardHeaders:true,legacyHeaders:false,message:{error:'Zu viele Anmeldeversuche. Bitte später erneut versuchen.'}});
 app.use('/api/auth',authLimiter);
 async function bootstrapAdmin(){
@@ -644,6 +665,7 @@ app.get('/api/admin/myki/status',myKiStatusLimiter,async(req,res)=>{
     const schedule=getMessinhoEngineeringReviewSchedule(),mode=control?.mode||'paused',latestTask=tasks?.[0]||null;
     const activeTask=latestTask?.status==='running'?latestTask:null;
     return res.json({
+      generated_at:new Date().toISOString(),
       scheduler_enabled:isMessinhoEngineeringAutoReviewEnabled(process.env)&&mode==='developing'&&!control?.stop_requested,
       self_repair_enabled:mode==='working'&&!control?.stop_requested&&getMessinhoEngineeringReviewSchedule().due,
       self_development_enabled:mode==='developing'&&!control?.stop_requested&&getMessinhoEngineeringReviewSchedule().due&&isMessinhoEngineeringStagingService(process.env),
@@ -1636,7 +1658,7 @@ app.get('/api/admin/myki/tickets',myKiTicketLimiter,async(req,res)=>{
       .select('id,ticket_id,title,explanation,status,created_at,updated_at,error_code,error_message,files,tests')
       .neq('status','deleted').order('created_at',{ascending:false}).limit(100);
     if(error){console.error('myKI ticket list failed:',error.code||error.message);return res.status(error.code==='42P01'?503:500).json({error:error.code==='42P01'?'myKI-Ticketdatenbank ist noch nicht eingerichtet.':'myKI-Tickets konnten nicht geladen werden.'});}
-    return res.json({ok:true,tickets:data||[]});
+    return res.json({ok:true,generated_at:new Date().toISOString(),tickets:data||[]});
   }catch(error){console.error('myKI ticket list failed:',error.message);return res.status(500).json({error:'myKI-Tickets konnten nicht geladen werden.'});}
 });
 app.get('/api/admin/myki/tickets/:ticketId',myKiTicketLimiter,async(req,res)=>{
@@ -1647,7 +1669,7 @@ app.get('/api/admin/myki/tickets/:ticketId',myKiTicketLimiter,async(req,res)=>{
     if(error||!data||data.status==='deleted')return res.status(404).json({error:'myKI-Ticket wurde nicht gefunden.'});
     const {data:events,error:eventError}=await db.from('messinho_myki_ticket_events').select('actor_type,action,from_status,to_status,error_code,safe_message,created_at').eq('ticket_id',data.id).order('created_at',{ascending:true}).limit(100);
     if(eventError)console.warn('myKI event history unavailable:',eventError.code||eventError.message);
-    return res.json({ok:true,ticket:data,events:events||[]});
+    return res.json({ok:true,generated_at:new Date().toISOString(),ticket:data,events:events||[]});
   }catch(error){console.error('myKI ticket detail failed:',error.message);return res.status(500).json({error:'myKI-Ticket konnte nicht geladen werden.'});}
 });
 app.get('/api/admin/myki/tickets/:ticketId/copy',myKiTicketLimiter,async(req,res)=>{
@@ -2237,7 +2259,7 @@ app.get('/api/agent/conversation',async(req,res)=>{
       .eq('owner_id',authData.user.id).eq('conversation_id',conversation.id).order('created_at',{ascending:false}).limit(40);
     if(messagesError)return res.status(503).json({error:'Die Nachrichten konnten nicht geladen werden.'});
     return res.json({conversation_id:conversation.id,messages:(rows||[]).reverse().map(row=>({
-      id:row.id,role:row.role,text:row.content,intent:row.metadata?.intent||null,researchContext:row.metadata?.researchContext||null,linguisticIntelligence:profile.role==='admin'?(row.metadata?.linguisticIntelligence||null):(row.metadata?.linguisticIntelligence?{response_language:row.metadata.linguisticIntelligence.response_language||null,primary_language_name:row.metadata.linguisticIntelligence.primary_language_name||null}:null),created_at:row.created_at
+      id:row.id,role:row.role,text:row.content,intent:row.metadata?.intent||null,researchContext:row.metadata?.researchContext||null,linguisticIntelligence:profile.role==='admin'?(row.metadata?.linguisticIntelligence||null):(row.metadata?.linguisticIntelligence?{response_language:row.metadata.linguisticIntelligence.response_language||null,primary_language_name:row.metadata.linguisticIntelligence.primary_language_name||null}:null),created_at:row.created_at,client_submitted_at:row.metadata?.client_submitted_at||null,server_received_at:row.metadata?.server_received_at||null,processing_started_at:row.metadata?.processing_started_at||null,output_generated_at:row.metadata?.output_generated_at||null
     }))});
   }catch(error){console.error('MESSINHO conversation restore failed:',error.message);return res.status(500).json({error:'Der Gesprächsverlauf konnte nicht wiederhergestellt werden.'});}
 });
@@ -2278,10 +2300,15 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const history=sanitizeMessinhoHistory((storedHistory||[]).reverse().map(row=>({
       role:row.role,text:row.content,researchContext:row.metadata?.researchContext||null
     })),{limit:60});
-    const {error:userMessageError}=await db.from('messinho_conversation_messages').insert({
-      conversation_id:conversationId,owner_id:ownerId,role:'user',content:message,metadata:{}
-    });
-    if(userMessageError)return res.status(503).json({error:'Deine Nachricht konnte nicht dauerhaft gespeichert werden. Bitte versuche es erneut.'});
+    const serverReceivedAt=new Date().toISOString();
+    const clientSubmittedAt=typeof req.body?.client_submitted_at==='string'&&Number.isFinite(Date.parse(req.body.client_submitted_at))
+      ?new Date(req.body.client_submitted_at).toISOString():null;
+    const {data:storedUserMessage,error:userMessageError}=await db.from('messinho_conversation_messages').insert({
+      conversation_id:conversationId,owner_id:ownerId,role:'user',content:message,
+      metadata:{client_submitted_at:clientSubmittedAt,server_received_at:serverReceivedAt}
+    }).select('id,created_at').single();
+    if(userMessageError||!storedUserMessage)return res.status(503).json({error:'Deine Nachricht konnte nicht dauerhaft gespeichert werden. Bitte versuche es erneut.'});
+    const processingStartedAt=new Date().toISOString();
     const baseLinguisticContext=buildMessinhoLinguisticContext(message,history);
     const hasNonGermanSegment=baseLinguisticContext.segments.some(segment=>segment.language_analysis?.primary_language&&segment.language_analysis.primary_language!=='de');
     const detectedCorrectionLanguage=baseLinguisticContext.primary_language||baseLinguisticContext.conversation_language_hint;
@@ -2315,14 +2342,19 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
         response_language:linguisticIntelligence.response_language||null,
         primary_language_name:linguisticIntelligence.primary_language_name||null
       }:null);
-      const {error:assistantSaveError}=await db.from('messinho_conversation_messages').insert({
+      const outputGeneratedAt=new Date().toISOString();
+      const {data:storedAssistantMessage,error:assistantSaveError}=await db.from('messinho_conversation_messages').insert({
         conversation_id:conversationId,owner_id:ownerId,role:'assistant',content:safeAssistant.text,
-        metadata:{intent:String(payload.intent||'conversation').slice(0,80),researchContext:safeAssistant.researchContext||null,linguisticIntelligence:persistedLinguisticIntelligence}
-      });
+        metadata:{intent:String(payload.intent||'conversation').slice(0,80),researchContext:safeAssistant.researchContext||null,linguisticIntelligence:persistedLinguisticIntelligence,
+          input_message_id:storedUserMessage.id,server_received_at:serverReceivedAt,processing_started_at:processingStartedAt,output_generated_at:outputGeneratedAt}
+      }).select('id,created_at').single();
       if(assistantSaveError)console.warn('MESSINHO assistant message persistence unavailable:',assistantSaveError.code||'unknown');
       const {error:touchError}=await db.from('messinho_conversations').update({updated_at:new Date().toISOString()}).eq('id',conversationId).eq('owner_id',ownerId);
       if(touchError)console.warn('MESSINHO conversation timestamp update unavailable:',touchError.code||'unknown');
-      return res.json({...payload,conversation_id:conversationId,linguistic_intelligence:clientLinguisticIntelligence,linguistic_knowledge:{status:linguisticKnowledgeStatus},input_correction:correctionApplied?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:correction.changed?{applied:false,suggested:correction.corrected,confidence:correction.confidence}:{applied:false}});
+      return res.json({...payload,conversation_id:conversationId,linguistic_intelligence:clientLinguisticIntelligence,linguistic_knowledge:{status:linguisticKnowledgeStatus},
+        timestamps:{client_submitted_at:clientSubmittedAt,server_received_at:serverReceivedAt,input_persisted_at:storedUserMessage.created_at,
+          processing_started_at:processingStartedAt,output_generated_at:outputGeneratedAt,output_persisted_at:storedAssistantMessage?.created_at||null},
+        input_correction:correctionApplied?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:correction.changed?{applied:false,suggested:correction.corrected,confidence:correction.confidence}:{applied:false}});
     };
     // Scouts may use MESSINHO for scouting and conversation, but cannot issue
     // commands that alter MESSINHO, its knowledge governance, operating mode,
