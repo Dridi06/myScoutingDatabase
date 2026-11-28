@@ -151,8 +151,8 @@ test('parser-backed dependency graph resolves internal imports, records packages
  const root=await mkdtemp(path.join(os.tmpdir(),'messinho-dependency-graph-'));
  try{
   for(const folder of ['backend','src','tests','supabase/migrations'])await mkdir(path.join(root,folder),{recursive:true});
-  await writeFile(path.join(root,'backend','alpha.js'),"import { beta } from './beta.js';\\nimport express from 'express';\\nexport const alpha=()=>beta+Boolean(express);");
-  await writeFile(path.join(root,'backend','beta.js'),"import { alpha } from './alpha.js';\\nexport const beta=()=>Boolean(alpha);");
+  await writeFile(path.join(root,'backend','alpha.js'),"import { beta } from './beta.js';\nimport express from 'express';\nexport const alpha=()=>beta+Boolean(express);");
+  await writeFile(path.join(root,'backend','beta.js'),"import { alpha } from './alpha.js';\nexport const beta=()=>Boolean(alpha);");
   const graph=await buildMessinhoDependencyGraph({root,files:['backend/alpha.js','backend/beta.js']});
   assert.equal(graph.parser,'esbuild');
   assert.equal(graph.coverage.modules,2);
@@ -167,13 +167,13 @@ test('parser-backed graph identifies unresolved imports with exact source locati
  const root=await mkdtemp(path.join(os.tmpdir(),'messinho-dependency-unresolved-'));
  try{
   await mkdir(path.join(root,'backend'),{recursive:true});
-  await writeFile(path.join(root,'backend','consumer.js'),"export const value=1;\\nimport './missing.js';\\n");
+  await writeFile(path.join(root,'backend','consumer.js'),"export const value=1;\nimport './missing.js';\n");
   const graph=await buildMessinhoDependencyGraph({root,files:['backend/consumer.js']});
   const finding=graph.findings.find(item=>item.category==='unresolved_import');
   assert.ok(finding);
   assert.equal(finding.file,'backend/consumer.js');
   assert.equal(finding.line,2);
-  assert.match(finding.error_message,/missing\\.js/);
+  assert.match(finding.error_message,/missing\.js/);
  }finally{await rm(root,{recursive:true,force:true});}
 });
 
@@ -182,7 +182,7 @@ test('parser-backed graph catches missing named exports rather than only checkin
  try{
   await mkdir(path.join(root,'backend'),{recursive:true});
   await writeFile(path.join(root,'backend','provider.js'),'export const actual=true;');
-  await writeFile(path.join(root,'backend','consumer.js'),"import { missing } from './provider.js';\\nexport const result=missing;");
+  await writeFile(path.join(root,'backend','consumer.js'),"import { missing } from './provider.js';\nexport const result=missing;");
   const graph=await buildMessinhoDependencyGraph({root,files:['backend/provider.js','backend/consumer.js']});
   const finding=graph.findings.find(item=>item.category==='missing_export');
   assert.ok(finding,JSON.stringify(graph.findings));
