@@ -6597,3 +6597,42 @@ MESSINHO soll den Gesprächsfaden über längere Dialoge halten, ohne alte Aufga
 - No database/schema migration or persistent user/player/scout/learning data changes. No model training, model-weight changes, permission changes or external side effects.
 - Authenticated Admin/Scout conversation acceptance and latency measurements remain outstanding; successful startup does not prove natural dialogue quality.
 - PR #58 remains open, Draft and unmerged. Production branch, Render production service and production database remain untouched.
+
+
+## 33. Block 12 — Natural Language Understanding and Ambiguity: Phase A — 2026-11-28
+
+### Ziel
+Eingaben sollen auch bei Tippfehlern, unvollständigen Formulierungen und mehrsprachigen Nachrichten korrekt verarbeitet werden. Die Normalisierung darf jedoch keine falsche Bedeutung oder einen falschen Spielernamen erzeugen.
+
+### Implementierung
+- backend/messinho-input-correction.js akzeptiert nun ein explizites Sprachprofil.
+- Das deutsche Korrekturlexikon wird nur auf eindeutig als Deutsch erkannte Nachrichten angewendet.
+- Bei gemischten Sprachsegmenten wird die deutsche automatische Korrektur vollständig ausgesetzt; Originaltext und Sprachsegmente bleiben erhalten.
+- Nur Korrekturen mit hoher Sicherheit (bekannte Tippfehler und feste Phrase-Korrekturen) werden auf die Nachricht angewendet, die Dialogzustand, semantisches Routing und Parsing erhalten.
+- Mittlere Sicherheit wird als Vorschlag gekennzeichnet und verändert den tatsächlich verarbeiteten Originaltext nicht.
+- backend/server.js baut zuerst die Sprachdiagnose aus dem unveränderten Nutzereingang. Danach erstellt es input_interpretation mit Originaltext, tatsächlich verwendetem Text, Korrekturstatus, Konfidenz und begrenzten Vorschlägen.
+- Der Cognitive Router erhält den sicher normalisierten Text sowie input_interpretation im linguistischen Kontext. Die natürliche Antwortkomposition erhält denselben Kontext.
+- Die Router-Regeln untersagen, unsichere Korrekturvorschläge als Tatsachen zu behandeln oder Namen, Zahlen, Zitate und unbekannte Wörter zu erraten.
+- Die Dialogzustands-Integration verwendet dieselbe sicher normalisierte Nachricht. Die ursprüngliche Nachricht bleibt als Originalquelle erhalten.
+
+### Regressionstests und Verifikation
+- Andere Sprachprofile (Englisch, Französisch, Spanisch, Hocharabisch, tunesische Derja und gemischte Sprache) werden vom deutschen Korrekturlexikon ausgeschlossen.
+- Hohe und mittlere Korrektursicherheit werden getrennt geprüft.
+- Spielernamen und unbekannte Wörter bleiben erhalten.
+- Integrationstests prüfen die Weitergabe von input_interpretation an den Cognitive Router und die tatsächliche Chat-Route.
+- Node-Testlauf auf Code-Commit 5fc0cbd50647f4222871723d50b52136a99028d5: **658 bestanden, 0 fehlgeschlagen**.
+- Backend-Syntax-/Testworkflow: erfolgreich.
+- Vollständiger STAGING-Branch-CI-Lauf einschließlich Vite-Build: erfolgreich.
+
+### Grenzen — Phase A ist kein vollständiger Sprachversteher
+- Es wurde kein vollständiges Speech-to-Text-Korrekturmodell entwickelt.
+- Es wurden keine neuen Wörterbücher für Englisch, Französisch, Spanisch, Hocharabisch oder tunesische Derja hinzugefügt.
+- Grammatik- und Sprachprofile bleiben die bestehende Analysegrundlage; die Korrekturlogik ist weiterhin konservativ.
+- Semantische Mehrdeutigkeit und Pronomenauflösung werden weiterhin durch Dialogzustand, Entity Resolution und Modellinterpretation behandelt, nicht durch automatische Rechtschreibkorrektur.
+- Noch erforderlich: mehrsprachiger Benchmark mit Umgangssprache, fragmentierten Sätzen, Diktatfehlern, Code-Switching, Namen und konkurrierenden Referenten.
+
+### Sicherheit und Daten
+- Keine Datenbankmigration und keine Änderung persistierter Nutzer-, Spieler-, Scout- oder Lerndaten.
+- Keine Modellgewichte, kein Training, keine Berechtigungen und keine Produktionsressourcen verändert.
+- Änderungen bleiben auf feature/messinho-conversation-engine und STAGING beschränkt.
+- PR #58 bleibt Draft und ungemergt.
