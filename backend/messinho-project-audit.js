@@ -536,6 +536,15 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
   'critical','Importpfade, Dateinamen und Build-Auflösung im betroffenen Modul korrigieren.');
  checks[checks.length-1].findings=findings.filter(item=>item.category==='dependency_resolution');
  const providerInventory=buildMessinhoProviderInventory([...sourceContents.entries()].map(([file,source])=>({file,source})));
+ add(checks,'Direkte OpenAI-Laufzeitabhängigkeiten','Provider & Inferenz',providerInventory.openai.reference_count===0,
+  'OpenAI-Referenzen im Runtime-Quellcode: '+providerInventory.openai.reference_count+
+  '; direkte HTTP-Aufrufe: '+providerInventory.openai.direct_http_calls+
+  '; SDK-Imports: '+providerInventory.openai.sdk_imports+
+  '; OPENAI-Environment-Referenzen: '+providerInventory.openai.environment_references+
+  '; URL-Literale: '+providerInventory.openai.url_literals+
+  '; betroffene Dateien: '+(providerInventory.openai.files.join(', ')||'keine')+
+  '. Diese statische Prüfung liest keine Secret-Werte und führt keine Provideraufrufe aus.',
+  'warning','Direkte OpenAI-Aufrufe, OpenAI-Defaults und OPENAI_* Fallbacks hinter die providerneutrale MESSINHO-Inferenzschnittstelle migrieren. Rechercheanbieter wie Tavily getrennt behandeln.');
  const dependencyGraph=await buildMessinhoDependencyGraph({root,files:allFiles});
  add(checks,'Parsergestützter Modul- und Abhängigkeitsgraph','Abhängigkeiten',dependencyGraph.ok,
   'Parser: Babel; Module: '+dependencyGraph.coverage.modules+'; interne Kanten: '+dependencyGraph.metrics.edges+
