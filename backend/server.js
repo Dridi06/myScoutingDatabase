@@ -63,6 +63,7 @@ import { buildMessinhoReasoningContext } from './messinho-reasoning-context.js';
 import { buildMessinhoPragmaticContext } from './messinho-pragmatic-context.js';
 import { buildMessinhoResponseCompositionContext } from './messinho-response-composition.js';
 import { buildMessinhoIntentEvidence } from './messinho-intent-intelligence.js';
+import { buildMessinhoContextIntelligence } from './messinho-context-intelligence.js';
 
 const app=express();
 app.set('trust proxy',1);
@@ -2353,6 +2354,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     const pragmaticContext=buildMessinhoPragmaticContext({message:interpretedMessage,linguisticContext});
     const responseCompositionContext=buildMessinhoResponseCompositionContext({message:interpretedMessage,dialogueState,clarificationContinuity,pragmaticContext});
     const intentEvidenceContext=buildMessinhoIntentEvidence({message:interpretedMessage,userRole:profile.role,dialogueState,clarificationContinuity});
+    const contextIntelligenceContext=buildMessinhoContextIntelligence({message:interpretedMessage,history,dialogueState,clarificationContinuity,conversationContinuityContext,conversationMemoryContext,entityResolution,reasoningContext,intentEvidenceContext});
     const cognitiveResult=await classifyMessinhoTurn({
       message:interpretedMessage,
       history,
@@ -2364,6 +2366,7 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
       pragmaticContext,
       responseCompositionContext,
       intentEvidenceContext,
+      contextIntelligenceContext,
       conversationContinuityContext,
       userRole:profile.role,
       apiKey:process.env.MESSINHO_MODEL_API_KEY||process.env.OPENAI_API_KEY,
