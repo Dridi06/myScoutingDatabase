@@ -58,7 +58,8 @@ test('authenticated chat applies only high-confidence German corrections to sema
   const { readFile } = await import('node:fs/promises');
   const source = await readFile(new URL('../backend/server.js', import.meta.url), 'utf8');
   assert.match(source, /buildMessinhoLinguisticContext\(message,history\)/);
-  assert.match(source, /correctMessinhoInput\(message,\{language:baseLinguisticContext\.primary_language\}\)/);
+  assert.match(source, /hasNonGermanSegment=baseLinguisticContext\.segments\.some/);
+  assert.match(source, /correctMessinhoInput\(message,\{language:correctionLanguage\}\)/);
   assert.match(source, /correction\.changed&&correction\.confidence==='high'&&correction\.language==='de'/);
   assert.match(source, /message:interpretedMessage/);
   assert.match(source, /input_interpretation:inputInterpretation/);
