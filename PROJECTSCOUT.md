@@ -7035,3 +7035,15 @@ Die Komponente erzeugt eine kurze, nutzerorientierte Begründungsstruktur. Sie s
 - Vollständige Node-Tests, Syntaxprüfung, Vite-Build und Render-STAGING-Deployment stehen bis zum Verifikationsnachtrag aus.
 - Authentifizierte Admin-/Scout-End-to-End-Abnahme bleibt separat erforderlich.
 
+
+
+### Block 18 STAGING verification addendum — 2026-11-28
+- Initial build exposed stale source-wiring assertions in existing pragmatic-context, response-composition and conversation-continuity tests after the new reasoning-plan argument was added. Those assertions were updated to verify the additional context; no runtime behavior was rolled back.
+- Final Render build: bld-dc5594ff3r2c73dj0ef0 — succeeded.
+- Full Node test suite: 710 passed, 0 failed.
+- Backend syntax checks completed as part of npm run build; Vite production build succeeded (built in 2.54s).
+- Render deployment: dep-dc5594ff3r2c73dj0ee0 — live, finished 2026-11-28T04:12:42Z.
+- Deployed runtime commit: e1c4b54d95f5098db253b290177996df553f1356.
+- Service remains myscoutingdatabase-messinho-staging on feature/messinho-conversation-engine; autoDeploy remains disabled and the deployment was manually triggered.
+- No DB/schema migration, persistent user/player/scout/organization/learning data mutation, model training, model-weight change or permission change. Production remains untouched.
+- The automated suite verifies plan construction and delivery to both model turns. It does not prove real-world reasoning accuracy or authenticated Admin/Scout conversational acceptance; those remain separate acceptance tasks.
