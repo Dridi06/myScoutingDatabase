@@ -208,3 +208,11 @@ test('VO2max continuation preserves the original canonical question for knowledg
     'Für eine konkrete Einordnung eines Spielers brauche ich die folgenden Angaben.'
   ), null);
 });
+
+
+test('answers open-ended what-can-we-do questions without an external language provider',()=>{
+ const reply=getMessinhoSocialReply('Was können wir machen?',[],new Date('2026-11-28T14:00:00'));
+ assert.equal(typeof reply,'string');
+ assert.match(reply,/Spieler|Scouting|Recherche|Plattform/);
+ assert.equal(getMessinhoSocialReply('Was können wir machen, um einen U19-Stürmer zu finden?'),null);
+});
