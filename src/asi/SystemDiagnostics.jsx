@@ -34,7 +34,7 @@ function DependencyGraphSummary({check}){
 
 export default function SystemDiagnostics({session}){
  const [runs,setRuns]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[expanded,setExpanded]=useState(null),[historyPage,setHistoryPage]=useState(1);
- const [messinhoRuns,setMessinhoRuns]=useState([]),[messinhoBusy,setMessinhoBusy]=useState(false),[messinhoError,setMessinhoError]=useState(''),[messinhoExpanded,setMessinhoExpanded]=useState(null),[messinhoHistoryPage,setMessinhoHistoryPage]=useState(1);
+ const [messinhoRuns,setMessinhoRuns]=useState([]),[messinhoBusy,setMessinhoBusy]=useState(false),[messinhoError,setMessinhoError]=useState(''),[messinhoExpanded,setMessinhoExpanded]=useState(null),[messinhoHistoryPage,setMessinhoHistoryPage]=useState(1),[probeLlm,setProbeLlm]=useState(false);
  async function getAccessToken(forceRefresh=false){
   if(!supabase)throw new Error('Anmeldedienst ist nicht verfügbar.');
   let {data:{session:authSession},error}=await supabase.auth.getSession();
@@ -85,7 +85,7 @@ export default function SystemDiagnostics({session}){
   if(messinhoBusy)return;
   setMessinhoBusy(true);setMessinhoError('');
   try{
-   const r=await apiRequest('/api/admin/messinho-diagnostics/run',{method:'POST',headers:{'Content-Type':'application/json'}});
+   const r=await apiRequest('/api/admin/messinho-diagnostics/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({probe_llm:probeLlm})});
    const j=await r.json().catch(()=>({}));
    if(!r.ok)throw Error(j.error||j.detail||'MESSINHO-Diagnose konnte nicht ausgeführt werden.');
    setMessinhoRuns(old=>[j,...old.filter(item=>item.id!==j.id)].slice(0,50));
@@ -128,7 +128,7 @@ export default function SystemDiagnostics({session}){
   {runs.length>historyPageSize&&<nav className="sd-pagination" aria-label="Diagnoseberichte-Seiten"><span>Seite {historyPage} von {historyPageCount} · {runs.length} Berichte</span><div><button type="button" className="sd-quiet" disabled={historyPage===1} onClick={()=>{setHistoryPage(p=>Math.max(1,p-1));setExpanded(null);}}>Zurück</button><button type="button" className="sd-quiet" disabled={historyPage===historyPageCount} onClick={()=>{setHistoryPage(p=>Math.min(historyPageCount,p+1));setExpanded(null);}}>Weiter</button></div></nav>}
 
   <div className="sd-messinho-panel">
-   <div className="sd-section-head sd-messinho-head"><div><span className="sd-eyebrow">MESSINHO · UNABHÄNGIGE KI-QUALITÄTSSICHERUNG</span><h2>MESSINHO Diagnoseebene</h2><p>Eigene Prüfberichte für Runtime, Scoring, Erklärbarkeit, Lernqualität, Prognosegüte und Modellfreigaben. Die Prüfung verändert keine aktiven Modellgewichte.</p></div><button type="button" onClick={runMessinho} disabled={messinhoBusy}>{messinhoBusy?<RefreshCw className="sd-spin" size={15}/>:<ShieldCheck size={15}/>} {messinhoBusy?'MESSINHO wird geprüft…':'MESSINHO prüfen'}</button></div>
+   <div className="sd-section-head sd-messinho-head"><div><span className="sd-eyebrow">MESSINHO · UNABHÄNGIGE KI-QUALITÄTSSICHERUNG</span><h2>MESSINHO Diagnoseebene</h2><p>Full-Stack-Prüfung von Code, Tools, LLM-/Sprachbindung, Sandbox, Reasoning und Lernverlauf. Standardlauf bleibt vollständig read-only.</p><label className="sd-llm-probe"><input type="checkbox" checked={probeLlm} onChange={event=>setProbeLlm(event.target.checked)}/> Zusätzlich eine echte, begrenzte LLM-Verbindungs- und JSON-Probe ausführen (externer API-Aufruf, maximal 64 Ausgabetoken).</label></div><button type="button" onClick={runMessinho} disabled={messinhoBusy}>{messinhoBusy?<RefreshCw className="sd-spin" size={15}/>:<ShieldCheck size={15}/>} {messinhoBusy?'MESSINHO wird geprüft…':'MESSINHO prüfen'}</button></div>
    {messinhoError&&<div className="sd-error"><AlertTriangle size={18}/><div><strong>MESSINHO-Diagnose nicht vollständig verfügbar</strong><p>{messinhoError}</p></div></div>}
    {messinhoRuns[0]&&<div className="sd-stats sd-messinho-stats"><article><span>Letzter MESSINHO-Status</span><strong className={statusClass(messinhoRuns[0].status)}>{labelStatus(messinhoRuns[0].status)}</strong><small>{dateTime(messinhoRuns[0].finished_at)}</small></article><article><span>Prüfungen im letzten Lauf</span><strong>{messinhoRuns[0].summary?.total??messinhoRuns[0].checks?.length??0}</strong><small>{messinhoRuns[0].summary?.passed??0} bestanden · {messinhoRuns[0].summary?.failed??0} Auffälligkeiten</small></article><article><span>Ausführungsdauer</span><strong>{(()=>{const r=messinhoRuns[0];const ms=Number.isFinite(Number(r.duration_ms))?Number(r.duration_ms):(r.started_at&&r.finished_at?Math.max(0,new Date(r.finished_at)-new Date(r.started_at)):null);return ms===null?'—':(ms/1000).toFixed(2)+' s';})()}</strong><small>Manuell durch Admin</small></article></div>}
    <div className="sd-section-head"><div><span className="sd-eyebrow">LETZTER MESSINHO-PRÜFLAUF</span><h2>Modell- und Lernqualität</h2></div><button type="button" className="sd-quiet" onClick={loadMessinho}><RefreshCw size={14}/> Aktualisieren</button></div>
