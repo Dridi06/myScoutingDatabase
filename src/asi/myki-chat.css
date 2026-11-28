@@ -93,3 +93,48 @@
  white-space:nowrap;
 }
 .myki-chat-message.user .myki-chat-timestamp{color:#b4c0cf}
+
+/* myKI dashboard – layout aligned to the owner's hand-drawn reference */
+.myki-dashboard{max-width:1180px;margin:0 auto}
+.myki-dashboard .myki-heading{margin-bottom:10px}
+.myki-dashboard .myki-heading h1{margin:0;color:#ead6a6;font-size:25px;letter-spacing:.01em}
+.myki-dashboard .myki-heading p{margin:4px 0 0}
+.myki-dashboard .myki-maturity-top{margin:0 0 12px;padding:12px 15px;border-radius:10px;background:#11151b;border:1px solid rgba(216,183,109,.42);box-shadow:none}
+.myki-dashboard .myki-maturity-top .myki-maturity-header h3{font-size:13px;color:#e5c77f}
+.myki-dashboard .myki-maturity-top .myki-maturity-policy{margin:6px 0 0}
+.myki-dashboard .myki-chat{margin:0 0 12px;border-radius:10px;background:#10151c;border:1px solid rgba(216,183,109,.35);box-shadow:none}
+.myki-dashboard .myki-chat-header{margin-bottom:10px}
+.myki-dashboard .myki-chat-title h2{font-size:17px}
+.myki-dashboard .myki-chat-messages{min-height:190px;max-height:390px}
+.myki-dashboard .myki-operations{display:flex;flex-direction:column;gap:12px;margin:0 0 14px}
+.myki-dashboard .myki-ops-card{padding:13px 15px;border:1px solid rgba(216,183,109,.36);border-radius:10px;background:#10151b;box-shadow:none}
+.myki-dashboard .myki-ops-card>header{align-items:center}
+.myki-dashboard .myki-ops-card h2{font-size:15px;color:#e8d5a9}
+.myki-dashboard .myki-ops-status-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.myki-dashboard .myki-ops-state-label,.myki-dashboard .myki-ops-status-label{font-size:10px;color:#b9c0ca}
+.myki-dashboard .myki-ops-status-label{padding-left:8px;border-left:1px solid rgba(255,255,255,.16);font-weight:700;letter-spacing:.04em}
+.myki-dashboard .myki-ops-state{max-width:none;padding:5px 9px;border-radius:5px;font-size:10px}
+.myki-dashboard .myki-ops-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0 9px}
+.myki-dashboard .myki-ops-actions button{min-height:37px;border-radius:6px;font-size:11px;white-space:normal}
+.myki-dashboard .myki-ops-actions button:not(.secondary):not(.danger){background:#b89553!important;border-color:#c8a966!important;color:#14171c!important}
+.myki-dashboard .myki-ops-actions button.secondary{background:#242a32!important;border-color:#4b515a!important;color:#e0e3e8!important}
+.myki-dashboard .myki-ops-actions button.danger{background:#382326!important;border-color:#744044!important;color:#f0b9b9!important}
+.myki-dashboard .myki-ops-info{margin:0;padding:9px 11px;border:1px solid rgba(255,255,255,.08);border-radius:6px;background:#0b0f14;color:#b9c1cb;font-size:10px;line-height:1.55}
+.myki-dashboard .myki-ops-note{display:flex;align-items:center;gap:5px;margin-top:7px;color:#8994a2;font-size:9px;line-height:1.45}
+.myki-dashboard .myki-layout{display:block}
+.myki-dashboard .myki-ticket-boards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch}
+.myki-dashboard .myki-ticket-board{min-width:0;margin:0;padding:13px;border:1px solid rgba(216,183,109,.34);border-radius:10px;background:#10151b;box-shadow:none}
+.myki-dashboard .myki-ticket-board>header{align-items:center}
+.myki-dashboard .myki-ticket-board h2{font-size:14px;color:#e7d5ad}
+.myki-dashboard .myki-board-list{display:flex;flex-direction:column;gap:7px}
+.myki-dashboard .myki-board-ticket{min-height:62px;margin:0;padding:9px 10px;border:1px solid rgba(255,255,255,.09);border-radius:6px;background:#171d25;color:#e4e8ee;text-align:left}
+.myki-dashboard .myki-board-ticket.selected{border-color:#c4a15b;background:#242319}
+.myki-dashboard .myki-board-ticket p{margin:4px 0 0}
+.myki-dashboard .myki-detail{margin:12px 0 0;border-radius:10px}
+@media(max-width:700px){
+ .myki-dashboard .myki-ops-card>header{align-items:flex-start;flex-direction:column}
+ .myki-dashboard .myki-ops-status-group{justify-content:flex-start}
+ .myki-dashboard .myki-ops-actions{grid-template-columns:1fr}
+ .myki-dashboard .myki-ticket-boards{grid-template-columns:1fr}
+ .myki-dashboard .myki-chat-messages{max-height:46vh}
+}
