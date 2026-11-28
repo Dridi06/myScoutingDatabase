@@ -198,3 +198,11 @@ test('explicit admin development refuses to run outside the staging service',asy
  assert.equal(result.code,'STAGING_GATE_CLOSED');
  assert.equal(db.state.claim,null);
 });
+
+
+test('autonomous engineering scheduler accepts provider-neutral and local model configuration',()=>{
+ const {OPENAI_API_KEY,...withoutLegacy}=staging;
+ assert.equal(isMessinhoEngineeringAutoReviewEnabled({...withoutLegacy,MESSINHO_MODEL_API_KEY:'configured'}),true);
+ assert.equal(isMessinhoEngineeringAutoReviewEnabled({...withoutLegacy,MESSINHO_MODEL_BASE_URL:'http://127.0.0.1:8080/v1',MESSINHO_MODEL_NAME:'local-model'}),true);
+ assert.equal(isMessinhoEngineeringAutoReviewEnabled({...withoutLegacy,MESSINHO_MODEL_BASE_URL:'https://model.example/v1',MESSINHO_MODEL_NAME:'remote-model'}),false);
+});
