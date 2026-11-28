@@ -245,5 +245,5 @@ test('authenticated chat builds intent evidence before semantic routing',async()
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
   assert.ok(source.includes("import { buildMessinhoIntentEvidence } from './messinho-intent-intelligence.js';"));
   assert.ok(source.includes('buildMessinhoIntentEvidence({message:interpretedMessage,userRole:profile.role,dialogueState,clarificationContinuity})'));
-  assert.ok(source.includes('intentEvidenceContext,\n      conversationContinuityContext,'));
+  assert.ok(source.includes('intentEvidenceContext,\n      contextIntelligenceContext,\n      conversationContinuityContext,'));
 });
