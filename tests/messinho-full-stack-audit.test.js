@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runMessinhoFullStackIntelligenceAudit } from '../backend/messinho-full-stack-audit.js';
 
-test('full-stack audit covers all five layers and records safe execution boundaries',async()=>{
+test('full-stack audit covers all implemented diagnostic layers and records safe execution boundaries',async()=>{
  const audit=await runMessinhoFullStackIntelligenceAudit({env:{MESSINHO_MODEL_BASE_URL:'http://127.0.0.1:1234/v1'},history:[]});
  assert.equal(audit.audit_type,'full_stack_intelligence_sandbox_audit');
  assert.equal(audit.modules.length,9);
@@ -42,7 +42,7 @@ test('audit history is compared to the prior run rather than the current report'
 
 test('tool fuzzing, memory integrity and prompt injection boundaries pass safely',async()=>{
  const audit=await runMessinhoFullStackIntelligenceAudit({env:{MESSINHO_MODEL_BASE_URL:'http://127.0.0.1:1234/v1'}});
- for(const category of ['Tool-Fuzzing','Memory & Vektoren','Sicherheit']){
+ for(const category of ['Tool-Fuzzing','Memory-Integrität','Sicherheit']){
   const item=audit.modules.find(module=>module.category===category);
   assert.ok(item,category);
   assert.equal(item.ok,true,item.detail+' '+JSON.stringify(item.evidence));
