@@ -6573,3 +6573,15 @@ MESSINHO soll den Gesprächsfaden über längere Dialoge halten, ohne alte Aufga
 3. Nur den CI-geprüften Feature-Branch auf den vereinbarten STAGING-Service deployen und Commit/Status/Health verifizieren.
 4. Mit Admin und Scout jeweils längere Dialoge testen: 20+ Turns, Themenwechsel, Korrektur, Rückfrage/Antwort, mehrdeutiges Pronomen.
 5. Antwortqualität und Latenz messen; PR #58 Draft/unmerged halten, Produktion unangetastet lassen.
+
+
+### Block 11 verification addendum — 2026-11-28
+- Code/test commit: 4bcd6e759524c602942796158f188958a6667286.
+- MESSINHO Node tests: workflow run 46101535357 — success, **653 passed, 0 failed**.
+- Backend syntax: workflow run 46101535443 — success.
+- Full STAGING branch CI/build: workflow run 46101535355 — success; regression suite, backend syntax and Vite production build completed.
+- The initial test iterations exposed an invalid test-file line break and incorrect expectations for formatter output/correction semantics. These were fixed before the successful exact-head checks above.
+- No database migration, schema change, user/player/scout data write, persistent memory write, model training, model-weight change or permission change was performed.
+- Render STAGING has not yet been updated for Block 11. The previously verified live deployment remains deployment dep-dc5262mi0phs73c3vdvg on runtime commit 7b09843d13a0d2ef2e0bf68643750b98ffd01b88.
+- Authenticated Admin/Scout dialogue acceptance and response-latency measurement remain outstanding.
+- PR #58 remains open, Draft and unmerged. Production branch, Render production service and production database remain untouched.
