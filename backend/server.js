@@ -28,7 +28,7 @@ import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './me
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
 import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 import { planMessinhoAutonomously } from './messinho-autonomy.js';
-import { classifyMessinhoProviderFailure, resolveMessinhoLiveQuestion, buildMessinhoKnowledgeApplicationFollowUp, buildMessinhoVo2maxApplicationQuery, isMessinhoVo2maxApplicationDataReply } from './messinho-conversation.js';
+import { classifyMessinhoProviderFailure, resolveMessinhoLiveQuestion, buildMessinhoKnowledgeApplicationFollowUp, buildMessinhoVo2maxApplicationQuery, isMessinhoVo2maxApplicationDataReply, getMessinhoSocialReply } from './messinho-conversation.js';
 import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
 import { isMessinhoGeneralResearchQuestion, isMessinhoTimeSensitiveQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
@@ -2329,6 +2329,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     // model, sandbox, or platform-wide configuration. Enforce before routing.
     if(profile.role==='scout'&&isMessinhoAdminOnlyCommand(interpretedMessage)){
       return respond({reply:'Diese Anweisung ist aus Sicherheitsgründen Administratoren vorbehalten. Du kannst MESSINHO weiterhin uneingeschränkt für normale Scouting-Fragen, Spieleranalysen und Recherchen nutzen.',intent:'admin_command_denied',items:[],permission:{allowed:false,required_role:'admin'}});
+    }
+    const socialReply=getMessinhoSocialReply(interpretedMessage,history);
+    if(socialReply){
+      return respond({reply:socialReply,intent:'social_conversation',items:[],conversation_mode:'deterministic_greeting'});
     }
     const actor={user:authData.user,profile};
     const agentMemory=await loadMessinhoAgentMemory(ownerId);
