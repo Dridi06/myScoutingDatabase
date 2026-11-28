@@ -7285,3 +7285,14 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Deployment of the audit correction completed: Render STAGING deployment dep-dc592us9v7es739ltpe0 is LIVE on commit 7843abc0dbe50353de6cbae5b3965b2a6340a36a. Build logs confirm Vite build success and the API process started; service reported live.
 - Supabase global MESSINHO control was rechecked after deployment and remains mode=paused, stop_requested=true. No autonomous development was started and no Production deployment occurred.
 - Required next validation is a fresh manual admin diagnosis against this deployment. The prior 19/21 result belongs to the old audit implementation and must not be used as the new baseline.
+
+## 2026-11-28 — myKI dashboard layout, visual consistency and interaction stability
+- Reorganized the Admin myKI page into a clear top-to-bottom hierarchy: page heading and refresh action → three key KPI cards (open proposals, successfully integrated, errors/review) → direct MESSINHO chat and primary controls → detailed activity monitor → development ticket inbox and selected-ticket details.
+- Moved the KPI cards from below the large activity/chat sections to immediately below the page heading, so the important counts are visible first.
+- Kept the main chat and Admin controls ahead of secondary status information. Detailed technical metadata in the chat and the operating schedule in the activity monitor are now collapsed by default and remain available on demand.
+- Unified myKI styling with the established black/anthracite/gold palette: gold headings, borders, focus rings and primary controls; dark neutral secondary controls; red reserved for destructive/stop actions. Scoped styling to myKI so other workspaces are not unintentionally recolored.
+- Stabilized controls: removed hover/active transforms within myKI and fixed a hover margin reset that could change vertical layout; standardized control transitions and focus styles. Reduced chat status polling from every 10 seconds to every 30 seconds to match the activity monitor and reduce unnecessary layout refreshes.
+- Added tests in tests/myki-dashboard-layout.test.js for section order, collapsed secondary details, status polling cadence, stationary buttons and gold focus styling.
+- Validation on commit b7db24a90b01ae94e061eeaade7ee490d809a461: 750/750 Node tests passed; backend syntax checks passed; Vite production build passed. Render deployment dep-dc597061egvs73b2tang is LIVE on STAGING.
+- Production was not modified. MESSINHO autonomy control was not changed by this UI task.
+- Next: visually verify the new myKI layout on desktop and mobile in STAGING, including the diagnostic, refresh, mode, ticket selection, pagination and destructive-action controls. Adjust only if an actual device/browser reproduction shows remaining movement.
