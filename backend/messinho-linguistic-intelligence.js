@@ -6,8 +6,9 @@
  * incorrectly collapsed into Modern Standard Arabic.
  */
 import { analyzeMessinhoGrammar } from './messinho-grammar-engine.js';
+import { buildMessinhoSemanticRelationAnalysis } from './messinho-semantic-relations.js';
 
-export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.4.0';
+export const MESSINHO_LINGUISTIC_INTELLIGENCE_VERSION = '1.5.0';
 
 export const MESSINHO_LANGUAGE_PROFILES = Object.freeze([
   { id:'de', name:'Deutsch', family:'Germanic', scripts:['Latin'], variants:['de-DE','de-AT','de-CH'], capabilities:['grammar','cases','articles','word_order','compound_words','spelling','semantics','pragmatics'] },
@@ -390,6 +391,7 @@ export function buildMessinhoLinguisticResponseMetadata(context) {
     signals:context.signals||null,
     semantic_frames:Array.isArray(context.semantic_frames)?context.semantic_frames:[],
     semantic_summary:context.semantic_summary||null,
+    semantic_relations:context.semantic_relations||null,
     action:context.action||null,
     segments:Array.isArray(context.segments)?context.segments:[]
   };
@@ -426,10 +428,12 @@ export function buildMessinhoLinguisticContext(message, history = []) {
   const responseLanguage=latestSegmentLanguage||current.primary_language||continuityLanguage||null;
   const semantic_frames=buildMessinhoSemanticFrames(segments);
   const semantic_summary=buildMessinhoSemanticSummary(semantic_frames);
+  const semantic_relations=buildMessinhoSemanticRelationAnalysis(semantic_frames);
   return {
     ...current,
     semantic_frames,
     semantic_summary,
+    semantic_relations,
     conversation_language_hint:responseLanguage,
     response_language:responseLanguage,
     latest_segment_language:latestSegmentLanguage,
@@ -443,7 +447,7 @@ export function buildMessinhoLinguisticContext(message, history = []) {
       'If meaning is ambiguous and materially affects the answer, ask one concise clarification.',
       'Do not invent dictionary definitions or claim a translation was verified when it was not.',
       'Analyze each sentence or segment independently when languages are mixed; preserve original segment order and wording.',
-      'Use semantic_frames as cross-language lexical and discourse evidence only; do not treat them as a full semantic parse or infer unresolved references.',
+      'Use semantic_frames and semantic_relations as bounded lexical/discourse candidates only; do not treat them as a full semantic parse, resolve unresolved references, or infer causality.',
       'Keep uncertainty, qualification and contrast visible; do not turn a qualified statement into an absolute judgment.',
       'Use grammar_analysis as bounded evidence only; distinguish a detected structure from a confirmed error and never rewrite the source unless correction is requested.',
       'Evaluate Tunisian Derja with its own grammar profile; never mark dialect forms incorrect merely because they differ from Modern Standard Arabic.',
