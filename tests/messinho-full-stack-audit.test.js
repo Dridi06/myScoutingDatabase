@@ -45,6 +45,6 @@ test('tool fuzzing, memory integrity and prompt injection boundaries pass safely
  for(const category of ['Tool-Fuzzing','Memory & Vektoren','Sicherheit']){
   const item=audit.modules.find(module=>module.category===category);
   assert.ok(item,category);
-  assert.equal(item.ok,true,JSON.stringify(item.evidence));
+  assert.equal(item.ok,true,item.detail+' '+JSON.stringify(item.evidence));
  }
 });
