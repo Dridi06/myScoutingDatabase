@@ -266,6 +266,9 @@ export async function runMessinhoProjectAudit({root=PROJECT_ROOT}={}){
   dependencyGraph.findings.some(item=>item.severity==='critical'||item.severity==='high')?'critical':'warning',
   'Parsermeldungen und Import-/Exportbeziehungen in den betroffenen Modulen prüfen; Zyklen gezielt entflechten.');
  checks[checks.length-1].findings=dependencyGraph.findings;
+ checks[checks.length-1].dependency_graph={parser:dependencyGraph.parser,checked_at:dependencyGraph.checked_at,
+  coverage:dependencyGraph.coverage,metrics:dependencyGraph.metrics,nodes:dependencyGraph.nodes,edges:dependencyGraph.edges,
+  cycles:dependencyGraph.cycles,external_dependencies:dependencyGraph.external_dependencies,limitations:dependencyGraph.limitations};
  const backendJs=allFiles.filter(file=>file.startsWith('backend/')&&/\.(?:js|mjs|cjs)$/.test(file));
  const tests=inventory.tests||[];
  const testFiles=tests.filter(file=>/\.test\.(?:js|mjs|cjs|jsx|ts|tsx)$/.test(file));
