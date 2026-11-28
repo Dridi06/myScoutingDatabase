@@ -34,9 +34,10 @@ const SYSTEM_PROMPT='Du bist MESSINHOs vorsichtiger Software-Reviewer und Verbes
 'Wenn kein klarer, begrenzter und sicherer Gewinn nachweisbar ist, gib proposal:null zurück.\n'+
 'Antworte ausschließlich als JSON mit {"proposal":null} oder mit proposal:{"title":"...","rationale":"...","patch":"...","test_plan":["...","..."],"rollback_plan":"..."} .';
 
-const responseJson=async response=>{
-  if(!response?.ok)throw new Error('upstream_unavailable');
-  return response.json();
+const responseJson=async(response,source='upstream')=>{
+  if(!response?.ok)throw new Error(source+'_http_'+String(Number(response?.status)||0));
+  try{return await response.json();}
+  catch{throw new Error(source+'_invalid_json');}
 };
 
 export function isMessinhoEngineeringRequest(message=''){
@@ -80,6 +81,7 @@ export function validateMessinhoEngineeringPatchAgainstSources(patch,sources=[])
 }
 
 export async function generateMessinhoEngineeringProposal({goal,env=process.env,fetchImpl=fetch}={}){
+  let stage='github_commit';
   const apiKey=String(env.OPENAI_API_KEY||'');
   if(!apiKey)return {ok:false,code:'MYKI_ENGINEERING_PROVIDER_UNAVAILABLE',message:'Die technische Vorschlagsprüfung ist derzeit nicht verfügbar.'};
   const cleanGoal=String(goal||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,700);
@@ -89,12 +91,13 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
       headers:{Accept:'application/vnd.github+json','User-Agent':'myScoutingDatabase-MESSINHO-Engineering'},
       signal:AbortSignal.timeout(10000)
     });
-    const commit=await responseJson(commitResponse);
+    const commit=await responseJson(commitResponse,'github');
     const sourceSha=String(commit.sha||'');
     if(!/^[a-f0-9]{40}$/i.test(sourceSha))throw new Error('invalid_source_revision');
+    stage='github_sources';
     const files=await Promise.all(ALLOWED_FILES.map(async path=>{
       const response=await fetchImpl('https://raw.githubusercontent.com/'+REPOSITORY+'/'+sourceSha+'/'+path,{signal:AbortSignal.timeout(10000)});
-      if(!response.ok)throw new Error('source_unavailable');
+      if(!response.ok)throw new Error('github_source_http_'+String(Number(response.status)||0)+':'+path);
       const content=await response.text();
       if(!content)throw new Error('source_empty:'+path);
       if(content.length>MAX_SOURCE_FILE_CHARS)throw new Error('source_size_limit_exceeded:'+path);
@@ -102,6 +105,7 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
     }));
     const learning=buildMessinhoProgrammingLearningContext();
     const codebaseIntelligence=buildMessinhoCodebaseIntelligence({files});
+    stage='provider';
     const completion=await fetchImpl('https://api.openai.com/v1/chat/completions',{
       method:'POST',signal:AbortSignal.timeout(25000),
       headers:{Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},
@@ -111,7 +115,7 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
           {role:'user',content:JSON.stringify({goal:cleanGoal,repository:REPOSITORY,branch:BRANCH,source_commit:sourceSha,allowed_files:ALLOWED_FILES,source_files:files})}
         ]})
     });
-    const payload=await responseJson(completion);
+    const payload=await responseJson(completion,'provider');
     const parsed=JSON.parse(payload.choices?.[0]?.message?.content||'{}');
     if(!parsed.proposal)return {ok:true,proposal:null,reason:'no_reliable_improvement',source_sha:sourceSha,curriculum_version:learning.curriculum_version};
     const candidate={
@@ -127,12 +131,24 @@ export async function generateMessinhoEngineeringProposal({goal,env=process.env,
     if(!diffCheck.ok)return {ok:false,code:'MYKI_ENGINEERING_DIFF_CONTEXT_REJECTED',message:'Der Änderungsvorschlag passt nicht nachweisbar zum geprüften Quellcode. Es wurde kein Ticket erstellt.',reason:diffCheck.reason};
     return {ok:true,proposal:candidate,source_sha:sourceSha,files:paths,execution_mode:'proposal_only',tests_executed:false,curriculum_version:learning.curriculum_version};
   }catch(error){
-    const failure=String(error?.message||'').slice(0,180);
-    const sourceLimit=failure.startsWith('source_size_limit_exceeded:');
+    const raw=String(error?.message||'');
+    const sourceLimit=raw.startsWith('source_size_limit_exceeded:');
+    const sourceEmpty=raw.startsWith('source_empty:');
+    let failureReason='engineering_review_unavailable';
+    if(sourceLimit||sourceEmpty)failureReason=raw.slice(0,180);
+    else if(/^(?:github|provider)_http_\d{3}$/.test(raw))failureReason=raw;
+    else if(/^github_source_http_\d{3}:[a-zA-Z0-9_./-]+$/.test(raw))failureReason=raw.slice(0,180);
+    else if(/^(?:github|provider)_invalid_json$/.test(raw))failureReason=raw;
+    else if(error?.name==='AbortError'||error?.name==='TimeoutError')failureReason=stage+'_timeout';
+    else if(error instanceof TypeError)failureReason=stage+'_network_unavailable';
+    else if(raw==='invalid_source_revision')failureReason=raw;
+    else failureReason=stage+'_unexpected_error';
+    console.warn('MESSINHO engineering proposal generation failed:',{stage,reason:failureReason});
     return {
       ok:false,
       code:sourceLimit?'MYKI_ENGINEERING_SOURCE_SIZE_LIMIT':'MYKI_ENGINEERING_REVIEW_FAILED',
-      failure_reason:/^(?:source_size_limit_exceeded|source_empty):[a-zA-Z0-9_./-]+$/.test(failure)?failure:/^(?:upstream_unavailable|invalid_source_revision|source_unavailable)$/.test(failure)?failure:'engineering_review_unavailable',
+      failure_stage:stage,
+      failure_reason:failureReason,
       message:sourceLimit?'Eine geprüfte Quelldatei überschreitet das zulässige Größenlimit. Es wurde kein Ticket erstellt.':'Die technische Prüfung konnte nicht zuverlässig abgeschlossen werden. Es wurde kein Ticket erstellt.'
     };
   }
