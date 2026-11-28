@@ -34,3 +34,36 @@ test('quality review fails closed when critic provider is unavailable',async()=>
  const result=await reviewMessinhoDraft({question:'Frage',draft,claims,sources,env:{OPENAI_API_KEY:'test'},fetchImpl:async()=>({ok:false})});
  assert.equal(result.passed,false);assert.equal(result.review_available,false);
 });
+
+
+test('quality critic prefers provider-neutral MESSINHO model settings',async()=>{
+ let request=null;
+ const result=await reviewMessinhoDraft({
+  question:'Wie spielt Tom Bischof?',draft,claims,sources,
+  env:{MESSINHO_MODEL_BASE_URL:'https://neutral.example/v1',MESSINHO_MODEL_API_KEY:'neutral-secret',MESSINHO_MODEL_NAME:'neutral-reviewer',OPENAI_API_KEY:'legacy-secret'},
+  fetchImpl:async(url,options)=>{
+   request={url,body:JSON.parse(options.body),authorization:options.headers.Authorization};
+   return {ok:true,status:200,json:async()=>({choices:[{message:{content:JSON.stringify({passed:true,score:9,feedback:'Belege stimmen.'})}}]})};
+  }
+ });
+ assert.equal(result.passed,true);
+ assert.equal(request.url,'https://neutral.example/v1/chat/completions');
+ assert.equal(request.body.model,'neutral-reviewer');
+ assert.equal(request.authorization,'Bearer neutral-secret');
+ assert.equal(JSON.stringify(result).includes('neutral-secret'),false);
+});
+
+test('quality critic supports a local model endpoint without hosted credentials',async()=>{
+ let request=null;
+ const result=await reviewMessinhoDraft({
+  question:'Wie spielt Tom Bischof?',draft,claims,sources,
+  env:{MESSINHO_MODEL_BASE_URL:'http://127.0.0.1:8080/v1',MESSINHO_MODEL_NAME:'local-reviewer'},
+  fetchImpl:async(url,options)=>{
+   request={url,headers:options.headers};
+   return {ok:true,status:200,json:async()=>({choices:[{message:{content:JSON.stringify({passed:true,score:9,feedback:'Lokale Prüfung.'})}}]})};
+  }
+ });
+ assert.equal(result.passed,true);
+ assert.equal(request.url,'http://127.0.0.1:8080/v1/chat/completions');
+ assert.equal(request.headers.Authorization,undefined);
+});
