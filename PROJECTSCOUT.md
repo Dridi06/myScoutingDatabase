@@ -6453,3 +6453,54 @@ Exact feature-branch head: `d39e8e3a0cb0cf4863ddc7082b0a391693c432ed`.
 
 ### Next action
 Test the deployed STAGING conversation with an authenticated Admin or Scout account. Record actual replies and response times before starting Block 10.
+
+
+## 31. Block 10 — Conversation Continuity and Referent Hints — 2026-11-28
+
+### Objective
+Improve natural multi-turn dialogue so short follow-ups, pronouns, corrections and topic changes are interpreted against the correct recent exchange. Avoid solving continuity by blindly replaying old task constraints or treating prior assistant suggestions as user-confirmed facts.
+
+### Implementation on the feature branch
+- Added `backend/messinho-conversation-continuity.js`:
+  - Builds a bounded extractive context from at most 16 recent speaker-labelled turns.
+  - Classifies the current turn as `follow_up`, `correction`, `new_topic` or `standalone`.
+  - Detects selected referential expressions and discourse connectors without treating ordinary German articles such as “der/die/den/dem” as pronoun references.
+  - Supplies the immediately preceding user topic and assistant contribution as separate candidates with explicit source/authority labels.
+  - Filters sensitive historical text and caps candidate counts and text lengths.
+  - Explicitly treats assistant content as a hypothesis/question, not proof; corrections invalidate contradicted interpretations; new topics drop prior task constraints.
+  - Context is a hint only: it does not resolve player identity, authorize actions, persist memory, or establish facts.
+- Updated `backend/server.js` to build this context inside the existing authenticated chat route and pass it to both cognitive routing and natural response composition.
+- Updated `backend/messinho-conversational-intelligence.js` and `backend/messinho-natural-conversation.js` to consume the same continuity context.
+- Corrected `backend/messinho-conversation-memory.js`: the bounded eight-item conversation context now prioritizes the newest distinct messages while preserving chronological order. Previously the first eight unique items in the 40-message window could crowd out the latest exchange.
+- Added `tests/messinho-conversation-continuity.test.js`; extended the conversation-memory and natural-composer tests for recency, topic changes, correction handling, false-positive control and authenticated-route wiring.
+
+### Safety and scope
+- No new chatbot or chat endpoint; the existing authenticated chat remains the only user-facing interface.
+- No database migration or schema change; no direct persistent data mutation, model training, model-weight update, permission change, or external action.
+- Sensitive-text filtering is a defensive heuristic only; owner/conversation-scoped history loading remains the primary isolation boundary.
+- The context is extractive and bounded. It does not claim semantic certainty or replace the existing player entity-resolution and clarification systems.
+
+### Verification and deployment status
+- Implementation commits (feature branch):
+  - `380c4f13249ddb19d4e1558ead224c78ec754620` — continuity module.
+  - `43fdbf933f3ef9ad6c6d53127161a2789b51a93c` — initial continuity tests.
+  - `33fb8c433e9ccbde1be621922c6a9102851ca802` — recent-first conversation memory.
+  - `c4983b78f8c0bf0d05bf566c04b51d13212895e0` — cognitive-router integration.
+  - `f6cde5983dda7b0d30caf444b67ddf5d491f3444` — natural composer integration.
+  - `f07931beb441edfd7709dbe1d18ba3ec89dbf437` — authenticated chat wiring.
+  - `8d29f685e68d05c79fa70ddd6761113c183e59f7` — conversation-memory recency regression test.
+  - `27c64320aef4ea7fffd151f7e580f267aa689e5d` — cognitive/server integration tests.
+  - `b7d4aa093e59339720ff274107f774a6031c2cd2` — natural composer continuity test.
+  - `09374a681c9d064e9e29ee32da27b989dad9562f` — avoid article/pronoun false positives.
+  - `bbae88cf7a50f007244a44c4212c3a57c6e267b8` — regression test for false-positive control.
+- Exact-head CI for the final implementation commit has **not yet been verified**; the workflow lookup returned no runs/statuses for that commit. Do not mark the tests as passed until a successful exact-head CI run is obtained.
+- Render STAGING remains on the previously verified live deployment `dep-dc51sv56e07s7393msng`, runtime commit `d39e8e3a0cb0cf4863ddc7082b0a391693c432ed`. Block 10 has **not** been deployed.
+- Authenticated Admin/Scout multi-turn acceptance testing remains outstanding.
+- PR #58 remains Draft and unmerged. Production branch, Render service and database remain untouched.
+
+### Next actions
+1. Obtain successful Node tests, backend syntax and full STAGING CI for the exact Block 10 feature-branch head.
+2. Review any test failures and fix them before deployment.
+3. Deploy only the exact CI-verified head to the named STAGING service; confirm deployment SHA, live status and startup health.
+4. Test natural multi-turn dialogue with authenticated Admin/Scout accounts, including follow-up references, corrections, topic changes, ambiguous pronouns and preserved/cleared task filters.
+5. Measure the additional context and response latency; keep PR #58 Draft and unmerged.
