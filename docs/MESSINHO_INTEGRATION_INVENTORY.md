@@ -108,3 +108,55 @@ Belegt ist ein erster Repository-/Dateibestand und die oben genannten Providerau
 **Nächster konkreter Schritt:** Vollständige automatisierte Import-/Providerinventur über alle Backend- und Frontend-Dateien erstellen und jeden Provideraufruf einem Feature und Test zuordnen. Danach Datenbank-/Endpoint-/Deployment-Abgleich abschließen.
 
 Production wurde in dieser Bestandsaufnahme nicht verändert.
+
+
+## 8. Repositoryweite Providerinventur — AST-basiert (28.11.2026)
+
+### Implementierung
+- backend/messinho-project-audit.js enthält jetzt scanMessinhoProviderReferences() und buildMessinhoProviderInventory().
+- Die Prüfung verwendet den vorhandenen Babel-AST-Parser. Sie erfasst Provider-URL-Literale, direkte HTTP-Aufrufe, SDK-Imports und Provider-Environment-Referenzen mit Datei-/Zeilenangabe.
+- Runtime-Quellcode (backend/, src/) und Testreferenzen (tests/) werden getrennt klassifiziert.
+- Secret-Werte werden weder gelesen noch ausgegeben. Die Prüfung führt keine Provideraufrufe und keinen Anwendungscode aus.
+- Der Projekt-Audit weist verbleibende direkte OpenAI-Abhängigkeiten jetzt als eigenen Warnbefund aus.
+
+### Tatsächlicher Scan des Repository-HEAD 7c074e29c5e9b227fb05d54f2a2788828c04fa30
+- Untersuchte Runtime-Dateien mit Providerreferenzen: **7**
+- Runtime-Providerreferenzen insgesamt: **105**
+- OpenAI-Referenzen: **69** in 7 Dateien:
+  - backend/messinho-engineering-scheduler.js
+  - backend/messinho-general-research.js
+  - backend/messinho-model-runtime.js
+  - backend/messinho-myki-engineer.js
+  - backend/messinho-quality-control.js
+  - backend/messinho-research.js
+  - backend/server.js
+- Erkannte direkte OpenAI-HTTP-Aufrufstellen: **4**
+- OpenAI-Environment-Referenzen: **46**
+- OpenAI-URL-Literale: **15**
+- Providerneutrale Modellkonfiguration: **15 Referenzen** in backend/messinho-model-runtime.js und backend/server.js.
+- Tavily: **20 Referenzen** in backend/messinho-general-research.js, backend/messinho-research.js und backend/server.js.
+- Ein local_or_self_hosted-URL-Literal wurde erkannt. Das ist **kein** Nachweis für einen bereitgestellten, erreichbaren oder getesteten lokalen Inferenzdienst.
+
+### Test- und CI-Nachweis
+- GitHub Actions Node-Tests: Run 46155954807, **804 bestanden / 0 fehlgeschlagen**.
+- GitHub Actions Backend-Syntax: Run 46155958958, **success**.
+- GitHub Actions Node-Tests auf dem gleichen HEAD: Run 46155959018, **success**.
+- GitHub Actions Staging-Branch-CI: Run 46155958962, **success**.
+- Die Repository-weite Providerinventur wird durch einen Integrationstest ausgeführt und gibt nur Referenzmetadaten, keine Geheimnisse, aus.
+
+### Live-Staging-Befund — nur Logs gelesen
+- Render-Staging-Service: srv-dc3chlqjnfac73acd6ig.
+- Letztes geprüftes Live-Deployment: dep-dc5e1agu01pc738e0dr0, Status live, aber auf Commit 46ddebed678b495d7575e8548ecf0c0369c3967a; damit **nicht** identisch mit dem neueren Inventar-/Audit-HEAD.
+- Staging autoDeploy ist deaktiviert. Ein aktualisiertes Deployment erfordert nach bestandener CI einen expliziten Staging-Deploy.
+- Startlogs bestätigen API-Start, Supabase Data API HTTP 200 und konfigurierte Tavily-/OpenAI-Variablen. Das bestätigt keine erfolgreiche Modellantwort.
+- Ein Runtime-Log vom 28.11.2026 meldete beim kognitiven Router HTTP 429, Fehlercode credit_balance_exhausted. Der aktuell konfigurierte OpenAI-Pfad kann daher trotz vorhandenem Schlüssel durch fehlendes Provider-Guthaben blockiert sein. Ein Code-Retry kann fehlendes Guthaben nicht beheben.
+- Production-Service und Production-Daten wurden nicht verändert.
+
+### Phase-0-Restarbeiten
+1. Alle direkten OpenAI-Aufrufstellen anhand AST-Referenzen und Funktionskontext einzeln den Features und Tests zuordnen.
+2. Alle Providerzugriffe in backend/, src/, Scheduler-/Worker-Modulen und Build-/Runtime-Konfigurationen gegen die Inventur abgleichen; dynamische URL-Konstruktion bleibt eine statische Auditgrenze.
+3. Server-Routen, Hintergrundjobs, Capabilities und Datenbanktabellen/-funktionen zu einer durchgängigen Funktions-/Berechtigungsmatrix verbinden.
+4. Tatsächlichen STAGING-Schema- und Deployment-Commit lesend abgleichen; erst danach Gate 0 bewerten.
+5. Providerentkopplung erst nach abgeschlossenem Inventar schrittweise umsetzen. Keine vorschnelle Umleitung auf einen nicht vorhandenen lokalen Modellserver.
+
+**Status:** Providerinventur implementiert und CI-geprüft. Gate 0 bleibt **OFFEN**, bis die vollständige Feature-/Route-/Job-/Schema-Matrix und der STAGING-Abgleich abgeschlossen sind.
