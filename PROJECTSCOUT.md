@@ -7128,3 +7128,25 @@ Block 20 verbindet die vorhandenen Dialog-, Kontinuitäts-, Klärungs-, Gedächt
 
 ### Nächster Schritt
 Block 21: integrierte Gesprächs- und Wissensabnahme mit realistischen mehrsprachigen Admin-/Scout-Dialogen, fachübergreifenden Fragen, Korrekturen, Themenwechseln, Berechtigungsgrenzen und Fehlerfällen. Anschließend die Wissensdomänen als eigenständige, belegte und versionierte Wissenspakete planen, ohne unkontrolliertes automatisches Lernen.
+
+
+## 43. Block 21 — Cross-Domain Knowledge Coverage Completion — 2026-11-28
+
+### Befund aus dem bestehenden System
+Die hierarchische Wissensarchitektur und die Legacy-Domain-Wissensschicht waren bereits vorhanden. Die tatsächliche Domain-Allowlist und beide SQL-Check-Constraints enthielten jedoch weder `chemistry` noch `ethics`. Diese Fachgebiete waren zwar in der Produktanforderung genannt, aber noch keine eigenständigen, klassifizierbaren Wissensdomänen. Die Dokumentation allein hätte diese Lücke nicht geschlossen.
+
+### Implementierung
+- `backend/messinho-domain-knowledge.js`: `chemistry` und `ethics` als kanonische Wissensdomänen ergänzt.
+- Deutsche und englische Fachbegriffe für Chemie (Atome, Moleküle, Periodensystem, Reaktionen, Säuren/Basen, Stöchiometrie, Redox, pH) und Ethik (Deontologie, Utilitarismus, Tugendethik, Forschungsethik, KI-Ethik, Fairness) werden domänenspezifisch klassifiziert.
+- `docs/MESSINHO_KNOWLEDGE_FOUNDATION.md`: beide Domänen in die vierstufige Lernlandkarte aufgenommen; Branch-Metadaten aktualisiert.
+- Neue Migration `20261128190000_messinho_chemistry_ethics_domains.sql`: erweitert ausschließlich die Domain-Check-Constraints beider bestehenden Wissenstabellen. Sie legt keine Tabellen an, importiert keine Inhalte und ändert keine Berechtigungen.
+- Neue Tests `tests/messinho-domain-coverage.test.js`: prüfen Domain-Allowlist, deutsche/englische Klassifikation und beide SQL-Constraints.
+
+### Sicherheits- und Betriebsgrenzen
+- Die Migration ist nur als Datei vorbereitet und noch nicht auf Supabase ausgeführt.
+- Es werden keine Wissensinhalte automatisch aktiviert oder importiert. Die bestehenden Rechte-, Quellen-, Evidenz- und Admin-Freigaben bleiben unverändert.
+- Keine Änderung an Scouting-Bewertungen, Modellgewichten, Rollen, RLS oder Produktionssystem.
+- Vor der Nutzung der neuen Domains in STAGING muss die Migration dort kontrolliert angewendet und anschließend die Datenbankintegration getestet werden.
+
+### Nächster Schritt
+Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen. Dazu gehören repräsentative Grundfragen, korrekte Domain-Zuordnung, Quellen-/Rechteprüfung, Retrieval-Treffer, fachliche Grenzen und ein kontrollierter Admin-Freigabepfad. Erst danach wird eine fachbezogene Wissensaufnahme erweitert.
