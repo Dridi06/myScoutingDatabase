@@ -29,7 +29,7 @@ import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './me
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
 import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 import { planMessinhoAutonomously } from './messinho-autonomy.js';
-import { classifyMessinhoProviderFailure, resolveMessinhoLiveQuestion, buildMessinhoKnowledgeApplicationFollowUp, buildMessinhoVo2maxApplicationQuery, isMessinhoVo2maxApplicationDataReply } from './messinho-conversation.js';
+import { classifyMessinhoProviderFailure, resolveMessinhoLiveQuestion, getMessinhoSocialReply, buildMessinhoKnowledgeApplicationFollowUp, buildMessinhoVo2maxApplicationQuery, isMessinhoVo2maxApplicationDataReply } from './messinho-conversation.js';
 import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
 import { isMessinhoGeneralResearchQuestion, isMessinhoTimeSensitiveQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
@@ -2369,6 +2369,10 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
           processing_started_at:processingStartedAt,output_generated_at:outputGeneratedAt,output_persisted_at:storedAssistantMessage?.created_at||null},
         input_correction:correctionApplied?{applied:true,corrected:interpretedMessage,confidence:correction.confidence}:correction.changed?{applied:false,suggested:correction.corrected,confidence:correction.confidence}:{applied:false}});
     };
+    // Basic social conversation must remain available even when the language-model
+    // provider is unavailable. This deterministic path cannot dispatch tools/actions.
+    const socialReply=getMessinhoSocialReply(interpretedMessage,history,new Date());
+    if(socialReply)return respond({reply:socialReply,intent:'social_conversation',items:[],cognitive_routing:{status:'deterministic_social',actions_dispatched:false}});
     // Scouts may use MESSINHO for scouting and conversation, but cannot issue
     // commands that alter MESSINHO, its knowledge governance, operating mode,
     // model, sandbox, or platform-wide configuration. Enforce before routing.
