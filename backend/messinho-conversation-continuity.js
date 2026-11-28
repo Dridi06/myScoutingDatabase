@@ -6,7 +6,7 @@
 export const MESSINHO_CONVERSATION_CONTINUITY_VERSION = '1.0.0';
 const MAX_HISTORY = 16;
 const MAX_TEXT = 420;
-const SENSITIVE = /(?:password|api[ _-]?key|access[ _-]?token|secret|private[ _-]?key|krank(?:heit|en)?|diagnos(?:e|ed)|medikament|therapie|depress(?:ion|iv)|diabetes|blutdruck|religion|muslim|islam|christ(?:entum|lich)|j[uü]disch|polit(?:ik|ische partei)|wahlentscheidung|ethn(?:ie|isch)|sexuell(?:e|er)? orientierung|homosexuell|straf(?:tat|verfahren)|vorstrafe)/iu;
+const SENSITIVE = /(?:passw(?:ort|ord)|api[ _-]?key|access[ _-]?token|secret|private[ _-]?key|krank(?:heit|en)?|diagnos(?:e|ed)|medikament|therapie|depress(?:ion|iv)|diabetes|blutdruck|religion|muslim|islam|christ(?:entum|lich)|j[uü]disch|polit(?:ik|ische partei)|wahlentscheidung|ethn(?:ie|isch)|sexuell(?:e|er)? orientierung|homosexuell|straf(?:tat|verfahren)|vorstrafe)/iu;
 const TOPIC_CHANGE = /\b(?:anderes thema|unabhängig davon|unabhaengig davon|jetzt etwas anderes|neues thema|by the way|unrelated|new topic|autre sujet|por cierto|موضوع آخر|سؤال آخر)\b/iu;
 const CORRECTION = /\b(?:nein[, ]+(?:ich meinte|nicht)|ich meinte|gemeint habe ich|das stimmt nicht|nicht den|nicht die|nicht das|sondern|i meant|not that|that's not what|je voulais dire|no quise decir|موش هذا|موش هكا)\b/iu;
 const REFERENTIAL = /\b(?:das|dazu|damit|davon|darauf|daran|darüber|ihn|ihm|sie|es|sein(?:e|en|er|es)?|ihr(?:e|en|er|es)?|dort|dabei|it|this|that|these|those|he|she|him|her|his|hers|they|them|that one|the same|ça|cela|il|elle|lui|lo|la|él|ella|eso|este|esta|هذا|هذه|هو|هي|متاعو|متاعها)\b/iu;
