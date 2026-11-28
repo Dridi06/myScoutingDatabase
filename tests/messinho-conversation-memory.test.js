@@ -24,7 +24,7 @@ test('active frame retains the latest user goal across more than 20 turns withou
     { role: 'assistant', text: 'Vielleicht könnten wir auch Marktwerte stärker gewichten.' },
     ...Array.from({ length: 24 }, (_, index) => ({
       role: index % 2 ? 'assistant' : 'user',
-      text: index % 2 ? 'Verstanden, ich prüfe den nächsten Punkt.' : 'Zusätzlicher Gesprächsschritt Nummer ' + index
+      text: index % 2 ? 'Vielleicht könnten wir auch Marktwerte stärker gewichten.' : 'Ja, genau.'
     }))
   ];
   const memory = buildMessinhoConversationMemory({ history, currentMessage: 'Und wie setzen wir das um?' });
