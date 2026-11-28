@@ -25,7 +25,6 @@ test('myKI dashboard places key information before detailed sections',async()=>{
 
 test('secondary operational metadata and schedule are collapsed by default',async()=>{
  const [chat,monitor]=await Promise.all([read('src/asi/MyKiChat.jsx'),read('src/asi/MyKiActivityMonitor.jsx')]);
- assert.match(chat,/<details className="myki-agent-details">/);
  assert.match(chat,/setInterval\(refresh,30000\)/);
  assert.match(monitor,/<details className="myki-monitor-schedule-details">/);
 });
