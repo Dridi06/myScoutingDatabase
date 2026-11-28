@@ -7383,3 +7383,14 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Node-Regression: 759/759 bestanden; Backend-Syntax und vollständiger Vite-Produktionsbuild bestanden.
 - Render-Service bleibt auf `feature/messinho-conversation-engine`, `autoDeploy=no`. Production unverändert.
 - Sichtprüfung im Browser bleibt als abschließende Abnahme offen: Chat-Verlauf nach Reload, Client-/Server-/DB-Zeitpunkte, Ausgabezeitpunkte, Diagnose-/Entwicklungsstatus, Tickets, Ticketverlauf und Sandbox-Protokolle auf Desktop und Mobilgerät.
+
+
+## 2026-11-28 — Globale Zeitstempel-Abdeckung (Erweiterung nach Komponenten-Audit)
+- Verbindliche Regel gilt für die gesamte Anwendung, nicht nur für myKI: jeder persistierte Datensatz besitzt einen serverseitigen `created_at`-Zeitpunkt; änderbare Datensätze verwenden zusätzlich `updated_at`; Ereignis-/Audit-Tabellen speichern je Ereignis `created_at` bzw. fachliche Zeitpunkte wie `finished_at`, `resolved_at`, `reviewed_at`.
+- Supabase STAGING-Prüfung: 43 öffentliche Tabellen. Nach der Ergänzung besitzen 43/43 Tabellen ein `created_at` mit `timestamptz NOT NULL DEFAULT now()`. Einzige zuvor fehlende Tabelle war `messinho_agent_memory`; sie besitzt jetzt `created_at` und einen BEFORE UPDATE Trigger für `updated_at`. Der bestehende Datensatz erhält den Migrationszeitpunkt als Baseline, nicht einen erfundenen historischen Erstellungszeitpunkt.
+- Datenbankmigration: `supabase/migrations/20261128100000_global_timestamp_coverage.sql`; auf `myScoutingDatabase-staging` erfolgreich angewendet und Spalten/Defaults anschließend direkt geprüft.
+- Wichtige Korrektur aus dem Komponenten-Audit: Die primäre Scout/Admin-Konversation läuft über `src/asi/MessinhoWorkspace.jsx`, nicht nur über `MyKiChat.jsx`. Daher sind jetzt auch dort Client-Sendezeit, Servereingang, Datenbank-Speicherzeit, Ausgabeerzeugung und Ausgabe-Speicherzeit sichtbar; nicht bestätigte lokale Nachrichten werden als solche markiert.
+- Browser-Logs erhalten zentral in `src/main.jsx` dieselbe UTC-Zeitpräfixierung wie Backend-Logs. Backend-Logger-Wrapper wurde vor die initialen Konfigurations-/Startup-Logs verschoben, damit auch diese protokolliert werden.
+- myKI Diagnose, Systemdiagnose, Status, Reifegrad, Ticketboards, Ticketverläufe, Sandbox-Prüfläufe und Programmiergedächtnis behalten ihre Zeitstempel-Anzeigen. Alle API-JSON-Antworten erhalten `server_timestamp` und den Header `X-Server-Timestamp`.
+- Regressionstests erweitert: primäre MESSINHO-Konversation, Browser-/Backend-Logs, Datenbankmigration und bisherige myKI-Ausgaben.
+- Änderungen bleiben ausschließlich auf `feature/messinho-conversation-engine` und STAGING. Die neue UI-/Backend-Version muss nach grüner CI erneut nach STAGING deployed und dort visuell geprüft werden; Production bleibt unangetastet.
