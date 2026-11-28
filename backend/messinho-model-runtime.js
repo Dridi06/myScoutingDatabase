@@ -55,7 +55,7 @@ export async function requestMessinhoModelCompletion({
         headers:{'Content-Type':'application/json',...(apiKey?{Authorization:'Bearer '+apiKey}:{})},
         body:JSON.stringify({...baseBody,...(format?{response_format:format}:{})})
       });
-      const payload=await response.json().catch(()=>({}));
+      const payload=typeof response.json==='function'?await response.json().catch(()=>({})):{};
       if(!response.ok)return extractProviderError(payload,response.status,response.headers);
       const content=payload?.choices?.[0]?.message?.content;
       if(typeof content!=='string'||!content.trim())return {status:'invalid_output',content:null,error_code:'empty_model_response'};
