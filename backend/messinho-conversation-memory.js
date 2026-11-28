@@ -38,7 +38,7 @@ function buildActiveFrame({ history, currentMessage, dialogueState, continuityCo
       : current && !SHORT_REPLY.test(current) && !CONTINUATION.test(current)
         ? current
         : priorGoal;
-  const relation = currentIsTopicChange ? 'new_topic' : currentIsCorrection ? 'correction' : current ? 'current_turn' : 'history_only';
+  const isFollowUp = Boolean(current && (SHORT_REPLY.test(current) || FOLLOW_UP.test(current)));\n  const relation = currentIsTopicChange ? 'new_topic' : currentIsCorrection ? 'correction' : isFollowUp ? 'follow_up' : current ? 'current_turn' : 'history_only';
   const clarification = dialogueState?.continuity?.clarification_reply;
   const pending = dialogueState?.continuity?.pending_question;
   let pendingQuestion = null;
