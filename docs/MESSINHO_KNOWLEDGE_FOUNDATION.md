@@ -3,7 +3,7 @@
 Status: Implemented foundation schema and retrieval wiring on STAGING branch; knowledge content ingestion remains gated.
 Date: 2026-11-26
 Repository: Dridi06/myScoutingDatabase
-Branch: feature/messinho-unified-ai-integration
+Branch: feature/messinho-conversation-engine
 Environment: dedicated STAGING only
 
 ## Owner requirements (fixed)
@@ -22,9 +22,9 @@ Every domain uses four linked levels: foundational → intermediate → advanced
 |---|---|
 | Mathematics | Arithmetic, fractions, ratios, algebra and geometry → functions, equations and trigonometry → calculus, linear algebra, optimization → numerical methods and mathematical modelling |
 | Statistics | Data types, descriptive statistics and probability → distributions, sampling and inference → regression, Bayesian methods, time series and uncertainty → calibration, causal inference and forecasting validation |
-| Physics | Units, vectors, motion and forces → energy, momentum, pressure and fluids → electricity, waves and rotational mechanics → biomechanics and applied modelling |
+| Physics | Units, vectors, motion and forces → energy, momentum, pressure and fluids → electricity, waves and rotational mechanics → biomechanics and applied modelling |\n| Chemistry | Matter, atoms, elements and the periodic table → bonding, reactions, acids/bases and stoichiometry → thermochemistry, kinetics and equilibrium → analytical, organic and biochemical applications |
 | Biology | Cells, genetics and basic physiology → organ systems, metabolism and homeostasis → adaptation, neuromuscular and molecular mechanisms → performance biology and evidence synthesis |
-| Medicine | Anatomy, physiology and medical terminology → common conditions and injury mechanisms → orthopaedics, sports medicine and rehabilitation → guideline appraisal and safe return-to-sport evidence (not autonomous diagnosis or clearance) |
+| Medicine | Anatomy, physiology and medical terminology → common conditions and injury mechanisms → orthopaedics, sports medicine and rehabilitation → guideline appraisal and safe return-to-sport evidence (not autonomous diagnosis or clearance) |\n| Ethics | Moral concepts, duties, consequences and rights → deontology, consequentialism and virtue ethics → research, medical and professional ethics → AI ethics, fairness, accountability and applied case analysis |
 | Sports science | Training principles and fitness components → physiology, biomechanics and load → periodization, performance testing and recovery → integrated athlete development and injury-risk evidence |
 | Football | Laws, roles, positions and basic tactics → technical/tactical principles and match analysis → positional models, team structures and development → scouting intelligence, player projection and competition context |
 | Computer science / AI | Data structures, algorithms and databases → software design, APIs and security → machine learning, NLP and retrieval → agent planning, evaluation, governance and reliability |
