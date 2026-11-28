@@ -7771,3 +7771,19 @@ Die vier direkten OpenAI-HTTP-Aufrufstellen und die übrigen OpenAI-Referenzen e
 5. Route-/Job-/Capability-/Schema-Matrix abschließen.
 
 **Gate 0 bleibt OFFEN.** Staging-only; Production unverändert.
+
+
+## 28.11.2026 — STAGING-Deployment bestätigt
+
+- Nach bestandener CI (812/812 Tests, Backend-Syntax und Staging-Branch-CI erfolgreich) wurde der providerneutrale Sprachlaufzeit-Stand explizit auf STAGING deployed.
+- Render Deploy-ID: dep-dc5elih5efls73f8bk60.
+- Status: live.
+- Deployment-Commit: 71a14c31b9b91095f49ee5a2ebd848f57832eaad.
+- Render Startlogs: API gestartet, Supabase Data API HTTP 200, Tavily- und Legacy-OpenAI-Konfiguration vorhanden.
+- autoDeploy bleibt deaktiviert. Der explizite Deploy war notwendig.
+- Kein authentifizierter Chat-Smoke-Test wurde in diesem Schritt abgeschlossen; die externe Webansicht konnte /api/health nicht abrufen. Build/Start ist daher kein Nachweis einer funktionierenden Modellantwort.
+- Legacy OpenAI bleibt derzeit konfiguriert. Das zuvor beobachtete 429 / credit_balance_exhausted ist nicht durch Code oder Deploy behoben.
+- Keine Datenbankmigration oder Supabase-Konfigurationsänderung. Production unberührt.
+
+### Nächster verbindlicher Schritt
+Authentifizierte Chat-Smoke-Tests durchführen: Begrüßung und Smalltalk, freie normale Unterhaltung, Gesprächsfortsetzung mit Verlauf, Wissensabruf, ASI-Recherche, provider-neutraler Fallback und verständliche Quota-/Ausfallmeldung. Danach MyKi-Engineering providerneutral migrieren und verbleibende Gate-0-Sicherheits-/Migrationsbefunde schließen.
