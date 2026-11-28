@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {BrainCircuit,Send,Sparkles} from 'lucide-react';
+import {BrainCircuit,Send,Sparkles,LoaderCircle} from 'lucide-react';
 import './myki-chat.css';
 
 const timestampNow=()=>new Date().toISOString();
