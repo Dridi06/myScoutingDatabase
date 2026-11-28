@@ -44,6 +44,9 @@ test('all myKI dashboard panels expose their server or record timestamp',async()
  assert.match(main,/myKiDashboardUpdatedAt/);
  assert.match(main,/myKiSelected\.created_at/);
  assert.match(main,/event\.created_at\?/);
+ assert.match(main,/job\.created_at\?/);
+ assert.match(main,/memory\.created_at\?/);
+ assert.match(main,/memory\.reviewed_at\?/);
  assert.match(maturity,/payload\.generated_at\|\|payload\.server_timestamp/);
  assert.match(maturity,/Dashboard-Ausgabe erstellt/);
  assert.match(operations,/status\?\.generated_at\|\|status\?\.server_timestamp/);
