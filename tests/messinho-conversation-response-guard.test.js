@@ -42,7 +42,7 @@ test('server applies the response guard only to ordinary conversation replies',a
   const {readFile}=await import('node:fs/promises');
   const source=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
   assert.ok(source.includes('const naturalReply=await generateMessinhoNaturalConversationReply('));
-  assert.ok(source.includes("const replyDecision={...cognitive,reply:naturalReply.status==='completed'?naturalReply.reply:cognitive.reply}"));
+  assert.ok(source.includes("const replyDecision={...cognitive,reply:finalReply}"));
   assert.ok(source.includes('const guardedReply=guardMessinhoConversationReply(replyDecision)'));
   assert.ok(source.includes("intent:'conversation',items:[],pending:guardedReply.code==='empty_reply'"));
   assert.ok(source.indexOf("if(cognitive.intent==='conversation')") < source.indexOf('const naturalReply=await generateMessinhoNaturalConversationReply('));
