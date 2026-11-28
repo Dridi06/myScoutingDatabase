@@ -29,7 +29,7 @@ import { researchMessinhoMarketValue, researchMessinhoPlayerProfile } from './me
 import { planMessinhoCapabilities, runMessinhoCapabilityPlan, formatMessinhoCapabilityResults } from './messinho-orchestrator.js';
 import { executeMessinhoAgentPlan } from './messinho-agent-core.js';
 import { planMessinhoAutonomously } from './messinho-autonomy.js';
-import { classifyMessinhoProviderFailure, resolveMessinhoLiveQuestion, getMessinhoSocialReply, buildMessinhoKnowledgeApplicationFollowUp, buildMessinhoVo2maxApplicationQuery, isMessinhoVo2maxApplicationDataReply } from './messinho-conversation.js';
+import { classifyMessinhoProviderFailure, resolveMessinhoLiveQuestion, getMessinhoSocialReply, resolveMessinhoDeterministicFollowUp, buildMessinhoKnowledgeApplicationFollowUp, buildMessinhoVo2maxApplicationQuery, isMessinhoVo2maxApplicationDataReply } from './messinho-conversation.js';
 import { buildMessinhoStaleTaskQuarantinePatch, isMessinhoTaskLeaseExpired, isMessinhoTaskWriteConfirmed } from './messinho-task-policy.js';
 import { isMessinhoGeneralResearchQuestion, isMessinhoTimeSensitiveQuestion, researchMessinhoGeneralQuestion } from './messinho-general-research.js';
 import { findMessinhoKnowledge, storeMessinhoKnowledge } from './messinho-knowledge-memory.js';
@@ -2379,6 +2379,11 @@ app.post('/api/agent/chat',agentChatLimiter,async(req,res)=>{
     // provider is unavailable. This deterministic path cannot dispatch tools/actions.
     const socialReply=getMessinhoSocialReply(interpretedMessage,history,new Date());
     if(socialReply)return respond({reply:socialReply,intent:'social_conversation',items:[],cognitive_routing:{status:'deterministic_social',actions_dispatched:false}});
+    const deterministicFollowUp=resolveMessinhoDeterministicFollowUp(interpretedMessage,history);
+    if(deterministicFollowUp)return respond({
+      reply:deterministicFollowUp.reply,intent:deterministicFollowUp.intent,items:[],
+      cognitive_routing:{status:'deterministic_context_follow_up',actions_dispatched:false,provider_required:false}
+    });
     const actor={user:authData.user,profile};
     const agentMemory=await loadMessinhoAgentMemory(ownerId);
     const entityResolution=resolveMessinhoEntityReferences({
