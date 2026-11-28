@@ -7828,3 +7828,17 @@ Authentifizierte Chat-Smoke-Tests durchführen: Begrüßung und Smalltalk, freie
 4. Continue remaining Gate 0 work: route/worker/capability permission matrix, migration-content reconciliation, and Supabase least-privilege/auth findings.
 
 **Gate 0 remains OPEN. Production remains untouched.**
+
+
+### 28.11.2026 — STAGING-Deployment der providerneutralen MyKi-Version bestätigt
+
+- Render-Service: `myscoutingdatabase-messinho-staging` (`srv-dc3chlqjnfac73acd6ig`), Branch `feature/messinho-conversation-engine`, autoDeploy weiterhin deaktiviert.
+- Deployment: `dep-dc5f6hmi0phs73dhvbj0`; Status **live**; deployed commit `63804884f7922a2d8fe8390801999b2ca819e114`.
+- Build erfolgreich; Vite-Produktionsbuild abgeschlossen. Der Server startete und meldete `myScoutingDatabase API listening on 10000`.
+- Supabase Data API lieferte beim Start HTTP 200. Startlogs meldeten Tavily und Legacy-OpenAI-Konfiguration vorhanden.
+- Dies bestätigt Build und Prozessstart, nicht den erfolgreichen authentifizierten Chat oder eine erfolgreiche Modellantwort. Die zuvor beobachtete Provider-Quota-Erschöpfung ist weiterhin separat zu verifizieren.
+- GitHub CI auf demselben Commit: 817 Node-Tests bestanden, Backend-Syntax erfolgreich, Staging-Branch-CI erfolgreich.
+- Der separate GitHub-Workflow `MESSINHO isolated engineering sandbox` war zum Zeitpunkt dieses Eintrags noch beim Bau des dedizierten Compiler-Images; die Sandbox-Ausführung selbst und ein Evidence-Callback sind daher nicht bestätigt.
+- Kein authentifizierter End-to-End-Smoke-Test abgeschlossen, da keine autorisierte Staging-Testsitzung vorlag. Keine Supabase-Migration, keine Datenänderung und keine Production-Aktion.
+
+**Nächster Schritt:** autorisierte Staging-Testsitzung für Chat/Smalltalk, Kontext-Folgefrage, MyKi-Review im Vorschlagsmodus und Providerfehlerbehandlung verwenden; parallel die ausstehende Sandbox-Workflow-Ausführung abschließend prüfen.
