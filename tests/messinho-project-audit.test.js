@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {runMessinhoProjectAudit} from '../backend/messinho-project-audit.js';
+import {runMessinhoProjectAudit,extractModuleSpecifiers} from '../backend/messinho-project-audit.js';
 
 test('project audit inventories project areas and build/test pipeline without executing code',async()=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'messinho-audit-'));
@@ -53,6 +53,17 @@ test('project audit accepts the direct Vite CLI build used by the staging packag
  }finally{await rm(root,{recursive:true,force:true});}
 });
 
+
+test('module import tokenizer finds side-effect and named imports but ignores string examples',()=>{
+ const source=[
+  "import test from 'node:test';",
+  "import '../backend/feature.js';",
+  "import { other } from '../backend/other.js';",
+  "const example = \\\"import { fake } from './not-real.js';\\\";",
+  "// import './comment.js';"
+ ].join('\\n');
+ assert.deepEqual(extractModuleSpecifiers(source),['node:test','../backend/feature.js','../backend/other.js']);
+});
 
 test('project audit ignores import examples in strings and comments and maps tests by real imports',async()=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'messinho-audit-import-graph-'));
