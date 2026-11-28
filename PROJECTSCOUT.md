@@ -7526,3 +7526,17 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Arbeitsbranch enthält die Änderungen; letzter Code-/Testcommit: `b49cfe95e1107f1980e81d1a577b88fd90dc225a`. Die CI-Nachprüfung für diesen neuesten Commit ist noch nicht bestätigt. Daher **kein STAGING-Deployment ausgelöst** und keine Aussage, dass der myKI-Entwickler bereits wieder erfolgreich läuft.
 - STAGING bleibt auf der zuletzt bestätigten Laufversion; Production und Production-Datenbank bleiben unverändert.
 - Nächster Schritt: CI für den neuesten Branch-Stand vollständig abwarten/prüfen. Bei grünem Test-, Syntax- und Buildlauf kontrolliert nach STAGING deployen; danach „Entwicklung starten“ erneut auslösen und den nun sichtbaren sicheren Fehlergrund bzw. einen erfolgreichen Vorschlag verifizieren.
+
+
+
+### Block 7 — providerunabhängiger Smalltalk, Nachrichtenbereinigung und STAGING-Rollout (28.11.2026)
+- Fehlerbild aus Benutzer-Screenshot: einfache Begrüßung `hallo` wurde nicht beantwortet, stattdessen Provider-Fehlertext; zusätzlich erschien eine alleinstehende schließende Klammer `}` unter Benutzer- und Assistentennachrichten.
+- Routing geprüft: Der deterministische Social-Conversation-Pfad ist vor dem kognitiven Router und vor externen Sprachdienst-Aufrufen platziert. Er beantwortet einfache Begrüßungen providerunabhängig und dispatcht keine Tools/Aktionen. Admin-Berechtigungsprüfung bleibt davor. Die zugehörigen Regressionstests bestätigen diese Reihenfolge.
+- UI-Nachrichtenbereinigung in `src/asi/myki-chat-utils.js` ergänzt und in `src/asi/MyKiChat.jsx` für eingehende, gesendete und neu erzeugte Nachrichten sowie beim Wiederherstellen des Verlaufs eingebunden. Die Bereinigung entfernt eine einzelne abschließende Klammerzeile nur bei einfachem Text ohne Code-/Brace-Kontext. Komplexe Inhalte werden unverändert gelassen.
+- Engineering-Review-Fehlerdiagnose aus Block 6 bleibt enthalten: sichere Fehlerstufe und Ursache werden zurückgegeben, ohne Tokens oder Provider-Antwortkörper zu protokollieren.
+- Aktueller Branch-Commit: `b9aa02b879a24a54ebb34acfc499edc657b6280e`.
+- CI auf diesem Commit: Node-Tests **795/795 PASS**, Backend-Syntax **PASS**, vollständige STAGING-Branch-CI einschließlich Vite-Produktionsbuild **PASS**.
+- Render STAGING Deployment `dep-dc5dkrp7lnhs73bk4j7g` für Commit `b9aa02b879a24a54ebb34acfc499edc657b6280e` ist **LIVE** (Build erfolgreich; Deployment erfolgreich am 28.11.2026 um 13:43:56 UTC).
+- STAGING-URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- Production und Production-Datenbank wurden nicht verändert.
+- Benutzerabnahme bleibt erforderlich: STAGING neu laden, im MESSINHO-Chat `hallo` senden und prüfen, ob eine normale Begrüßung ohne Provider-Fehler erscheint. Danach prüfen, ob unter Benutzer- und Assistentennachrichten keine alleinstehende `}` mehr steht. Die erfolgreiche CI belegt die Code-/Build-Prüfung, nicht die tatsächliche Browserabnahme.
