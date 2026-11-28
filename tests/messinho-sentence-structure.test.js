@@ -19,7 +19,7 @@ test('identifies German subordinate clause and finite-verb-final candidate witho
 test('extracts English subject and verb candidates conservatively', () => {
   const result = analyzeMessinhoSentenceStructure('The player is ready because he trains.', 'en');
   const clauses = result.sentences[0].clauses;
-  assert.ok(clauses.some(clause => clause.subject_candidate === 'The'));
+  assert.ok(clauses.some(clause => clause.subject_candidate === 'player'));
   assert.ok(clauses.some(clause => clause.marker === 'because'));
   assert.ok(clauses.some(clause => clause.finite_verb_candidate === 'trains'));
 });
