@@ -16,6 +16,7 @@ import { evaluateMessinhoConversationCase } from './messinho-conversation-evalua
 import { resolveMessinhoModelConfig, requestMessinhoModelCompletion } from './messinho-model-runtime.js';
 import { isMessinhoSandboxStagingAllowed } from './messinho-sandbox-dispatch.js';
 import { buildMessinhoDependencyGraph } from './messinho-project-audit.js';
+import { runMessinhoMemoryPersistenceAudit } from './messinho-memory-persistence-audit.js';
 
 const DEFAULT_ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const safe=(value,max=1200)=>String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
@@ -129,7 +130,7 @@ function runToolParameterFuzzing(){
   passed?'info':'critical',{cases:results,execution_scope:'pure capability runtime validation only'},
   'Eingabevalidierung, Längenlimits und Fehlerstatus der betroffenen Capability-Handler gezielt härten.');
 }
-function runMemoryIntegrityAudit(){
+async function runMemoryIntegrityAudit({db,ownerId}={}){
  const timestamp='2026-11-28T00:00:00.000Z';
  const similarity=scoreMessinhoKnowledgeSimilarity('Wie speichert MESSINHO bestätigtes Wissen dauerhaft?','MESSINHO speichert bestätigtes Wissen dauerhaft.');
  const initial={long_term_memory:[{text:'Black and gold project theme',category:'project',confidence:0.9,created_at:'2026-01-01T00:00:00.000Z'}]};
@@ -236,7 +237,7 @@ async function runModelBindingAudit(env,probeProvider){
    response_format:'json_object',response_content_stored:false},
   'Providerverbindung, Modellkompatibilität, Timeout und Structured-Output-Unterstützung prüfen. Rohantworten und API-Schlüssel werden nicht gespeichert.');
 }
-export async function runMessinhoFullStackIntelligenceAudit({root=DEFAULT_ROOT,env=process.env,history=[],probeProvider=false}={}){
+export async function runMessinhoFullStackIntelligenceAudit({root=DEFAULT_ROOT,env=process.env,history=[],probeProvider=false,db=null,ownerId=null}={}){
  const started=Date.now(),checkedAt=new Date().toISOString();
  const files=await Promise.all(SOURCE_DIRS.map(dir=>countFiles(root,dir)));
  const modules=[
@@ -245,7 +246,7 @@ export async function runMessinhoFullStackIntelligenceAudit({root=DEFAULT_ROOT,e
   runLinguisticSyntheticTests(),
   runCognitiveSafetyTests(),
   runToolParameterFuzzing(),
-  runMemoryIntegrityAudit(),
+  await runMemoryIntegrityAudit({db,ownerId}),
   runPromptInjectionBoundaryTest(),
   await runSandboxAudit(root,env)
  ];
@@ -265,7 +266,7 @@ export async function runMessinhoFullStackIntelligenceAudit({root=DEFAULT_ROOT,e
  modules.push(check('Evolution und Audit-Trend','Evolution',true,
   'Historische Vergleichsläufe: '+evolution.previous_runs+'; aktueller Teilmodul-Passanteil: '+Math.round(evolution.current_pass_rate*100)+' %; Trend: '+evolution.trend+'.',
   'info',evolution,'Mehrere versionierte Läufe mit gleicher Testbasis speichern und Erfolgsraten, Fehlerwiederholungen und Laufzeiten vergleichen.'));
- const providerCalls=modules.some(item=>item.evidence?.probe_executed===true)?1:0;
+ const providerCalls=modules.some(item=>item.evidence?.probe_executed===true)?1:0;\n const memoryDatabaseMutations=Number(modules.find(item=>item.category==='Memory-Integrität')?.evidence?.persistence?.evidence?.database_mutations_attempted)||0;
  const failed=modules.filter(item=>!item.ok);
  const critical=failed.filter(item=>item.severity==='critical');
  const status=critical.length?'CRITICAL_FAILURE':failed.length?'DEGRADED':'PASS';
