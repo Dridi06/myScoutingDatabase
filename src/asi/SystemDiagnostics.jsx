@@ -3,7 +3,7 @@ import {Activity,AlertTriangle,CheckCircle2,Clock3,RefreshCw,ShieldCheck,Chevron
 import './systemDiagnostics.css';
 import {supabase} from '../supabaseClient';
 
-const dateTime=value=>value?new Date(value).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'medium'}):'—';
+const dateTime=value=>value?new Date(value).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'medium',timeZone:'Europe/Berlin'}):'—';
 const labelStatus=status=>status==='healthy'?'Betriebsbereit':status==='warning'?'Hinweise vorhanden':'Kritischer Fehler';
 const statusClass=status=>status==='healthy'?'healthy':status==='warning'?'warning':'critical';
 // Successful and informational/optional checks are intentionally hidden in the default report view.
