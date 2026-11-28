@@ -7273,3 +7273,11 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - User-facing confirmation still required: sign in to STAGING, click the new "Diagnose starten" action while MESSINHO remains paused, and confirm the saved report and summary appear. This authenticated end-to-end UI action has not yet been executed by the admin.
 
 - Follow-up formatting correction: diagnostic summaries now use real multiline rendering in the chat. Verified on commit ebd4bf011f794e2395a4279ff720bb5ac7780f25: 745/745 Node tests passed, backend syntax passed, Vite production build succeeded. Render STAGING deployment dep-dc58tj6c6qcc73866pb0 is LIVE on this commit.
+
+## 2026-11-28 — Project-Audit false positives corrected
+- Admin's first manual MESSINHO diagnosis completed and persisted while autonomous mode remained paused. It reported CRITICAL 19/21 with two static-audit findings: eight "unresolvable" relative imports and six backend modules without same-basename tests.
+- Code review found both heuristics were unsound: the import scanner treated import examples inside JavaScript string assertions/comments as real imports; test assignment compared file basenames instead of resolving actual test import dependencies. The findings were not evidence of eight broken imports or six untested modules.
+- backend/messinho-project-audit.js now tokenizes JavaScript module syntax and ignores comments, strings, templates and regex literals; resolves actual static, re-export and literal dynamic imports against the project inventory; and maps backend modules to test files through resolved relative import targets rather than filename similarity.
+- Added regression coverage for import examples embedded in strings/comments, static and side-effect imports, real missing imports, test imports with different filenames, and the staging Vite CLI build script.
+- Verified commit d8e48965c05a0d849682cefb1a3f25ba2db9b447: 747/747 Node tests passed; backend syntax checks passed; staging branch CI including production Vite build passed. Isolated engineering sandbox validation was still running when this note was prepared.
+- Next: deploy this validated audit correction to Render STAGING only, rerun the admin MESSINHO diagnosis, and inspect whether the eight import and six test-assignment warnings disappear. Do not start autonomous development or modify Production.
