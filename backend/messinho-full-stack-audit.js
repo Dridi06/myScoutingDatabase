@@ -270,7 +270,8 @@ export async function runMessinhoFullStackIntelligenceAudit({root=DEFAULT_ROOT,e
  modules.push(check('Evolution und Audit-Trend','Evolution',true,
   'Historische Vergleichsläufe: '+evolution.previous_runs+'; aktueller Teilmodul-Passanteil: '+Math.round(evolution.current_pass_rate*100)+' %; Trend: '+evolution.trend+'.',
   'info',evolution,'Mehrere versionierte Läufe mit gleicher Testbasis speichern und Erfolgsraten, Fehlerwiederholungen und Laufzeiten vergleichen.'));
- const providerCalls=modules.some(item=>item.evidence?.probe_executed===true)?1:0;\n const memoryDatabaseMutations=Number(modules.find(item=>item.category==='Memory-Integrität')?.evidence?.persistence?.evidence?.database_mutations_attempted)||0;
+ const providerCalls=modules.some(item=>item.evidence?.probe_executed===true)?1:0;
+ const memoryDatabaseMutations=Number(modules.find(item=>item.category==='Memory-Integrität')?.evidence?.persistence?.evidence?.database_mutations_attempted)||0;
  const failed=modules.filter(item=>!item.ok);
  const critical=failed.filter(item=>item.severity==='critical');
  const status=critical.length?'CRITICAL_FAILURE':failed.length?'DEGRADED':'PASS';
