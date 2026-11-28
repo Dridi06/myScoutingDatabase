@@ -132,3 +132,19 @@ test('natural composer receives bounded reasoning plan for actual response gener
  assert.equal(payload.reasoning_intelligence_context.task.kind,'calculation');
  assert.ok(payload.reasoning_intelligence_context.validation_checks.includes('verify_arithmetic_and_units'));
 });
+
+
+test('natural composer receives bounded verification feedback for one correction attempt',()=>{
+ const messages=buildMessinhoNaturalConversationMessages({
+  message:'Was sind 15 Prozent von 240?',
+  verificationFeedback:{
+   draft_reply:'15 Prozent von 240 sind 42.',
+   findings:[{code:'percentage_arithmetic_mismatch',severity:'critical',expected:36,claimed:42}],
+   correction:{required:true,instructions:[{code:'percentage_arithmetic_mismatch',instruction:'Recalculate from the original inputs.',expected:36}]}
+  }
+ });
+ const payload=JSON.parse(messages[1].content);
+ assert.equal(payload.answer_verification_feedback.draft_reply,'15 Prozent von 240 sind 42.');
+ assert.equal(payload.answer_verification_feedback.instructions[0].expected,36);
+ assert.match(messages[0].content,/one correction attempt only/i);
+});
