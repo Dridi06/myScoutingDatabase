@@ -20,11 +20,14 @@ test('scouting requests are not intercepted by the greeting handler',()=>{
  assert.equal(getMessinhoSocialReply('Hallo, suche einen Innenverteidiger'),null);
 });
 
-test('chat route handles social greetings before the cognitive router',async()=>{
+test('natural conversation engine is the safe fallback when semantic routing fails',async()=>{
  const server=await readFile(new URL('../backend/server.js',import.meta.url),'utf8');
- const greeting=server.indexOf('const socialReply=getMessinhoSocialReply(interpretedMessage,history);');
- const cognitive=server.indexOf('const cognitiveResult=await classifyMessinhoTurn({');
- assert.ok(greeting>=0);
- assert.ok(cognitive>greeting);
- assert.match(server.slice(greeting,cognitive),/return respond\(\{reply:socialReply,intent:'social_conversation'/);
+ const failure=server.indexOf("if(cognitiveResult.status!=='completed'||!cognitiveResult.decision){");
+ const fallback=server.indexOf('const conversationalFallback=await generateMessinhoNaturalConversationReply({',failure);
+ const blocked=server.indexOf("intent:'conversation_provider_unavailable'",fallback);
+ assert.ok(failure>=0);
+ assert.ok(fallback>failure);
+ assert.ok(blocked>fallback);
+ assert.match(server.slice(failure,blocked),/actions_dispatched:false/);
+ assert.doesNotMatch(server,/getMessinhoSocialReply\(interpretedMessage/);
 });
