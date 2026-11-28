@@ -249,11 +249,14 @@ export async function runMessinhoFullStackIntelligenceAudit({root=DEFAULT_ROOT,e
   runPromptInjectionBoundaryTest(),
   await runSandboxAudit(root,env)
  ];
- const previous=Array.isArray(history)?history.filter(item=>item&&item.status&&item.summary).slice(0,5):[];
+ const comparableCategories=new Set(['Code & Tools','LLM & Modellbindung','Intelligence & Linguistik','Sandbox & Ressourcen',
+  'Kognition & Sicherheit','Tool-Fuzzing','Memory-Integrität','Sicherheit']);
+ const previous=Array.isArray(history)?history.filter(item=>item&&item.status).slice(0,10):[];
  const previousRates=previous.map(item=>{
-  const total=Number(item.summary?.total||item.summary?.checks||0),passed=Number(item.summary?.passed||0);
+  const comparable=(Array.isArray(item.checks)?item.checks:[]).filter(check=>comparableCategories.has(check.category));
+  const total=comparable.length,passed=comparable.filter(check=>check.ok===true).length;
   return total>0?Number((passed/total).toFixed(4)):null;
- }).filter(value=>value!==null);
+ }).filter(value=>value!==null).slice(0,5);
  const currentPassed=modules.filter(item=>item.ok).length;
  const evolution={baseline_available:previousRates.length>0,previous_runs:previousRates.length,
   previous_pass_rates:previousRates,current_pass_rate:Number((currentPassed/modules.length).toFixed(4)),
