@@ -7787,3 +7787,24 @@ Die vier direkten OpenAI-HTTP-Aufrufstellen und die übrigen OpenAI-Referenzen e
 
 ### Nächster verbindlicher Schritt
 Authentifizierte Chat-Smoke-Tests durchführen: Begrüßung und Smalltalk, freie normale Unterhaltung, Gesprächsfortsetzung mit Verlauf, Wissensabruf, ASI-Recherche, provider-neutraler Fallback und verständliche Quota-/Ausfallmeldung. Danach MyKi-Engineering providerneutral migrieren und verbleibende Gate-0-Sicherheits-/Migrationsbefunde schließen.
+
+
+## 28.11.2026 — MyKi Engineering provider-neutral migration
+
+- Repository: `Dridi06/myScoutingDatabase`; branch: `feature/messinho-conversation-engine`.
+- Continuation point preserved: the previous language/chat, ASI search/analysis, general knowledge, critic, player-profile and market-value paths already use `backend/messinho-model-runtime.js`; MyKi Engineering was the remaining direct model-provider dependency.
+- `backend/messinho-myki-engineer.js` now resolves `MESSINHO_MODEL_BASE_URL`, `MESSINHO_MODEL_API_KEY`, and `MESSINHO_MODEL_NAME` through the shared runtime. Legacy `OPENAI_*` remains only as compatibility fallback through `resolveMessinhoModelConfig`; no OpenAI URL or authorization header is hardcoded in MyKi Engineering.
+- MyKi keeps its GitHub pinned-source retrieval and patch validation unchanged. Model completion is routed through `requestMessinhoModelCompletion`.
+- Transient provider retry behavior remains bounded to three attempts for HTTP 429/502/503/504; quota codes including `insufficient_quota`, `billing_hard_limit`, `quota_exceeded`, and `credit_balance_exhausted` fail immediately without repeated billing attempts. Bounded `Retry-After` is propagated by the shared runtime.
+- Engineering review retains its 4,500-token budget through an explicit per-call cap; the runtime's default 128-token cap remains unchanged for existing callers.
+- `backend/messinho-engineering-scheduler.js` now gates autonomous review on provider-neutral model readiness, including local endpoints without a hosted API key, while retaining the explicit STAGING service identity and Supabase service credential checks.
+- Added regression coverage for local/provider-neutral configuration, 4,500-token engineering output, bounded Retry-After, immediate quota failure and scheduler readiness. Test execution is pending CI after this commit; no test result is claimed before CI reports it.
+- No database changes, migrations, secrets, Render configuration or deployment were changed in this step. Production remains untouched.
+
+### Next required gate
+1. Verify all CI workflows for the new code commit, including Node tests, backend syntax and isolated STAGING engineering workflow.
+2. If CI passes, explicitly deploy this exact code commit to the isolated Render STAGING service only (auto-deploy remains disabled).
+3. Run authenticated STAGING smoke tests for ordinary chat, MyKi proposal-only review, local/provider-neutral model routing and quota failure. Confirm that proposal generation still does not apply code changes directly.
+4. Continue the documented route/job/capability permission matrix and remaining Gate 0 security/migration reconciliation.
+
+**Gate 0 remains OPEN.** No production deployment or production-side change is authorized.
