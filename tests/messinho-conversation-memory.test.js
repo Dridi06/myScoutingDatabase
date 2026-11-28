@@ -1,24 +1,60 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildMessinhoConversationMemory, formatMessinhoConversationMemory } from '../backend/messinho-conversation-memory.js';
-test('conversation memory is bounded and scoped to one owner conversation',()=>{const history=Array.from({length:60},(_,i)=>({role:i%2?'assistant':'user',text:`Message number ${i}`}));const m=buildMessinhoConversationMemory({history,conversationId:'conversation-alpha'});assert.equal(m.scope,'owner_conversation');assert.equal(m.conversation_id,'conversation-alpha');assert.equal(m.message_count,40);assert.ok(m.items.length<=8);assert.ok(m.items.reduce((n,x)=>n+x.text.length,0)<=1600);assert.equal(m.persisted_summary,false);});
-test('conversation memory filters sensitive text and duplicates',()=>{const m=buildMessinhoConversationMemory({history:[{role:'user',text:'Wir arbeiten am Projekt Alpha.'},{role:'assistant',text:'Wir arbeiten am Projekt Alpha.'},{role:'user',text:'Mein Passwort lautet Geheim123.'},{role:'user',text:'Der nächste Schritt ist die Testphase.'}]});assert.equal(m.items.length,2);assert.equal(m.items.some(x=>x.text.includes('Geheim123')),false);});
-test('formatter returns only compact context fields',()=>{const m=buildMessinhoConversationMemory({history:[{role:'user',text:'Bitte vergleiche die zwei Spieler.'}]});assert.deepEqual(Object.keys(formatMessinhoConversationMemory(m)).sort(),['active_frame','items','message_count','scope','source']);assert.equal(formatMessinhoConversationMemory({items:[]}),null);});
+import {
+  buildMessinhoConversationMemory,
+  formatMessinhoConversationMemory
+} from '../backend/messinho-conversation-memory.js';
 
-test('conversation memory keeps the newest distinct turns and preserves their chronological order',()=>{
- const m=buildMessinhoConversationMemory({history:[
-  {role:'user',text:'Ältere Aufgabe eins.'},
-  {role:'assistant',text:'Ältere Antwort eins.'},
-  {role:'user',text:'Ältere Aufgabe zwei.'},
-  ...Array.from({length:12},(_,i)=>({role:i%2?'assistant':'user',text:'Aktueller Gesprächsschritt '+i}))
- ]});
- assert.equal(m.items.length,8);
- assert.equal(m.items[0].text,'Aktueller Gesprächsschritt 4');
- assert.equal(m.items.at(-1).text,'Aktueller Gesprächsschritt 11');
+test('conversation memory is bounded and scoped to one owner conversation', () => {
+  const history = Array.from({ length: 60 }, (_, index) => ({
+    role: index % 2 ? 'assistant' : 'user',
+    text: 'Message number ' + index
+  }));
+  const memory = buildMessinhoConversationMemory({ history, conversationId: 'conversation-alpha' });
+  assert.equal(memory.scope, 'owner_conversation');
+  assert.equal(memory.conversation_id, 'conversation-alpha');
+  assert.equal(memory.message_count, 40);
+  assert.ok(memory.items.length <= 8);
+  assert.ok(memory.items.reduce((total, item) => total + item.text.length, 0) <= 1600);
+  assert.equal(memory.persisted_summary, false);
 });
 
+test('conversation memory filters sensitive text and duplicates', () => {
+  const memory = buildMessinhoConversationMemory({ history: [
+    { role: 'user', text: 'Wir arbeiten am Projekt Alpha.' },
+    { role: 'assistant', text: 'Wir arbeiten am Projekt Alpha.' },
+    { role: 'user', text: 'Mein Passwort lautet Geheim123.' },
+    { role: 'user', text: 'Der nächste Schritt ist die Testphase.' }
+  ] });
+  assert.equal(memory.items.length, 2);
+  assert.equal(memory.items.some(item => item.text.includes('Geheim123')), false);
+});
 
-test('active frame retains the latest user goal across more than 20 turns without promoting assistant suggestions', () => {
+test('formatter returns bounded active-frame context', () => {
+  const memory = buildMessinhoConversationMemory({
+    history: [{ role: 'user', text: 'Bitte vergleiche die zwei Spieler.' }]
+  });
+  assert.deepEqual(Object.keys(formatMessinhoConversationMemory(memory)).sort(),
+    ['active_frame', 'items', 'message_count', 'scope', 'source']);
+  assert.equal(formatMessinhoConversationMemory({ items: [] }), null);
+});
+
+test('conversation memory keeps the newest distinct turns in chronological order', () => {
+  const memory = buildMessinhoConversationMemory({ history: [
+    { role: 'user', text: 'Ältere Aufgabe eins.' },
+    { role: 'assistant', text: 'Ältere Antwort eins.' },
+    { role: 'user', text: 'Ältere Aufgabe zwei.' },
+    ...Array.from({ length: 12 }, (_, index) => ({
+      role: index % 2 ? 'assistant' : 'user',
+      text: 'Aktueller Gesprächsschritt ' + index
+    }))
+  ] });
+  assert.equal(memory.items.length, 8);
+  assert.equal(memory.items[0].text, 'Aktueller Gesprächsschritt 4');
+  assert.equal(memory.items.at(-1).text, 'Aktueller Gesprächsschritt 11');
+});
+
+test('active frame retains the original user goal across 20+ turns and a short follow-up', () => {
   const history = [
     { role: 'user', text: 'Wir wollen die Spielerbewertung für U19-Talente verbessern.' },
     { role: 'assistant', text: 'Vielleicht könnten wir auch Marktwerte stärker gewichten.' },
@@ -27,8 +63,13 @@ test('active frame retains the latest user goal across more than 20 turns withou
       text: index % 2 ? 'Vielleicht könnten wir auch Marktwerte stärker gewichten.' : 'Ja, genau.'
     }))
   ];
-  const memory = buildMessinhoConversationMemory({ history, currentMessage: 'Und wie setzen wir das um?' });
-  assert.match(memory.active_frame.active_topic_candidate, /Spielerbewertung für U19-Talente verbessern/);\n  assert.match(memory.active_frame.current_message, /Und wie setzen wir das um/);\n  assert.equal(memory.active_frame.relation, 'follow_up');
+  const memory = buildMessinhoConversationMemory({
+    history,
+    currentMessage: 'Und wie setzen wir das um?'
+  });
+  assert.match(memory.active_frame.active_topic_candidate, /Spielerbewertung für U19-Talente verbessern/);
+  assert.match(memory.active_frame.current_message, /Und wie setzen wir das um/);
+  assert.equal(memory.active_frame.relation, 'follow_up');
   assert.equal(memory.active_frame.active_goal_authority, 'user_message_candidate_not_verified_fact');
   assert.deepEqual(memory.active_frame.confirmed_user_constraints, []);
   assert.equal(memory.active_frame.persistence, 'derived_per_request_not_persisted');
@@ -36,7 +77,7 @@ test('active frame retains the latest user goal across more than 20 turns withou
   assert.doesNotMatch(JSON.stringify(memory.active_frame), /Marktwerte stärker gewichten/);
 });
 
-test('explicit topic switch resets prior task context and starts a new frame', () => {
+test('explicit topic switch resets prior task context', () => {
   const memory = buildMessinhoConversationMemory({
     history: [
       { role: 'user', text: 'Suche einen schnellen Stürmer unter 21 Jahren.' },
@@ -50,7 +91,7 @@ test('explicit topic switch resets prior task context and starts a new frame', (
   assert.equal(memory.active_frame.pending_question, null);
 });
 
-test('correction becomes the active user candidate and supersedes the earlier interpretation', () => {
+test('correction explicitly supersedes the earlier interpretation', () => {
   const memory = buildMessinhoConversationMemory({
     history: [
       { role: 'user', text: 'Wir müssen die Spielersuche verbessern.' },
@@ -59,11 +100,11 @@ test('correction becomes the active user candidate and supersedes the earlier in
     currentMessage: 'Nein, ich meinte nicht die Suchfilter, sondern die Bewertung.'
   });
   assert.equal(memory.active_frame.relation, 'correction');
+  assert.equal(memory.active_frame.supersedes_previous_interpretation, true);
   assert.match(memory.active_frame.active_topic_candidate, /Bewertung/);
-  assert.equal(memory.active_frame.active_topic_candidate, 'Nein, ich meinte nicht die Suchfilter, sondern die Bewertung.');
 });
 
-test('pending clarification is represented as awaiting, candidate answer, or ambiguous without silently resolving it', () => {
+test('pending clarification remains unconfirmed until semantic review', () => {
   const base = {
     history: [
       { role: 'user', text: 'Suche einen Spieler.' },
@@ -72,7 +113,12 @@ test('pending clarification is represented as awaiting, candidate answer, or amb
     currentMessage: 'Regionalliga',
     dialogueState: {
       continuity: {
-        pending_question: { status: 'awaiting_answer', text: 'Welche Liga möchtest du?', kind: 'target_level', options: ['Bundesliga', 'Regionalliga'] },
+        pending_question: {
+          status: 'awaiting_answer',
+          text: 'Welche Liga möchtest du?',
+          kind: 'target_level',
+          options: ['Bundesliga', 'Regionalliga']
+        },
         clarification_reply: { status: 'likely_answer' }
       }
     }
@@ -82,7 +128,12 @@ test('pending clarification is represented as awaiting, candidate answer, or amb
   assert.equal(answered.answer_requires_semantic_confirmation, true);
   const ambiguous = buildMessinhoConversationMemory({
     ...base,
-    dialogueState: { continuity: { ...base.dialogueState.continuity, clarification_reply: { status: 'ambiguous' } } }
+    dialogueState: {
+      continuity: {
+        ...base.dialogueState.continuity,
+        clarification_reply: { status: 'ambiguous' }
+      }
+    }
   }).active_frame.pending_question;
   assert.equal(ambiguous.status, 'needs_clarification');
 });
@@ -96,5 +147,8 @@ test('sensitive historical content is excluded from active frame and formatted m
     currentMessage: 'Und weiter?'
   });
   assert.doesNotMatch(JSON.stringify(memory), /Geheim123/);
-  assert.equal(formatMessinhoConversationMemory(memory).active_frame.active_topic_candidate, 'Wir planen die nächste Spielersuche.');
+  assert.equal(
+    formatMessinhoConversationMemory(memory).active_frame.active_topic_candidate,
+    'Wir planen die nächste Spielersuche.'
+  );
 });
