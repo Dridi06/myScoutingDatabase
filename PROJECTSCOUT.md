@@ -6636,3 +6636,14 @@ Eingaben sollen auch bei Tippfehlern, unvollständigen Formulierungen und mehrsp
 - Keine Modellgewichte, kein Training, keine Berechtigungen und keine Produktionsressourcen verändert.
 - Änderungen bleiben auf feature/messinho-conversation-engine und STAGING beschränkt.
 - PR #58 bleibt Draft und ungemergt.
+
+
+### Block 12 Phase A STAGING verification — 2026-11-28
+- Tested code commit: 5fc0cbd50647f4222871723d50b52136a99028d5 — 658/658 Node tests passed; backend syntax and full STAGING branch CI/Vite build succeeded.
+- Deployed commit: 18d81a93adb66f2b55e07984259f12c8f3d775b2.
+- Render deployment: dep-dc54ftk9v7es7395f26g — status live, finished 2026-11-28T03:18:53.999979Z.
+- Build event succeeded at 2026-11-28T03:18:36.380358Z.
+- Runtime confirmed API listening on port 10000, Supabase Data API HTTP 200 and Render “Your service is live”.
+- STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- Render automatic deploy remains disabled; only the explicitly verified STAGING service was updated.
+- PR #58 remains open, Draft and unmerged. Production remains untouched.
