@@ -566,7 +566,7 @@ async function executeMessinhoDiagnostics(actorProfileId,{probeProvider=false}={
     return {ok,detail:`Lokaler deterministischer Kern arbeitet ohne externe KI-Aufrufe; Engine ${result.engine_version}; Lernmodul ${typeof buildMessinhoLearningProposal}.`};
   });
   const {data:priorAuditRuns}=await db.from('messinho_diagnostic_runs').select('status,summary,checks,created_at').order('created_at',{ascending:false}).limit(5);
-  const fullStackAudit=await runMessinhoFullStackIntelligenceAudit({root:process.cwd(),env:process.env,history:priorAuditRuns||[],probeProvider});
+  const fullStackAudit=await runMessinhoFullStackIntelligenceAudit({root:process.cwd(),env:process.env,history:priorAuditRuns||[],probeProvider,db,ownerId:actorProfileId});
   for(const item of fullStackAudit.modules){
     checks.push({name:'Full-Stack · '+item.name,category:item.category,ok:item.ok,detail:item.detail,severity:item.severity,
       severity_label:item.severity==='critical'?'Kritisch':item.severity==='warning'?'Mittel':'Niedrig',
