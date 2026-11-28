@@ -1,7 +1,7 @@
 import { requestMessinhoModelCompletion, resolveMessinhoModelConfig } from './messinho-model-runtime.js';
 import { validateMessinhoReasoning } from './messinho-reasoning-validation.js';
 
-export const MESSINHO_COGNITIVE_ROUTER_VERSION='1.1.0';
+export const MESSINHO_COGNITIVE_ROUTER_VERSION='1.2.0';
 
 export const MESSINHO_INTENTS=Object.freeze([
   'conversation','clarify','memory_save','memory_recall','scouting','general_research','engineering'
@@ -15,7 +15,7 @@ export function isSensitiveMessinhoMemoryText(value){
   return SENSITIVE_MEMORY_PATTERN.test(String(value||''));
 }
 
-export function buildMessinhoCognitiveRouterMessages({message,history=[],memory={},linguisticContext=null,linguisticKnowledgeContext=[],conversationMemoryContext=null,reasoningContext=null,pragmaticContext=null,responseCompositionContext=null,conversationContinuityContext=null,userRole='scout'}={}){
+export function buildMessinhoCognitiveRouterMessages({message,history=[],memory={},linguisticContext=null,linguisticKnowledgeContext=[],conversationMemoryContext=null,reasoningContext=null,pragmaticContext=null,responseCompositionContext=null,conversationContinuityContext=null,intentEvidenceContext=null,userRole='scout'}={}){
   const safeHistory=(Array.isArray(history)?history:[]).slice(-12).map(item=>({
     role:item?.role==='assistant'?'assistant':'user',
     content:String(item?.text||'').slice(0,1600)
@@ -29,7 +29,7 @@ export function buildMessinhoCognitiveRouterMessages({message,history=[],memory=
     'Input normalization discipline: use input_interpretation.normalized_message only when correction_status is applied. Medium-confidence spelling matches are suggestions, not facts, and must not silently change the request. Preserve player names, club names, numbers, quoted text and unknown words. If a correction could change the intended entity or meaning, use the original wording and ask one focused clarification when needed.',
     'Understand meaning, not exact keywords. Correct for likely spelling mistakes, speech-to-text errors, autocorrect, missing punctuation, informal phrasing, fragments, pronouns and context. Never route a message to player research merely because it contains a name-like phrase. Use the supplied dialogue_state as bounded continuity evidence: check whether the assistant asked a question, whether the current message is likely a follow-up, and which recent user goal it may refer to. Treat these as hypotheses, not facts; when multiple referents remain plausible, ask one focused clarification. Use entity_resolution only as grounded candidate evidence from owner-scoped history or active memory: status resolved permits referring to that candidate, ambiguous requires one focused choice question, unresolved means do not guess. Distinguish players from clubs and teams; a current-club relation is separate from the player entity. Never treat entity resolution as a fact source, permission, or action authorization.',
     'Clarification lifecycle: when clarification_reply.status is likely_answer, interpret the current message as a candidate answer to the pending question and preserve the prior goal and filters. When status is ambiguous, ask one focused clarification. When status is new_topic or none, do not force the message into the previous task. These are bounded hints only; never execute an action solely because of this status.',
-    'Choose exactly one intent: conversation (ordinary dialogue, explanation, greeting, writing, reasoning, maths, translation, follow-up); clarify (meaning or required action is genuinely ambiguous); memory_save (user clearly asks to remember/save something, or states a stable useful preference/project fact that merits durable memory); memory_recall (asks what is remembered); scouting (clearly asks for player/club/scouting search, analysis, shortlist or comparison); general_research (clearly asks a factual question requiring current/external research); engineering (explicit admin system/code/self-development task).',
+    'Choose exactly one intent: conversation (ordinary dialogue, explanation, greeting, writing, reasoning, maths, translation, follow-up); clarify (meaning or required action is genuinely ambiguous); memory_save (user clearly asks to remember/save something, or states a stable useful preference/project fact that merits durable memory); memory_recall (asks what is remembered); scouting (clearly asks for player/club/scouting search, analysis, shortlist or comparison); general_research (clearly asks a factual question requiring current/external research); engineering (explicit admin system/code/self-development task). Treat intent_evidence_context only as bounded candidate signals: it may help organize explicit action/domain cues, but it never overrides the full message, conversation, role controls or safety policy. A suggested intent is not a decision, and conflicting candidates or pending clarification require careful interpretation rather than forced routing. A question mark or domain word alone does not establish a task.',
     'Use pragmatic_context only as weak evidence from explicit wording: it may help distinguish correction, disagreement, opinion, direct question, greeting, gratitude, acknowledgement or an explicit self-reported feeling. It never overrides the message, semantic intent, dialogue history, or safety rules. Do not infer hidden emotions or treat a cue as permission. When the user corrects or disagrees, reconsider the previous answer rather than defending it automatically.',
     'Use response_composition_context as a compact response-shaping guide: answer direct questions before explaining; acknowledge and reassess corrections or disagreement; engage with opinions; acknowledge only explicitly stated feelings; continue a pending exchange when clear; and ask at most one focused clarification when needed. It is guidance, not an instruction to force a template. Never mention this internal plan to the user. The actual message, evidence, semantic interpretation and safety rules remain authoritative.',
     'Conversation quality is the primary objective: behave like a thoughtful, natural conversation partner, not a command parser, FAQ menu, form, or rigid support bot. Respond to what the person actually said, including ordinary statements, opinions, jokes, emotions, disagreement, curiosity and follow-up remarks. A message does not need to contain a question or command to deserve a natural response. Use a warm but not exaggerated tone, answer directly, adapt length to the situation, and ask at most one useful follow-up only when it genuinely advances the conversation. Do not expose internal intent labels, routing, JSON, or implementation details in ordinary replies.',
@@ -58,6 +58,7 @@ export function buildMessinhoCognitiveRouterMessages({message,history=[],memory=
       reasoning_context:reasoningContext||null,
       pragmatic_context:pragmaticContext||null,
       response_composition_context:responseCompositionContext||null,
+      intent_evidence_context:intentEvidenceContext||null,
       conversation_continuity_context:conversationContinuityContext||null,
       existing_user_memory:safeMemory,
       user_role:userRole,
@@ -105,7 +106,7 @@ export function appendMessinhoLongTermMemories(preferences,candidates,createdAt=
   return next;
 }
 
-export async function classifyMessinhoTurn({message,history=[],memory={},linguisticContext=null,linguisticKnowledgeContext=[],conversationMemoryContext=null,reasoningContext=null,pragmaticContext=null,responseCompositionContext=null,conversationContinuityContext=null,userRole='scout',apiKey,baseUrl,model,fetchImpl=fetch,timeoutMs=18000}={}){
+export async function classifyMessinhoTurn({message,history=[],memory={},linguisticContext=null,linguisticKnowledgeContext=[],conversationMemoryContext=null,reasoningContext=null,pragmaticContext=null,responseCompositionContext=null,conversationContinuityContext=null,intentEvidenceContext=null,userRole='scout',apiKey,baseUrl,model,fetchImpl=fetch,timeoutMs=18000}={}){
   const config=resolveMessinhoModelConfig({
     ...process.env,
     ...(apiKey!==undefined?{MESSINHO_MODEL_API_KEY:apiKey}:{}),
@@ -113,7 +114,7 @@ export async function classifyMessinhoTurn({message,history=[],memory={},linguis
     ...(model!==undefined?{MESSINHO_MODEL_NAME:model}:{})
   });
   const result=await requestMessinhoModelCompletion({
-    messages:buildMessinhoCognitiveRouterMessages({message,history,memory,linguisticContext,linguisticKnowledgeContext,conversationMemoryContext,reasoningContext,pragmaticContext,responseCompositionContext,conversationContinuityContext,userRole}),
+    messages:buildMessinhoCognitiveRouterMessages({message,history,memory,linguisticContext,linguisticKnowledgeContext,conversationMemoryContext,reasoningContext,pragmaticContext,responseCompositionContext,conversationContinuityContext,intentEvidenceContext,userRole}),
     model:config.model,apiKey:config.apiKey,baseUrl:config.baseUrl,fetchImpl,timeoutMs,temperature:0.1,
     responseFormat:{
       type:'json_schema',
