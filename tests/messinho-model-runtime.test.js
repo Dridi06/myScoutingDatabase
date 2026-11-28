@@ -92,3 +92,24 @@ test('provider-neutral chat runtime reports exhausted provider quota without exp
  assert.equal(result.error_code,'insufficient_quota');
  assert.equal(JSON.stringify(result).includes('private-token'),false);
 });
+
+
+test('model runtime supports an explicitly raised token budget for engineering review without changing the default cap',async()=>{
+ let captured=null;
+ await requestMessinhoModelCompletion({
+  model:'engineering-model',apiKey:'test-secret',baseUrl:'https://provider.invalid/v1',
+  maxTokens:4500,maxTokensLimit:4500,messages:[{role:'user',content:'review'}],
+  fetchImpl:async(_url,options)=>{captured=JSON.parse(options.body);return {ok:true,status:200,json:async()=>({choices:[{message:{content:'ok'}}]})};}
+ });
+ assert.equal(captured.max_tokens,4500);
+});
+
+test('model runtime preserves a bounded Retry-After hint for safe transient retries',async()=>{
+ const result=await requestMessinhoModelCompletion({
+  model:'engineering-model',apiKey:'test-secret',baseUrl:'https://provider.invalid/v1',
+  messages:[{role:'user',content:'review'}],
+  fetchImpl:async()=>({ok:false,status:503,headers:{get:name=>name==='retry-after'?'1.5':null},json:async()=>({error:{code:'temporarily_unavailable'}})})
+ });
+ assert.equal(result.status,'provider_error');
+ assert.equal(result.retry_after_ms,1500);
+});
