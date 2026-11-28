@@ -320,3 +320,21 @@ test('full project audit exposes provider inventory with runtime and test refere
   assert.equal(result.provider_inventory.references.filter(item=>item.scope==='test_only').length,1);
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+
+test('repository-wide provider inventory reports runtime dependencies without secrets',async()=>{
+ const result=await runMessinhoProjectAudit();
+ const inventory=result.provider_inventory;
+ console.log('MESSINHO_PROVIDER_INVENTORY '+JSON.stringify({
+  scanned_runtime_files:inventory.scanned_runtime_files,
+  runtime_reference_count:inventory.runtime_reference_count,
+  providers:inventory.providers,
+  openai:inventory.openai,
+  provider_neutral_model_config_files:inventory.provider_neutral_model_config_files
+ }));
+ assert.ok(inventory.scanned_runtime_files>0);
+ assert.ok(inventory.openai.reference_count>0);
+ assert.ok(inventory.openai.files.includes('backend/server.js'));
+ assert.ok(inventory.openai.direct_http_calls>0);
+ assert.ok(inventory.provider_neutral_model_config_files.includes('backend/messinho-model-runtime.js'));
+});
