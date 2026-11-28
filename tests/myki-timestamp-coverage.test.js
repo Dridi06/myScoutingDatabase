@@ -15,7 +15,7 @@ test('backend stamps all JSON responses and all console log levels in UTC',async
 test('MESSINHO input and output persist database timestamps and lifecycle metadata',async()=>{
  const server=await read('backend/server.js');
  assert.match(server,/client_submitted_at:clientSubmittedAt,server_received_at:serverReceivedAt/);
- assert.match(server,/const requestReceivedAt=new Date\\(\\)\\.toISOString\\(\\)/);
+ assert.match(server,/const requestReceivedAt=new Date\(\)\.toISOString\(\)/);
  assert.match(server,/const serverReceivedAt=requestReceivedAt/);
  assert.match(server,/select\('id,created_at'\)\.single\(\)/);
  assert.match(server,/processing_started_at:processingStartedAt,output_generated_at:outputGeneratedAt/);
