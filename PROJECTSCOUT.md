@@ -6656,3 +6656,13 @@ Eingaben sollen auch bei Tippfehlern, unvollständigen Formulierungen und mehrsp
 - Added regression coverage for multiple strong typo signals, a single typo, Derja text and an explicit non-German language.
 - Code commit 12d82f5cb94736ee6f0f4673fbbecdf8c1a86a02: Node tests, backend syntax and full STAGING CI/Vite build succeeded.
 - This remains a conservative fallback, not general multilingual spell correction.
+
+
+### Block 12 Phase A.1 STAGING deployment verification — 2026-11-28
+- Code commit: 12d82f5cb94736ee6f0f4673fbbecdf8c1a86a02; full Node test, backend syntax and STAGING branch CI/build workflows succeeded.
+- Deployed commit: 7a265d57cccee2cbffed48a9e00eec96d2c05f64.
+- Render deployment: dep-dc54hie1egvs73ai7b70 — status live, finished 2026-11-28T03:22:23.355940Z.
+- Build event succeeded; Vite build completed in 2.27 seconds.
+- Runtime confirmed API listening on port 10000, Supabase Data API HTTP 200 and Render “Your service is live”.
+- STAGING URL: https://myscoutingdatabase-messinho-staging.onrender.com
+- No database migration or persistent user/player/scout/learning data changes. PR #58 remains Draft and unmerged. Production untouched.
