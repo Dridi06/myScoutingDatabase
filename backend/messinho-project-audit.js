@@ -405,7 +405,7 @@ export function scanMessinhoProviderReferences(source,file='unknown.js'){
  visitAst(ast,node=>{
   if(node.type==='MemberExpression'){
    const value=memberPath(node);
-   const envKey=value.match(/(?:process\.env|import\.meta\.env)\.([A-Z][A-Z0-9_]*)$/)?.[1];
+   const envKey=value.match(/(?:process\.env|import\.meta\.env|env)\.([A-Z][A-Z0-9_]*)$/)?.[1];
    if(envKey&&/^(?:OPENAI_|ANTHROPIC_|GOOGLE_|GEMINI_|TAVILY_|GROQ_|MISTRAL_|COHERE_|MESSINHO_MODEL_)/.test(envKey)){
     const provider=envKey.startsWith('MESSINHO_MODEL_')?'provider_neutral_model_config':
      envKey.startsWith('TAVILY_')?'tavily':envKey.startsWith('OPENAI_')?'openai':
