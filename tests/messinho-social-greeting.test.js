@@ -17,7 +17,7 @@ test('MESSINHO returns a natural greeting without an AI provider call',()=>{
 });
 
 test('scouting requests are not intercepted by the greeting handler',()=>{
- assert.equal(getMessinhoSocialReply('Hallo, suche einen Innenverteidiger'),'Hallo, suche einen Innenverteidiger'.match(/$^/)?.[0]??null);
+ assert.equal(getMessinhoSocialReply('Hallo, suche einen Innenverteidiger'),null);
 });
 
 test('chat route handles social greetings before the cognitive router',async()=>{
