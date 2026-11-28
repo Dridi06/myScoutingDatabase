@@ -199,7 +199,7 @@ async function runSandboxAudit(root,env){
   '; fehlend: '+failed.length+'. Container-CPU/RAM/PID-Werte werden vom Sandbox-Runner direkt aus cgroup erfasst; sie werden nicht aus dem Webprozess abgeleitet.',
   ok?'info':'critical',{controls:checks,failed_controls:failed,
    resource_limits:{memory:'3 GiB',cpu:'2 vCPU',pids:128,job_timeout:'15 Minuten',baseline_timeout:'8 Minuten'},
-   runtime_metrics:{source:'Sandbox-Runner cgroup v2',fields:['memory.current','memory.max','cpu.stat usage_usec','cpu.stat nr_throttled','pids.current','pids.max'],emitted_to_job_log:true},
+   runtime_metrics:{source:'Sandbox-Runner cgroup v2',fields:['memory.current','memory.max','cpu.stat usage_usec','cpu.stat nr_throttled','pids.current','pids.max'],instrumentation_configured:true,aggregated_into_admin_report:false},
    execution:{network_access:false,container_read_only:true,source_mount_read_only:true,application_code_executed:false,
     sandbox_job_dispatched:false,production_access:false}},
   'Isolationsworkflow, Runner und Docker-Limits reparieren. Ressourcenwerte nur innerhalb des Containers messen; keine Hostwerte als Sandboxwerte ausgeben.');
@@ -277,7 +277,7 @@ export async function runMessinhoFullStackIntelligenceAudit({root=DEFAULT_ROOT,e
   modules,summary:{total:modules.length,passed:modules.length-failed.length,failed:failed.length,
    critical_failed:critical.length,warnings:failed.length-critical.length},
   limitations:['Die optionale Live-Probe misst einen begrenzten JSON-Aufruf und gemeldete Tokenverwendung; das vollständige Kontextfenster des Providers wird dadurch nicht ermittelt.',
-   'CPU/RAM-Werte des tatsächlichen Sandbox-Containers müssen innerhalb des Containers oder aus dessen Jobmetriken erhoben werden.',
+   'CPU/RAM-Werte werden im Sandbox-Runner aus cgroup erfasst und in Joblogs ausgegeben; eine Aggregation dieser Messwerte in den Admin-Bericht ist noch offen.',
    'Subjektive Natürlichkeit, Ironie und semantische Qualität erfordern menschliche oder unabhängige Modellbewertung.',
    'Der Audit führt keine Toolfunktionen, Netzwerkaktionen, Sandbox-Jobs, Lernwrites oder automatischen Codekorrekturen aus.']};
 }
