@@ -58,14 +58,16 @@ test('all myKI dashboard panels expose their server or record timestamp',async()
 });
 
 test('diagnostic checks, runs, tickets and ticket audit events have authoritative timestamp fields',async()=>{
- const [server,diagnostics,tickets,migration]=await Promise.all([
+ const [server,diagnostics,tickets,migration,activity]=await Promise.all([
   read('backend/server.js'),read('src/asi/SystemDiagnostics.jsx'),
-  read('backend/messinho-myki-tickets.js'),read('supabase/migrations/202611270001_messinho_myki_tickets.sql')
+  read('backend/messinho-myki-tickets.js'),read('supabase/migrations/202611270001_messinho_myki_tickets.sql'),read('src/asi/MyKiActivityMonitor.jsx')
  ]);
  assert.match(server,/checkedAt:new Date\(\)\.toISOString\(\)/);
  assert.match(server,/created_at:row\.created_at/);
  assert.match(diagnostics,/dateTime\(check\.checkedAt\)/);
  assert.match(diagnostics,/dateTime\(run\.finished_at\)/);
+ assert.match(diagnostics,/timeZone:'Europe\\/Berlin'/);
+ assert.match(activity,/timeZone:'Europe\\/Berlin'/);
  assert.match(migration,/created_at timestamptz not null default now\(\)/);
  assert.match(tickets,/created_at/);
 });
