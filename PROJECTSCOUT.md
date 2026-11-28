@@ -7281,3 +7281,7 @@ Block 22: echte Wissensabdeckung und Retrieval-Qualität pro Fachdomäne prüfen
 - Added regression coverage for import examples embedded in strings/comments, static and side-effect imports, real missing imports, test imports with different filenames, and the staging Vite CLI build script.
 - Verified commit d8e48965c05a0d849682cefb1a3f25ba2db9b447: 747/747 Node tests passed; backend syntax checks passed; staging branch CI including production Vite build passed. Isolated engineering sandbox validation was still running when this note was prepared.
 - Next: deploy this validated audit correction to Render STAGING only, rerun the admin MESSINHO diagnosis, and inspect whether the eight import and six test-assignment warnings disappear. Do not start autonomous development or modify Production.
+
+- Deployment of the audit correction completed: Render STAGING deployment dep-dc592us9v7es739ltpe0 is LIVE on commit 7843abc0dbe50353de6cbae5b3965b2a6340a36a. Build logs confirm Vite build success and the API process started; service reported live.
+- Supabase global MESSINHO control was rechecked after deployment and remains mode=paused, stop_requested=true. No autonomous development was started and no Production deployment occurred.
+- Required next validation is a fresh manual admin diagnosis against this deployment. The prior 19/21 result belongs to the old audit implementation and must not be used as the new baseline.
