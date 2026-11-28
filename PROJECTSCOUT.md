@@ -7703,3 +7703,41 @@ Dieser Entwicklungsweg ist ab sofort die maßgebliche und verbindliche Roadmap f
 
 ### Nächster verbindlicher Schritt
 Die vier direkten OpenAI-HTTP-Aufrufstellen und die übrigen OpenAI-Referenzen einzeln einem konkreten Feature, Endpunkt, Hintergrundjob, Datenvertrag, Berechtigungsmodell und Regressionstest zuordnen. Danach Route-/Job-/Capability-/Schema-Matrix schließen und erst dann Gate 0 bewerten. Keine Provider-Migration vor Abschluss dieser Zuordnung.
+
+
+
+## 28.11.2026 — Providerneutrale Sprachlaufzeit und STAGING-Abgleich
+
+### Verbindliche Fortsetzung
+- Repository/Branch: Dridi06/myScoutingDatabase — feature/messinho-conversation-engine.
+- Aktueller HEAD zum Eintrag: 677033bc57dce2f9af4082f2e5ba0782bbbe3d39.
+- Ausschließlich STAGING und lesende Prüfungen; Production bleibt unangetastet.
+- Der bestehende Chat POST /api/agent/chat bleibt die einzige Benutzeroberfläche.
+
+### Implementiert
+- Der freie Gesprächspfad in backend/server.js verwendet jetzt die providerneutrale Schnittstelle backend/messinho-model-runtime.js.
+- Bevorzugte Konfiguration: MESSINHO_MODEL_BASE_URL, MESSINHO_MODEL_API_KEY, MESSINHO_MODEL_NAME.
+- Vorläufige Legacy-Kompatibilität: OPENAI_BASE_URL, OPENAI_API_KEY, OPENAI_MODEL. OpenAI kann also übergangsweise weiterverwendet werden, ist aber nicht mehr als direkter HTTP-Aufruf im freien Chatpfad fest verdrahtet.
+- Localhost/self-hosted-kompatible Endpunkte können ohne Hosted API Key angesprochen werden, sofern die Laufzeit-URL als lokale Adresse erkannt wird.
+- Tests für Providerkonfigurations-Priorität, Legacy-Fallback, lokalen Key-Modus, Fehlerbehandlung und Secret-Schutz ergänzt.
+- Direkte OpenAI-Aufrufe in Spielersuche/Discovery, bestimmten Spieler-Folgeanalysen und MyKi-Engineering sind noch nicht migriert; diese folgen einzeln mit Vertrag und Regressionstests.
+- Tavily bleibt ein separater Rechercheanbieter und ist nicht mit der Sprachlaufzeit gleichzusetzen.
+
+### STAGING-Schema — nur lesend geprüft
+- Projekt myScoutingDatabase-staging, Supabase-ID nwqwnrhupbyhshsprxjt.
+- 43 öffentliche Tabellen, alle mit RLS aktiviert; 24 MESSINHO- und 13 ASI-Tabellen.
+- 44 gespeicherte Gesprächsnachrichten, 84 Sprachwissenseinträge, 20 MESSINHO-Diagnosen, 11 Engineering-Review-Runs und 2 MyKi-Tickets.
+- MESSINHO-Agent-Control ist vorhanden; der Datensatz ist pausiert. Es wird keine autonome Live-Ausführung behauptet.
+- 75 explizite Express-Routen in backend/server.js erkannt. Die vollständige Rollen-/Owner-/Tabellen-/Testzuordnung steht noch aus.
+
+### Migrationen
+- Repository enthält 64 SQL-Dateien; Supabase führt 74 Migrationsdatensätze.
+- Ein einfacher Namensvergleich zeigt 13 DB-Einträge ohne exakte Dateinamenentsprechung und 6 Dateien ohne exakte DB-Namensentsprechung. Historische Umbenennungen sind möglich; daraus darf keine Schemaabweichung abgeleitet werden.
+- Keine Migration erneut ausführen, als angewendet markieren oder anderweitig ändern, bevor SQL-Inhalte und tatsächliche DB-Struktur abgeglichen sind.
+
+### CI und Deployment
+- Für HEAD 677033bc57dce2f9af4082f2e5ba0782bbbe3d39 wurden Node-Tests, Backend-Syntax und Staging-CI gestartet; bei Eintrag noch nicht abschließend verifiziert.
+- Render Staging autoDeploy bleibt deaktiviert; aktuelles Live-Deployment ist älter als dieser Branch-HEAD. Kein Deploy wurde in diesem Schritt ausgelöst.
+- Nächste Schritte: CI abschließend prüfen; Routen-/Worker-/Capability-Matrix vervollständigen; Migrationen inhaltlich vergleichen; danach weitere direkte Providerzugriffe hinter die neutrale Laufzeit ziehen; erst nach bestandener CI Staging-Deploy und authentifizierte Smoke-Tests.
+
+**Gate 0 bleibt OFFEN.** Keine Datenbankänderung, kein Staging-Deploy, kein Production-Eingriff.
